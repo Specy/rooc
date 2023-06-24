@@ -8,6 +8,7 @@ pub struct Tableau {
     a: Vec<Vec<f64>>,
     b: Vec<f64>,
     in_basis: Vec<usize>,
+    current_value: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -40,8 +41,8 @@ pub enum SimplexError {
 }
 
 impl Tableau {
-    pub fn new(c: Vec<f64>, a: Vec<Vec<f64>>, b: Vec<f64>, in_basis: Vec<usize>) -> Tableau {
-        Tableau { c, a, b, in_basis }
+    pub fn new(c: Vec<f64>, a: Vec<Vec<f64>>, b: Vec<f64>, in_basis: Vec<usize>, current_value: f64) -> Tableau {
+        Tableau { c, a, b, in_basis , current_value}
     }
     pub fn solve(&mut self, limit: i64) -> Result<OptimalTableau, SimplexError> {
         let mut iteration = 0;
@@ -138,7 +139,7 @@ impl Tableau {
     }
     //performs the pivot operation where variable h enters the basis and variable B(t) leaves the basis
     fn pivot(&mut self, t: usize, h: usize) -> Result<(), ()> {
-        //println!("Pivot: ({},{})", t, h);
+        println!("Pivot: ({},{})", t, h);
         let in_basis = &mut self.in_basis;
         let a = &mut self.a;
         let b = &mut self.b;
@@ -160,6 +161,7 @@ impl Tableau {
         for i in 0..c.len() {
             c[i] -= factor * a[t][i];
         }
+        self.current_value -= factor * b[t];
         //normalize the pivot row
         for i in 0..a[t].len() {
             a[t][i] /= pivot;
@@ -171,12 +173,7 @@ impl Tableau {
         Ok(())
     }
     pub fn get_current_value(&self) -> f64 {
-        let values = self.get_variables_values();
-        self.c
-            .iter()
-            .enumerate()
-            .map(|(i, c)| c * values[i])
-            .sum()
+        self.current_value
     }
     pub fn to_fractional_tableau(&mut self) -> FractionalTableau {
         FractionalTableau::new(self)
@@ -189,7 +186,9 @@ pub struct PrettyFraction {
 }
 impl PrettyFraction {
     fn new(num: f64) -> PrettyFraction {
+        //TODO make it use precision for smaller numbers
         let f = Rational64::from_f64(num).unwrap();
+        
         PrettyFraction {
             numerator: *f.numer(),
             denominator: *f.denom(),

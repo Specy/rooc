@@ -1,41 +1,61 @@
 use rooc::simplex::Tableau;
+use term_table::{row::Row, table_cell::TableCell, Table};
 
-
-fn main() { 
+fn main() {
     let mut tableau = Tableau::new(
         vec![-3.0, -4.0, -7.0, 0.0, 0.0],
-        vec![
-            vec![1.0,3.0,4.0,1.0,0.0],
-            vec![2.0,1.0,3.0,0.0,1.0],
-        ],
+        vec![vec![1.0, 3.0, 4.0, 1.0, 0.0], vec![2.0, 1.0, 3.0, 0.0, 1.0]],
         vec![1.0, 2.0],
         vec![3, 4],
+        0.0,
     );
     let mut tableau = Tableau::new(
         vec![3.0, 4.0, 6.0],
-        vec![
-            vec![0.0, 1.0, 1.0],
-            vec![1.0, -1.0, 0.0],
-        ],
+        vec![vec![0.0, 1.0, 1.0], vec![1.0, -1.0, 0.0]],
         vec![0.0, 1.0],
         vec![2, 0],
+        0.0,
     );
     let mut tableau = Tableau::new(
         vec![-3.0, -4.0, -7.0, 0.0, 0.0],
+        vec![vec![1.0, 3.0, 4.0, 1.0, 0.0], vec![2.0, 1.0, 3.0, 0.0, 1.0]],
+        vec![1.0, 2.0],
+        vec![3, 4],
+        0.0,
+    );
+    let mut tableau = Tableau::new(
+        vec![-4.0, -0.25, -0.25, -0.25, 0.0, 0.0, 0.0],
         vec![
-            vec![1.0,3.0,4.0,1.0,0.0],
-            vec![2.0,1.0,3.0,0.0, 1.0],
+            vec![2.0, 5.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            vec![3.0, 0.0, 10.0, 0.0, 0.0, 1.0, 0.0],
+            vec![12.0, 0.0, 0.0, 25.0, 0.0, 0.0, 1.0],
         ],
-        vec![1.0,2.0],
-        vec![3,4],
+        vec![75.0, 250.0, 500.0],
+        vec![4, 5, 6],
+        0.0,
     );
     let result = tableau.solve(1000);
-    match result{
+    match result {
         Ok(optimal_tableau) => {
-            println!("X*={:?} \nv={}", optimal_tableau.get_variables_values().clone(), optimal_tableau.get_optimal_value());
             let pretty = tableau.to_fractional_tableau();
-            println!("{}", pretty.pretty_string())
-        },
+            let table = pretty.pretty_table();
+            let mut cli_table = Table::new();
+            let values = optimal_tableau.get_variables_values().clone();
+            let mut header = Row::new(
+                values
+                    .iter()
+                    .map(TableCell::new)
+            );
+            header.cells.push(TableCell::new(optimal_tableau.get_optimal_value()));
+            cli_table.add_row(header);
+            let empty: Vec<TableCell> = Vec::new();
+            cli_table.add_row(Row::new(empty));
+            table.iter().for_each(|row| {
+                cli_table.add_row(Row::new(row.iter().map(TableCell::new)));
+            });
+            println!("{}", cli_table.render());
+            println!("Optimal value: {}", optimal_tableau.get_optimal_value());
+        }
         Err(e) => {
             println!("Error: {:?}", e);
         }
