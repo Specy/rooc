@@ -1,22 +1,43 @@
+
 use crate::simplex::Tableauable;
 
 
 
 
 
-
-enum ConstraintType{
+#[derive(Debug, PartialEq, Clone)]
+pub enum Comparison{
     Lower,
     LowerOrEqual,
     Upper,
     UpperOrEqual,
     Equal,
 }
+#[derive(Debug, PartialEq, Clone)]
+pub enum Operator{
+    Add,
+    Sub,
+    Mul,
+    Div,
+}
+
+impl Operator{
+    pub fn precedence(&self) -> u8{
+        match self{
+            Operator::Add => 1,
+            Operator::Sub => 1,
+            Operator::Mul => 2,
+            Operator::Div => 2,
+        }
+    }
+}
+
+
 enum Equal{
 
 }
 struct Constraint<T>{
-    constraint_type: ConstraintType,
+    constraint_type: Comparison,
     coefficients: Vec<T>,
     rhs: T,
 }
@@ -24,7 +45,9 @@ struct EqualityConstraint<T>{
     coefficients: Vec<T>,
     rhs: T,
 }
-enum OptimizationType{
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum OptimizationType{
     Min,
     Max,
 }

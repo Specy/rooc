@@ -1,0 +1,25 @@
+problem              =  {
+    SOI ~ objective ~ NEWLINE ~ st ~ NEWLINE ~ condition_list ~ bounds_list ~ EOI
+}
+st                   = _{ ^"s.t." }
+objective            =  { objective_type ~ exp_list }
+condition            =  { exp_list ~ comparison ~ exp_list }
+condition_list       =  { (condition ~ NEWLINE?)+ }
+bounds               =  { comma_separated_vars ~ comparison ~ number }
+bounds_list          =  { (bounds ~ NEWLINE?)* }
+exp_list             =  { exp+ }
+exp                  = _{ function | parenthesis | modulo | number | variable | op }
+min                  =  { ^"min" ~ "{" ~ comma_separated_exp ~ "}" }
+max                  =  { ^"max" ~ "{" ~ comma_separated_exp ~ "}" }
+function             = _{ min | max }
+comma_separated_exp  = _{ (exp_list ~ ","?)+ }
+comma_separated_vars =  { (variable ~ ","?)+ }
+min_max              = _{ ^"min" | ^"max" }
+modulo               =  { "|" ~ exp_list ~ "|" }
+parenthesis          =  { "(" ~ exp_list ~ ")" }
+objective_type       = @{ ^"min" | ^"max" }
+comparison           = @{ "<=" | ">=" | "=" | "<" | ">" }
+variable             = @{ (LETTER+ ~ (NUMBER | "_" | "-")*) }
+number               = @{ '0'..'9'+ ~ ("." ~ '0'..'9'+)? }
+op                   = @{ "*" | "+" | "-" | "/" }
+WHITESPACE           = _{ " " | "\t" }
