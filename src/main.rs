@@ -66,8 +66,8 @@ fn main() {
     s.t.
         x1 + x2 <= 10
         x1, x2 >= 0
-    ";
-    let parsed = parse(problem.to_string());
+    ".to_string();
+    let parsed = parse(&problem);
     match parsed {
         Ok(parsed) => {
             println!("{:#?}", parsed);
