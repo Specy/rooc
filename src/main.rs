@@ -62,10 +62,10 @@ fn main() {
     }
 
     let problem = "
-    max |x - 2| + 5 - 4(x1 + 8)
+    max x
     s.t.
-        x1 + x2 <= 10
-        x1, x2 >= 0
+        (x1 + x2)/2 + x <= 10
+
     ".to_string();
     let parsed = parse(&problem);
     match parsed {

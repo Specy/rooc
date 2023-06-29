@@ -44,7 +44,7 @@ use pest::{
     --------------------------------------------------------------
     TODO: Change the bounds to be defined as shortcuts added as metadata
     Example:
-        Xi Integer for i in 1..2
+        Xi Positive for i in 1..2
         Yj Binary for j in 1..2
         Z1, Z3 Free
     
