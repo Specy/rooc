@@ -130,7 +130,9 @@ impl IntoCanonicalTableau for StandardLinearProblem {
                 value += amount * b[independent_variable.row];
             }
 
-            let basis = independent.iter().map(|i| i.column).collect::<Vec<usize>>();
+            let mut basis = independent.iter().map(|i| i.column).collect::<Vec<usize>>();
+            //we only need as many basis variables as there are constraints
+            basis.resize(self.constraints.len(), 0);
             Ok(Tableau::new(
                 self.get_c(),
                 a,
