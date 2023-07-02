@@ -4,11 +4,13 @@ use num_rational::Rational64;
 use num_traits::cast::FromPrimitive;
 #[derive(Debug, Clone)]
 pub struct Tableau {
+    variables: Vec<String>,
     c: Vec<f64>,
     a: Vec<Vec<f64>>,
     b: Vec<f64>,
     in_basis: Vec<usize>,
     current_value: f64,
+    value_offset: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -26,9 +28,9 @@ impl OptimalTableau {
         &self.values
     }
     pub fn get_optimal_value(&self) -> f64 {
-        self.tableau.get_current_value()
+        (self.tableau.get_current_value() * -1.0) + self.tableau.get_value_offset()
     }
-    fn get_tableau(&self) -> &Tableau {
+    pub fn get_tableau(&self) -> &Tableau {
         &self.tableau
     }
 }
@@ -41,18 +43,41 @@ pub enum SimplexError {
 }
 
 impl Tableau {
-    pub fn new(c: Vec<f64>, a: Vec<Vec<f64>>, b: Vec<f64>, in_basis: Vec<usize>, current_value: f64) -> Tableau {
-        Tableau { c, a, b, in_basis , current_value}
+    pub fn new(
+        c: Vec<f64>,
+        a: Vec<Vec<f64>>,
+        b: Vec<f64>,
+        in_basis: Vec<usize>,
+        current_value: f64,
+        value_offset: f64,
+        variables: Vec<String>,
+    ) -> Tableau {
+        Tableau {
+            c,
+            a,
+            b,
+            in_basis,
+            current_value,
+            value_offset,
+            variables,
+        }
     }
     pub fn solve(&mut self, limit: i64) -> Result<OptimalTableau, SimplexError> {
+        self.solve_avoiding(limit, &vec![])
+    }
+
+    pub fn solve_avoiding(&mut self, limit: i64, variables_to_avoid: &Vec<usize>) -> Result<OptimalTableau, SimplexError> {
         let mut iteration = 0;
         while iteration <= limit {
-            match self.step() {
+            match self.step(variables_to_avoid) {
                 Ok(false) => {
                     iteration += 1;
                 }
                 Ok(true) => {
-                    return Ok(OptimalTableau::new(self.get_variables_values(), self.clone()));
+                    return Ok(OptimalTableau::new(
+                        self.get_variables_values(),
+                        self.clone(),
+                    ));
                 }
                 Err(e) => {
                     return Err(e);
@@ -61,15 +86,14 @@ impl Tableau {
         }
         Err(SimplexError::IterationLimitReached)
     }
-
-    pub fn step(&mut self) -> Result<bool, SimplexError> {
+    pub fn step(&mut self, variables_to_avoid: &Vec<usize>) -> Result<bool, SimplexError> {
         if self.is_optimal() {
             return Ok(true);
         }
-        match self.find_h() {
+        match self.find_h(variables_to_avoid) {
             None => Err(SimplexError::Unbounded),
             Some(h) => {
-                let t = self.find_t(h);
+                let t = self.find_t(h, variables_to_avoid);
                 match t {
                     None => Err(SimplexError::Unbounded),
                     Some(t) => match self.pivot(t, h) {
@@ -89,7 +113,8 @@ impl Tableau {
         self.a.iter().all(|a| a[h] <= 0.0)
     }
 
-    fn find_h(&self) -> Option<usize> {
+    //finds the variable that will enter the basis
+    fn find_h(&self, variables_to_avoid: &Vec<usize>) -> Option<usize> {
         //uses the Bland's rule for anti-cycling
         let min = self
             .c
@@ -102,7 +127,9 @@ impl Tableau {
             None => None,
         }
     }
-    fn find_t(&self, h: usize) -> Option<usize> {
+
+    //finds the variable that will leave the basis, prioritize variabls_to_prefer
+    fn find_t(&self, h: usize, variables_to_prefer: &Vec<usize>) -> Option<usize> {
         //use the Bland's rule for anti-cycling
         //gets the index of the row with the minimum ratio
         let mut valid = self
@@ -111,13 +138,15 @@ impl Tableau {
             .enumerate()
             .filter(|(_, a)| a[h] > 0.0)
             .map(|(i, a)| (i, self.b[i] / a[h]));
-        //println!("Valid: {:?}", valid.clone().map(|(i, ratio)| ratio).collect::<Vec<f64>>());
+        let basis = &self.in_basis;
         match valid.next() {
             Some(first) => {
                 let mut min = first;
                 for (i, ratio) in valid {
                     if ratio == min.1 {
-                        if self.in_basis[i] < self.in_basis[min.0] {
+                        //if we found a tie, we use the Bland's rule for anti-cycling, but prefer to prioritize some variables
+                        let to_prefer = variables_to_prefer.contains(&basis[i]) && !variables_to_prefer.contains(&basis[min.0]);
+                        if basis[i] < basis[min.0] || to_prefer {
                             min = (i, ratio);
                         }
                     } else if ratio < min.1 {
@@ -139,7 +168,6 @@ impl Tableau {
     }
     //performs the pivot operation where variable h enters the basis and variable B(t) leaves the basis
     fn pivot(&mut self, t: usize, h: usize) -> Result<(), ()> {
-        println!("Pivot: ({},{})", t, h);
         let in_basis = &mut self.in_basis;
         let a = &mut self.a;
         let b = &mut self.b;
@@ -175,8 +203,23 @@ impl Tableau {
     pub fn get_current_value(&self) -> f64 {
         self.current_value
     }
+    pub fn get_value_offset(&self) -> f64 {
+        self.value_offset
+    }
     pub fn to_fractional_tableau(&mut self) -> FractionalTableau {
         FractionalTableau::new(self)
+    }
+    pub fn get_a(&self) -> &Vec<Vec<f64>> {
+        &self.a
+    }
+    pub fn get_b(&self) -> &Vec<f64> {
+        &self.b
+    }
+    pub fn get_c(&self) -> &Vec<f64> {
+        &self.c
+    }
+    pub fn get_in_basis(&self) -> &Vec<usize> {
+        &self.in_basis
     }
 }
 
@@ -188,7 +231,7 @@ impl PrettyFraction {
     fn new(num: f64) -> PrettyFraction {
         //TODO make it use precision for smaller numbers
         let f = Rational64::from_f64(num).unwrap();
-        
+
         PrettyFraction {
             numerator: *f.numer(),
             denominator: *f.denom(),
@@ -227,7 +270,11 @@ impl FractionalTableau {
     }
     pub fn pretty_table(&self) -> Vec<Vec<String>> {
         let mut header: Vec<String> = self.c.iter().map(|c| c.pretty()).collect();
-        let a: Vec<Vec<String>> = self.a.iter().map(|a| a.iter().map(|a| a.pretty()).collect()).collect();
+        let a: Vec<Vec<String>> = self
+            .a
+            .iter()
+            .map(|a| a.iter().map(|a| a.pretty()).collect())
+            .collect();
         let b: Vec<String> = self.b.iter().map(|b| b.pretty()).collect();
         let v = PrettyFraction::new(self.value * -1.0).pretty();
         header.push(v);
@@ -256,4 +303,36 @@ pub trait Tableauable {
     fn get_b(&self) -> Vec<f64>;
     fn get_c(&self) -> Vec<f64>;
     fn get_a(&self) -> Vec<Vec<f64>>;
+    fn get_variables(&self) -> Vec<String>;
+    fn get_objective_offset(&self) -> f64;
+}
+
+
+
+#[derive(Debug)]
+pub enum CanonicalTransformError{
+    Raw(String),
+    InvalidBasis(String),
+    Infesible(String),
+    SimplexError(String),
+}
+impl CanonicalTransformError {
+    pub fn to_string(&self) -> String {
+        match self{
+            Self::Raw(s) => s.clone(),
+            Self::InvalidBasis(s) => format!("Invalid Basis: {}", s),
+            Self::Infesible(s) => format!("Infesible: {}", s),
+            Self::SimplexError(s) => format!("Simplex Error: {}", s),
+        }
+    }
+}
+pub trait IntoCanonicalTableau {
+    fn into_canonical(&self) -> Result<Tableau, CanonicalTransformError>;
+}
+
+
+pub fn divide_matrix_row_by(matrix: &mut Vec<Vec<f64>>, row: usize, value: f64){
+    for i in 0..matrix[row].len() {
+        matrix[row][i] /= value;
+    }
 }

@@ -150,8 +150,6 @@ fn parse_comparison(comparison: Pair<'_, Rule>) -> Result<Comparison, Error> {
                 "<=" => Comparison::LowerOrEqual,
                 ">=" => Comparison::UpperOrEqual,
                 "=" => Comparison::Equal,
-                "<" => Comparison::Lower,
-                ">" => Comparison::Upper,
                 _ => {
                     return Err(Error::UnexpectedToken(format!(
                         "(25) found {}, expected comparison",
@@ -238,7 +236,6 @@ fn parse_exp_list(exp_list: Pair<'_, Rule>) -> Result<Exp, Error> {
                         match first {
                             Some(inner) => {
                                 let par = parse_exp_list(inner)?;
-                                println!("{:#?}", par);
                                 let par = englobe_if_multiplied_by_constant(
                                     &last_token,
                                     &mut output_queue,

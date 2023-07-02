@@ -93,9 +93,7 @@ struct PLParser;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Comparison {
-    Lower,
     LowerOrEqual,
-    Upper,
     UpperOrEqual,
     Equal,
 }

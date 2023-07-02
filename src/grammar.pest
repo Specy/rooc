@@ -18,7 +18,7 @@ min_max              = _{ ^"min" | ^"max" }
 modulo               =  { "|" ~ exp_list ~ "|" }
 parenthesis          =  { "(" ~ exp_list ~ ")" }
 objective_type       = @{ ^"min" | ^"max" }
-comparison           = @{ "<=" | ">=" | "=" | "<" | ">" }
+comparison           = @{ "<=" | ">=" | "=" }
 variable             = @{ (LETTER+ ~ (NUMBER | "_" | "-")*) }
 number               = @{ '0'..'9'+ ~ ("." ~ '0'..'9'+)? }
 op                   = @{ "*" | "+" | "-" | "/" }
