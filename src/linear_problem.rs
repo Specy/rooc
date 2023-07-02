@@ -161,7 +161,7 @@ impl IntoCanonicalTableau for StandardLinearProblem {
             //add the variables to the matrix and turn the objective function into
             //canonical form by subtracting all rows from the objective function
             for (i, constraint) in a.iter_mut().enumerate() {
-                constraint.resize(constraint.len() + number_of_artificial_variables, 0.0);
+                constraint.resize(number_of_variables + number_of_artificial_variables, 0.0);
                 constraint[i + number_of_variables] = 1.0;
                 variables.push(format!("_a{}", i));
                 for (j, coefficient) in constraint.iter().enumerate() {
@@ -213,7 +213,7 @@ impl IntoCanonicalTableau for StandardLinearProblem {
                                 }
                                 value -= coefficient * new_b[row_index];
                             }
-                            
+
                             Ok(Tableau::new(
                                 new_c,
                                 new_a,

@@ -90,14 +90,14 @@ fn main() {
     let problem = "
     max x
     s.t.
-        (x1 + x2)/2 + x <= 10
+        (x1 + x2)/2 + x1 <= 10
 
     "
     .to_string();
     let parsed = parse(&problem);
     match parsed {
         Ok(parsed) => {
-            //println!("{:#?}", parsed);
+            println!("{:#?}", parsed);
         }
         Err(e) => {
             println!("Error: {:?}", e);
