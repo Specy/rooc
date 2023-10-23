@@ -5,8 +5,9 @@ use pest::{
 };
 
 /*
+    (done)
     TODO: Add Summatory of variables using indices where the name of the index is replaced by the value of the index, anything can be inside of the sum block, but only variables will be affected
-    Example:
+    Example: 
         sum(i in 1..2, j in 1..3, ...){Ci*Xij...}
         sum(i in 1..2){sum(j in 1..3){Ci*Xij}}
         etc...
@@ -14,6 +15,7 @@ use pest::{
 
         C11*X11 + C12*X12 + C13*X13 + C21*X21 + C22*X22 + C23*X23
     --------------------------------------------------------------
+    (done)
     TODO: Add declaration of constants, like arrays
     Example:
         min sum(i in 1..2){C[i]*Xi}
@@ -27,6 +29,7 @@ use pest::{
         s.t.
             X1 + X2 <= 1
     --------------------------------------------------------------
+    (done)
     TODO: Make it possible to define constraints with iterable variables
     Example:
         max sum(i in 1..2){Ci*Xi}
@@ -54,36 +57,57 @@ use pest::{
 
 /*
 --------------------------Grammar--------------------------
-
 problem = {
-    SOI ~
-      objective ~ NEWLINE ~
-      st ~ NEWLINE ~
-          condition_list ~
-          bounds_list ~
-  EOI
+    SOI ~ objective ~ NEWLINE ~ ^"s.t." ~ NEWLINE ~ condition_list ~ NEWLINE ~ where_declaration ~ EOI
 }
-st = _{ ^"s.t." }
-objective = {(^"min" | ^"max") ~ exp_list}
-condition = {exp_list ~ comparison ~ exp_list}
-condition_list = { (condition ~ NEWLINE?)+ }
-bounds = { comma_separated_vars ~ comparison ~ number }
-bounds_list = { (bounds ~ NEWLINE?)* }
-exp_list = _{ exp+ }
-exp = _{ function | parenthesis | mod | number | variable | op  }
+// problem keywords
+// required problem body
+objective      = { objective_type ~ exp }
+condition_list = { condition ~ (NEWLINE ~ condition)* }
+// optional problem body
+where_declaration = { (^"where" ~ NEWLINE ~ consts_declaration) }
+// condition
+condition = { exp ~ comparison ~ exp ~ for_iteration? }
+// constants declaration
+consts_declaration = { const_declaration ~ (NEWLINE ~ const_declaration)* }
+const_declaration  = { simple_variable ~ "=" ~ constant }
+
+// range
+for_iteration          = _{ ^"for" ~ range_declaration }
+range_declaration_list = _{ (range_declaration ~ ",")* ~ range_declaration }
+range_declaration      =  { simple_variable ~ ^"in" ~ (number | len) ~ ".." ~ (number | len) }
+// expressions
+exp         = _{ unary_op? ~ exp_body ~ (binary_op ~ unary_op? ~ exp_body)* }
+exp_body    = _{ function | parenthesis | modulo | number | array_access | variable }
+modulo      =  { "|" ~ exp ~ "|" }
+parenthesis =  { "(" ~ exp ~ ")" }
+function    = _{ min | max | sum }
+// functions
 min = { ^"min" ~ "{" ~ comma_separated_exp ~ "}" }
 max = { ^"max" ~ "{" ~ comma_separated_exp ~ "}" }
-function = _{min | max}
-comma_separated_exp = _{ ( exp_block~ ","?)+ }
-comma_separated_vars = { ( variable~ ","?)+ }
-exp_block = { exp+ }
-min_max = _{ ^"min" | ^"max" }
-mod = { "|" ~ exp_list ~ "|" }
-parenthesis = { "(" ~ exp_list ~ ")" }
-comparison = @{  "<=" | ">=" | "=" | "<" | ">"}
-variable = @{ ( LETTER+ ~ (NUMBER | "_" | "-")*)}
-number = @{ '0'..'9'+ ~ ("." ~ '0'..'9'+)?}
-op = @{ "*" | "+" | "-" | "/" }
+sum = { ^"sum(" ~ range_declaration_list ~ ")" ~ "{" ~ exp ~ "}" }
+len = { ^"len(" ~ (array_access | simple_variable) ~ ")" }
+// pointer access var[i][j] or var[0] etc...
+array_access        = { simple_variable ~ pointer_access_list }
+pointer_access_list = { (pointer_access)+ }
+pointer_access      = { ^"[" ~ (number | simple_variable) ~ ^"]" }
+// constants
+array    =  { "[" ~ ((constant ~ ",")* ~ constant) ~ "]" }
+constant = _{ number | array }
+// utilities
+comma_separated_exp = _{ (exp ~ ",")* ~ exp }
+// terminal characters
+objective_type    = @{ ^"min" | ^"max" }
+comparison        = @{ "<=" | ">=" | "=" }
+variable          = @{ compound_variable | simple_variable }
+// should i make this not a terminal so that i can get variable > compound_variable?
+simple_variable   = @{ LETTER+ ~ (NUMBER)* }
+compound_variable = @{ simple_variable ~ "_" ~ LETTER+ }
+// maybe i should do ("_" ~ LETTER+)+
+number    = @{ '0'..'9'+ ~ ("." ~ '0'..'9'+)? }
+binary_op = @{ "*" | "+" | "-" | "/" }
+unary_op  = @{ "-" }
+// ignore whitespace in whole grammar
 WHITESPACE = _{ " " | "\t" }
 */
 
