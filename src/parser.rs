@@ -32,7 +32,7 @@ use pest::{
     (done)
     TODO: Make it possible to define constraints with iterable variables
     Example:
-        max sum(i in 1..2){Ci*Xi}
+        max sum(i in 1..2){Ci*Xi} //TODO! should this be Xi or X_i, should there be an explicit definition?
         s.t.
             sum(i in 1..2){Xij} <= b[j] for j in 1..2
         where
@@ -42,7 +42,7 @@ use pest::{
 
         max 15*X1 + 30*X2
         s.t.
-            X11 + X12 <= 1
+            X11 + X12 <= 1 //TODO wrong! this can be confused, it needs a separator in between the indexes X1_1 or X_1_1
             X21 + X22 <= 2
     --------------------------------------------------------------
     TODO: Change the bounds to be defined as shortcuts added as metadata
@@ -58,24 +58,46 @@ use pest::{
 /*
 --------------------------Grammar--------------------------
 problem = {
-    SOI ~ objective ~ NEWLINE ~ ^"s.t." ~ NEWLINE ~ condition_list ~ NEWLINE ~ where_declaration ~ EOI
+    SOI ~ 
+    #objective = objective ~ nl+ ~ 
+    ^"s.t." ~ nl+ ~ 
+    #conditions = condition_list ~
+    (nl+ ~
+    ^"where" ~ nl+ ~ 
+    #where = consts_declaration)? ~
+     EOI
 }
-// problem keywords
 // required problem body
-objective      = { objective_type ~ exp }
-condition_list = { condition ~ (NEWLINE ~ condition)* }
-// optional problem body
-where_declaration = { (^"where" ~ NEWLINE ~ consts_declaration) }
+objective = { 
+  #objective_type = objective_type ~ 
+    #objective_body = exp
+}
+condition_list = { (condition ~ nl+)* ~ condition }
 // condition
-condition = { exp ~ comparison ~ exp ~ for_iteration? }
+condition = { 
+  #lhs = exp ~ 
+  #relation = comparison ~ 
+    #rhs = exp ~ 
+    #iteration = for_iteration? 
+}
 // constants declaration
-consts_declaration = { const_declaration ~ (NEWLINE ~ const_declaration)* }
-const_declaration  = { simple_variable ~ "=" ~ constant }
+consts_declaration = { (const_declaration ~ nl+)* ~ const_declaration }
+const_declaration  = { 
+  #name = simple_variable ~ 
+    "=" ~ 
+    #value = constant 
+}
 
 // range
 for_iteration          = _{ ^"for" ~ range_declaration }
 range_declaration_list = _{ (range_declaration ~ ",")* ~ range_declaration }
-range_declaration      =  { simple_variable ~ ^"in" ~ (number | len) ~ ".." ~ (number | len) }
+range_declaration      =  { 
+  #name = simple_variable ~ 
+    ^"in" ~ 
+    #from = (number | len) ~ 
+    ".." ~ 
+    #to = (number | len) 
+}
 // expressions
 exp         = _{ unary_op? ~ exp_body ~ (binary_op ~ unary_op? ~ exp_body)* }
 exp_body    = _{ function | parenthesis | modulo | number | array_access | variable }
@@ -88,18 +110,23 @@ max = { ^"max" ~ "{" ~ comma_separated_exp ~ "}" }
 sum = { ^"sum(" ~ range_declaration_list ~ ")" ~ "{" ~ exp ~ "}" }
 len = { ^"len(" ~ (array_access | simple_variable) ~ ")" }
 // pointer access var[i][j] or var[0] etc...
-array_access        = { simple_variable ~ pointer_access_list }
+array_access        = { 
+  #name = simple_variable ~ 
+    #accesses = pointer_access_list 
+}
 pointer_access_list = { (pointer_access)+ }
-pointer_access      = { ^"[" ~ (number | simple_variable) ~ ^"]" }
+pointer_access      = _{ ^"[" ~ (number | simple_variable) ~ ^"]" }
 // constants
-array    =  { "[" ~ ((constant ~ ",")* ~ constant) ~ "]" }
+array    =  { "[" ~ nl* ~ ((constant ~ comma)* ~ constant) ~ nl* ~ "]" }
 constant = _{ number | array }
 // utilities
-comma_separated_exp = _{ (exp ~ ",")* ~ exp }
+comma_separated_exp = _{ (exp ~ comma)* ~ exp }
 // terminal characters
-objective_type    = @{ ^"min" | ^"max" }
-comparison        = @{ "<=" | ">=" | "=" }
-variable          = @{ compound_variable | simple_variable }
+comma = _{ "," ~ nl? }
+nl = _{NEWLINE}
+objective_type = @{ ^"min" | ^"max" }
+comparison     = @{ "<=" | ">=" | "=" }
+variable       = @{ compound_variable | simple_variable }
 // should i make this not a terminal so that i can get variable > compound_variable?
 simple_variable   = @{ LETTER+ ~ (NUMBER)* }
 compound_variable = @{ simple_variable ~ "_" ~ LETTER+ }
