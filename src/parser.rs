@@ -188,7 +188,7 @@ pub enum PreExp {
     BinaryOperation(Operator, Box<PreExp>, Box<PreExp>),
     UnaryNegation(Box<PreExp>),
     ArrayAccess(PreArrayAccess),
-
+    Parenthesis(Box<PreExp>),
     Sum(Vec<PreRange>, Box<PreExp>),
 }
 
@@ -232,6 +232,7 @@ impl PreExp {
                     None => Ok(Exp::Variable(name.clone())),
                 }
             }
+            Self::Parenthesis(exp) => Ok(Exp::Parenthesis(exp.into_exp(context)?.to_boxed())),
             Self::CompoundVariable { name, indexes } => {
                 let parsed_indexes = context.flatten_variable_name(&indexes)?;
                 Ok(Exp::Variable(format!("{}_{}", name, parsed_indexes)))
@@ -259,7 +260,7 @@ impl PreExp {
                         result.to_boxed(),
                     );
                 }
-                Ok(sum)
+                Ok(Exp::Parenthesis(sum.to_boxed()))
             }
         }
     }

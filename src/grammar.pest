@@ -45,7 +45,7 @@ exp         = _{ unary_op? ~ exp_body ~ (binary_op ~ unary_op? ~ exp_body)* }
 exp_body    = _{ function | parenthesis | modulo | number | array_access | variable }
 modulo      =  { "|" ~ exp ~ "|" }
 parenthesis =  { "(" ~ exp ~ ")" }
-function    = _{ min | max | sum }
+function    = _{ min | max | sum | len}
 // functions
 min = { ^"min" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~"}" }
 max = { ^"max" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~ "}" }

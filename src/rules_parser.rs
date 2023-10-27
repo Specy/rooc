@@ -174,7 +174,6 @@ pub fn parse_array_value(array_value: &Pair<Rule>) -> Result<ArrayValue, ParseEr
     match array_value.as_rule() {
         Rule::number => Ok(ArrayValue::Number(parse_number(array_value)?)),
         Rule::array => {
-
             let values = pairs
                 .into_iter()
                 .map(|v| parse_number(&v))
@@ -444,36 +443,20 @@ fn parse_exp_list(exp_list: &Pairs<Rule>) -> Result<PreExp, ParseError> {
                 }
             }
             Rule::parenthesis => {
-                let first = exp.into_inner().next();
-                match first {
-                    Some(inner) => {
-                        let par = parse_exp_list(&inner.into_inner())?;
-                        let par =
-                            englobe_if_multiplied_by_constant(&last_token, &mut output_queue, par);
-                        output_queue.push(par);
-                    }
-                    None => {
-                        return Err(ParseError::UnexpectedToken(format!("missing expression body",)))
-                    }
-                }
+                let par = parse_exp_list(&exp.into_inner())?;
+                let par =
+                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, par);
+                output_queue.push(PreExp::Parenthesis(par.to_boxed()));
             }
             Rule::modulo => {
-                let first = exp.into_inner().next();
-                match first {
-                    Some(inner) => {
-                        let exp = parse_exp_list(&inner.into_inner())?;
-                        let modulo = PreExp::Mod(Box::new(exp));
-                        let modulo = englobe_if_multiplied_by_constant(
-                            &last_token,
-                            &mut output_queue,
-                            modulo,
-                        );
-                        output_queue.push(modulo)
-                    }
-                    None => {
-                        return Err(ParseError::UnexpectedToken(format!("missing expression body",)))
-                    }
-                }
+                let exp = parse_exp_list(&exp.into_inner())?;
+                let modulo = PreExp::Mod(Box::new(exp));
+                let modulo = englobe_if_multiplied_by_constant(
+                    &last_token,
+                    &mut output_queue,
+                    modulo,
+                );
+                output_queue.push(modulo)
             }
             Rule::array_access => {
                 let array_access = parse_array_access(&exp)?;
@@ -519,7 +502,9 @@ fn parse_exp_list(exp_list: &Pairs<Rule>) -> Result<PreExp, ParseError> {
     }
     match output_queue.pop() {
         Some(exp) => Ok(exp),
-        None => Err(ParseError::UnexpectedToken(format!("Invalid expression"))),
+        None => Err(ParseError::UnexpectedToken(format!(
+            "Invalid empty expression"
+        ))),
     }
 }
 

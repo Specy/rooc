@@ -1,6 +1,6 @@
 use std::fmt::format;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Comparison {
     LowerOrEqual,
     UpperOrEqual,
@@ -16,7 +16,7 @@ impl Comparison {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Operator {
     Add,
     Sub,

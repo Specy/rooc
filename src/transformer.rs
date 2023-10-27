@@ -8,13 +8,14 @@ use crate::{
     },
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Exp {
     Number(f64),
     Variable(String),
     Mod(Box<Exp>),
     Min(Vec<Exp>),
     Max(Vec<Exp>),
+    Parenthesis(Box<Exp>),
     BinaryOperation(Operator, Box<Exp>, Box<Exp>),
     UnaryNegation(Box<Exp>),
 }
@@ -36,7 +37,14 @@ impl Exp {
                 operator.to_string(),
                 rhs.to_string()
             ),
+            Exp::Parenthesis(exp) => format!("({})", exp.to_string()),
             Exp::UnaryNegation(exp) => format!("-{}", exp.to_string()),
+        }
+    }
+    pub fn remove_root_parenthesis(& self) -> &Exp {
+        match self {
+            Exp::Parenthesis(exp) => exp,
+            _ => self
         }
     }
 }
@@ -48,10 +56,10 @@ pub struct Objective {
 }
 
 impl Objective {
-    pub fn new(objective_type: OptimizationType, rhs: Exp) -> Self {
+    pub fn new(objective_type: OptimizationType, rhs: &Exp) -> Self {
         Self {
             objective_type,
-            rhs,
+            rhs: rhs.remove_root_parenthesis().clone(),
         }
     }
     pub fn to_string(&self) -> String {
@@ -70,7 +78,7 @@ impl Range {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Condition {
     lhs: Exp,
     condition_type: Comparison,
@@ -78,11 +86,11 @@ pub struct Condition {
 }
 
 impl Condition {
-    pub fn new(lhs: Exp, condition_type: Comparison, rhs: Exp) -> Self {
+    pub fn new(lhs: &Exp, condition_type: Comparison, rhs: &Exp) -> Self {
         Self {
-            lhs,
+            lhs: lhs.remove_root_parenthesis().clone(),
             condition_type,
-            rhs,
+            rhs: rhs.remove_root_parenthesis().clone(),
         }
     }
     pub fn to_string(&self) -> String {
@@ -392,7 +400,7 @@ pub fn transform_condition(
 ) -> Result<Condition, TransfromError> {
     let lhs = condition.lhs.into_exp(context)?;
     let rhs = condition.rhs.into_exp(context)?;
-    Ok(Condition::new(lhs, condition.condition_type.clone(), rhs))
+    Ok(Condition::new(&lhs, condition.condition_type.clone(), &rhs))
 }
 
 pub fn transform_condition_with_range(
@@ -425,7 +433,7 @@ pub fn transform_objective(
     context: &mut TransformerContext,
 ) -> Result<Objective, TransfromError> {
     let rhs = objective.rhs.into_exp(context)?;
-    Ok(Objective::new(objective.objective_type.clone(), rhs))
+    Ok(Objective::new(objective.objective_type.clone(), &rhs))
 }
 
 pub fn transform_problem(
