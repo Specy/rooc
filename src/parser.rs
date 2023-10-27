@@ -1,4 +1,3 @@
-use std::array;
 
 use crate::consts::{Comparison, Constant, Operator, OptimizationType, ParseError};
 use crate::rules_parser::{parse_condition_list, parse_consts_declaration, parse_objective};

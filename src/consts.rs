@@ -1,4 +1,3 @@
-use std::fmt::format;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Comparison {

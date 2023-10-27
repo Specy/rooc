@@ -35,8 +35,8 @@ It is compiled down to:
 ```lua
 max X_0_0 * 15 + X_1_1 * 30 + X_1_0 * 30 + X_0_1 * 15
 s.t.
-        2 * (15 * X_0_0 + 30 * X_1_0) <= 20
-        2 * (15 * X_0_1 + 30 * X_1_1) <= 25
+    2 * (15 * X_0_0 + 30 * X_1_0) <= 20
+    2 * (15 * X_0_1 + 30 * X_1_1) <= 25
 ```
 To then be converted into the standard form:
 ```

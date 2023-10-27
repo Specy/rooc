@@ -1,4 +1,3 @@
-use std::ops::Index;
 
 use num_rational::Rational64;
 use num_traits::cast::FromPrimitive;
