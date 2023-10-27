@@ -1,9 +1,8 @@
-use core::panic;
-
 use rooc::{
+    consts::{Comparison, OptimizationType},
     linear_problem::{Constraint, LinearProblem},
-    parser::{parse, Comparison, OptimizationType},
-    simplex::{Tableau, IntoCanonicalTableau},
+    parser::parse,
+    simplex::{IntoCanonicalTableau, Tableau}, transformer::{transform_problem, transform},
 };
 use term_table::{row::Row, table_cell::TableCell, Table};
 
@@ -70,9 +69,9 @@ fn main() {
             let mut cli_table = Table::new();
             let values = optimal_tableau.get_variables_values().clone();
             let mut header = Row::new(values.iter().map(TableCell::new));
-            header
-                .cells
-                .push(TableCell::new(optimal_tableau.get_tableau().get_current_value()));
+            header.cells.push(TableCell::new(
+                optimal_tableau.get_tableau().get_current_value(),
+            ));
             cli_table.add_row(header);
             let empty: Vec<TableCell> = Vec::new();
             cli_table.add_row(Row::new(empty));
@@ -88,19 +87,27 @@ fn main() {
     }
 
     let problem = "
-    max x
+    max sum(i in 0..len(C)){ X_i }
     s.t.
-        (x1 + x2)/2 + x1 <= 10
-
+      sum(i in 0..len(C)){ C[i] * X_ij } <= b[j] for j in 0..len(C)
+    where
+       C = [15, 30]
+       b = [20, 25]
     "
     .to_string();
     let parsed = parse(&problem);
     match parsed {
         Ok(parsed) => {
             println!("{:#?}", parsed);
+            let transformed = transform(&parsed);
+            println!("\n\n");
+            match transformed {
+                Ok(transformed) => println!("{}", transformed.to_string()),
+                Err(e) => println!("Error: {:#?}", e),
+            }
         }
         Err(e) => {
-            println!("Error: {:?}", e);
+            println!("Error: {}", e);
         }
     }
 }

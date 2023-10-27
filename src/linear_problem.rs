@@ -1,9 +1,8 @@
 use crate::{
-    parser::{Comparison, OptimizationType},
     simplex::{
         divide_matrix_row_by, CanonicalTransformError, IntoCanonicalTableau, Tableau, Tableauable,
     },
-    standardizer::to_standard_form,
+    standardizer::to_standard_form, consts::{Comparison, OptimizationType},
 };
 
 pub struct EqualityConstraint {
@@ -15,7 +14,7 @@ impl EqualityConstraint {
         match rhs < 0.0 {
             true => EqualityConstraint {
                 coefficients: coefficients.iter().map(|c| c * -1.0).collect(),
-                rhs: rhs * -1.0,
+                rhs: -rhs,
             },
             false => EqualityConstraint { coefficients, rhs },
         }
@@ -92,35 +91,37 @@ struct IndependentVariable {
 }
 impl IntoCanonicalTableau for StandardLinearProblem {
     fn into_canonical(&self) -> Result<Tableau, CanonicalTransformError> {
-        let mut independent: Vec<IndependentVariable> = Vec::new();
+        let mut usable_independent_vars: Vec<IndependentVariable> = Vec::new();
         //find independent variables by checking if the column has a single value, and if so, add it to the independent list
         for column in 0..self.variables.len() {
             let mut independent_count = 0;
             let mut independent_row = 0;
             let mut independent_value = 0.0;
             for (row, constraint) in self.constraints.iter().enumerate() {
-                if constraint.get_coefficient(column) != 0.0 {
+                let coeff = constraint.get_coefficient(column);
+                if coeff != 0.0 {
                     independent_count += 1;
                     independent_row = row;
                     independent_value = constraint.get_coefficient(column);
                 }
             }
-            if independent_count == 1 {
-                independent.push(IndependentVariable {
+            //only positive values are allowed, as the B column must be all positive
+            if independent_count == 1 && independent_value > 0.0{
+                usable_independent_vars.push(IndependentVariable {
                     row: independent_row,
                     column,
                     value: independent_value,
                 });
             }
         }
-        if independent.len() >= self.constraints.len() {
+        if usable_independent_vars.len() >= self.constraints.len() {
             //can form a canonical tableau
             let mut a = self.get_a();
             let mut b = self.get_b();
             let mut c = self.get_c();
             let mut value = 0.0;
             //normalize the rows of the independent variables
-            for independent_variable in independent.iter() {
+            for independent_variable in usable_independent_vars.iter() {
                 divide_matrix_row_by(&mut a, independent_variable.row, independent_variable.value);
                 b[independent_variable.row] /= independent_variable.value;
                 let amount = c[independent_variable.column];
@@ -130,7 +131,7 @@ impl IntoCanonicalTableau for StandardLinearProblem {
                 value += amount * b[independent_variable.row];
             }
 
-            let mut basis = independent.iter().map(|i| i.column).collect::<Vec<usize>>();
+            let mut basis = usable_independent_vars.iter().map(|i| i.column).collect::<Vec<usize>>();
             //we only need as many basis variables as there are constraints
             basis.resize(self.constraints.len(), 0);
             Ok(Tableau::new(

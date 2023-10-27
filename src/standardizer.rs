@@ -1,6 +1,5 @@
 use crate::{
-    linear_problem::{Constraint, EqualityConstraint, LinearProblem, StandardLinearProblem},
-    parser::{Comparison, OptimizationType},
+    linear_problem::{Constraint, EqualityConstraint, LinearProblem, StandardLinearProblem}, consts::{Comparison, OptimizationType},
 };
 
 pub fn to_standard_form(problem: &LinearProblem) -> Result<StandardLinearProblem, ()> {
@@ -27,7 +26,8 @@ pub fn to_standard_form(problem: &LinearProblem) -> Result<StandardLinearProblem
         .for_each(|c| c.ensure_size(total_variables));
     let (objective_offset, objective) = match problem.get_optimization_type() {
         OptimizationType::Max => (
-            -problem.get_objective_offset(),
+            problem.get_objective_offset(),
+            //TODO the sign of the resulting min should be reverted, add a sign to the objective
             objective.iter().map(|c| c * -1.0).collect(),
         ),
         OptimizationType::Min => (problem.get_objective_offset(), objective.clone()),
