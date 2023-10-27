@@ -87,7 +87,12 @@ fn main() {
     }
 
     let problem = "
-    max sum(i in 0..len(C)){ X_i }
+    max sum(
+        i in 0..len(C), 
+        j in 0..len(b)
+    ){  
+        X_ij 
+    }
     s.t.
       sum(i in 0..len(C)){ C[i] * X_ij } <= b[j] for j in 0..len(C)
     where

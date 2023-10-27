@@ -31,7 +31,7 @@ const_declaration  = {
 
 // range
 for_iteration          = _{ ^"for" ~ range_declaration }
-range_declaration_list = { (range_declaration ~ ",")* ~ range_declaration }
+range_declaration_list = { (range_declaration ~ comma)* ~ range_declaration }
 range_declaration      =  {
   #name = simple_variable ~
   ^"in" ~
@@ -47,9 +47,9 @@ modulo      =  { "|" ~ exp ~ "|" }
 parenthesis =  { "(" ~ exp ~ ")" }
 function    = _{ min | max | sum }
 // functions
-min = { ^"min" ~ "{" ~ comma_separated_exp ~ "}" }
-max = { ^"max" ~ "{" ~ comma_separated_exp ~ "}" }
-sum = { ^"sum(" ~ #range = range_declaration_list ~ ")" ~ "{" ~ #body = tagged_exp ~ "}" }
+min = { ^"min" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~"}" }
+max = { ^"max" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~ "}" }
+sum = { ^"sum(" ~ nl* ~ #range = range_declaration_list ~ nl* ~")" ~ "{" ~ nl* ~ #body = tagged_exp ~ nl* ~ "}" }
 len = { ^"len(" ~ (array_access | simple_variable) ~ ")" }
 // pointer access var[i][j] or var[0] etc...
 array_access        = {

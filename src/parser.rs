@@ -250,6 +250,7 @@ impl PreExp {
                     .collect::<Result<Vec<Range>, TransfromError>>()?;
                 let mut results = Vec::new();
                 recursive_sum_resolver(exp_body, &ranges, context, &mut results, 0)?;
+                results.reverse();
                 let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
                 for result in results {
                     sum = Exp::BinaryOperation(
