@@ -89,10 +89,10 @@ fn main() {
     let problem = "
     max sum(i in 0..len(C), j in 0..len(b)){  X_ij * C[i]}
     s.t.
-        len(C) * sum(i in 0..len(C)){ C[i] * X_ij } <= b[j] for j in 0..len(C)
+        sum(i in 0..len(C)){ C[i] * X_ij } <= b[j] for j in 0..len(C)
     where
-        C = [15, 30]
-        b = [20, 25]
+        C = [10, 20]
+        b = [2, 5]
     "
     .to_string();
     let parsed = parse(&problem);

@@ -3,7 +3,7 @@ use crate::consts::{Comparison, Constant, Operator, OptimizationType, ParseError
 use crate::rules_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
 use crate::transformer::{
     transform_len_of, transform_pre_array_access, transform_range, Exp, Range, TransformerContext,
-    TransfromError,
+    TransformError,
 };
 use pest::iterators::Pair;
 use pest::Parser;
@@ -199,19 +199,19 @@ impl PreExp {
         //convert back to string
         todo!()
     }
-    pub fn into_exp(&self, context: &mut TransformerContext) -> Result<Exp, TransfromError> {
+    pub fn into_exp(&self, context: &mut TransformerContext) -> Result<Exp, TransformError> {
         match self {
             Self::Number(n) => Ok(Exp::Number(*n)),
             Self::Mod(exp) => Ok(Exp::Mod(exp.into_exp(context)?.to_boxed())),
             Self::Min(exps) => Ok(Exp::Min(
                 exps.iter()
                     .map(|exp| exp.into_exp(context))
-                    .collect::<Result<Vec<Exp>, TransfromError>>()?,
+                    .collect::<Result<Vec<Exp>, TransformError>>()?,
             )),
             Self::Max(exps) => Ok(Exp::Max(
                 exps.iter()
                     .map(|exp| exp.into_exp(context))
-                    .collect::<Result<Vec<Exp>, TransfromError>>()?,
+                    .collect::<Result<Vec<Exp>, TransformError>>()?,
             )),
             Self::BinaryOperation(op, lhs, rhs) => Ok(Exp::BinaryOperation(
                 op.clone(),
@@ -247,7 +247,7 @@ impl PreExp {
                 let ranges = ranges
                     .iter()
                     .map(|r| transform_range(r, context))
-                    .collect::<Result<Vec<Range>, TransfromError>>()?;
+                    .collect::<Result<Vec<Range>, TransformError>>()?;
                 let mut results = Vec::new();
                 recursive_sum_resolver(exp_body, &ranges, context, &mut results, 0)?;
                 results.reverse();
@@ -271,14 +271,14 @@ fn recursive_sum_resolver(
     context: &mut TransformerContext,
     results: &mut Vec<Exp>,
     current_level: usize,
-) -> Result<(), TransfromError> {
+) -> Result<(), TransformError> {
     if current_level == ranges.len() {
         results.push(exp.into_exp(context)?);
         return Ok(());
     }
     let range = match ranges.get(current_level) {
         Some(range) => range,
-        None => return Err(TransfromError::OutOfBounds("Range".to_string())),
+        None => return Err(TransformError::OutOfBounds("Range".to_string())),
     };
     let mut current_value = range.from;
     while current_value < range.to { //range is exclusive

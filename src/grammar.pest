@@ -69,7 +69,7 @@ variable       = _{ compound_variable | simple_variable }
 // terminal characters
 objective_type = @{ ^"min" | ^"max" }
 comparison     = @{ "<=" | ">=" | "=" }
-// should i make this not a terminal so that i can get variable > compound_variable?
+// should I make this not a terminal so that i can get variable > compound_variable?
 simple_variable   = @{ LETTER+ ~ (NUMBER)* }
 compound_variable = @{ simple_variable ~ ("_" ~ LETTER+)+ }
 // maybe i should do ("_" ~ LETTER+)+

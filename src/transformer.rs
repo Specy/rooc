@@ -90,7 +90,16 @@ pub struct Range {
 }
 impl Range {
     pub fn new(name: String, from: i32, to: i32) -> Self {
-        Self { name, from, to }
+        //doesn't matter the order of from and to, it only matters the range
+        if from > to {
+            Self {
+                name,
+                from: to,
+                to: from,
+            }
+        } else {
+            Self { name, from, to }
+        }
     }
 }
 
@@ -144,7 +153,7 @@ impl Problem {
 }
 
 #[derive(Debug)]
-pub enum TransfromError {
+pub enum TransformError {
     MissingConstant(String),
     MissingVariable(String),
     AlreadyExistingVariable(String),
@@ -166,7 +175,7 @@ impl TransformerContext {
         }
     }
 
-    pub fn flatten_variable_name(&self, name: &str) -> Result<String, TransfromError> {
+    pub fn flatten_variable_name(&self, name: &str) -> Result<String, TransformError> {
         let mut name = name.to_string();
 
         for (variable_name, value) in self.variables.iter() {
@@ -174,7 +183,7 @@ impl TransformerContext {
         }
         //check if every variable is replaced, the indexes must not have any letters
         if name.chars().any(|c| c.is_alphabetic()) {
-            return Err(TransfromError::MissingVariable(name));
+            return Err(TransformError::MissingVariable(name));
         }
         //remove the starting _ if it exists
         if name.starts_with('_') {
@@ -183,16 +192,16 @@ impl TransformerContext {
         Ok(name)
     }
 
-    pub fn add_variable(&mut self, variable: &String, value: f64) -> Result<f64, TransfromError> {
+    pub fn add_variable(&mut self, variable: &String, value: f64) -> Result<f64, TransformError> {
         if self.variables.contains_key(variable) {
-            return Err(TransfromError::AlreadyExistingVariable(variable.clone()));
+            return Err(TransformError::AlreadyExistingVariable(variable.clone()));
         }
         self.variables.insert(variable.clone(), value);
         Ok(value)
     }
-    pub fn remove_variable(&mut self, variable: &String) -> Result<f64, TransfromError> {
+    pub fn remove_variable(&mut self, variable: &String) -> Result<f64, TransformError> {
         if !self.variables.contains_key(variable) {
-            return Err(TransfromError::MissingVariable(variable.clone()));
+            return Err(TransformError::MissingVariable(variable.clone()));
         }
         let value = self.variables.remove(variable).unwrap();
         Ok(value)
@@ -201,9 +210,9 @@ impl TransformerContext {
         &mut self,
         variable: &String,
         value: f64,
-    ) -> Result<f64, TransfromError> {
+    ) -> Result<f64, TransformError> {
         if !self.variables.contains_key(variable) {
-            return Err(TransfromError::MissingVariable(variable.clone()));
+            return Err(TransformError::MissingVariable(variable.clone()));
         }
         self.variables.insert(variable.clone(), value);
         Ok(value)
@@ -211,31 +220,31 @@ impl TransformerContext {
     pub fn get_constant(&self, name: &str) -> Option<&ConstantValue> {
         self.constants.get(name)
     }
-    pub fn get_numerical_constant(&self, name: &str) -> Result<&f64, TransfromError> {
+    pub fn get_numerical_constant(&self, name: &str) -> Result<&f64, TransformError> {
         match self.get_constant(name) {
             Some(constant) => match &constant {
                 ConstantValue::Number(value) => Ok(value),
-                _ => Err(TransfromError::WrongArgument(format!(
+                _ => Err(TransformError::WrongArgument(format!(
                     "Expected a number, check the definition of {}",
                     name
                 ))),
             },
-            None => Err(TransfromError::MissingConstant(name.to_string())),
+            None => Err(TransformError::MissingConstant(name.to_string())),
         }
     }
-    pub fn get_1d_array_constant_value(&self, name: &str, i: usize) -> Result<f64, TransfromError> {
+    pub fn get_1d_array_constant_value(&self, name: &str, i: usize) -> Result<f64, TransformError> {
         match self.get_constant(name) {
             Some(constant) => match &constant {
                 ConstantValue::OneDimArray(array) => match array.get(i).map(|v| *v) {
                     Some(value) => Ok(value),
-                    None => Err(TransfromError::OutOfBounds(format!("{}[{}]", name, i))),
+                    None => Err(TransformError::OutOfBounds(format!("{}[{}]", name, i))),
                 },
-                _ => Err(TransfromError::WrongArgument(format!(
+                _ => Err(TransformError::WrongArgument(format!(
                     "Expected a 1d array, check the definition of {}",
                     name
                 ))),
             },
-            None => Err(TransfromError::MissingConstant(name.to_string())),
+            None => Err(TransformError::MissingConstant(name.to_string())),
         }
     }
     pub fn get_2d_array_constant_value(
@@ -243,44 +252,44 @@ impl TransformerContext {
         name: &str,
         i: usize,
         j: usize,
-    ) -> Result<f64, TransfromError> {
+    ) -> Result<f64, TransformError> {
         match self.get_constant(name) {
             Some(constant) => match &constant {
                 ConstantValue::TwoDimArray(array) => {
                     let value = array.get(i).and_then(|row| row.get(j)).map(|v| *v);
                     match value {
                         Some(value) => Ok(value),
-                        None => Err(TransfromError::OutOfBounds(format!(
+                        None => Err(TransformError::OutOfBounds(format!(
                             "{}[{}][{}]",
                             name, i, j
                         ))),
                     }
                 }
-                _ => Err(TransfromError::WrongArgument(format!(
+                _ => Err(TransformError::WrongArgument(format!(
                     "Expected a 2d array, check the definition of {}",
                     name
                 ))),
             },
-            None => Err(TransfromError::MissingConstant(name.to_string())),
+            None => Err(TransformError::MissingConstant(name.to_string())),
         }
     }
-    pub fn get_1d_array_length(&self, name: &str) -> Result<usize, TransfromError> {
+    pub fn get_1d_array_length(&self, name: &str) -> Result<usize, TransformError> {
         match self.get_constant(name) {
             Some(constant) => match &constant {
                 ConstantValue::OneDimArray(array) => Ok(array.len()),
-                _ => Err(TransfromError::WrongArgument(format!(
+                _ => Err(TransformError::WrongArgument(format!(
                     "Expected a 1d array, check the definition of {}",
                     name
                 ))),
             },
-            None => Err(TransfromError::MissingConstant(name.to_string())),
+            None => Err(TransformError::MissingConstant(name.to_string())),
         }
     }
     pub fn get_2d_array_length(
         &self,
         name: &str,
         index: usize,
-    ) -> Result<(usize, usize), TransfromError> {
+    ) -> Result<(usize, usize), TransformError> {
         match self.get_constant(name) {
             Some(constant) => match &constant {
                 ConstantValue::TwoDimArray(array) => {
@@ -288,15 +297,15 @@ impl TransformerContext {
                     let cols = array.get(index).map(|row| row.len());
                     match cols {
                         Some(cols) => Ok((rows, cols)),
-                        None => Err(TransfromError::OutOfBounds(format!("{}[{}]", name, index))),
+                        None => Err(TransformError::OutOfBounds(format!("{}[{}]", name, index))),
                     }
                 }
-                _ => Err(TransfromError::WrongArgument(format!(
+                _ => Err(TransformError::WrongArgument(format!(
                     "Expected a 2d array, check the definition of {}",
                     name
                 ))),
             },
-            None => Err(TransfromError::MissingConstant(name.to_string())),
+            None => Err(TransformError::MissingConstant(name.to_string())),
         }
     }
     pub fn get_variable(&self, name: &str) -> Option<&f64> {
@@ -304,7 +313,7 @@ impl TransformerContext {
     }
 }
 
-pub fn transform(pre_problem: &PreProblem) -> Result<Problem, TransfromError> {
+pub fn transform(pre_problem: &PreProblem) -> Result<Problem, TransformError> {
     let constants = pre_problem
         .constants
         .iter()
@@ -331,7 +340,7 @@ pub fn transform(pre_problem: &PreProblem) -> Result<Problem, TransfromError> {
 pub fn transform_len_of(
     len_of: &PreLenOf,
     context: &TransformerContext,
-) -> Result<usize, TransfromError> {
+) -> Result<usize, TransformError> {
     match len_of {
         PreLenOf::Array(name) => context.get_1d_array_length(name),
         PreLenOf::ArrayAccess(array_access) => {
@@ -355,8 +364,8 @@ pub fn transform_len_of(
                         }
                     }
                 },
-                (None, _) => Err(TransfromError::MissingConstant(array_access.name.clone())),
-                _ => Err(TransfromError::OutOfBounds(array_access.name.clone())),
+                (None, _) => Err(TransformError::MissingConstant(array_access.name.clone())),
+                _ => Err(TransformError::OutOfBounds(array_access.name.clone())),
             }
         }
     }
@@ -365,7 +374,7 @@ pub fn transform_len_of(
 pub fn transform_pre_access(
     pre_access: &PreAccess,
     context: &TransformerContext,
-) -> Result<usize, TransfromError> {
+) -> Result<usize, TransformError> {
     match pre_access {
         PreAccess::Number(value) => Ok(*value as usize),
         PreAccess::Variable(name) => {
@@ -373,7 +382,7 @@ pub fn transform_pre_access(
             let variable_value = get_variable_value(name, context)?;
             match variable_value == (variable_value as usize) as f64 {
                 true => Ok(variable_value as usize),
-                false => Err(TransfromError::ExpectedNumber(name.clone())),
+                false => Err(TransformError::ExpectedNumber(name.clone())),
             }
         }
     }
@@ -382,10 +391,10 @@ pub fn transform_pre_access(
 pub fn get_variable_value(
     name: &String,
     context: &TransformerContext,
-) -> Result<f64, TransfromError> {
+) -> Result<f64, TransformError> {
     let variable_value = match context.get_variable(name) {
         Some(value) => *value,
-        None => return Err(TransfromError::MissingVariable(name.clone())),
+        None => return Err(TransformError::MissingVariable(name.clone())),
     };
     Ok(variable_value)
 }
@@ -394,7 +403,7 @@ pub fn transform_range_value(
     range_value: &PreRangeValue,
     context: &TransformerContext,
     add_if_number: i32,
-) -> Result<i32, TransfromError> {
+) -> Result<i32, TransformError> {
     match range_value {
         //range is exclusive, so we need to add 1 to get the correct value
         PreRangeValue::Number(value) => Ok((*value as i32) + add_if_number),
@@ -407,7 +416,7 @@ pub fn transform_range_value(
 pub fn transform_range(
     range: &PreRange,
     context: &TransformerContext,
-) -> Result<Range, TransfromError> {
+) -> Result<Range, TransformError> {
     let from = transform_range_value(&range.from, context, 0)?;
     let to = transform_range_value(&range.to, context, 1)?;
     Ok(Range::new(range.name.clone(), from, to))
@@ -415,16 +424,16 @@ pub fn transform_range(
 pub fn transform_pre_array_access(
     array_access: &PreArrayAccess,
     context: &TransformerContext,
-) -> Result<f64, TransfromError> {
+) -> Result<f64, TransformError> {
     let indexes = array_access
         .accesses
         .iter()
         .map(|access| transform_pre_access(access, context))
-        .collect::<Result<Vec<usize>, TransfromError>>()?;
+        .collect::<Result<Vec<usize>, TransformError>>()?;
     match indexes.as_slice() {
         [i] => Ok(context.get_1d_array_constant_value(&array_access.name, *i)?),
         [i, j] => Ok(context.get_2d_array_constant_value(&array_access.name, *i, *j)?),
-        _ => Err(TransfromError::OutOfBounds(format!(
+        _ => Err(TransformError::OutOfBounds(format!(
             "limit of 2d arrays, trying to access {}[{:?}]",
             array_access.name, indexes
         ))),
@@ -434,7 +443,7 @@ pub fn transform_pre_array_access(
 pub fn transform_condition(
     condition: &PreCondition,
     context: &mut TransformerContext,
-) -> Result<Condition, TransfromError> {
+) -> Result<Condition, TransformError> {
     let lhs = condition.lhs.into_exp(context)?;
     let rhs = condition.rhs.into_exp(context)?;
     Ok(Condition::new(&lhs, condition.condition_type.clone(), &rhs))
@@ -443,7 +452,7 @@ pub fn transform_condition(
 pub fn transform_condition_with_range(
     condition: &PreCondition,
     context: &mut TransformerContext,
-) -> Result<Vec<Condition>, TransfromError> {
+) -> Result<Vec<Condition>, TransformError> {
     let iteration = match &condition.iteration {
         Some(iteration) => Some(transform_range(iteration, context)?),
         None => None,
@@ -468,7 +477,7 @@ pub fn transform_condition_with_range(
 pub fn transform_objective(
     objective: &PreObjective,
     context: &mut TransformerContext,
-) -> Result<Objective, TransfromError> {
+) -> Result<Objective, TransformError> {
     let rhs = objective.rhs.into_exp(context)?;
     Ok(Objective::new(objective.objective_type.clone(), &rhs))
 }
@@ -476,13 +485,13 @@ pub fn transform_objective(
 pub fn transform_problem(
     problem: &PreProblem,
     context: &mut TransformerContext,
-) -> Result<Problem, TransfromError> {
+) -> Result<Problem, TransformError> {
     let objective = transform_objective(&problem.objective, context)?;
     let conditions = problem
         .conditions
         .iter()
         .map(|condition| transform_condition_with_range(condition, context))
-        .collect::<Result<Vec<Vec<Condition>>, TransfromError>>()?
+        .collect::<Result<Vec<Vec<Condition>>, TransformError>>()?
         .into_iter()
         .flatten()
         .collect::<Vec<Condition>>();
