@@ -12,15 +12,15 @@ The "language" supports formal definitions, i'd like to expand the project to su
   - [ ] Iterators
   - [ ] Tuples
   - [ ] Iterators utility functions (for graphs, edges, etc)
+  - [ ] Definition of variable bounds
   - [x] Formal definition of a problem, (sum function and generic variables)
-  - [x] Formal definition of PL-01 problems (done except bounds)
   - [x] Constants and 1d and 2d arrays in the formal definition of a problem
 - [ ] Simplex resolution
   - [ ] Linearization of a generic problem
   - [x] Transformation of a linear problem into the standard form
   - [x] Two step method using artifical variables to find a valid basis for the standard form problem
   - [x] Simplex to find the optimal solution of a standard form linear problem
-- [ ] PL-01 resolution
+- [ ] Integer and binary problems resolution
   - [ ] Integer problem definitions (bounds)
   - [ ] Branch & Bound method to solve integer problems
   - [ ] Other integer solution algorithms
