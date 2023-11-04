@@ -1,0 +1,102 @@
+problem = {
+    SOI ~
+    #objective = objective ~ nl+ ~
+    ^"s.t." ~ nl+ ~
+    #conditions = condition_list ~
+    (nl+ ~
+    ^"where" ~ nl+ ~
+    #where = consts_declaration)? ~
+     EOI
+}
+// required problem body
+objective = {
+  #objective_type = objective_type ~
+  #objective_body = tagged_exp
+}
+condition_list = { (condition ~ nl+)* ~ condition }
+// condition
+condition = {
+  #lhs = tagged_exp ~
+  #relation = comparison ~
+  #rhs = tagged_exp ~
+  #iteration = for_iteration?
+}
+// constants declaration
+consts_declaration = { (const_declaration ~ nl+)* ~ const_declaration }
+const_declaration  = {
+  #name = simple_variable ~
+  "=" ~
+  #value = constant
+}
+
+// iterations
+for_iteration          = _{ ^"for" ~ iteration_declaration }
+iteration_declaration_list = { (iteration_declaration ~ comma)* ~ iteration_declaration }
+iteration_declaration      =  {
+  #name = tuple ~
+  ^"in" ~
+  #iterator = iterator
+}
+tuple = { simple_variable | ("(" ~ simple_variable ~ (comma ~ simple_variable)* ~ ")")   }
+iterator = { range_iterator | edges_iterator | iter_iterator | neighbour_iterator}
+//iterators
+//TODO should i do a generic syntax for iterators, so a 
+//generic function grammar with parameters? for the len() too and other functions
+//it would mean more parser work but perhaps better error handling and removing the need
+//to add it to the grammar every time, but then it would mean that the 
+//syntax can't allow for implicit multiplication as len(a) could be implied as sum * (a)
+//
+edges_iterator = { "edges(" ~ #of_graph = simple_variable ~ ")"}
+iter_iterator =  { "iter(" ~ #of = (array_access | simple_variable)~")" }
+neighbour_iterator = { "neighbours(" ~ #of_graph = simple_variable ~comma ~ #node = (simple_variable | string)~ ")"}
+range_iterator = {
+  #from = (number | len) ~
+  ".." ~
+  #to = (number | len)
+}
+// expressions
+tagged_exp = { exp }
+exp         = _{ unary_op? ~ exp_body ~ (binary_op ~ unary_op? ~ exp_body)* }
+exp_body    = _{ function | parenthesis | modulo | number | array_access | variable }
+modulo      =  { "|" ~ exp ~ "|" }
+parenthesis =  { "(" ~ exp ~ ")" }
+function    = _{ min | max | sum | len}
+// functions
+min = { ^"min" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~"}" }
+max = { ^"max" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~ "}" }
+sum = { ^"sum(" ~ nl* ~ #range = iteration_declaration_list ~ nl* ~")" ~ "{" ~ nl* ~ #body = tagged_exp ~ nl* ~ "}" }
+len = { ^"len(" ~ (array_access | simple_variable) ~ ")" }
+// pointer access var[i][j] or var[0] etc...
+array_access        = {
+  #name = simple_variable ~
+  #accesses = pointer_access_list
+}
+pointer_access_list = { (pointer_access)+ }
+pointer_access      = _{ ^"[" ~ (number | simple_variable) ~ ^"]" }
+// constants
+constant = _{ number | array | graph}
+graph = { ^"Graph" ~ "{" ~nl* ~ #body = graph_node_list ~ nl* ~ "}" }
+graph_node_list = { graph_node? ~ (comma ~ graph_node)* }
+graph_node = { #name = simple_variable ~ ( "->" ~ "[" ~#edges = edges_list ~ "]")?}
+edges_list = {  (edge ~ comma)* ~ edge?}
+edge = { #node = simple_variable ~ (":" ~ #cost = signed_number)? }
+array    =  { "[" ~ nl* ~ ((( number | array) ~ comma)* ~ constant) ~ nl* ~ "]" }
+// utilities
+comma_separated_exp = _{ (exp ~ comma)* ~ exp }
+comma = _{ "," ~ nl? }
+nl = _{NEWLINE}
+variable       = _{ compound_variable | simple_variable }
+// terminal characters
+objective_type = @{ ^"min" | ^"max" }
+comparison     = @{ "<=" | ">=" | "=" }
+// should I make this not a terminal so that i can get variable > compound_variable?
+simple_variable   = @{ LETTER+ ~ (NUMBER)* }
+compound_variable = @{ simple_variable ~ ("_" ~ LETTER+)+ }
+// maybe i should do ("_" ~ LETTER+)+
+number    = @{ '0'..'9'+ ~ ("." ~ '0'..'9'+)? }
+signed_number = @{ "-"? ~ number}
+binary_op = @{ "*" | "+" | "-" | "/" }
+unary_op  = @{ "-" }
+string = @ { "\"" ~ LETTER* ~ "\""}
+// ignore whitespace in whole grammar
+WHITESPACE = _{ " " | "\t" }
