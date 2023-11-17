@@ -1,3 +1,4 @@
+pub mod macros;
 pub mod consts;
 pub mod linear_problem;
 pub mod parser;

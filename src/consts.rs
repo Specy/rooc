@@ -1,3 +1,6 @@
+use pest::Span;
+
+use crate::transformer::Graph;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Comparison {
@@ -59,6 +62,7 @@ pub enum ConstantValue {
     Number(f64),
     OneDimArray(Vec<f64>),
     TwoDimArray(Vec<Vec<f64>>),
+    Graph(Graph),
 }
 impl ConstantValue {
     pub fn to_string(&self) -> String {
@@ -66,8 +70,14 @@ impl ConstantValue {
             Self::Number(n) => n.to_string(),
             Self::OneDimArray(v) => format!("{:?}", v),
             Self::TwoDimArray(v) => {
-                let result = v.iter().map(|row| format!("{:?}", row)).collect::<Vec<String>>();
+                let result = v
+                    .iter()
+                    .map(|row| format!("{:?}", row))
+                    .collect::<Vec<String>>();
                 format!("[{}]", result.join(",\n"))
+            }
+            Self::Graph(g) => {
+                format!("Graph {{\n{}\n}}", g.to_string())
             }
         }
     }
@@ -87,8 +97,67 @@ impl Constant {
     }
 }
 
+pub struct CompilationError {
+    kind: ParseError,
+    start_line: usize,
+    start: usize,
+    end_line: usize,
+    end: usize,
+    text: String,
+}
+impl CompilationError {
+    pub fn new(
+        kind: ParseError,
+        start_line: usize,
+        start: usize,
+        end_line: usize,
+        end: usize,
+        text: String,
+    ) -> Self {
+        Self {
+            kind,
+            start_line,
+            start,
+            end_line,
+            end,
+            text,
+        }
+    }
+    pub fn from_span(kind: ParseError, span: &Span, exclude_string: bool) -> Self {
+        let (start_line, start) = span.start_pos().line_col();
+        let (end_line, end) = span.end_pos().line_col();
+        let text = if exclude_string { "" } else { span.as_str() }.to_string();
+        Self::new(kind, start_line, start, end_line, end, text)
+    }
+    pub fn to_string(&self) -> String {
+        format!(
+            "Error at line {}:{} to {}:{}. {}",
+            self.start_line,
+            self.start,
+            self.end_line,
+            self.end,
+            self.kind.to_string()
+        )
+    }
+}
+impl std::fmt::Debug for CompilationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.to_string())
+    }
+}
+
 #[derive(Debug)]
 pub enum ParseError {
     UnexpectedToken(String),
     MissingToken(String),
+    SemanticError(String),
+}
+impl ParseError {
+    pub fn to_string(&self) -> String {
+        match self {
+            Self::UnexpectedToken(s) => format!("Unexpected token, {}", s),
+            Self::MissingToken(s) => format!("Missing token,  {}", s),
+            Self::SemanticError(s) => format!("Semantic error, {}", s),
+        }
+    }
 }

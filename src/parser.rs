@@ -1,9 +1,11 @@
-
-use crate::consts::{Comparison, Constant, Operator, OptimizationType, ParseError};
+use crate::consts::{
+    Comparison, CompilationError, Constant, Operator, OptimizationType, ParseError,
+};
+use crate::err_missing_token;
 use crate::rules_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
 use crate::transformer::{
-    transform_len_of, transform_pre_array_access, transform_range, Exp, Range, TransformerContext,
-    TransformError,
+    transform_len_of, transform_pre_array_access, transform_range, Exp, Range, TransformError,
+    TransformerContext,
 };
 use pest::iterators::Pair;
 use pest::Parser;
@@ -90,12 +92,27 @@ const_declaration  = {
   #value = constant
 }
 
-// range
-for_iteration          = _{ ^"for" ~ range_declaration }
-range_declaration_list = _{ (range_declaration ~ ",")* ~ range_declaration }
-range_declaration      =  {
-  #name = simple_variable ~
-  ^"in" ~
+// iterations
+for_iteration          = _{ (^"for" | "∀") ~ iteration_declaration }
+iteration_declaration_list = { (iteration_declaration ~ comma)* ~ iteration_declaration }
+iteration_declaration      =  {
+  #name = tuple ~
+  (^"in" | "∈") ~
+  #iterator = iterator
+}
+tuple = { simple_variable | ("(" ~ simple_variable ~ (comma ~ simple_variable)* ~ ")")   }
+iterator = { range_iterator | edges_iterator | iter_iterator | neighbour_iterator}
+//iterators
+//TODO should i do a generic syntax for iterators, so a
+//generic function grammar with parameters? for the len() too and other functions
+//it would mean more parser work but perhaps better error handling and removing the need
+//to add it to the grammar every time, but then it would mean that the
+//syntax can't allow for implicit multiplication as len(a) could be implied as sum * (a)
+//
+edges_iterator = { "edges(" ~ #of_graph = simple_variable ~ ")"}
+iter_iterator =  { "iter(" ~ #of = (array_access | simple_variable)~")" }
+neighbour_iterator = { "neighbours(" ~ #of_graph = simple_variable ~comma ~ #node = (simple_variable | string)~ ")"}
+range_iterator = {
   #from = (number | len) ~
   ".." ~
   #to = (number | len)
@@ -106,11 +123,11 @@ exp         = _{ unary_op? ~ exp_body ~ (binary_op ~ unary_op? ~ exp_body)* }
 exp_body    = _{ function | parenthesis | modulo | number | array_access | variable }
 modulo      =  { "|" ~ exp ~ "|" }
 parenthesis =  { "(" ~ exp ~ ")" }
-function    = _{ min | max | sum }
+function    = _{ min | max | sum | len}
 // functions
-min = { ^"min" ~ "{" ~ comma_separated_exp ~ "}" }
-max = { ^"max" ~ "{" ~ comma_separated_exp ~ "}" }
-sum = { ^"sum(" ~ #range = range_declaration_list ~ ")" ~ "{" ~ #body = tagged_exp ~ "}" }
+min = { ^"min" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~"}" }
+max = { ^"max" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~ "}" }
+sum = { (^"sum" | "∑") ~ "(" ~ nl* ~ #range = iteration_declaration_list ~ nl* ~")" ~ "{" ~ nl* ~ #body = tagged_exp ~ nl* ~ "}" }
 len = { ^"len(" ~ (array_access | simple_variable) ~ ")" }
 // pointer access var[i][j] or var[0] etc...
 array_access        = {
@@ -120,8 +137,13 @@ array_access        = {
 pointer_access_list = { (pointer_access)+ }
 pointer_access      = _{ ^"[" ~ (number | simple_variable) ~ ^"]" }
 // constants
-array    =  { "[" ~ nl* ~ ((constant ~ comma)* ~ constant) ~ nl* ~ "]" }
-constant = _{ number | array }
+constant = _{ number | array | graph}
+graph = { ^"Graph" ~ "{" ~nl* ~ #body = graph_node_list ~ nl* ~ "}" }
+graph_node_list = { graph_node? ~ (comma ~ graph_node)* }
+graph_node = { #name = simple_variable ~ ( "->" ~ "[" ~#edges = edges_list ~ "]")?}
+edges_list = {  (edge ~ comma)* ~ edge?}
+edge = { #node = simple_variable ~ (":" ~ #cost = signed_number)? }
+array    =  { "[" ~ nl* ~ ((( number | array) ~ comma)* ~ constant) ~ nl* ~ "]" }
 // utilities
 comma_separated_exp = _{ (exp ~ comma)* ~ exp }
 comma = _{ "," ~ nl? }
@@ -130,13 +152,15 @@ variable       = _{ compound_variable | simple_variable }
 // terminal characters
 objective_type = @{ ^"min" | ^"max" }
 comparison     = @{ "<=" | ">=" | "=" }
-// should i make this not a terminal so that i can get variable > compound_variable?
+// should I make this not a terminal so that i can get variable > compound_variable?
 simple_variable   = @{ LETTER+ ~ (NUMBER)* }
-compound_variable = @{ simple_variable ~ "_" ~ LETTER+ }
+compound_variable = @{ simple_variable ~ ("_" ~ LETTER+)+ }
 // maybe i should do ("_" ~ LETTER+)+
 number    = @{ '0'..'9'+ ~ ("." ~ '0'..'9'+)? }
+signed_number = @{ "-"? ~ number}
 binary_op = @{ "*" | "+" | "-" | "/" }
 unary_op  = @{ "-" }
+string = @ { "\"" ~ LETTER* ~ "\""}
 // ignore whitespace in whole grammar
 WHITESPACE = _{ " " | "\t" }
 */
@@ -146,22 +170,48 @@ WHITESPACE = _{ " " | "\t" }
 struct PLParser;
 
 #[derive(Debug)]
-pub enum PreLenOf {
+pub enum PreIterOfArray {
     Array(String),
     ArrayAccess(PreArrayAccess),
+}
+#[derive(Debug)]
+pub struct PreSet {
+    pub name: String,
+    pub iterator: PreIterator,
+}
+impl PreSet {
+    pub fn new(name: String, iterator: PreIterator) -> Self {
+        Self { name, iterator }
+    }
 }
 
 #[derive(Debug)]
 pub enum PreRangeValue {
     Number(i32),
-    LenOf(PreLenOf),
+    LenOf(PreIterOfArray),
 }
 
 #[derive(Debug)]
-pub struct PreRange {
-    pub name: String,
-    pub from: PreRangeValue,
-    pub to: PreRangeValue,
+pub enum PreNode {
+    Name(String),
+    Variable(String),
+}
+#[derive(Debug)]
+pub enum PreIterator {
+    Range {
+        from: PreRangeValue,
+        to: PreRangeValue,
+    },
+    EdgesOf {
+        graph_name: String,
+    },
+    NeighboursOf {
+        graph_name: String,
+        node: PreNode,
+    },
+    IterOf {
+        of: PreIterOfArray,
+    },
 }
 
 #[derive(Debug)]
@@ -181,14 +231,14 @@ pub enum PreExp {
     Mod(Box<PreExp>),
     Min(Vec<PreExp>),
     Max(Vec<PreExp>),
-    LenOf(PreLenOf),
+    LenOf(PreIterOfArray),
     Variable(String),
     CompoundVariable { name: String, indexes: String },
     BinaryOperation(Operator, Box<PreExp>, Box<PreExp>),
     UnaryNegation(Box<PreExp>),
     ArrayAccess(PreArrayAccess),
     Parenthesis(Box<PreExp>),
-    Sum(Vec<PreRange>, Box<PreExp>),
+    Sum(Vec<PreSet>, Box<PreExp>),
 }
 
 impl PreExp {
@@ -253,11 +303,7 @@ impl PreExp {
                 results.reverse();
                 let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
                 for result in results {
-                    sum = Exp::BinaryOperation(
-                        Operator::Add,
-                        sum.to_boxed(),
-                        result.to_boxed(),
-                    );
+                    sum = Exp::BinaryOperation(Operator::Add, sum.to_boxed(), result.to_boxed());
                 }
                 Ok(Exp::Parenthesis(sum.to_boxed()))
             }
@@ -281,7 +327,8 @@ fn recursive_sum_resolver(
         None => return Err(TransformError::OutOfBounds("Range".to_string())),
     };
     let mut current_value = range.from;
-    while current_value < range.to { //range is exclusive
+    while current_value < range.to {
+        //range is exclusive
         context.add_variable(&range.name, current_value as f64)?;
         recursive_sum_resolver(exp, ranges, context, results, current_level + 1)?;
         context.remove_variable(&range.name)?;
@@ -310,7 +357,7 @@ pub struct PreCondition {
     pub lhs: PreExp,
     pub condition_type: Comparison,
     pub rhs: PreExp,
-    pub iteration: Option<PreRange>,
+    pub iteration: Option<PreSet>,
 }
 
 impl PreCondition {
@@ -318,7 +365,7 @@ impl PreCondition {
         lhs: PreExp,
         condition_type: Comparison,
         rhs: PreExp,
-        iteration: Option<PreRange>,
+        iteration: Option<PreSet>,
     ) -> Self {
         Self {
             lhs,
@@ -375,8 +422,8 @@ pub fn parse(source: &String) -> Result<PreProblem, String> {
     }
 }
 
-fn parse_problem(problem: Pair<Rule>) -> Result<PreProblem, ParseError> {
-    let pairs = problem.into_inner();
+fn parse_problem(problem: Pair<Rule>) -> Result<PreProblem, CompilationError> {
+    let pairs = problem.clone().into_inner();
     let objective = pairs.find_first_tagged("objective").map(parse_objective);
     let conditions = pairs
         .find_first_tagged("conditions")
@@ -384,16 +431,12 @@ fn parse_problem(problem: Pair<Rule>) -> Result<PreProblem, ParseError> {
     let consts = pairs
         .find_first_tagged("where")
         .map(parse_consts_declaration);
-    if objective.is_none() {
-        return Err(ParseError::MissingToken("Objective".to_string()));
+    match (objective, conditions) {
+        (Some(obj), Some(cond)) => Ok(PreProblem::new(
+            obj?,
+            cond?,
+            consts.unwrap_or(Ok(Vec::new()))?,
+        )),
+        _ => err_missing_token!("Objective and conditions are required", problem),
     }
-    if conditions.is_none() {
-        return Err(ParseError::MissingToken("Conditions".to_string()));
-    }
-    println!("{:#?}", consts);
-    Ok(PreProblem::new(
-        objective.unwrap()?,
-        conditions.unwrap()?,
-        consts.unwrap_or(Ok(vec![]))?,
-    ))
 }

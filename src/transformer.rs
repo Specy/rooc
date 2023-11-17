@@ -1,12 +1,73 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::format};
 
 use crate::{
     consts::{Comparison, ConstantValue, Operator, OptimizationType},
     parser::{
-        PreAccess, PreArrayAccess, PreCondition, PreLenOf, PreObjective, PreProblem, PreRange,
-        PreRangeValue,
+        PreAccess, PreArrayAccess, PreCondition, PreIterOfArray, PreIterator, PreObjective,
+        PreProblem, PreRangeValue,
     },
 };
+
+#[derive(Debug, Clone)]
+pub struct GraphEdge {
+    from: String,
+    to: String,
+    weight: Option<f64>,
+}
+impl GraphEdge {
+    pub fn new(from: String, to: String, weight: Option<f64>) -> Self {
+        Self { from, to, weight }
+    }
+    pub fn to_string(&self) -> String {
+        match self.weight {
+            Some(w) => format!("{}:{}", self.to, w),
+            None => self.to.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct GraphNode {
+    name: String,
+    edges: HashMap<String, GraphEdge>,
+}
+impl GraphNode {
+    pub fn new(name: String, edges: Vec<GraphEdge>) -> Self {
+        let edges = edges
+            .into_iter()
+            .map(|edge| (edge.to.clone(), edge))
+            .collect::<HashMap<String, GraphEdge>>();
+        Self { name, edges }
+    }
+    pub fn to_string(&self) -> String {
+        let edges = self
+            .edges
+            .iter()
+            .map(|(_, edge)| edge.to_string())
+            .collect::<Vec<String>>()
+            .join(", ");
+        format!("{}: {{{}}}", self.name, edges)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Graph {
+    nodes: Vec<GraphNode>,
+}
+impl Graph {
+    pub fn new(nodes: Vec<GraphNode>) -> Self {
+        Self { nodes }
+    }
+    pub fn to_string(&self) -> String {
+        let nodes = self
+            .nodes
+            .iter()
+            .map(|node| node.to_string())
+            .collect::<Vec<String>>()
+            .join("\n");
+        format!("[{}]", nodes)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Exp {
@@ -338,12 +399,12 @@ pub fn transform(pre_problem: &PreProblem) -> Result<Problem, TransformError> {
 }
 
 pub fn transform_len_of(
-    len_of: &PreLenOf,
+    len_of: &PreIterOfArray,
     context: &TransformerContext,
 ) -> Result<usize, TransformError> {
     match len_of {
-        PreLenOf::Array(name) => context.get_1d_array_length(name),
-        PreLenOf::ArrayAccess(array_access) => {
+        PreIterOfArray::Array(name) => context.get_1d_array_length(name),
+        PreIterOfArray::ArrayAccess(array_access) => {
             let index = array_access.accesses.first();
             match (index, array_access.accesses.len()) {
                 (Some(access), 1) => match access {
@@ -414,12 +475,15 @@ pub fn transform_range_value(
     }
 }
 pub fn transform_range(
-    range: &PreRange,
+    range: &PreIterator,
     context: &TransformerContext,
 ) -> Result<Range, TransformError> {
+    todo!("transform_range")
+    /*
     let from = transform_range_value(&range.from, context, 0)?;
     let to = transform_range_value(&range.to, context, 1)?;
     Ok(Range::new(range.name.clone(), from, to))
+     */
 }
 pub fn transform_pre_array_access(
     array_access: &PreArrayAccess,
