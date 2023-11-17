@@ -4,7 +4,7 @@ use crate::consts::{
 use crate::err_missing_token;
 use crate::rules_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
 use crate::transformer::{
-    transform_len_of, transform_pre_array_access, transform_range, Exp, Range, TransformError,
+    transform_len_of, transform_pre_array_access, transform_set, Exp, Range, TransformError,
     TransformerContext,
 };
 use pest::iterators::Pair;
@@ -176,12 +176,15 @@ pub enum PreIterOfArray {
 }
 #[derive(Debug)]
 pub struct PreSet {
-    pub name: String,
+    pub vars_tuple: Vec<String>,
     pub iterator: PreIterator,
 }
 impl PreSet {
-    pub fn new(name: String, iterator: PreIterator) -> Self {
-        Self { name, iterator }
+    pub fn new(vars_tuple: Vec<String>, iterator: PreIterator) -> Self {
+        Self {
+            vars_tuple,
+            iterator,
+        }
     }
 }
 
@@ -245,10 +248,7 @@ impl PreExp {
     pub fn to_boxed(self) -> Box<PreExp> {
         Box::new(self)
     }
-    pub fn to_string(self) -> String {
-        //convert back to string
-        todo!()
-    }
+
     pub fn into_exp(&self, context: &mut TransformerContext) -> Result<Exp, TransformError> {
         match self {
             Self::Number(n) => Ok(Exp::Number(*n)),
@@ -296,7 +296,7 @@ impl PreExp {
                 */
                 let ranges = ranges
                     .iter()
-                    .map(|r| transform_range(r, context))
+                    .map(|r| transform_set(r, context))
                     .collect::<Result<Vec<Range>, TransformError>>()?;
                 let mut results = Vec::new();
                 recursive_sum_resolver(exp_body, &ranges, context, &mut results, 0)?;

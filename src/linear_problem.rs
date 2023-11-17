@@ -1,8 +1,9 @@
 use crate::{
+    consts::{Comparison, OptimizationType},
     simplex::{
         divide_matrix_row_by, CanonicalTransformError, IntoCanonicalTableau, Tableau, Tableauable,
     },
-    standardizer::to_standard_form, consts::{Comparison, OptimizationType},
+    standardizer::to_standard_form,
 };
 
 pub struct EqualityConstraint {
@@ -106,7 +107,7 @@ impl IntoCanonicalTableau for StandardLinearProblem {
                 }
             }
             //only positive values are allowed, as the B column must be all positive
-            if independent_count == 1 && independent_value > 0.0{
+            if independent_count == 1 && independent_value > 0.0 {
                 usable_independent_vars.push(IndependentVariable {
                     row: independent_row,
                     column,
@@ -131,7 +132,10 @@ impl IntoCanonicalTableau for StandardLinearProblem {
                 value += amount * b[independent_variable.row];
             }
 
-            let mut basis = usable_independent_vars.iter().map(|i| i.column).collect::<Vec<usize>>();
+            let mut basis = usable_independent_vars
+                .iter()
+                .map(|i| i.column)
+                .collect::<Vec<usize>>();
             //we only need as many basis variables as there are constraints
             basis.resize(self.constraints.len(), 0);
             Ok(Tableau::new(

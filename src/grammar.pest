@@ -33,7 +33,7 @@ const_declaration  = {
 for_iteration          = _{ (^"for" | "∀") ~ iteration_declaration }
 iteration_declaration_list = { (iteration_declaration ~ comma)* ~ iteration_declaration }
 iteration_declaration      =  {
-  #name = tuple ~
+  #tuple = tuple ~
   (^"in" | "∈") ~
   #iterator = iterator
 }

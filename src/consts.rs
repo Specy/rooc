@@ -1,6 +1,7 @@
-use pest::Span;
+use std::fmt::format;
 
 use crate::transformer::Graph;
+use pest::Span;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Comparison {
@@ -74,7 +75,7 @@ impl ConstantValue {
                     .iter()
                     .map(|row| format!("{:?}", row))
                     .collect::<Vec<String>>();
-                format!("[{}]", result.join(",\n"))
+                format!("[\n{}\n]", result.join(",\n"))
             }
             Self::Graph(g) => {
                 format!("Graph {{\n{}\n}}", g.to_string())
@@ -131,13 +132,17 @@ impl CompilationError {
     }
     pub fn to_string(&self) -> String {
         format!(
-            "Error at line {}:{} to {}:{}. {}",
+            "Error at line {}:{} to {}:{}. {} {}",
             self.start_line,
             self.start,
             self.end_line,
             self.end,
-            self.kind.to_string()
+            self.kind.to_string(),
+            self.text
         )
+    }
+    pub fn to_error_string(&self) -> String {
+        format!("{} {}", self.kind.to_string(), self.text)
     }
 }
 impl std::fmt::Debug for CompilationError {

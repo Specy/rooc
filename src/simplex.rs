@@ -1,4 +1,3 @@
-
 use num_rational::Rational64;
 use num_traits::cast::FromPrimitive;
 #[derive(Debug, Clone)]
@@ -65,7 +64,11 @@ impl Tableau {
         self.solve_avoiding(limit, &vec![])
     }
 
-    pub fn solve_avoiding(&mut self, limit: i64, variables_to_avoid: &Vec<usize>) -> Result<OptimalTableau, SimplexError> {
+    pub fn solve_avoiding(
+        &mut self,
+        limit: i64,
+        variables_to_avoid: &Vec<usize>,
+    ) -> Result<OptimalTableau, SimplexError> {
         let mut iteration = 0;
         while iteration <= limit {
             match self.step(variables_to_avoid) {
@@ -144,7 +147,8 @@ impl Tableau {
                 for (i, ratio) in valid {
                     if ratio == min.1 {
                         //if we found a tie, we use the Bland's rule for anti-cycling, but prefer to prioritize some variables
-                        let to_prefer = variables_to_prefer.contains(&basis[i]) && !variables_to_prefer.contains(&basis[min.0]);
+                        let to_prefer = variables_to_prefer.contains(&basis[i])
+                            && !variables_to_prefer.contains(&basis[min.0]);
                         if basis[i] < basis[min.0] || to_prefer {
                             min = (i, ratio);
                         }
@@ -306,10 +310,8 @@ pub trait Tableauable {
     fn get_objective_offset(&self) -> f64;
 }
 
-
-
 #[derive(Debug)]
-pub enum CanonicalTransformError{
+pub enum CanonicalTransformError {
     Raw(String),
     InvalidBasis(String),
     Infesible(String),
@@ -317,7 +319,7 @@ pub enum CanonicalTransformError{
 }
 impl CanonicalTransformError {
     pub fn to_string(&self) -> String {
-        match self{
+        match self {
             Self::Raw(s) => s.clone(),
             Self::InvalidBasis(s) => format!("Invalid Basis: {}", s),
             Self::Infesible(s) => format!("Infesible: {}", s),
@@ -329,8 +331,7 @@ pub trait IntoCanonicalTableau {
     fn into_canonical(&self) -> Result<Tableau, CanonicalTransformError>;
 }
 
-
-pub fn divide_matrix_row_by(matrix: &mut Vec<Vec<f64>>, row: usize, value: f64){
+pub fn divide_matrix_row_by(matrix: &mut Vec<Vec<f64>>, row: usize, value: f64) {
     for i in 0..matrix[row].len() {
         matrix[row][i] /= value;
     }

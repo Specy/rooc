@@ -6,8 +6,6 @@ _ => Err(ParseError::UnexpectedToken(format!(
 
 */
 
-
-
 #[macro_export]
 macro_rules! err_unexpected_token {
     ($s:literal, $arg:ident) => {
@@ -27,7 +25,7 @@ macro_rules! err_missing_token {
             &$arg.as_span(),
             true,
         ))
-    }
+    };
 }
 
 #[macro_export]
@@ -38,6 +36,5 @@ macro_rules! err_semantic_error {
             &$arg.as_span(),
             true,
         ))
-    }
+    };
 }
-

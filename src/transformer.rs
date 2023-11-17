@@ -4,7 +4,7 @@ use crate::{
     consts::{Comparison, ConstantValue, Operator, OptimizationType},
     parser::{
         PreAccess, PreArrayAccess, PreCondition, PreIterOfArray, PreIterator, PreObjective,
-        PreProblem, PreRangeValue,
+        PreProblem, PreRangeValue, PreSet,
     },
 };
 
@@ -474,11 +474,13 @@ pub fn transform_range_value(
         }
     }
 }
-pub fn transform_range(
-    range: &PreIterator,
+
+pub fn transform_set(
+    range: &PreSet,
     context: &TransformerContext,
 ) -> Result<Range, TransformError> {
-    todo!("transform_range")
+    todo!("implement the set transformation into a iterator")
+
     /*
     let from = transform_range_value(&range.from, context, 0)?;
     let to = transform_range_value(&range.to, context, 1)?;
@@ -513,12 +515,12 @@ pub fn transform_condition(
     Ok(Condition::new(&lhs, condition.condition_type.clone(), &rhs))
 }
 
-pub fn transform_condition_with_range(
+pub fn transform_condition_with_iteration(
     condition: &PreCondition,
     context: &mut TransformerContext,
 ) -> Result<Vec<Condition>, TransformError> {
     let iteration = match &condition.iteration {
-        Some(iteration) => Some(transform_range(iteration, context)?),
+        Some(iteration) => Some(transform_set(iteration, context)?),
         None => None,
     };
     match iteration {
@@ -554,7 +556,7 @@ pub fn transform_problem(
     let conditions = problem
         .conditions
         .iter()
-        .map(|condition| transform_condition_with_range(condition, context))
+        .map(|condition| transform_condition_with_iteration(condition, context))
         .collect::<Result<Vec<Vec<Condition>>, TransformError>>()?
         .into_iter()
         .flatten()

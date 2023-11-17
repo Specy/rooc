@@ -2,7 +2,8 @@ use rooc::{
     consts::{Comparison, OptimizationType},
     linear_problem::{Constraint, LinearProblem},
     parser::parse,
-    simplex::{IntoCanonicalTableau, Tableau}, transformer::{transform},
+    simplex::{IntoCanonicalTableau, Tableau},
+    transformer::transform,
 };
 use term_table::{row::Row, table_cell::TableCell, Table};
 

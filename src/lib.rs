@@ -1,6 +1,6 @@
-pub mod macros;
 pub mod consts;
 pub mod linear_problem;
+pub mod macros;
 pub mod parser;
 pub mod rules_parser;
 pub mod simplex;

@@ -5,12 +5,11 @@ use crate::consts::{
 };
 use crate::parser::{
     PreAccess, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator, PreNode,
-    PreObjective, PreRangeValue, Rule, PreSet,
+    PreObjective, PreRangeValue, PreSet, Rule,
 };
 use crate::transformer::{Graph, GraphEdge, GraphNode};
 use crate::{err_missing_token, err_semantic_error, err_unexpected_token};
 
-//done
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {
     match objective.as_rule() {
         Rule::objective => {
@@ -38,7 +37,7 @@ pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, Compilatio
         }
     }
 }
-//done
+
 pub fn parse_consts_declaration(
     consts_declarations: Pair<Rule>,
 ) -> Result<Vec<Constant>, CompilationError> {
@@ -53,7 +52,7 @@ pub fn parse_consts_declaration(
         ),
     }
 }
-//done
+
 pub fn parse_const_declaration(
     const_declaration: Pair<Rule>,
 ) -> Result<Constant, CompilationError> {
@@ -83,7 +82,7 @@ pub fn parse_const_declaration(
         ),
     }
 }
-//done
+
 pub fn parse_const_value(const_value: &Pair<Rule>) -> Result<ConstantValue, CompilationError> {
     match const_value.as_rule() {
         Rule::number => Ok(ConstantValue::Number(parse_number(const_value)?)),
@@ -215,7 +214,7 @@ pub enum ArrayValue {
     Array(Vec<f64>),
     Empty,
 }
-//done
+
 pub fn parse_array_value(array_value: &Pair<Rule>) -> Result<ArrayValue, CompilationError> {
     let pairs = array_value
         .clone()
@@ -236,7 +235,7 @@ pub fn parse_array_value(array_value: &Pair<Rule>) -> Result<ArrayValue, Compila
         _ => err_unexpected_token!("Expected array value but got: {}", array_value),
     }
 }
-//done
+
 pub fn parse_condition_list(
     condition_list: &Pair<Rule>,
 ) -> Result<Vec<PreCondition>, CompilationError> {
@@ -277,7 +276,7 @@ fn parse_var(var: Pair<Rule>) -> Result<String, CompilationError> {
     }
 }
 */
-//done
+
 fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, CompilationError> {
     match condition.as_rule() {
         Rule::condition => {
@@ -331,7 +330,7 @@ fn parse_bounds(bounds: Pair<Rule>) -> Result<Bounds, CompilationError> {
     }
 }
 */
-//done
+
 fn parse_number(number: &Pair<Rule>) -> Result<f64, CompilationError> {
     match number.as_rule() {
         Rule::number => {
@@ -347,7 +346,6 @@ fn parse_number(number: &Pair<Rule>) -> Result<f64, CompilationError> {
     }
 }
 
-//done
 fn parse_comparison(comparison: &Pair<Rule>) -> Result<Comparison, CompilationError> {
     match comparison.as_rule() {
         Rule::comparison => {
@@ -364,7 +362,7 @@ fn parse_comparison(comparison: &Pair<Rule>) -> Result<Comparison, CompilationEr
         _ => err_unexpected_token!("Expected comparison but got: {}", comparison),
     }
 }
-//done
+
 fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError> {
     //use shunting yard algorithm to parse expression list into a PreExp tree
     let mut output_queue: Vec<PreExp> = Vec::new();
@@ -515,7 +513,6 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
     }
 }
 
-//done
 fn parse_set_iterator_list(range_list: &Pairs<Rule>) -> Result<Vec<PreSet>, CompilationError> {
     range_list
         .clone()
@@ -523,27 +520,38 @@ fn parse_set_iterator_list(range_list: &Pairs<Rule>) -> Result<Vec<PreSet>, Comp
         .collect::<Result<Vec<PreSet>, CompilationError>>()
 }
 
-//done
 fn parse_set_iterator(range: &Pair<Rule>) -> Result<PreSet, CompilationError> {
     match range.as_rule() {
         Rule::iteration_declaration => {
             let inner = range.clone().into_inner();
-            let name = inner
-                .find_first_tagged("name")
-                .map(|n| n.as_str().to_string());
+            let vars_tuple = inner.find_first_tagged("tuple").map(|n| parse_tuple(&n));
             let iterator = inner
                 .find_first_tagged("iterator")
                 .map(|f| parse_iterator(&f));
-            match (name, iterator) {
-                (Some(name), Some(iterator)) => {
-                    Ok(PreSet::new(name, iterator?))
-                }
+            match (vars_tuple, iterator) {
+                (Some(vars_tuple), Some(iterator)) => Ok(PreSet::new(vars_tuple?, iterator?)),
                 _ => err_unexpected_token!("Expected set iterator but got: {}", range),
             }
         }
         _ => err_unexpected_token!("Expected set iterator but got: {}", range),
     }
 }
+fn parse_tuple(tuple: &Pair<Rule>) -> Result<Vec<String>, CompilationError> {
+    match tuple.as_rule() {
+        Rule::tuple => {
+            let inner = tuple.clone().into_inner();
+            let inner = inner
+                .map(|i| match i.as_rule() {
+                    Rule::simple_variable => Ok(i.as_str().to_string()),
+                    _ => err_unexpected_token!("Expected variable but got: {}", i),
+                })
+                .collect::<Result<Vec<String>, CompilationError>>()?;
+            Ok(inner)
+        }
+        _ => err_unexpected_token!("Expected tuple but got: {}", tuple),
+    }
+}
+
 fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreIterator, CompilationError> {
     match iterator.as_rule() {
         Rule::for_iteration => {
@@ -610,7 +618,6 @@ fn parse_node(node: &Pair<Rule>) -> Result<PreNode, CompilationError> {
     }
 }
 
-//done
 fn parse_range_value(range_value: &Pair<Rule>) -> Result<PreRangeValue, CompilationError> {
     match range_value.as_rule() {
         Rule::number => Ok(PreRangeValue::Number(
@@ -621,7 +628,6 @@ fn parse_range_value(range_value: &Pair<Rule>) -> Result<PreRangeValue, Compilat
     }
 }
 
-//done
 fn parse_len(len: &Pair<Rule>) -> Result<PreIterOfArray, CompilationError> {
     match len.as_rule() {
         Rule::len => {
@@ -649,7 +655,6 @@ fn parse_array_iter(array_access: &Pair<Rule>) -> Result<PreIterOfArray, Compila
     }
 }
 
-//done
 fn parse_array_access(array_access: &Pair<Rule>) -> Result<PreArrayAccess, CompilationError> {
     match array_access.as_rule() {
         Rule::array_access => {
@@ -673,7 +678,6 @@ fn parse_array_access(array_access: &Pair<Rule>) -> Result<PreArrayAccess, Compi
     }
 }
 
-//done
 fn parse_pointer_access(pointer_access: &Pair<Rule>) -> Result<PreAccess, CompilationError> {
     match pointer_access.as_rule() {
         Rule::number => Ok(PreAccess::Number(
@@ -683,14 +687,14 @@ fn parse_pointer_access(pointer_access: &Pair<Rule>) -> Result<PreAccess, Compil
         _ => err_unexpected_token!("Expected pointer access but got: {}", pointer_access),
     }
 }
-//done
+
 fn should_unwind(operator_stack: &Vec<Operator>, op: &Operator) -> bool {
     match operator_stack.last() {
         Some(top) => top.precedence() >= op.precedence(),
         None => false,
     }
 }
-//done
+
 fn parse_operator(operator: &Pair<Rule>) -> Result<Operator, CompilationError> {
     match operator.as_rule() {
         //TODO add separate unary operators?
@@ -704,7 +708,7 @@ fn parse_operator(operator: &Pair<Rule>) -> Result<Operator, CompilationError> {
         _ => err_unexpected_token!("found {}, expected op", operator),
     }
 }
-//done
+
 //if the previous token was a number, englobe the rhs in a multiplication, this is to implement the implicit multiplication
 fn englobe_if_multiplied_by_constant(
     prev_token: &Option<Rule>,
