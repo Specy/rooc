@@ -1,9 +1,9 @@
-use std::{collections::HashMap, fmt::format};
+use std::{collections::HashMap, fmt::format, task::Context};
 
 use crate::{
     consts::{Comparison, ConstantValue, Operator, OptimizationType},
     parser::{
-        PreAccess, PreArrayAccess, PreCondition, PreIterOfArray, PreIterator, PreObjective,
+        PreAccess, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator, PreObjective,
         PreProblem, PreRangeValue, PreSet,
     },
 };
@@ -76,7 +76,7 @@ pub enum Exp {
     Mod(Box<Exp>),
     Min(Vec<Exp>),
     Max(Vec<Exp>),
-    Parenthesis(Box<Exp>),
+    //Parenthesis(Box<Exp>),
     BinaryOperation(Operator, Box<Exp>, Box<Exp>),
     UnaryNegation(Box<Exp>),
 }
@@ -85,38 +85,150 @@ impl Exp {
     pub fn to_boxed(self) -> Box<Exp> {
         Box::new(self)
     }
+    pub fn from_pre_exp(
+        pre_exp: &PreExp,
+        context: &mut TransformerContext,
+    ) -> Result<Self, TransformError> {
+        pre_exp.into_exp(context)
+    }
+
+    pub fn simplify(&self) -> Exp {
+        todo!("implement the simplify function by using e-graphs egg")
+    }
+    /*
+    When you see binop(mul, binop(add, a, b), c), turn it into binop(add, binop(mul, a, c), binop(mul, b, c)). There is no need to reason about parentheses because the parser already took care of that
+
+    //Source
+    (a + b - c)(d + e)
+    //AST representation
+    Exp::BinaryOperation( //(a + b - c)(d + e)
+      Operator::Multiply,
+      Exp::BinaryOperation( //a + b - c
+        Operator::Subtract,
+        Exp::BinaryOperation( //a + b
+          Operator::Add,
+          Exp::Variable("a"),
+          Exp::Variable("b"),
+        ),
+        Exp::Variable("c")
+      ),
+      Exp::BinaryOperation( //d + e
+        Operator::Add,
+        Exp::Variable("d"),
+        Exp::Variable("e"),
+      )
+    )
+
+    There is no need to use the Parentheses AST node
+    Your AST already represents precedence and associativity
+
+    Flatten can be implemented something like:
+    1) If the current expression is of type (a + b)c, (a - b)c or (-a)b (where a, b, c are arbitrary expressions),
+    turn it into ac + bc, ac - bc, or -ab, respectively, and call flatten on it again
+    2) (same thing with the parenthesis on the right side)
+    3) If no rule matched, call flatten on the subexpressions
+    */
+    pub fn flatten(self) -> Exp {
+        match self {
+            Exp::BinaryOperation(op, lhs, rhs) => match (op, *lhs, *rhs) {
+                (Operator::Mul, Exp::BinaryOperation(inner_op, lhs, rhs), c)
+                    if matches!(inner_op, Operator::Add | Operator::Sub) =>
+                {
+                    Exp::BinaryOperation(
+                        inner_op,
+                        Exp::BinaryOperation(
+                            Operator::Mul,
+                            lhs.to_boxed(),
+                            c.clone().to_boxed(),
+                        )
+                        .to_boxed(),
+                        Exp::BinaryOperation(
+                            Operator::Mul,
+                            rhs.to_boxed(),
+                            c.to_boxed(),
+                        )
+                        .to_boxed(),
+                    )
+                    .flatten()
+                }
+                (Operator::Mul, c, Exp::BinaryOperation(inner_op, lhs, rhs))
+                    if matches!(inner_op, Operator::Add | Operator::Sub) =>
+                {
+                    Exp::BinaryOperation(
+                        inner_op,
+                        Exp::BinaryOperation(
+                            Operator::Mul,
+                            c.clone().to_boxed(),
+                            lhs.to_boxed(),
+                        )
+                        .to_boxed(),
+                        Exp::BinaryOperation(
+                            Operator::Mul,
+                            c.to_boxed(),
+                            rhs.to_boxed(),
+                        )
+                        .to_boxed(),
+                    )
+                    .flatten()
+                }
+                (Operator::Mul, Exp::UnaryNegation(lhs), c) => Exp::UnaryNegation(
+                    Exp::BinaryOperation(
+                        Operator::Mul,
+                        lhs.to_boxed(),
+                        c.to_boxed(),
+                    )
+                    .flatten()
+                    .to_boxed(),
+                ),
+                (Operator::Mul, c, Exp::UnaryNegation(rhs)) => Exp::UnaryNegation(
+                    Exp::BinaryOperation(
+                        Operator::Mul,
+                        c.to_boxed(),
+                        rhs.to_boxed(),
+                    )
+                    .flatten()
+                    .to_boxed(),
+                ),
+                (op, lhs, rhs) => {
+                    Exp::BinaryOperation(op, lhs.flatten().to_boxed(), rhs.flatten().to_boxed())
+                }
+            },
+            _ => self,
+        }
+    }
+
     pub fn to_string(&self) -> String {
         match self {
             Exp::Number(value) => value.to_string(),
             Exp::Variable(name) => name.clone(),
             Exp::Mod(exp) => format!("|{}|", exp.to_string()),
             Exp::Min(exps) => format!(
-                "min({})",
+                "min{{ {} }}",
                 exps.iter()
                     .map(|exp| exp.to_string())
                     .collect::<Vec<String>>()
                     .join(", ")
             ),
             Exp::Max(exps) => format!(
-                "max({})",
+                "max{{ {} }}",
                 exps.iter()
                     .map(|exp| exp.to_string())
                     .collect::<Vec<String>>()
                     .join(", ")
             ),
             Exp::BinaryOperation(operator, lhs, rhs) => format!(
-                "{} {} {}",
+                "({} {} {})",
                 lhs.to_string(),
                 operator.to_string(),
-                rhs.to_string()
+                rhs.to_string(),
             ),
-            Exp::Parenthesis(exp) => format!("({})", exp.to_string()),
+            //Exp::Parenthesis(exp) => format!("({})", exp.to_string()),
             Exp::UnaryNegation(exp) => format!("-{}", exp.to_string()),
         }
     }
     pub fn remove_root_parenthesis(&self) -> &Exp {
         match self {
-            Exp::Parenthesis(exp) => exp,
+            //Exp::Parenthesis(exp) => exp,
             _ => self,
         }
     }

@@ -88,12 +88,10 @@ fn main() {
     }
 
     let problem = "
-    max sum(i in 0..len(C), j in 0..len(b)){  X_ij * C[i]}
+    max a
     s.t.
-        sum(i in 0..len(C)){ C[i] * X_ij } <= b[j] for j in 0..len(C)
-    where
-        C = [10, 20]
-        b = [2, 5]
+    (a + b - c)*(d + e) <= 0
+    a * d + a * e + b * d + b * e - c * d - c * e<= 0  
     "
     .to_string();
     let parsed = parse(&problem);
@@ -104,11 +102,11 @@ fn main() {
             println!("\n\n");
             match transformed {
                 Ok(transformed) => println!("{}", transformed.to_string()),
-                Err(e) => println!("Error: {:#?}", e),
+                Err(e) => println!("{:#?}", e),
             }
         }
         Err(e) => {
-            println!("Error: {}", e);
+            println!("{}", e);
         }
     }
 }

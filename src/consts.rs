@@ -132,7 +132,7 @@ impl CompilationError {
     }
     pub fn to_string(&self) -> String {
         format!(
-            "Error at line {}:{} to {}:{}. {} {}",
+            "Error at line {}:{} to {}:{}\n\t{} {}",
             self.start_line,
             self.start,
             self.end_line,
@@ -160,9 +160,9 @@ pub enum ParseError {
 impl ParseError {
     pub fn to_string(&self) -> String {
         match self {
-            Self::UnexpectedToken(s) => format!("Unexpected token, {}", s),
-            Self::MissingToken(s) => format!("Missing token,  {}", s),
-            Self::SemanticError(s) => format!("Semantic error, {}", s),
+            Self::UnexpectedToken(s) => format!("Unexpected token: \"{}\"", s),
+            Self::MissingToken(s) => format!("Missing token: \"{}\"", s),
+            Self::SemanticError(s) => format!("Semantic error: \"{}\"", s),
         }
     }
 }

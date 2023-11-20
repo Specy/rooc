@@ -376,14 +376,18 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 let op = parse_operator(&exp)?;
 
                 while should_unwind(&operator_stack, &op) {
-                    let op = operator_stack.pop();
-                    let rhs = output_queue.pop();
-                    let lhs = output_queue.pop();
-                    if op.is_none() || rhs.is_none() || lhs.is_none() {
-                        return err_unexpected_token!("found {}, expected exp", exp);
+                    match (operator_stack.pop(), output_queue.pop(), output_queue.pop()) {
+                        (Some(op), Some(rhs), Some(lhs)) => {
+                            output_queue.push(PreExp::BinaryOperation(
+                                op,
+                                lhs.to_boxed(),
+                                rhs.to_boxed(),
+                            ));
+                        }
+                        _ => {
+                            return err_unexpected_token!("found {}, expected exp", exp);
+                        }
                     }
-                    let (op, rhs, lhs) = (op.unwrap(), rhs.unwrap(), lhs.unwrap());
-                    output_queue.push(PreExp::BinaryOperation(op, lhs.to_boxed(), rhs.to_boxed()));
                 }
                 //check if the operator is unary, if so, add a zero to the output queue
                 //old if last_token == Some(Rule::op) || last_token == None
@@ -448,7 +452,7 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 output_queue.push(sum);
             }
             Rule::number => {
-                let num = exp.as_str().parse::<f64>();
+                let num = exp.as_str().parse();
                 match num {
                     Ok(num) => output_queue.push(PreExp::Number(num)),
                     Err(_) => {
@@ -457,9 +461,12 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 }
             }
             Rule::parenthesis => {
+                //i keep this only because i want to be able to format and get back the same input that
+                // was given to me
                 let par = parse_exp_list(&exp)?;
                 let par = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, par);
-                output_queue.push(PreExp::Parenthesis(par.to_boxed()));
+                //output_queue.push(PreExp::Parenthesis(par.to_boxed()));
+                output_queue.push(par);
             }
             Rule::modulo => {
                 let exp = parse_exp_list(&exp)?;

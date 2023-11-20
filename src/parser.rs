@@ -240,17 +240,25 @@ pub enum PreExp {
     BinaryOperation(Operator, Box<PreExp>, Box<PreExp>),
     UnaryNegation(Box<PreExp>),
     ArrayAccess(PreArrayAccess),
-    Parenthesis(Box<PreExp>),
+    //Parenthesis(Box<PreExp>),
     Sum(Vec<PreSet>, Box<PreExp>),
 }
+
+
 
 impl PreExp {
     pub fn to_boxed(self) -> Box<PreExp> {
         Box::new(self)
     }
 
+    //should this consume self?
     pub fn into_exp(&self, context: &mut TransformerContext) -> Result<Exp, TransformError> {
-        match self {
+        let exp = match self {
+            Self::BinaryOperation(op, lhs, rhs) => {
+                match (op.clone(), lhs.into_exp(context)?, rhs.into_exp(context)?) {
+                    (op, lhs, rhs) => Ok(Exp::BinaryOperation(op, lhs.to_boxed(), rhs.to_boxed())),
+                }
+            }
             Self::Number(n) => Ok(Exp::Number(*n)),
             Self::Mod(exp) => Ok(Exp::Mod(exp.into_exp(context)?.to_boxed())),
             Self::Min(exps) => Ok(Exp::Min(
@@ -262,11 +270,6 @@ impl PreExp {
                 exps.iter()
                     .map(|exp| exp.into_exp(context))
                     .collect::<Result<Vec<Exp>, TransformError>>()?,
-            )),
-            Self::BinaryOperation(op, lhs, rhs) => Ok(Exp::BinaryOperation(
-                op.clone(),
-                lhs.into_exp(context)?.to_boxed(),
-                rhs.into_exp(context)?.to_boxed(),
             )),
             Self::UnaryNegation(exp) => Ok(Exp::UnaryNegation(exp.into_exp(context)?.to_boxed())),
             Self::LenOf(len_of) => {
@@ -281,7 +284,7 @@ impl PreExp {
                     None => Ok(Exp::Variable(name.clone())),
                 }
             }
-            Self::Parenthesis(exp) => Ok(Exp::Parenthesis(exp.into_exp(context)?.to_boxed())),
+            //Self::Parenthesis(exp) => Ok(Exp::Parenthesis(exp.into_exp(context)?.to_boxed())),
             Self::CompoundVariable { name, indexes } => {
                 let parsed_indexes = context.flatten_variable_name(&indexes)?;
                 Ok(Exp::Variable(format!("{}_{}", name, parsed_indexes)))
@@ -305,9 +308,11 @@ impl PreExp {
                 for result in results {
                     sum = Exp::BinaryOperation(Operator::Add, sum.to_boxed(), result.to_boxed());
                 }
-                Ok(Exp::Parenthesis(sum.to_boxed()))
+                //Ok(Exp::Parenthesis(sum.to_boxed()))
+                Ok(sum)
             }
-        }
+        };
+        exp.map(|e| e.flatten())
     }
 }
 
