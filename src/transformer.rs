@@ -95,39 +95,7 @@ impl Exp {
     pub fn simplify(&self) -> Exp {
         todo!("implement the simplify function by using e-graphs egg")
     }
-    /*
-    When you see binop(mul, binop(add, a, b), c), turn it into binop(add, binop(mul, a, c), binop(mul, b, c)). There is no need to reason about parentheses because the parser already took care of that
 
-    //Source
-    (a + b - c)(d + e)
-    //AST representation
-    Exp::BinaryOperation( //(a + b - c)(d + e)
-      Operator::Multiply,
-      Exp::BinaryOperation( //a + b - c
-        Operator::Subtract,
-        Exp::BinaryOperation( //a + b
-          Operator::Add,
-          Exp::Variable("a"),
-          Exp::Variable("b"),
-        ),
-        Exp::Variable("c")
-      ),
-      Exp::BinaryOperation( //d + e
-        Operator::Add,
-        Exp::Variable("d"),
-        Exp::Variable("e"),
-      )
-    )
-
-    There is no need to use the Parentheses AST node
-    Your AST already represents precedence and associativity
-
-    Flatten can be implemented something like:
-    1) If the current expression is of type (a + b)c, (a - b)c or (-a)b (where a, b, c are arbitrary expressions),
-    turn it into ac + bc, ac - bc, or -ab, respectively, and call flatten on it again
-    2) (same thing with the parenthesis on the right side)
-    3) If no rule matched, call flatten on the subexpressions
-    */
     pub fn flatten(self) -> Exp {
         match self {
             Exp::BinaryOperation(op, lhs, rhs) => match (op, *lhs, *rhs) {
