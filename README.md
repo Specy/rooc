@@ -1,4 +1,6 @@
 # ROOC
+<img src='./logo-original.png' width='156px'/>
+
 Short for the name of the courses i took at university (Ricerca Operativa, Ottimizzazione Combinatoria)
 # What it is
 Rooc is a program to parse and convert formal mathematical models into linear problems. They will be then converted into standard linear problems so they can be solved with the simplex.

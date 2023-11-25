@@ -1,7 +1,7 @@
-use std::{collections::HashMap, fmt::format, task::Context};
-
+use std::{collections::HashMap};
+use egg::*;
 use crate::{
-    consts::{Comparison, ConstantValue, Operator, OptimizationType},
+    consts::{Comparison, ConstantValue, Op, OptimizationType},
     parser::{
         PreAccess, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator, PreObjective,
         PreProblem, PreRangeValue, PreSet,
@@ -44,7 +44,7 @@ impl GraphNode {
             .edges
             .iter()
             .map(|(_, edge)| edge.to_string())
-            .collect::<Vec<String>>()
+            .collect::<Vec<_>>()
             .join(", ");
         format!("{}: {{{}}}", self.name, edges)
     }
@@ -63,7 +63,7 @@ impl Graph {
             .nodes
             .iter()
             .map(|node| node.to_string())
-            .collect::<Vec<String>>()
+            .collect::<Vec<_>>()
             .join("\n");
         format!("[{}]", nodes)
     }
@@ -77,12 +77,16 @@ pub enum Exp {
     Min(Vec<Exp>),
     Max(Vec<Exp>),
     //Parenthesis(Box<Exp>),
-    BinaryOperation(Operator, Box<Exp>, Box<Exp>),
-    UnaryNegation(Box<Exp>),
+    BinOp(Op, Box<Exp>, Box<Exp>),
+    Neg(Box<Exp>),
 }
 
 impl Exp {
-    pub fn to_boxed(self) -> Box<Exp> {
+    pub fn make_binop(op: Op, lhs: Exp, rhs: Exp) -> Box<Self> {
+        Exp::BinOp(op, lhs.to_box(), rhs.to_box()).to_box()
+    }
+
+    pub fn to_box(self) -> Box<Exp> {
         Box::new(self)
     }
     pub fn from_pre_exp(
@@ -98,68 +102,37 @@ impl Exp {
 
     pub fn flatten(self) -> Exp {
         match self {
-            Exp::BinaryOperation(op, lhs, rhs) => match (op, *lhs, *rhs) {
-                (Operator::Mul, Exp::BinaryOperation(inner_op, lhs, rhs), c)
-                    if matches!(inner_op, Operator::Add | Operator::Sub) =>
-                {
-                    Exp::BinaryOperation(
-                        inner_op,
-                        Exp::BinaryOperation(
-                            Operator::Mul,
-                            lhs.to_boxed(),
-                            c.clone().to_boxed(),
-                        )
-                        .to_boxed(),
-                        Exp::BinaryOperation(
-                            Operator::Mul,
-                            rhs.to_boxed(),
-                            c.to_boxed(),
-                        )
-                        .to_boxed(),
-                    )
-                    .flatten()
-                }
-                (Operator::Mul, c, Exp::BinaryOperation(inner_op, lhs, rhs))
-                    if matches!(inner_op, Operator::Add | Operator::Sub) =>
-                {
-                    Exp::BinaryOperation(
-                        inner_op,
-                        Exp::BinaryOperation(
-                            Operator::Mul,
-                            c.clone().to_boxed(),
-                            lhs.to_boxed(),
-                        )
-                        .to_boxed(),
-                        Exp::BinaryOperation(
-                            Operator::Mul,
-                            c.to_boxed(),
-                            rhs.to_boxed(),
-                        )
-                        .to_boxed(),
-                    )
-                    .flatten()
-                }
-                (Operator::Mul, Exp::UnaryNegation(lhs), c) => Exp::UnaryNegation(
-                    Exp::BinaryOperation(
-                        Operator::Mul,
-                        lhs.to_boxed(),
-                        c.to_boxed(),
-                    )
-                    .flatten()
-                    .to_boxed(),
+            Exp::BinOp(op, lhs, rhs) => match (op, *lhs, *rhs) {
+                //(a +- b)c = ac +- bc 
+                (Op::Mul, Exp::BinOp(inner_op @ (Op::Add | Op::Sub), lhs, rhs), c) => Exp::BinOp(
+                    inner_op,
+                    Exp::make_binop(Op::Mul, *lhs, c.clone()),
+                    Exp::make_binop(Op::Mul, *rhs, c),
+                )
+                .flatten(),
+                //c(a +- b) = ac +- bc
+                (Op::Mul, c, Exp::BinOp(inner_op @ (Op::Add | Op::Sub), lhs, rhs)) => Exp::BinOp(
+                    inner_op,
+                    Exp::make_binop(Op::Mul, c.clone(), *lhs),
+                    Exp::make_binop(Op::Mul, c, *rhs),
+                )
+                .flatten(),
+                //-(a)b = -ab
+                (Op::Mul, Exp::Neg(lhs), c) => {
+                    Exp::Neg(Exp::make_binop(Op::Mul, *lhs, c).flatten().to_box())
+                },
+                //a(-b) = -ab
+                (Op::Mul, c, Exp::Neg(rhs)) => {
+                    Exp::Neg(Exp::make_binop(Op::Mul, c, *rhs).flatten().to_box())
+                },
+                //(a +- b)/c = a/c +- b/c
+                (Op::Div, Exp::BinOp(inner_op @ (Op::Add | Op::Sub), lhs, rhs), c) => Exp::BinOp(
+                    inner_op,
+                    Exp::make_binop(Op::Div, *lhs, c.clone()),
+                    Exp::make_binop(Op::Div, *rhs, c),
                 ),
-                (Operator::Mul, c, Exp::UnaryNegation(rhs)) => Exp::UnaryNegation(
-                    Exp::BinaryOperation(
-                        Operator::Mul,
-                        c.to_boxed(),
-                        rhs.to_boxed(),
-                    )
-                    .flatten()
-                    .to_boxed(),
-                ),
-                (op, lhs, rhs) => {
-                    Exp::BinaryOperation(op, lhs.flatten().to_boxed(), rhs.flatten().to_boxed())
-                }
+
+                (op, lhs, rhs) => Exp::BinOp(op, lhs.flatten().to_box(), rhs.flatten().to_box()),
             },
             _ => self,
         }
@@ -174,24 +147,24 @@ impl Exp {
                 "min{{ {} }}",
                 exps.iter()
                     .map(|exp| exp.to_string())
-                    .collect::<Vec<String>>()
+                    .collect::<Vec<_>>()
                     .join(", ")
             ),
             Exp::Max(exps) => format!(
                 "max{{ {} }}",
                 exps.iter()
                     .map(|exp| exp.to_string())
-                    .collect::<Vec<String>>()
+                    .collect::<Vec<_>>()
                     .join(", ")
             ),
-            Exp::BinaryOperation(operator, lhs, rhs) => format!(
+            Exp::BinOp(operator, lhs, rhs) => format!(
                 "({} {} {})",
                 lhs.to_string(),
                 operator.to_string(),
                 rhs.to_string(),
             ),
             //Exp::Parenthesis(exp) => format!("({})", exp.to_string()),
-            Exp::UnaryNegation(exp) => format!("-{}", exp.to_string()),
+            Exp::Neg(exp) => format!("-{}", exp.to_string()),
         }
     }
     pub fn remove_root_parenthesis(&self) -> &Exp {
@@ -287,7 +260,7 @@ impl Problem {
             .conditions
             .iter()
             .map(|condition| condition.to_string())
-            .collect::<Vec<String>>()
+            .collect::<Vec<_>>()
             .join("\n\t");
         format!("{}\ns.t\n\t{}", self.objective.to_string(), conditions)
     }
@@ -316,21 +289,26 @@ impl TransformerContext {
         }
     }
 
-    pub fn flatten_variable_name(&self, name: &str) -> Result<String, TransformError> {
-        let mut name = name.to_string();
-
-        for (variable_name, value) in self.variables.iter() {
-            name = name.replace(variable_name, format!("_{}", value).as_str());
+    pub fn flatten_variable_name(&self, name: &Vec<String>) -> Result<String, TransformError> {
+        let mut replaced_vars = vec![false; name.len()];
+        let mut name = name.clone();
+        for (variable_name, value) in self.variables.iter(){
+            let index = name.iter().position(|v| v == variable_name);
+            match index {
+                Some(index) => {
+                    name[index] = value.to_string();
+                    replaced_vars[index] = true;
+                },
+                None => continue,
+            }
         }
-        //check if every variable is replaced, the indexes must not have any letters
-        if name.chars().any(|c| c.is_alphabetic()) {
-            return Err(TransformError::MissingVariable(name));
+        //check if every variable is replaced
+        if replaced_vars.iter().all(|v| *v) {
+            let name = name.join("_");
+            Ok(name)
+        } else {
+            Err(TransformError::MissingVariable(name.join("_")))
         }
-        //remove the starting _ if it exists
-        if name.starts_with('_') {
-            name = name[1..].to_string();
-        }
-        Ok(name)
     }
 
     pub fn add_variable(&mut self, variable: &String, value: f64) -> Result<f64, TransformError> {
@@ -459,7 +437,7 @@ pub fn transform(pre_problem: &PreProblem) -> Result<Problem, TransformError> {
         .constants
         .iter()
         .map(|c| (c.name.clone(), c.value.clone()))
-        .collect::<Vec<(String, ConstantValue)>>();
+        .collect::<Vec<_>>();
     let initial_variables = pre_problem
         .constants
         .iter()
@@ -471,7 +449,7 @@ pub fn transform(pre_problem: &PreProblem) -> Result<Problem, TransformError> {
             ConstantValue::Number(value) => (c.name.clone(), *value),
             _ => unreachable!(),
         })
-        .collect::<Vec<(String, f64)>>();
+        .collect::<Vec<_>>();
     let constants = HashMap::from_iter(constants);
     let variables = HashMap::from_iter(initial_variables);
     let mut context = TransformerContext::new(constants, variables);
@@ -640,6 +618,6 @@ pub fn transform_problem(
         .collect::<Result<Vec<Vec<Condition>>, TransformError>>()?
         .into_iter()
         .flatten()
-        .collect::<Vec<Condition>>();
+        .collect::<Vec<_>>();
     Ok(Problem::new(objective, conditions))
 }

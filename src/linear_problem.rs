@@ -135,7 +135,7 @@ impl IntoCanonicalTableau for StandardLinearProblem {
             let mut basis = usable_independent_vars
                 .iter()
                 .map(|i| i.column)
-                .collect::<Vec<usize>>();
+                .collect::<Vec<_>>();
             //we only need as many basis variables as there are constraints
             basis.resize(self.constraints.len(), 0);
             Ok(Tableau::new(
@@ -186,7 +186,7 @@ impl IntoCanonicalTableau for StandardLinearProblem {
             );
             let artificial_variables = (number_of_variables
                 ..number_of_variables + number_of_artificial_variables)
-                .collect::<Vec<usize>>();
+                .collect::<Vec<_>>();
             match tableau.solve_avoiding(10000, &artificial_variables) {
                 Ok(optimal_tableau) => {
                     let tableau = optimal_tableau.get_tableau();

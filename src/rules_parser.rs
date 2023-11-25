@@ -1,7 +1,7 @@
 use pest::iterators::{Pair, Pairs};
 
 use crate::consts::{
-    Comparison, CompilationError, Constant, ConstantValue, Operator, OptimizationType, ParseError,
+    Comparison, CompilationError, Constant, ConstantValue, Op, OptimizationType, ParseError,
 };
 use crate::parser::{
     PreAccess, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator, PreNode,
@@ -122,7 +122,7 @@ pub fn parse_const_value(const_value: &Pair<Rule>) -> Result<ConstantValue, Comp
                         })
                         .collect::<Result<Vec<Vec<f64>>, CompilationError>>()?;
                     //make sure all the arrays are the same length
-                    let lengths = values.iter().map(|v| v.len()).collect::<Vec<usize>>();
+                    let lengths = values.iter().map(|v| v.len()).collect::<Vec<_>>();
                     let first = lengths.first();
                     if first.is_none() {
                         return Ok(ConstantValue::TwoDimArray(vec![]));
@@ -219,7 +219,7 @@ pub fn parse_array_value(array_value: &Pair<Rule>) -> Result<ArrayValue, Compila
     let pairs = array_value
         .clone()
         .into_inner()
-        .collect::<Vec<Pair<Rule>>>();
+        .collect::<Vec<_>>();
     match array_value.as_rule() {
         Rule::number => Ok(ArrayValue::Number(parse_number(array_value)?)),
         Rule::array => {
@@ -366,7 +366,7 @@ fn parse_comparison(comparison: &Pair<Rule>) -> Result<Comparison, CompilationEr
 fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError> {
     //use shunting yard algorithm to parse expression list into a PreExp tree
     let mut output_queue: Vec<PreExp> = Vec::new();
-    let mut operator_stack: Vec<Operator> = Vec::new();
+    let mut operator_stack: Vec<Op> = Vec::new();
     let mut last_token: Option<Rule> = None;
     let exp_list = exp_to_parse.clone().into_inner();
     for exp in exp_list.into_iter() {
@@ -394,7 +394,7 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 //TODO prove this works
                 if rule == Rule::unary_op {
                     match op {
-                        Operator::Sub => {
+                        Op::Sub => {
                             output_queue.push(PreExp::Number(0.0));
                         }
                         _ => {
@@ -423,11 +423,15 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 output_queue.push(next);
             }
             Rule::compound_variable => {
-                let fields = exp.as_str().split("_").collect::<Vec<&str>>();
+                let fields = exp.as_str().split("_").collect::<Vec<_>>();
                 if fields.len() < 2 {
                     return err_unexpected_token!("found {}, expected compound variable", exp);
                 }
-                let (name, indexes) = (fields[0], fields[1..].join("_"));
+                let name = fields[0];
+                let indexes = fields[1..]
+                    .iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<_>>();
                 let variable = PreExp::CompoundVariable {
                     name: name.to_string(),
                     indexes,
@@ -695,21 +699,21 @@ fn parse_pointer_access(pointer_access: &Pair<Rule>) -> Result<PreAccess, Compil
     }
 }
 
-fn should_unwind(operator_stack: &Vec<Operator>, op: &Operator) -> bool {
+fn should_unwind(operator_stack: &Vec<Op>, op: &Op) -> bool {
     match operator_stack.last() {
         Some(top) => top.precedence() >= op.precedence(),
         None => false,
     }
 }
 
-fn parse_operator(operator: &Pair<Rule>) -> Result<Operator, CompilationError> {
+fn parse_operator(operator: &Pair<Rule>) -> Result<Op, CompilationError> {
     match operator.as_rule() {
         //TODO add separate unary operators?
         Rule::binary_op | Rule::unary_op => match operator.as_str() {
-            "+" => Ok(Operator::Add),
-            "-" => Ok(Operator::Sub),
-            "*" => Ok(Operator::Mul),
-            "/" => Ok(Operator::Div),
+            "+" => Ok(Op::Add),
+            "-" => Ok(Op::Sub),
+            "*" => Ok(Op::Mul),
+            "/" => Ok(Op::Div),
             _ => err_unexpected_token!("found {}, expected +, -, *, /", operator),
         },
         _ => err_unexpected_token!("found {}, expected op", operator),
@@ -725,7 +729,7 @@ fn englobe_if_multiplied_by_constant(
     match prev_token {
         Some(Rule::number) => {
             let last_number = queue.pop().unwrap();
-            PreExp::BinaryOperation(Operator::Mul, last_number.to_boxed(), rhs.to_boxed())
+            PreExp::BinaryOperation(Op::Mul, last_number.to_boxed(), rhs.to_boxed())
         }
         _ => rhs,
     }

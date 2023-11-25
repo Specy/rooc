@@ -1,10 +1,4 @@
-/*
-_ => Err(ParseError::UnexpectedToken(format!(
-    "Expected condition list but got: {}",
-    condition_list.as_str()
-))),
 
-*/
 
 #[macro_export]
 macro_rules! err_unexpected_token {

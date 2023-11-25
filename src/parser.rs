@@ -1,5 +1,5 @@
 use crate::consts::{
-    Comparison, CompilationError, Constant, Operator, OptimizationType, ParseError,
+    Comparison, CompilationError, Constant, Op, OptimizationType, ParseError,
 };
 use crate::err_missing_token;
 use crate::rules_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
@@ -236,8 +236,8 @@ pub enum PreExp {
     Max(Vec<PreExp>),
     LenOf(PreIterOfArray),
     Variable(String),
-    CompoundVariable { name: String, indexes: String },
-    BinaryOperation(Operator, Box<PreExp>, Box<PreExp>),
+    CompoundVariable { name: String, indexes: Vec<String> },
+    BinaryOperation(Op, Box<PreExp>, Box<PreExp>),
     UnaryNegation(Box<PreExp>),
     ArrayAccess(PreArrayAccess),
     //Parenthesis(Box<PreExp>),
@@ -256,11 +256,11 @@ impl PreExp {
         let exp = match self {
             Self::BinaryOperation(op, lhs, rhs) => {
                 match (op.clone(), lhs.into_exp(context)?, rhs.into_exp(context)?) {
-                    (op, lhs, rhs) => Ok(Exp::BinaryOperation(op, lhs.to_boxed(), rhs.to_boxed())),
+                    (op, lhs, rhs) => Ok(Exp::BinOp(op, lhs.to_box(), rhs.to_box())),
                 }
             }
             Self::Number(n) => Ok(Exp::Number(*n)),
-            Self::Mod(exp) => Ok(Exp::Mod(exp.into_exp(context)?.to_boxed())),
+            Self::Mod(exp) => Ok(Exp::Mod(exp.into_exp(context)?.to_box())),
             Self::Min(exps) => Ok(Exp::Min(
                 exps.iter()
                     .map(|exp| exp.into_exp(context))
@@ -271,7 +271,7 @@ impl PreExp {
                     .map(|exp| exp.into_exp(context))
                     .collect::<Result<Vec<Exp>, TransformError>>()?,
             )),
-            Self::UnaryNegation(exp) => Ok(Exp::UnaryNegation(exp.into_exp(context)?.to_boxed())),
+            Self::UnaryNegation(exp) => Ok(Exp::Neg(exp.into_exp(context)?.to_box())),
             Self::LenOf(len_of) => {
                 let value = transform_len_of(len_of, context)?;
                 Ok(Exp::Number(value as f64))
@@ -306,7 +306,7 @@ impl PreExp {
                 results.reverse();
                 let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
                 for result in results {
-                    sum = Exp::BinaryOperation(Operator::Add, sum.to_boxed(), result.to_boxed());
+                    sum = Exp::BinOp(Op::Add, sum.to_box(), result.to_box());
                 }
                 //Ok(Exp::Parenthesis(sum.to_boxed()))
                 Ok(sum)
