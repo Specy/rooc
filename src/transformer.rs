@@ -1,73 +1,14 @@
-use std::{collections::HashMap};
-use egg::*;
 use crate::{
-    consts::{Comparison, ConstantValue, Op, OptimizationType},
+    consts::{Comparison, ConstantValue, Op, OptimizationType, Primitive},
     parser::{
         PreAccess, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator, PreObjective,
-        PreProblem, PreRangeValue, PreSet,
-    },
+        PreProblem, PreSet,
+    }, functions::ToNum,
 };
+use egg::*;
+use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
-pub struct GraphEdge {
-    from: String,
-    to: String,
-    weight: Option<f64>,
-}
-impl GraphEdge {
-    pub fn new(from: String, to: String, weight: Option<f64>) -> Self {
-        Self { from, to, weight }
-    }
-    pub fn to_string(&self) -> String {
-        match self.weight {
-            Some(w) => format!("{}:{}", self.to, w),
-            None => self.to.clone(),
-        }
-    }
-}
 
-#[derive(Debug, Clone)]
-pub struct GraphNode {
-    name: String,
-    edges: HashMap<String, GraphEdge>,
-}
-impl GraphNode {
-    pub fn new(name: String, edges: Vec<GraphEdge>) -> Self {
-        let edges = edges
-            .into_iter()
-            .map(|edge| (edge.to.clone(), edge))
-            .collect::<HashMap<String, GraphEdge>>();
-        Self { name, edges }
-    }
-    pub fn to_string(&self) -> String {
-        let edges = self
-            .edges
-            .iter()
-            .map(|(_, edge)| edge.to_string())
-            .collect::<Vec<_>>()
-            .join(", ");
-        format!("{}: {{{}}}", self.name, edges)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Graph {
-    nodes: Vec<GraphNode>,
-}
-impl Graph {
-    pub fn new(nodes: Vec<GraphNode>) -> Self {
-        Self { nodes }
-    }
-    pub fn to_string(&self) -> String {
-        let nodes = self
-            .nodes
-            .iter()
-            .map(|node| node.to_string())
-            .collect::<Vec<_>>()
-            .join("\n");
-        format!("[{}]", nodes)
-    }
-}
 
 #[derive(Debug, Clone)]
 pub enum Exp {
@@ -76,7 +17,6 @@ pub enum Exp {
     Mod(Box<Exp>),
     Min(Vec<Exp>),
     Max(Vec<Exp>),
-    //Parenthesis(Box<Exp>),
     BinOp(Op, Box<Exp>, Box<Exp>),
     Neg(Box<Exp>),
 }
@@ -103,7 +43,7 @@ impl Exp {
     pub fn flatten(self) -> Exp {
         match self {
             Exp::BinOp(op, lhs, rhs) => match (op, *lhs, *rhs) {
-                //(a +- b)c = ac +- bc 
+                //(a +- b)c = ac +- bc
                 (Op::Mul, Exp::BinOp(inner_op @ (Op::Add | Op::Sub), lhs, rhs), c) => Exp::BinOp(
                     inner_op,
                     Exp::make_binop(Op::Mul, *lhs, c.clone()),
@@ -120,11 +60,11 @@ impl Exp {
                 //-(a)b = -ab
                 (Op::Mul, Exp::Neg(lhs), c) => {
                     Exp::Neg(Exp::make_binop(Op::Mul, *lhs, c).flatten().to_box())
-                },
+                }
                 //a(-b) = -ab
                 (Op::Mul, c, Exp::Neg(rhs)) => {
                     Exp::Neg(Exp::make_binop(Op::Mul, c, *rhs).flatten().to_box())
-                },
+                }
                 //(a +- b)/c = a/c +- b/c
                 (Op::Div, Exp::BinOp(inner_op @ (Op::Add | Op::Sub), lhs, rhs), c) => Exp::BinOp(
                     inner_op,
@@ -274,6 +214,7 @@ pub enum TransformError {
     OutOfBounds(String),
     ExpectedNumber(String),
     WrongArgument(String),
+    NotFound(String),
 }
 
 #[derive(Debug)]
@@ -292,13 +233,13 @@ impl TransformerContext {
     pub fn flatten_variable_name(&self, name: &Vec<String>) -> Result<String, TransformError> {
         let mut replaced_vars = vec![false; name.len()];
         let mut name = name.clone();
-        for (variable_name, value) in self.variables.iter(){
+        for (variable_name, value) in self.variables.iter() {
             let index = name.iter().position(|v| v == variable_name);
             match index {
                 Some(index) => {
                     name[index] = value.to_string();
                     replaced_vars[index] = true;
-                },
+                }
                 None => continue,
             }
         }
@@ -310,7 +251,15 @@ impl TransformerContext {
             Err(TransformError::MissingVariable(name.join("_")))
         }
     }
-
+    pub fn flatten_compound_variable(
+        &self,
+        name: &String,
+        indexes: &Vec<String>,
+    ) -> Result<String, TransformError> {
+        let names: String = self.flatten_variable_name(indexes)?;
+        let name = format!("{}_{}", name, names);
+        Ok(name)
+    }
     pub fn add_variable(&mut self, variable: &String, value: f64) -> Result<f64, TransformError> {
         if self.variables.contains_key(variable) {
             return Err(TransformError::AlreadyExistingVariable(variable.clone()));
@@ -338,6 +287,18 @@ impl TransformerContext {
     }
     pub fn get_constant(&self, name: &str) -> Option<&ConstantValue> {
         self.constants.get(name)
+    }
+    pub fn get_primitive(&self, name: &str) -> Result<Primitive, TransformError> {
+        match self.get_constant(name) {
+            Some(constant) => match &constant {
+                ConstantValue::Number(value) => Ok(Primitive::Number(*value)),
+                ConstantValue::OneDimArray(array) => Ok(Primitive::NumberArray(array)),
+                ConstantValue::TwoDimArray(array) => Ok(Primitive::NumberMatrix(array)),
+                ConstantValue::Graph(graph) => Ok(Primitive::Graph(graph)),
+                ConstantValue::String(string) => Ok(Primitive::String(string)),
+            },
+            None => Err(TransformError::MissingConstant(name.to_string())),
+        }
     }
     pub fn get_numerical_constant(&self, name: &str) -> Result<&f64, TransformError> {
         match self.get_constant(name) {
@@ -427,6 +388,25 @@ impl TransformerContext {
             None => Err(TransformError::MissingConstant(name.to_string())),
         }
     }
+    pub fn get_array_access_value(
+        &self,
+        array_access: &PreArrayAccess,
+    ) -> Result<f64, TransformError> {
+        let indexes = array_access
+            .accesses
+            .iter()
+            .map(|access| transform_pre_access(access, self))
+            .collect::<Result<Vec<usize>, TransformError>>()?;
+        match indexes.as_slice() {
+            [i] => Ok(self.get_1d_array_constant_value(&array_access.name, *i)?),
+            [i, j] => Ok(self.get_2d_array_constant_value(&array_access.name, *i, *j)?),
+            _ => Err(TransformError::OutOfBounds(format!(
+                "limit of 2d arrays, trying to access {}[{:?}]",
+                array_access.name, indexes
+            ))),
+        }
+    }
+
     pub fn get_variable(&self, name: &str) -> Option<&f64> {
         self.variables.get(name)
     }
@@ -519,17 +499,22 @@ pub fn get_variable_value(
 }
 
 pub fn transform_range_value(
-    range_value: &PreRangeValue,
+    range_value: &dyn ToNum,
     context: &TransformerContext,
-    add_if_number: i32,
+    is_inclusive: bool,
 ) -> Result<i32, TransformError> {
-    match range_value {
-        //range is exclusive, so we need to add 1 to get the correct value
-        PreRangeValue::Number(value) => Ok((*value as i32) + add_if_number),
-        PreRangeValue::LenOf(len_of) => {
-            let len = transform_len_of(len_of, context)?;
-            Ok(len as i32)
-        }
+    //range is exclusive, so we need to add 1 to get the correct value
+    let append = if is_inclusive { 0 } else { 1 };
+    match range_value.to_num(context) {
+        Ok(value) => {
+            if value == 0.0 {
+                Ok(0)
+            } else {
+                Ok(value as i32 + append)
+            }
+        },
+        //TODO: add a better error message
+        Err(e) => Err(TransformError::WrongArgument("".to_string())),
     }
 }
 

@@ -6,6 +6,7 @@ pub mod rules_parser;
 pub mod simplex;
 pub mod standardizer;
 pub mod transformer;
+pub mod functions;
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;

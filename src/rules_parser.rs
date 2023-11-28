@@ -1,14 +1,16 @@
 use pest::iterators::{Pair, Pairs};
 
 use crate::consts::{
-    Comparison, CompilationError, Constant, ConstantValue, Op, OptimizationType, ParseError,
+    Comparison, CompilationError, Constant, ConstantValue, FunctionCall, Op, OptimizationType,
+    Parameter, ParseError, GraphNode, Graph, GraphEdge,
 };
+use crate::functions::{EdgesOfGraphFn, FunctionCallNumberGuard, StaticNumberGuard, ToNum};
 use crate::parser::{
-    PreAccess, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator, PreNode,
-    PreObjective, PreRangeValue, PreSet, Rule,
+    CompoundVariable, PreAccess, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator,
+    PreNode, PreObjective, PreSet, Rule,
 };
-use crate::transformer::{Graph, GraphEdge, GraphNode};
-use crate::{err_missing_token, err_semantic_error, err_unexpected_token};
+use crate::transformer::{TransformerContext};
+use crate::{bail_missing_token, bail_semantic_error, err_unexpected_token};
 
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {
     match objective.as_rule() {
@@ -17,7 +19,7 @@ pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, Compilatio
             let objective_type = pairs.find_first_tagged("objective_type");
             let objective_body = pairs.find_first_tagged("objective_body");
             if objective_type.is_none() {
-                return err_missing_token!("Missing min/max in objective", objective);
+                return bail_missing_token!("Missing min/max in objective", objective);
             }
             let objective_type = objective_type.unwrap().as_str();
             let objective_type = match objective_type {
@@ -29,7 +31,7 @@ pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, Compilatio
             };
             match objective_body {
                 Some(rhs) => Ok(PreObjective::new(objective_type, parse_exp_list(&rhs)?)),
-                None => err_missing_token!("Missing objective body", objective),
+                None => bail_missing_token!("Missing objective body", objective),
             }
         }
         _ => {
@@ -105,7 +107,10 @@ pub fn parse_const_value(const_value: &Pair<Rule>) -> Result<ConstantValue, Comp
                         .map(|v| match v {
                             ArrayValue::Number(n) => Ok(n),
                             ArrayValue::Array(_) | ArrayValue::Empty => {
-                                err_semantic_error!("Expected number but got an array", const_value)
+                                bail_semantic_error!(
+                                    "Expected number but got an array",
+                                    const_value
+                                )
                             }
                         })
                         .collect::<Result<Vec<f64>, CompilationError>>()?;
@@ -117,7 +122,7 @@ pub fn parse_const_value(const_value: &Pair<Rule>) -> Result<ConstantValue, Comp
                         .map(|v| match v {
                             ArrayValue::Array(n) => Ok(n),
                             ArrayValue::Number(_) | ArrayValue::Empty => {
-                                err_semantic_error!("Expected array but got a number", const_value)
+                                bail_semantic_error!("Expected array but got a number", const_value)
                             }
                         })
                         .collect::<Result<Vec<Vec<f64>>, CompilationError>>()?;
@@ -216,10 +221,7 @@ pub enum ArrayValue {
 }
 
 pub fn parse_array_value(array_value: &Pair<Rule>) -> Result<ArrayValue, CompilationError> {
-    let pairs = array_value
-        .clone()
-        .into_inner()
-        .collect::<Vec<_>>();
+    let pairs = array_value.clone().into_inner().collect::<Vec<_>>();
     match array_value.as_rule() {
         Rule::number => Ok(ArrayValue::Number(parse_number(array_value)?)),
         Rule::array => {
@@ -298,7 +300,7 @@ fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, CompilationEr
                         iteration,
                     ))
                 }
-                _ => err_missing_token!("Missing condition body", condition),
+                _ => bail_missing_token!("Missing condition body", condition),
             }
         }
         _ => err_unexpected_token!("Expected condition but got: {}", condition),
@@ -407,14 +409,14 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 }
                 operator_stack.push(op);
             }
-            Rule::len => {
-                let len = parse_len(&exp)?;
-                let len = englobe_if_multiplied_by_constant(
+            Rule::function => {
+                let fun = parse_function_call(&exp)?;
+                let fun = englobe_if_multiplied_by_constant(
                     &last_token,
                     &mut output_queue,
-                    PreExp::LenOf(len),
+                    PreExp::FunctionCall(fun),
                 );
-                output_queue.push(len);
+                output_queue.push(fun);
             }
             Rule::simple_variable => {
                 let variable = PreExp::Variable(exp.as_str().to_string());
@@ -423,19 +425,7 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 output_queue.push(next);
             }
             Rule::compound_variable => {
-                let fields = exp.as_str().split("_").collect::<Vec<_>>();
-                if fields.len() < 2 {
-                    return err_unexpected_token!("found {}, expected compound variable", exp);
-                }
-                let name = fields[0];
-                let indexes = fields[1..]
-                    .iter()
-                    .map(|i| i.to_string())
-                    .collect::<Vec<_>>();
-                let variable = PreExp::CompoundVariable {
-                    name: name.to_string(),
-                    indexes,
-                };
+                let variable = PreExp::CompoundVariable(parse_compound_variable(&exp)?);
                 let next =
                     englobe_if_multiplied_by_constant(&last_token, &mut output_queue, variable);
                 output_queue.push(next);
@@ -513,7 +503,7 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
         let rhs = output_queue.pop();
         let lhs = output_queue.pop();
         if op.is_none() || rhs.is_none() || lhs.is_none() {
-            return err_missing_token!("missing terminal expression", exp_to_parse);
+            return bail_missing_token!("missing terminal expression", exp_to_parse);
         }
         let (op, rhs, lhs) = (op.unwrap(), rhs.unwrap(), lhs.unwrap());
         output_queue.push(PreExp::BinaryOperation(op, lhs.to_boxed(), rhs.to_boxed()));
@@ -531,6 +521,93 @@ fn parse_set_iterator_list(range_list: &Pairs<Rule>) -> Result<Vec<PreSet>, Comp
         .collect::<Result<Vec<PreSet>, CompilationError>>()
 }
 
+fn parse_compound_variable(
+    compound_variable: &Pair<Rule>,
+) -> Result<CompoundVariable, CompilationError> {
+    match compound_variable.as_rule() {
+        Rule::compound_variable => {
+            let fields = compound_variable.as_str().split("_").collect::<Vec<_>>();
+            if fields.len() < 2 {
+                return err_unexpected_token!(
+                    "found {}, expected compound variable",
+                    compound_variable
+                );
+            }
+            let name = fields[0];
+            let indexes = fields[1..]
+                .iter()
+                .map(|i| i.to_string())
+                .collect::<Vec<_>>();
+            Ok(CompoundVariable {
+                name: name.to_string(),
+                indexes,
+            })
+        }
+        _ => err_unexpected_token!("Expected compound variable but got: {}", compound_variable),
+    }
+}
+
+fn parse_function_call(
+    function_call: &Pair<Rule>,
+) -> Result<Box<dyn FunctionCall>, CompilationError> {
+    match function_call.as_rule() {
+        Rule::function => {
+            let inner = function_call.clone().into_inner();
+            let name = inner.find_first_tagged("function_name");
+            let args = inner.find_first_tagged("function_pars");
+            match (name, args) {
+                (Some(name), Some(args)) => Ok(parse_function(&name, args)?),
+                _ => err_unexpected_token!("Expected function call but got: {}", function_call),
+            }
+        }
+        _ => err_unexpected_token!("Expected function call but got: {}", function_call),
+    }
+}
+
+fn parse_function(
+    name: &Pair<Rule>,
+    pars: Pair<Rule>,
+) -> Result<Box<dyn FunctionCall>, CompilationError> {
+    let span = pars.as_span();
+    match name.as_str() {
+        "edges" => {
+            let pars = parse_parameters(&pars)?;
+            Ok(Box::new(EdgesOfGraphFn::from_parameters(pars, &span)?))
+        }
+        _ => Err(CompilationError::from_span(
+            ParseError::SemanticError(format!("Unknown function {}", name)),
+            &name.as_span(),
+            true,
+        )),
+    }
+}
+
+fn parse_parameters(pars: &Pair<Rule>) -> Result<Vec<Parameter>, CompilationError> {
+    match pars.as_rule() {
+        Rule::function_pars => {
+            let inner = pars.clone().into_inner();
+            let pars = inner
+                .map(|a| parse_parameter(&a))
+                .collect::<Result<Vec<Parameter>, CompilationError>>()?;
+            Ok(pars)
+        }
+        _ => err_unexpected_token!("Expected function args but got: {}", pars),
+    }
+}
+fn parse_parameter(arg: &Pair<Rule>) -> Result<Parameter, CompilationError> {
+    match arg.as_rule() {
+        Rule::parameter => match arg.clone().into_inner().next().map(|a| a.as_rule()) {
+            Some(Rule::simple_variable) => Ok(Parameter::Variable(arg.as_str().to_string())),
+            Some(Rule::number) => Ok(Parameter::Number(parse_number(arg)?)),
+            Some(Rule::compound_variable) => {
+                Ok(Parameter::CompoundVariable(parse_compound_variable(&arg)?))
+            }
+            Some(Rule::function) => Ok(Parameter::FunctionCall(parse_function_call(&arg)?)),
+            _ => err_unexpected_token!("Expected function arg but got: {}", arg),
+        },
+        _ => err_unexpected_token!("Expected function arg but got: {}", arg),
+    }
+}
 fn parse_set_iterator(range: &Pair<Rule>) -> Result<PreSet, CompilationError> {
     match range.as_rule() {
         Rule::iteration_declaration => {
@@ -565,52 +642,40 @@ fn parse_tuple(tuple: &Pair<Rule>) -> Result<Vec<String>, CompilationError> {
 
 fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreIterator, CompilationError> {
     match iterator.as_rule() {
-        Rule::for_iteration => {
+        Rule::range_iterator => {
             let inner = iterator.clone().into_inner();
             let from = inner
                 .find_first_tagged("from")
                 .map(|f| parse_range_value(&f));
             let to = inner.find_first_tagged("to").map(|t| parse_range_value(&t));
-            match (from, to) {
-                (Some(from), Some(to)) => Ok(PreIterator::Range {
-                    from: from?,
-                    to: to?,
-                }),
+            let range_type = inner.find_first_tagged("range_type");
+            match (from, to, range_type) {
+                (Some(from), Some(to), Some(range_type)) => {
+                    let to_inclusive = match range_type.as_str() {
+                        ".." => false,
+                        "..=" => true,
+                        _ => {
+                            return err_unexpected_token!(
+                                "Expected range type but got: {}",
+                                range_type
+                            );
+                        }
+                    };
+                    Ok(PreIterator::Range {
+                        from: from?,
+                        to: to?,
+                        to_inclusive,
+                    })
+                }
 
                 _ => err_unexpected_token!("Expected range but got: {}", iterator),
             }
         }
-        Rule::edges_iterator => {
-            let inner = iterator.clone().into_inner();
-            let graph_name = inner.find_first_tagged("of_graph");
-            match graph_name {
-                Some(graph_name) => Ok(PreIterator::EdgesOf {
-                    graph_name: graph_name.as_str().to_string(),
-                }),
-                None => err_unexpected_token!("Expected range but got: {}", iterator),
-            }
+        Rule::function => {
+            let function = parse_function_call(&iterator)?;
+            Ok(PreIterator::FunctionCall(function))
         }
-        Rule::neighbour_iterator => {
-            let inner = iterator.clone().into_inner();
-            let graph_name = inner.find_first_tagged("of_graph");
-            let node = inner.find_first_tagged("node").map(|n| parse_node(&n));
-            match node {
-                Some(node) => Ok(PreIterator::NeighboursOf {
-                    graph_name: graph_name.unwrap().as_str().to_string(),
-                    node: node?,
-                }),
-                None => err_unexpected_token!("Expected range but got: {}", iterator),
-            }
-        }
-        Rule::iter_iterator => {
-            let of = iterator.clone().into_inner().find_first_tagged("of");
-            match of {
-                Some(of) => Ok(PreIterator::IterOf {
-                    of: parse_array_iter(&of)?,
-                }),
-                None => err_unexpected_token!("Expected range but got: {}", iterator),
-            }
-        }
+
         _ => err_unexpected_token!("Expected range but got: {}", iterator),
     }
 }
@@ -629,27 +694,19 @@ fn parse_node(node: &Pair<Rule>) -> Result<PreNode, CompilationError> {
     }
 }
 
-fn parse_range_value(range_value: &Pair<Rule>) -> Result<PreRangeValue, CompilationError> {
+fn parse_range_value(range_value: &Pair<Rule>) -> Result<Box<dyn ToNum>, CompilationError> {
     match range_value.as_rule() {
-        Rule::number => Ok(PreRangeValue::Number(
-            range_value.as_str().parse::<i32>().unwrap(),
-        )),
-        Rule::len => Ok(PreRangeValue::LenOf(parse_len(&range_value)?)),
-        _ => err_unexpected_token!("Expected range value but got: {}", range_value),
-    }
-}
-
-fn parse_len(len: &Pair<Rule>) -> Result<PreIterOfArray, CompilationError> {
-    match len.as_rule() {
-        Rule::len => {
-            let inner = len.clone().into_inner();
-            let of = inner.find_first_tagged("of");
-            if of.is_none() {
-                return err_unexpected_token!("Expected len but got: {}", len);
+        Rule::number => match range_value.as_str().parse::<i32>() {
+            Ok(n) => Ok(Box::new(StaticNumberGuard::new(n as f64))),
+            Err(_) => {
+                return err_unexpected_token!("found {}, expected number", range_value);
             }
-            Ok(parse_array_iter(&of.unwrap())?)
+        },
+        Rule::function => {
+            let function = parse_function_call(&range_value)?;
+            Ok(Box::new(FunctionCallNumberGuard::new(function)))
         }
-        _ => err_unexpected_token!("Expected len but got: {}", len),
+        _ => err_unexpected_token!("Expected range value but got: {}", range_value),
     }
 }
 fn parse_array_iter(array_access: &Pair<Rule>) -> Result<PreIterOfArray, CompilationError> {

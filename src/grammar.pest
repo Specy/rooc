@@ -38,34 +38,29 @@ iteration_declaration      =  {
   #iterator = iterator
 }
 tuple = { simple_variable | ("(" ~ simple_variable ~ (comma ~ simple_variable)* ~ ")")   }
-iterator = { range_iterator | edges_iterator | iter_iterator | neighbour_iterator}
+iterator = { range_iterator | parameter }
 //iterators
-//TODO should i do a generic syntax for iterators, so a 
-//generic function grammar with parameters? for the len() too and other functions
-//it would mean more parser work but perhaps better error handling and removing the need
-//to add it to the grammar every time, but then it would mean that the 
-//syntax can't allow for implicit multiplication as len(a) could be implied as sum * (a)
-//
-edges_iterator = { "edges(" ~ #of_graph = simple_variable ~ ")"}
-iter_iterator =  { "iter(" ~ #of = (array_access | simple_variable)~")" }
-neighbour_iterator = { "neighbours(" ~ #of_graph = simple_variable ~comma ~ #node = (simple_variable | string)~ ")"}
 range_iterator = {
-  #from = (number | len) ~
-  ".." ~
-  #to = (number | len)
+  #from = (parameter) ~
+  #range_type = range_type ~
+  #to = (parameter)
 }
+
 // expressions
 tagged_exp = { exp }
 exp         = _{ unary_op? ~ exp_body ~ (binary_op ~ unary_op? ~ exp_body)* }
-exp_body    = _{ function | parenthesis | modulo | number | array_access | variable }
+exp_body    = _{ block_function | function | parenthesis | modulo | number | array_access | variable }
 modulo      =  { "|" ~ exp ~ "|" }
 parenthesis =  { "(" ~ exp ~ ")" }
-function    = _{ min | max | sum | len}
-// functions
+block_function    = _{ min | max | sum }
+function = {  #function_name = function_name ~ "(" ~ #function_pars = function_pars ~ ")"}
+function_pars = { (parameter ~(comma ~ parameter)*)?}
+parameter = { function | array_access | simple_variable | compound_variable | string | number}
+function_name = { LETTER ~ (LETTER | NUMBER )*}
+// block functions
 min = { ^"min" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~"}" }
 max = { ^"max" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~ "}" }
 sum = { (^"sum" | "∑") ~ "(" ~ nl* ~ #range = iteration_declaration_list ~ nl* ~")" ~ "{" ~ nl* ~ #body = tagged_exp ~ nl* ~ "}" }
-len = { ^"len(" ~ #of = (array_access | simple_variable) ~ ")" }
 // pointer access var[i][j] or var[0] etc...
 array_access        = {
   #name = simple_variable ~
@@ -100,3 +95,4 @@ unary_op  = @{ "-" }
 string = @ { "\"" ~ LETTER* ~ "\""}
 // ignore whitespace in whole grammar
 WHITESPACE = _{ " " | "\t" }
+range_type = @{ ".." | "..="}

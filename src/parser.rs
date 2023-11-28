@@ -1,7 +1,10 @@
+use std::fmt::Debug;
+
 use crate::consts::{
-    Comparison, CompilationError, Constant, Op, OptimizationType, ParseError,
+    Comparison, CompilationError, Constant, Op, OptimizationType, ParseError, FunctionCall, Primitive,
 };
-use crate::err_missing_token;
+use crate::bail_missing_token;
+use crate::functions::{FunctionCallNumberGuard, ToNum};
 use crate::rules_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
 use crate::transformer::{
     transform_len_of, transform_pre_array_access, transform_set, Exp, Range, TransformError,
@@ -188,33 +191,25 @@ impl PreSet {
     }
 }
 
-#[derive(Debug)]
-pub enum PreRangeValue {
-    Number(i32),
-    LenOf(PreIterOfArray),
-}
 
 #[derive(Debug)]
 pub enum PreNode {
     Name(String),
     Variable(String),
 }
+
+
+
+
+
 #[derive(Debug)]
 pub enum PreIterator {
     Range {
-        from: PreRangeValue,
-        to: PreRangeValue,
+        from: Box<dyn ToNum>,
+        to: Box<dyn ToNum>,
+        to_inclusive: bool,
     },
-    EdgesOf {
-        graph_name: String,
-    },
-    NeighboursOf {
-        graph_name: String,
-        node: PreNode,
-    },
-    IterOf {
-        of: PreIterOfArray,
-    },
+    FunctionCall(Box<dyn FunctionCall>)
 }
 
 #[derive(Debug)]
@@ -227,6 +222,35 @@ pub struct PreArrayAccess {
     pub name: String,
     pub accesses: Vec<PreAccess>,
 }
+impl PreArrayAccess {
+    pub fn new(name: String, accesses: Vec<PreAccess>) -> Self {
+        Self { name, accesses }
+    }
+    pub fn to_string(&self) -> String {
+        let mut result = self.name.clone();
+        for access in &self.accesses {
+            match access {
+                PreAccess::Number(n) => result.push_str(&format!("[{}]", n)),
+                PreAccess::Variable(s) => result.push_str(&format!("[{}]", s)),
+            }
+        }
+        result
+    }
+}
+
+#[derive(Debug)]
+pub struct CompoundVariable {
+    pub name: String,
+    pub indexes: Vec<String>,
+}
+impl CompoundVariable {
+    pub fn new(name: String, indexes: Vec<String>) -> Self {
+        Self { name, indexes }
+    }
+    pub fn to_string(&self) -> String {
+        format!("{}_{}", self.name, self.indexes.join("_"))
+    }
+}
 
 #[derive(Debug)]
 pub enum PreExp {
@@ -236,12 +260,12 @@ pub enum PreExp {
     Max(Vec<PreExp>),
     LenOf(PreIterOfArray),
     Variable(String),
-    CompoundVariable { name: String, indexes: Vec<String> },
+    CompoundVariable(CompoundVariable),
     BinaryOperation(Op, Box<PreExp>, Box<PreExp>),
     UnaryNegation(Box<PreExp>),
     ArrayAccess(PreArrayAccess),
-    //Parenthesis(Box<PreExp>),
     Sum(Vec<PreSet>, Box<PreExp>),
+    FunctionCall(Box<dyn FunctionCall>),
 }
 
 
@@ -284,10 +308,9 @@ impl PreExp {
                     None => Ok(Exp::Variable(name.clone())),
                 }
             }
-            //Self::Parenthesis(exp) => Ok(Exp::Parenthesis(exp.into_exp(context)?.to_boxed())),
-            Self::CompoundVariable { name, indexes } => {
-                let parsed_indexes = context.flatten_variable_name(&indexes)?;
-                Ok(Exp::Variable(format!("{}_{}", name, parsed_indexes)))
+            Self::CompoundVariable(c) => {
+                let parsed_indexes = context.flatten_variable_name(&c.indexes)?;
+                Ok(Exp::Variable(format!("{}_{}", c.name, parsed_indexes)))
             }
             Self::ArrayAccess(array_access) => {
                 let value = transform_pre_array_access(array_access, context)?;
@@ -310,6 +333,14 @@ impl PreExp {
                 }
                 //Ok(Exp::Parenthesis(sum.to_boxed()))
                 Ok(sum)
+            }
+            Self::FunctionCall(function_call) => {
+                //TODO improve this, what other types of functions can there be?
+                let value = function_call.call(context)?;
+                match value {
+                    Primitive::Number(n) => Ok(Exp::Number(n)),
+                    _ => Err(TransformError::WrongArgument("Number".to_string())),
+                }
             }
         };
         exp.map(|e| e.flatten())
@@ -442,6 +473,6 @@ fn parse_problem(problem: Pair<Rule>) -> Result<PreProblem, CompilationError> {
             cond?,
             consts.unwrap_or(Ok(Vec::new()))?,
         )),
-        _ => err_missing_token!("Objective and conditions are required", problem),
+        _ => bail_missing_token!("Objective and conditions are required", problem),
     }
 }
