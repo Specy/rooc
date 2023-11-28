@@ -111,25 +111,29 @@ pub trait FunctionCall:Debug {
 
 
 #[derive(Debug)]
-pub enum IteratorKind<'a> {
+pub enum IterableKind<'a> {
     Numbers(&'a Vec<f64>),
     Strings(&'a Vec<&'a str>),
     Edges(Vec<GraphEdge>),
     Nodes(&'a Vec<&'a GraphNode>),
+    //TODO Iterable(Box<IterableKind<'a>>)
 }
 
 #[derive(Debug)]
 pub enum Primitive<'a> {
     Number(f64),
     String(String),
+    //TODO instead of making these, make a recursive IterableKind
     NumberArray(&'a Vec<f64>),
     NumberMatrix(&'a Vec<Vec<f64>>),
-    Iterator(IteratorKind<'a>),
-    Graph(&'a Graph),
-    GraphEdge(&'a GraphEdge),
-    GraphNode(&'a GraphNode),
+    Iterable(IterableKind<'a>),
+    Graph(Graph),
+    GraphEdge(GraphEdge),
+    GraphNode(GraphNode),
     Tuple(Vec<Primitive<'a>>),
+    
 }
+
 #[derive(Debug)]
 pub enum Parameter {
     Number(f64),
@@ -158,114 +162,62 @@ impl Parameter {
                 let value = f.call(context)?;
                 Ok(value)
             }
-            Parameter::ArrayAccess(a)
+            Parameter::ArrayAccess(a) => {
+                let value = context.get_array_access_value(a)?;
+                Ok(Primitive::Number(value))
+            }
         }
     }
     //TODO make this a macro
     pub fn as_number<'a>(&self, context: &'a TransformerContext) -> Result<f64, TransformError> {
-        match self {
-            Parameter::Number(n) => Ok(*n),
-            Parameter::Variable(s) => {
-                let value = context.get_primitive(s)?;
-                match_or_bail!("number", Primitive::Number(n) => Ok(n) ; (value, self))
-            }
-            Parameter::CompoundVariable(c) => {
-                let name = context.flatten_compound_variable(&c.name, &c.indexes)?;
-                let value = context.get_primitive(&name)?;
-                match_or_bail!("number", Primitive::Number(n) => Ok(n) ; (value, self))
-            }
-            Parameter::FunctionCall(f) => {
-                let value = f.call(context)?;
-                match_or_bail!("number", Primitive::Number(n) => Ok(n) ; (value, self))
-            }
-            _ => bail_wrong_argument!("number", self),
+        let value = self.as_primitive(context)?;
+        match_or_bail!("number", Primitive::Number(n) => Ok(n) ; (value, self))
+    }
+    pub fn as_integer<'a>(&self, context: &'a TransformerContext) -> Result<i64, TransformError> {
+        let n = self.as_number(context)?;
+        if n.fract() != 0.0 {
+            bail_wrong_argument!("integer", self)
+        } else {
+            Ok(n as i64)
+        }
+    }
+    pub fn as_usize<'a>(&self, context: &'a TransformerContext) -> Result<usize, TransformError> {
+        let n = self.as_number(context)?;
+        if n.fract() != 0.0 {
+            bail_wrong_argument!("integer", self)
+        } else if n < 0.0 {
+            bail_wrong_argument!("positive integer", self)
+        } else {
+            Ok(n as usize)
         }
     }
     pub fn as_graph<'a>(
         &self,
         context: &'a TransformerContext,
     ) -> Result<&'a Graph, TransformError> {
-        match self {
-            Parameter::Variable(s) => {
-                let value = context.get_primitive(s)?;
-                match_or_bail!("graph", Primitive::Graph(g) => Ok(g) ; (value, self))
-            }
-            Parameter::CompoundVariable(c) => {
-                let name = context.flatten_compound_variable(&c.name, &c.indexes)?;
-                let value = context.get_primitive(&name)?;
-                match_or_bail!("graph", Primitive::Graph(g) => Ok(g) ; (value, self))
-            }
-            Parameter::FunctionCall(f) => {
-                let value = f.call(context)?;
-                match_or_bail!("graph", Primitive::Graph(g) => Ok(g) ; (value, self))
-            }
-            _ => bail_wrong_argument!("graph", self),
-        }
+        let value = self.as_primitive(context)?;
+        match_or_bail!("graph", Primitive::Graph(g) => Ok(g) ; (value, self))
     }
     pub fn as_number_array<'a>(
         &self,
         context: &'a TransformerContext,
     ) -> Result<&'a Vec<f64>, TransformError> {
-        match self {
-            Parameter::Variable(s) => {
-                let value = context.get_primitive(s)?;
-                match_or_bail!("array1d", Primitive::NumberArray(a) => Ok(a) ; (value, self))
-            }
-            Parameter::CompoundVariable(c) => {
-                let name = context.flatten_compound_variable(&c.name, &c.indexes)?;
-
-                let value = context.get_primitive(&name)?;
-                match_or_bail!("array1d", Primitive::NumberArray(a) => Ok(a) ; (value, self))
-            }
-            Parameter::FunctionCall(f) => {
-                let value = f.call(context)?;
-                match_or_bail!("array1d", Primitive::NumberArray(a) => Ok(a) ; (value, self))
-            }
-            _ => bail_wrong_argument!("array1d", self),
-        }
+        let value = self.as_primitive(context)?;
+        match_or_bail!("array1d", Primitive::NumberArray(a) => Ok(a) ; (value, self))
     }
     pub fn as_number_matrix<'a>(
         &self,
         context: &'a TransformerContext,
     ) -> Result<&'a Vec<Vec<f64>>, TransformError> {
-        match self {
-            Parameter::Variable(s) => {
-                let value = context.get_primitive(s)?;
-                match_or_bail!("array2d", Primitive::NumberMatrix(a) => Ok(a) ; (value, self))
-            }
-            Parameter::CompoundVariable(c) => {
-                let name = context.flatten_compound_variable(&c.name, &c.indexes)?;
-                let value = context.get_primitive(&name)?;
-                match_or_bail!("array2d", Primitive::NumberMatrix(a) => Ok(a) ; (value, self))
-            }
-            Parameter::FunctionCall(f) => {
-                let value = f.call(context)?;
-                match_or_bail!("array2d", Primitive::NumberMatrix(a) => Ok(a) ; (value, self))
-            }
-            _ => bail_wrong_argument!("array2d", self),
-        }
+        let value = self.as_primitive(context)?;
+        match_or_bail!("array2d", Primitive::NumberMatrix(a) => Ok(a) ; (value, self))
     }
     pub fn as_iterator<'a>(
         &self,
         context: &'a TransformerContext,
-    ) -> Result<IteratorKind<'a>, TransformError> {
-        match self {
-            Parameter::Variable(s) => {
-                let value = context.get_primitive(s)?;
-                match_or_bail!("array", Primitive::Iterator(a) => Ok(a) ; (value, self))
-            }
-            Parameter::CompoundVariable(c) => {
-                let name = context.flatten_compound_variable(&c.name, &c.indexes)?;
-
-                let value = context.get_primitive(&name)?;
-                match_or_bail!("array", Primitive::Iterator(a) => Ok(a) ; (value, self))
-            }
-            Parameter::FunctionCall(f) => {
-                let value = f.call(context)?;
-                match_or_bail!("array", Primitive::Iterator(a) => Ok(a) ; (value, self))
-            }
-            _ => bail_wrong_argument!("array", self),
-        }
+    ) -> Result<IterableKind<'a>, TransformError> {
+        let value = self.as_primitive(context)?;
+        match_or_bail!("iterable", Primitive::Iterable(i) => Ok(i) ; (value, self))
     }
     pub fn to_string(&self) -> String {
         match self {

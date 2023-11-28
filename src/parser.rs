@@ -1,13 +1,14 @@
 use std::fmt::Debug;
 
-use crate::consts::{
-    Comparison, CompilationError, Constant, Op, OptimizationType, ParseError, FunctionCall, Primitive,
-};
 use crate::bail_missing_token;
+use crate::consts::{
+    Comparison, CompilationError, Constant, FunctionCall, Op, OptimizationType, Parameter,
+    ParseError, Primitive,
+};
 use crate::functions::{FunctionCallNumberGuard, ToNum};
 use crate::rules_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
 use crate::transformer::{
-    transform_len_of, transform_pre_array_access, transform_set, Exp, Range, TransformError,
+    transform_set, Exp, Range, TransformError,
     TransformerContext,
 };
 use pest::iterators::Pair;
@@ -191,16 +192,11 @@ impl PreSet {
     }
 }
 
-
 #[derive(Debug)]
 pub enum PreNode {
     Name(String),
     Variable(String),
 }
-
-
-
-
 
 #[derive(Debug)]
 pub enum PreIterator {
@@ -209,32 +205,26 @@ pub enum PreIterator {
         to: Box<dyn ToNum>,
         to_inclusive: bool,
     },
-    FunctionCall(Box<dyn FunctionCall>)
+    FunctionCall(Box<dyn FunctionCall>),
 }
 
 #[derive(Debug)]
-pub enum PreAccess {
-    Number(i32),
-    Variable(String),
-}
-#[derive(Debug)]
 pub struct PreArrayAccess {
     pub name: String,
-    pub accesses: Vec<PreAccess>,
+    pub accesses: Vec<Parameter>,
 }
 impl PreArrayAccess {
-    pub fn new(name: String, accesses: Vec<PreAccess>) -> Self {
+    pub fn new(name: String, accesses: Vec<Parameter>) -> Self {
         Self { name, accesses }
     }
     pub fn to_string(&self) -> String {
-        let mut result = self.name.clone();
-        for access in &self.accesses {
-            match access {
-                PreAccess::Number(n) => result.push_str(&format!("[{}]", n)),
-                PreAccess::Variable(s) => result.push_str(&format!("[{}]", s)),
-            }
-        }
-        result
+        let rest = self
+            .accesses
+            .iter()
+            .map(|a| format!("[{}]", a.to_string()))
+            .collect::<Vec<String>>()
+            .join("");
+        format!("{}{}", self.name, rest)
     }
 }
 
@@ -258,7 +248,6 @@ pub enum PreExp {
     Mod(Box<PreExp>),
     Min(Vec<PreExp>),
     Max(Vec<PreExp>),
-    LenOf(PreIterOfArray),
     Variable(String),
     CompoundVariable(CompoundVariable),
     BinaryOperation(Op, Box<PreExp>, Box<PreExp>),
@@ -267,8 +256,6 @@ pub enum PreExp {
     Sum(Vec<PreSet>, Box<PreExp>),
     FunctionCall(Box<dyn FunctionCall>),
 }
-
-
 
 impl PreExp {
     pub fn to_boxed(self) -> Box<PreExp> {
@@ -296,10 +283,6 @@ impl PreExp {
                     .collect::<Result<Vec<Exp>, TransformError>>()?,
             )),
             Self::UnaryNegation(exp) => Ok(Exp::Neg(exp.into_exp(context)?.to_box())),
-            Self::LenOf(len_of) => {
-                let value = transform_len_of(len_of, context)?;
-                Ok(Exp::Number(value as f64))
-            }
             Self::Variable(name) => {
                 let value = context.get_variable(name);
                 match value {
@@ -313,7 +296,7 @@ impl PreExp {
                 Ok(Exp::Variable(format!("{}_{}", c.name, parsed_indexes)))
             }
             Self::ArrayAccess(array_access) => {
-                let value = transform_pre_array_access(array_access, context)?;
+                let value = context.get_array_access_value(array_access)?;
                 Ok(Exp::Number(value))
             }
             Self::Sum(ranges, exp_body) => {

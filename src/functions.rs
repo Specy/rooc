@@ -3,7 +3,7 @@ use std::{fmt::Debug};
 use pest::Span;
 
 use crate::{
-    consts::{CompilationError, FunctionCall, IteratorKind, Parameter, ParseError, Primitive},
+    consts::{CompilationError, FunctionCall, IterableKind, Parameter, ParseError, Primitive},
     transformer::{TransformError, TransformerContext},
 };
 
@@ -27,7 +27,7 @@ impl FunctionCall for EdgesOfGraphFn {
     fn call<'a>(&self, context: &'a TransformerContext) -> Result<Primitive<'a>, TransformError> {
         let graph = self.of_graph.as_graph(context)?;
         let edges = graph.edges();
-        Ok(Primitive::Iterator(IteratorKind::Edges(edges)))
+        Ok(Primitive::Iterable(IterableKind::Edges(edges)))
     }
     fn to_string(&self) -> String {
         format!("edges({})", self.of_graph.to_string())

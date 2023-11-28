@@ -1,7 +1,7 @@
 use crate::{
     consts::{Comparison, ConstantValue, Op, OptimizationType, Primitive},
     parser::{
-        PreAccess, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator, PreObjective,
+        PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreObjective,
         PreProblem, PreSet,
     }, functions::ToNum,
 };
@@ -218,15 +218,49 @@ pub enum TransformError {
 }
 
 #[derive(Debug)]
-pub struct TransformerContext {
+pub struct Frame<'a>{
+    pub variables: HashMap<String, Primitive<'a>>,
+}
+impl<'a> Frame<'a> {
+    pub fn get_value(&self, name: &str) -> Option<&Primitive> {
+        self.variables.get(name)
+    }
+    pub fn declare_variable(&mut self, name: &str, value: Primitive<'a>) -> Result<(), TransformError> {
+        if self.variables.contains_key(name) {
+            return Err(TransformError::AlreadyExistingVariable(name.to_string()));
+        }
+        self.variables.insert(name.to_string(), value);
+        Ok(())
+    }
+    pub fn update_variable(&mut self, name: &str, value: Primitive<'a>) -> Result<(), TransformError> {
+        if !self.variables.contains_key(name) {
+            return Err(TransformError::MissingVariable(name.to_string()));
+        }
+        self.variables.insert(name.to_string(), value);
+        Ok(())
+    }
+    pub fn drop_variable(&mut self, name: &str) -> Result<Primitive<'a>, TransformError> {
+        if !self.variables.contains_key(name) {
+            return Err(TransformError::MissingVariable(name.to_string()));
+        }
+        let value = self.variables.remove(name).unwrap();
+        Ok(value)
+    }
+    
+}
+
+#[derive(Debug)]
+pub struct TransformerContext<'a> {
     constants: HashMap<String, ConstantValue>,
     variables: HashMap<String, f64>,
+    frames: Vec<Frame<'a>>,
 }
-impl TransformerContext {
+impl TransformerContext<'_> {
     pub fn new(constants: HashMap<String, ConstantValue>, variables: HashMap<String, f64>) -> Self {
         Self {
             constants,
             variables,
+            frames: vec![],
         }
     }
 
@@ -295,7 +329,7 @@ impl TransformerContext {
                 ConstantValue::OneDimArray(array) => Ok(Primitive::NumberArray(array)),
                 ConstantValue::TwoDimArray(array) => Ok(Primitive::NumberMatrix(array)),
                 ConstantValue::Graph(graph) => Ok(Primitive::Graph(graph)),
-                ConstantValue::String(string) => Ok(Primitive::String(string)),
+                ConstantValue::String(string) => Ok(Primitive::String(string.clone())),
             },
             None => Err(TransformError::MissingConstant(name.to_string())),
         }
@@ -395,8 +429,8 @@ impl TransformerContext {
         let indexes = array_access
             .accesses
             .iter()
-            .map(|access| transform_pre_access(access, self))
-            .collect::<Result<Vec<usize>, TransformError>>()?;
+            .map(|access| access.as_usize(self))
+            .collect::<Result<Vec<_>, TransformError>>()?;
         match indexes.as_slice() {
             [i] => Ok(self.get_1d_array_constant_value(&array_access.name, *i)?),
             [i, j] => Ok(self.get_2d_array_constant_value(&array_access.name, *i, *j)?),
@@ -436,56 +470,6 @@ pub fn transform(pre_problem: &PreProblem) -> Result<Problem, TransformError> {
     transform_problem(pre_problem, &mut context)
 }
 
-pub fn transform_len_of(
-    len_of: &PreIterOfArray,
-    context: &TransformerContext,
-) -> Result<usize, TransformError> {
-    match len_of {
-        PreIterOfArray::Array(name) => context.get_1d_array_length(name),
-        PreIterOfArray::ArrayAccess(array_access) => {
-            let index = array_access.accesses.first();
-            match (index, array_access.accesses.len()) {
-                (Some(access), 1) => match access {
-                    PreAccess::Number(i) => {
-                        let value = context.get_2d_array_length(&array_access.name, *i as usize);
-                        match value {
-                            Ok((_, rows)) => Ok(rows),
-                            Err(e) => Err(e),
-                        }
-                    }
-                    PreAccess::Variable(name) => {
-                        let variable_value = get_variable_value(name, context)?;
-                        let value = context
-                            .get_2d_array_length(&array_access.name, variable_value as usize);
-                        match value {
-                            Ok((_, rows)) => Ok(rows),
-                            Err(e) => Err(e),
-                        }
-                    }
-                },
-                (None, _) => Err(TransformError::MissingConstant(array_access.name.clone())),
-                _ => Err(TransformError::OutOfBounds(array_access.name.clone())),
-            }
-        }
-    }
-}
-
-pub fn transform_pre_access(
-    pre_access: &PreAccess,
-    context: &TransformerContext,
-) -> Result<usize, TransformError> {
-    match pre_access {
-        PreAccess::Number(value) => Ok(*value as usize),
-        PreAccess::Variable(name) => {
-            //make sure the number is an integer, or report an error
-            let variable_value = get_variable_value(name, context)?;
-            match variable_value == (variable_value as usize) as f64 {
-                true => Ok(variable_value as usize),
-                false => Err(TransformError::ExpectedNumber(name.clone())),
-            }
-        }
-    }
-}
 
 pub fn get_variable_value(
     name: &String,
@@ -530,24 +514,7 @@ pub fn transform_set(
     Ok(Range::new(range.name.clone(), from, to))
      */
 }
-pub fn transform_pre_array_access(
-    array_access: &PreArrayAccess,
-    context: &TransformerContext,
-) -> Result<f64, TransformError> {
-    let indexes = array_access
-        .accesses
-        .iter()
-        .map(|access| transform_pre_access(access, context))
-        .collect::<Result<Vec<usize>, TransformError>>()?;
-    match indexes.as_slice() {
-        [i] => Ok(context.get_1d_array_constant_value(&array_access.name, *i)?),
-        [i, j] => Ok(context.get_2d_array_constant_value(&array_access.name, *i, *j)?),
-        _ => Err(TransformError::OutOfBounds(format!(
-            "limit of 2d arrays, trying to access {}[{:?}]",
-            array_access.name, indexes
-        ))),
-    }
-}
+
 
 pub fn transform_condition(
     condition: &PreCondition,

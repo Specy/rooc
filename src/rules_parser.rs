@@ -6,7 +6,7 @@ use crate::consts::{
 };
 use crate::functions::{EdgesOfGraphFn, FunctionCallNumberGuard, StaticNumberGuard, ToNum};
 use crate::parser::{
-    CompoundVariable, PreAccess, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator,
+    CompoundVariable, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator,
     PreNode, PreObjective, PreSet, Rule,
 };
 use crate::transformer::{TransformerContext};
@@ -738,23 +738,14 @@ fn parse_array_access(array_access: &Pair<Rule>) -> Result<PreArrayAccess, Compi
             let accesses = accesses.unwrap();
             let accesses = accesses
                 .into_inner()
-                .map(|a| parse_pointer_access(&a))
-                .collect::<Result<Vec<PreAccess>, CompilationError>>()?;
+                .map(|a| parse_parameter(&a))
+                .collect::<Result<Vec<_>, CompilationError>>()?;
             Ok(PreArrayAccess { name, accesses })
         }
         _ => err_unexpected_token!("Expected array access but got: {}", array_access),
     }
 }
 
-fn parse_pointer_access(pointer_access: &Pair<Rule>) -> Result<PreAccess, CompilationError> {
-    match pointer_access.as_rule() {
-        Rule::number => Ok(PreAccess::Number(
-            pointer_access.as_str().parse::<i32>().unwrap(),
-        )),
-        Rule::simple_variable => Ok(PreAccess::Variable(pointer_access.as_str().to_string())),
-        _ => err_unexpected_token!("Expected pointer access but got: {}", pointer_access),
-    }
-}
 
 fn should_unwind(operator_stack: &Vec<Op>, op: &Op) -> bool {
     match operator_stack.last() {
