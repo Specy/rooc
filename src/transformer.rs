@@ -215,6 +215,9 @@ impl TransformError {
             }
         }
     }
+    pub fn to_spanned_error(self, span: InputSpan) -> TransformError {
+        TransformError::SpannedError(Box::new(self), span)
+    }
 }
 
 #[derive(Debug)]

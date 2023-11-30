@@ -1,10 +1,16 @@
 use core::panic;
-use std::{fmt::{format, Debug}, collections::HashMap, ops::DerefMut, ops::Deref};
+use std::{
+    collections::HashMap,
+    fmt::{format, Debug},
+    ops::Deref,
+    ops::DerefMut,
+};
 
 use crate::{
-    bail_wrong_argument, match_or_bail,
-    parser::{PreArrayAccess, CompoundVariable},
-    transformer::{ TransformError, TransformerContext, Exp}, match_or_bail_spanned, wrong_argument, bail_wrong_argument_spanned,
+    bail_wrong_argument, bail_wrong_argument_spanned, match_or_bail, match_or_bail_spanned,
+    parser::{CompoundVariable, PreArrayAccess},
+    transformer::{Exp, TransformError, TransformerContext},
+    wrong_argument,
 };
 use pest::Span;
 
@@ -100,8 +106,7 @@ impl Graph {
     }
 }
 
-
-pub trait FunctionCall:Debug {
+pub trait FunctionCall: Debug {
     fn from_parameters(pars: Vec<Parameter>, span: &Span) -> Result<Self, CompilationError>
     where
         Self: Sized;
@@ -110,7 +115,7 @@ pub trait FunctionCall:Debug {
 }
 
 #[derive(Debug, Clone)]
-pub struct InputSpan{
+pub struct InputSpan {
     pub start_line: usize,
     pub end_line: usize,
     pub start_column: usize,
@@ -133,11 +138,14 @@ impl InputSpan {
     }
 }
 #[derive(Clone)]
-pub struct Spanned<T> where T: Debug {
+pub struct Spanned<T>
+where
+    T: Debug,
+{
     value: T,
     span: InputSpan,
 }
-impl <T: Debug> Spanned<T> {
+impl<T: Debug> Spanned<T> {
     pub fn new(value: T, span: InputSpan) -> Self {
         Self { value, span }
     }
@@ -157,17 +165,17 @@ impl <T: Debug> Spanned<T> {
     }
 }
 
-impl <T: Debug> DerefMut for Spanned<T> {
+impl<T: Debug> DerefMut for Spanned<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.value
     }
 }
-impl <T: Debug> Debug for Spanned<T> {
+impl<T: Debug> Debug for Spanned<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&format!("{:?}", self.value))
     }
 }
-impl <T: Debug> Deref for Spanned<T> {
+impl<T: Debug> Deref for Spanned<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         &self.value
@@ -199,7 +207,6 @@ pub enum Primitive<'a> {
     Tuple(Vec<Primitive<'a>>),
     Ref(&'a Primitive<'a>),
 }
-
 
 impl Primitive<'_> {
     pub fn from_constant_value(value: ConstantValue) -> Self {
@@ -275,8 +282,6 @@ impl Primitive<'_> {
             Primitive::Ref(p) => p.to_string(),
         }
     }
-
-
 }
 #[derive(Debug)]
 pub enum Parameter {
@@ -289,7 +294,6 @@ pub enum Parameter {
 }
 
 impl Parameter {
-
     pub fn as_span(&self) -> InputSpan {
         match self {
             Parameter::Number(n) => n.get_span(),
@@ -301,16 +305,17 @@ impl Parameter {
         }
     }
 
-    pub fn as_primitive<'a>(&self, context: &'a TransformerContext) -> Result<Primitive<'a>, TransformError> {
+    pub fn as_primitive<'a>(
+        &self,
+        context: &'a TransformerContext,
+    ) -> Result<Primitive<'a>, TransformError> {
         match self {
             Parameter::Number(n) => Ok(Primitive::Number(**n)),
             Parameter::String(s) => Ok(Primitive::String(*s.clone())),
-            Parameter::Variable(s) => {
-                match context.get_value(s) {
-                    Some(value) => Ok(*value),
-                    None => Err(TransformError::MissingVariable(*s.clone())),
-                }
-            }
+            Parameter::Variable(s) => match context.get_value(s) {
+                Some(value) => Ok(*value),
+                None => Err(TransformError::MissingVariable(*s.clone())),
+            },
             Parameter::CompoundVariable(c) => {
                 let name = context.flatten_compound_variable(&c.name, &c.indexes)?;
                 match context.get_value(&name) {
@@ -330,11 +335,15 @@ impl Parameter {
     }
     //TODO make this a macro
     pub fn as_number<'a>(&self, context: &'a TransformerContext) -> Result<f64, TransformError> {
-        let value = self.as_primitive(context)?;
+        let value = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.as_span()))?;
         match_or_bail_spanned!("number", Primitive::Number(n) => Ok(n) ; (value, self))
     }
     pub fn as_integer<'a>(&self, context: &'a TransformerContext) -> Result<i64, TransformError> {
-        let n = self.as_number(context)?;
+        let n = self
+            .as_number(context)
+            .map_err(|e| e.to_spanned_error(self.as_span()))?;
         if n.fract() != 0.0 {
             bail_wrong_argument_spanned!("integer", self)
         } else {
@@ -342,7 +351,9 @@ impl Parameter {
         }
     }
     pub fn as_usize<'a>(&self, context: &'a TransformerContext) -> Result<usize, TransformError> {
-        let n = self.as_number(context)?;
+        let n = self
+            .as_number(context)
+            .map_err(|e| e.to_spanned_error(self.as_span()))?;
         if n.fract() != 0.0 {
             bail_wrong_argument_spanned!("integer", self)
         } else if n < 0.0 {
@@ -355,28 +366,36 @@ impl Parameter {
         &self,
         context: &'a TransformerContext,
     ) -> Result<&'a Graph, TransformError> {
-        let value = self.as_primitive(context)?;
+        let value = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.as_span()))?;
         match_or_bail_spanned!("graph", Primitive::Graph(g) => Ok(&g) ; (value, self))
     }
     pub fn as_number_array<'a>(
         &self,
         context: &'a TransformerContext,
     ) -> Result<&'a Vec<f64>, TransformError> {
-        let value = self.as_primitive(context)?;
+        let value = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.as_span()))?;
         match_or_bail_spanned!("array1d", Primitive::NumberArray(a) => Ok(&a) ; (value, self))
     }
     pub fn as_number_matrix<'a>(
         &self,
         context: &'a TransformerContext,
     ) -> Result<&'a Vec<Vec<f64>>, TransformError> {
-        let value = self.as_primitive(context)?;
+        let value = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.as_span()))?;
         match_or_bail_spanned!("array2d", Primitive::NumberMatrix(a) => Ok(&a) ; (value, self))
     }
     pub fn as_iterator<'a>(
         &self,
         context: &'a TransformerContext,
     ) -> Result<IterableKind<'a>, TransformError> {
-        let value = self.as_primitive(context)?;
+        let value = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.as_span()))?;
         match_or_bail_spanned!("iterable", Primitive::Iterable(i) => Ok(i) ; (value, self))
     }
     pub fn to_string(&self) -> String {
@@ -559,5 +578,4 @@ impl ParseError {
             ),
         }
     }
-
 }
