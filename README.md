@@ -10,9 +10,9 @@ The "language" supports formal definitions, i'd like to expand the project to su
 # Features 
 - [ ] Syntax and parsing
   - [x] Basic functions (min, max, mod)
-  - [ ] Constant Graph definitions
-  - [ ] Iterators
-  - [ ] Tuples
+  - [x] Constant Graph definitions
+  - [x] Iterators
+  - [x] Tuples
   - [ ] Iterators utility functions (for graphs, edges, etc)
   - [ ] Definition of variable bounds
   - [x] Formal definition of a problem, (sum function and generic variables)

@@ -8,7 +8,7 @@ use crate::consts::{
 use crate::functions::{FunctionCallNumberGuard, ToNum};
 use crate::rules_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
 use crate::transformer::{
-    transform_set, Exp, Range, TransformError,
+    transform_set, Exp, TransformError,
     TransformerContext,
 };
 use pest::iterators::Pair;
@@ -41,13 +41,21 @@ use pest::Parser;
    --------------------------------------------------------------
    (done)
    TODO: Make it possible to define constraints with iterable variables
-   Example:
-       max sum(i in 1..2){Ci*Xi} //TODO! should this be Xi or X_i, should there be an explicit definition?
+   Example: //TODO! should this be Xi or X_i, should there be an explicit definition?
+
+       max sum(i in 1..2){Ci*Xi} 
        s.t.
            sum(i in 1..2){Xij} <= b[j] for j in 1..2
        where
            C = [15, 30]
            b = [1, 2]
+
+
+
+
+
+
+
        gets converted to:
 
        max 15*X1 + 30*X2
@@ -205,7 +213,7 @@ pub enum PreIterator {
         to: Box<dyn ToNum>,
         to_inclusive: bool,
     },
-    FunctionCall(Box<dyn FunctionCall>),
+    Parameter(Parameter),
 }
 
 #[derive(Debug)]
@@ -284,10 +292,16 @@ impl PreExp {
             )),
             Self::UnaryNegation(exp) => Ok(Exp::Neg(exp.into_exp(context)?.to_box())),
             Self::Variable(name) => {
-                let value = context.get_variable(name);
+                let value = context.get_value(name);
                 match value {
                     //try to see if the variable is a constant, else return the variable name
-                    Some(value) => Ok(Exp::Number(*value)),
+                    Some(v) => {
+                        match v {
+                            //TODO what other kinds of constants can there be?
+                            Primitive::Number(n) => Ok(Exp::Number(*n)),
+                            _ => Err(TransformError::WrongArgument("Number".to_string())),
+                        }
+                    }
                     None => Ok(Exp::Variable(name.clone())),
                 }
             }
@@ -346,6 +360,8 @@ fn recursive_sum_resolver(
         None => return Err(TransformError::OutOfBounds("Range".to_string())),
     };
     let mut current_value = range.from;
+    context.add_scope();
+
     while current_value < range.to {
         //range is exclusive
         context.add_variable(&range.name, current_value as f64)?;

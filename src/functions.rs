@@ -38,6 +38,13 @@ impl FunctionCall for EdgesOfGraphFn {
 
 pub trait ToNum: Debug {
     fn to_num(&self, context: &TransformerContext) -> Result<f64, TransformError>;
+    fn to_int(&self, context: &TransformerContext) -> Result<i64, TransformError> {
+        let num = self.to_num(context)?;
+        if num.fract() != 0.0 {
+            return Err(TransformError::WrongArgument("Integer".to_string()));
+        }
+        Ok(num as i64)
+    }
 }
 
 #[derive(Debug)]

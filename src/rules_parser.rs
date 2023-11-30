@@ -1,15 +1,15 @@
 use pest::iterators::{Pair, Pairs};
 
 use crate::consts::{
-    Comparison, CompilationError, Constant, ConstantValue, FunctionCall, Op, OptimizationType,
-    Parameter, ParseError, GraphNode, Graph, GraphEdge,
+    Comparison, CompilationError, Constant, ConstantValue, FunctionCall, Graph, GraphEdge,
+    GraphNode, InputSpan, Op, OptimizationType, Parameter, ParseError, Spanned,
 };
 use crate::functions::{EdgesOfGraphFn, FunctionCallNumberGuard, StaticNumberGuard, ToNum};
 use crate::parser::{
-    CompoundVariable, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator,
-    PreNode, PreObjective, PreSet, Rule,
+    CompoundVariable, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator, PreNode,
+    PreObjective, PreSet, Rule,
 };
-use crate::transformer::{TransformerContext};
+use crate::transformer::TransformerContext;
 use crate::{bail_missing_token, bail_semantic_error, err_unexpected_token};
 
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {
@@ -595,14 +595,22 @@ fn parse_parameters(pars: &Pair<Rule>) -> Result<Vec<Parameter>, CompilationErro
     }
 }
 fn parse_parameter(arg: &Pair<Rule>) -> Result<Parameter, CompilationError> {
+    let span = InputSpan::from_span(arg.as_span());
     match arg.as_rule() {
         Rule::parameter => match arg.clone().into_inner().next().map(|a| a.as_rule()) {
-            Some(Rule::simple_variable) => Ok(Parameter::Variable(arg.as_str().to_string())),
-            Some(Rule::number) => Ok(Parameter::Number(parse_number(arg)?)),
-            Some(Rule::compound_variable) => {
-                Ok(Parameter::CompoundVariable(parse_compound_variable(&arg)?))
-            }
-            Some(Rule::function) => Ok(Parameter::FunctionCall(parse_function_call(&arg)?)),
+            Some(Rule::simple_variable) => Ok(Parameter::Variable(Spanned::new(
+                arg.as_str().to_string(),
+                span,
+            ))),
+            Some(Rule::number) => Ok(Parameter::Number(Spanned::new(parse_number(arg)?, span))),
+            Some(Rule::compound_variable) => Ok(Parameter::CompoundVariable(Spanned::new(
+                parse_compound_variable(&arg)?,
+                span,
+            ))),
+            Some(Rule::function) => Ok(Parameter::FunctionCall(Spanned::new(
+                parse_function_call(&arg)?,
+                span,
+            ))),
             _ => err_unexpected_token!("Expected function arg but got: {}", arg),
         },
         _ => err_unexpected_token!("Expected function arg but got: {}", arg),
@@ -671,9 +679,9 @@ fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreIterator, CompilationError
                 _ => err_unexpected_token!("Expected range but got: {}", iterator),
             }
         }
-        Rule::function => {
-            let function = parse_function_call(&iterator)?;
-            Ok(PreIterator::FunctionCall(function))
+        Rule::parameter => {
+            let function = parse_parameter(&iterator)?;
+            Ok(PreIterator::Parameter(function))
         }
 
         _ => err_unexpected_token!("Expected range but got: {}", iterator),
@@ -745,7 +753,6 @@ fn parse_array_access(array_access: &Pair<Rule>) -> Result<PreArrayAccess, Compi
         _ => err_unexpected_token!("Expected array access but got: {}", array_access),
     }
 }
-
 
 fn should_unwind(operator_stack: &Vec<Op>, op: &Op) -> bool {
     match operator_stack.last() {

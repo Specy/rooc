@@ -1,10 +1,10 @@
 use core::panic;
-use std::{fmt::{format, Debug}, collections::HashMap};
+use std::{fmt::{format, Debug}, collections::HashMap, ops::DerefMut, ops::Deref};
 
 use crate::{
     bail_wrong_argument, match_or_bail,
     parser::{PreArrayAccess, CompoundVariable},
-    transformer::{ TransformError, TransformerContext},
+    transformer::{ TransformError, TransformerContext, Exp}, match_or_bail_spanned, wrong_argument, bail_wrong_argument_spanned,
 };
 use pest::Span;
 
@@ -81,7 +81,7 @@ impl Graph {
         match node {
             Some(node) => Ok(node.edges.values().collect()),
             None => {
-                return Err(TransformError::NotFound(format!(
+                return Err(TransformError::Other(format!(
                     "node {} not found in graph",
                     node_name
                 )))
@@ -109,13 +109,79 @@ pub trait FunctionCall:Debug {
     fn to_string(&self) -> String;
 }
 
+#[derive(Debug, Clone)]
+pub struct InputSpan{
+    pub start_line: usize,
+    pub end_line: usize,
+    pub start_column: usize,
+    pub end_column: usize,
+    pub start: usize,
+    pub len: usize,
+}
+impl InputSpan {
+    pub fn from_span(span: Span) -> Self {
+        let (start_line, column_start) = span.start_pos().line_col();
+        let (end_line, column_end) = span.end_pos().line_col();
+        Self {
+            start_line,
+            end_line,
+            start_column: column_start,
+            end_column: column_end,
+            start: span.start(),
+            len: span.end() - span.start(),
+        }
+    }
+}
+#[derive(Clone)]
+pub struct Spanned<T> where T: Debug {
+    value: T,
+    span: InputSpan,
+}
+impl <T: Debug> Spanned<T> {
+    pub fn new(value: T, span: InputSpan) -> Self {
+        Self { value, span }
+    }
+    pub fn get_span(&self) -> InputSpan {
+        self.span
+    }
+    pub fn get_span_value(&self) -> &T {
+        &self.value
+    }
+    pub fn get_span_text(&self, text: &str) -> Result<&str, ()> {
+        let start = self.span.start;
+        let end = start + self.span.len;
+        if start >= text.len() || end >= text.len() {
+            return Err(());
+        }
+        Ok(&text[start..end])
+    }
+}
+
+impl <T: Debug> DerefMut for Spanned<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+impl <T: Debug> Debug for Spanned<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("{:?}", self.value))
+    }
+}
+impl <T: Debug> Deref for Spanned<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
 
 #[derive(Debug)]
 pub enum IterableKind<'a> {
+    //TODO do i even need this?
     Numbers(&'a Vec<f64>),
     Strings(&'a Vec<&'a str>),
     Edges(Vec<GraphEdge>),
     Nodes(&'a Vec<&'a GraphNode>),
+    Tuple(&'a Vec<Vec<Primitive<'a>>>),
     //TODO Iterable(Box<IterableKind<'a>>)
 }
 
@@ -124,39 +190,133 @@ pub enum Primitive<'a> {
     Number(f64),
     String(String),
     //TODO instead of making these, make a recursive IterableKind
-    NumberArray(&'a Vec<f64>),
-    NumberMatrix(&'a Vec<Vec<f64>>),
+    NumberArray(Vec<f64>),
+    NumberMatrix(Vec<Vec<f64>>),
     Iterable(IterableKind<'a>),
     Graph(Graph),
     GraphEdge(GraphEdge),
     GraphNode(GraphNode),
     Tuple(Vec<Primitive<'a>>),
-    
+    Ref(&'a Primitive<'a>),
 }
 
+
+impl Primitive<'_> {
+    pub fn from_constant_value(value: ConstantValue) -> Self {
+        match value {
+            ConstantValue::Number(n) => Primitive::Number(n),
+            ConstantValue::OneDimArray(v) => Primitive::NumberArray(v),
+            ConstantValue::TwoDimArray(v) => Primitive::NumberMatrix(v),
+            ConstantValue::Graph(g) => Primitive::Graph(g),
+            ConstantValue::String(s) => Primitive::String(s),
+        }
+    }
+    pub fn as_number(&self) -> Result<f64, TransformError> {
+        match_or_bail!("number", Primitive::Number(n) => Ok(*n) ; (self, self))
+    }
+    pub fn as_integer(&self) -> Result<i64, TransformError> {
+        let n = self.as_number()?;
+        if n.fract() != 0.0 {
+            bail_wrong_argument!("integer", self)
+        } else {
+            Ok(n as i64)
+        }
+    }
+    pub fn as_usize(&self) -> Result<usize, TransformError> {
+        let n = self.as_number()?;
+        if n.fract() != 0.0 {
+            bail_wrong_argument!("integer", self)
+        } else if n < 0.0 {
+            bail_wrong_argument!("positive integer", self)
+        } else {
+            Ok(n as usize)
+        }
+    }
+    pub fn as_graph(&self) -> Result<&Graph, TransformError> {
+        match_or_bail!("graph", Primitive::Graph(g) => Ok(g) ; (self, self))
+    }
+    pub fn as_number_array(&self) -> Result<&Vec<f64>, TransformError> {
+        match_or_bail!("array1d", Primitive::NumberArray(a) => Ok(a) ; (self, self))
+    }
+    pub fn as_number_matrix(&self) -> Result<&Vec<Vec<f64>>, TransformError> {
+        match_or_bail!("array2d", Primitive::NumberMatrix(a) => Ok(a) ; (self, self))
+    }
+    pub fn as_iterator(&self) -> Result<&IterableKind, TransformError> {
+        match_or_bail!("iterable", Primitive::Iterable(i) => Ok(i) ; (self, self))
+    }
+    pub fn as_tuple(&self) -> Result<&Vec<Primitive>, TransformError> {
+        match_or_bail!("tuple", Primitive::Tuple(t) => Ok(t) ; (self, self))
+    }
+    pub fn as_ref(&self) -> Result<&Primitive, TransformError> {
+        match_or_bail!("reference", Primitive::Ref(r) => Ok(r) ; (self, self))
+    }
+
+    pub fn to_string(&self) -> String {
+        //TODO improve this
+        match self {
+            Primitive::Number(n) => n.to_string(),
+            Primitive::String(s) => s.to_string(),
+            Primitive::NumberArray(v) => format!("{:?}", v),
+            Primitive::NumberMatrix(v) => {
+                let result = v.iter().map(|row| format!("{:?}", row)).collect::<Vec<_>>();
+                format!("[\n{}\n]", result.join(",\n"))
+            }
+            Primitive::Iterable(i) => match i {
+                IterableKind::Numbers(v) => format!("{:?}", v),
+                IterableKind::Strings(v) => format!("{:?}", v),
+                IterableKind::Edges(v) => format!("{:?}", v),
+                IterableKind::Nodes(v) => format!("{:?}", v),
+                IterableKind::Tuple(v) => format!("{:?}", v),
+            },
+            Primitive::Graph(g) => g.to_string(),
+            Primitive::GraphEdge(e) => e.to_string(),
+            Primitive::GraphNode(n) => n.to_string(),
+            Primitive::Tuple(v) => format!("{:?}", v),
+            Primitive::Ref(p) => p.to_string(),
+        }
+    }
+
+
+}
 #[derive(Debug)]
 pub enum Parameter {
-    Number(f64),
-    String(String),
-    Variable(String),
-    CompoundVariable(CompoundVariable),
-    ArrayAccess(PreArrayAccess),
-    FunctionCall(Box<dyn FunctionCall>),
+    Number(Spanned<f64>),
+    String(Spanned<String>),
+    Variable(Spanned<String>),
+    CompoundVariable(Spanned<CompoundVariable>),
+    ArrayAccess(Spanned<PreArrayAccess>),
+    FunctionCall(Spanned<Box<dyn FunctionCall>>),
 }
 
 impl Parameter {
+
+    pub fn as_span(&self) -> InputSpan {
+        match self {
+            Parameter::Number(n) => n.get_span(),
+            Parameter::String(s) => s.get_span(),
+            Parameter::Variable(s) => s.get_span(),
+            Parameter::CompoundVariable(c) => c.get_span(),
+            Parameter::ArrayAccess(a) => a.get_span(),
+            Parameter::FunctionCall(f) => f.get_span(),
+        }
+    }
+
     pub fn as_primitive<'a>(&self, context: &'a TransformerContext) -> Result<Primitive<'a>, TransformError> {
         match self {
-            Parameter::Number(n) => Ok(Primitive::Number(*n)),
-            Parameter::String(s) => Ok(Primitive::String(s.clone())),
+            Parameter::Number(n) => Ok(Primitive::Number(**n)),
+            Parameter::String(s) => Ok(Primitive::String(*s.clone())),
             Parameter::Variable(s) => {
-                let value = context.get_primitive(s)?;
-                Ok(value)
+                match context.get_value(s) {
+                    Some(value) => Ok(*value),
+                    None => Err(TransformError::MissingVariable(*s.clone())),
+                }
             }
             Parameter::CompoundVariable(c) => {
                 let name = context.flatten_compound_variable(&c.name, &c.indexes)?;
-                let value = context.get_primitive(&name)?;
-                Ok(value)
+                match context.get_value(&name) {
+                    Some(value) => Ok(*value),
+                    None => Err(TransformError::MissingVariable(name)),
+                }
             }
             Parameter::FunctionCall(f) => {
                 let value = f.call(context)?;
@@ -171,12 +331,12 @@ impl Parameter {
     //TODO make this a macro
     pub fn as_number<'a>(&self, context: &'a TransformerContext) -> Result<f64, TransformError> {
         let value = self.as_primitive(context)?;
-        match_or_bail!("number", Primitive::Number(n) => Ok(n) ; (value, self))
+        match_or_bail_spanned!("number", Primitive::Number(n) => Ok(n) ; (value, self))
     }
     pub fn as_integer<'a>(&self, context: &'a TransformerContext) -> Result<i64, TransformError> {
         let n = self.as_number(context)?;
         if n.fract() != 0.0 {
-            bail_wrong_argument!("integer", self)
+            bail_wrong_argument_spanned!("integer", self)
         } else {
             Ok(n as i64)
         }
@@ -184,9 +344,9 @@ impl Parameter {
     pub fn as_usize<'a>(&self, context: &'a TransformerContext) -> Result<usize, TransformError> {
         let n = self.as_number(context)?;
         if n.fract() != 0.0 {
-            bail_wrong_argument!("integer", self)
+            bail_wrong_argument_spanned!("integer", self)
         } else if n < 0.0 {
-            bail_wrong_argument!("positive integer", self)
+            bail_wrong_argument_spanned!("positive integer", self)
         } else {
             Ok(n as usize)
         }
@@ -196,28 +356,28 @@ impl Parameter {
         context: &'a TransformerContext,
     ) -> Result<&'a Graph, TransformError> {
         let value = self.as_primitive(context)?;
-        match_or_bail!("graph", Primitive::Graph(g) => Ok(g) ; (value, self))
+        match_or_bail_spanned!("graph", Primitive::Graph(g) => Ok(&g) ; (value, self))
     }
     pub fn as_number_array<'a>(
         &self,
         context: &'a TransformerContext,
     ) -> Result<&'a Vec<f64>, TransformError> {
         let value = self.as_primitive(context)?;
-        match_or_bail!("array1d", Primitive::NumberArray(a) => Ok(a) ; (value, self))
+        match_or_bail_spanned!("array1d", Primitive::NumberArray(a) => Ok(&a) ; (value, self))
     }
     pub fn as_number_matrix<'a>(
         &self,
         context: &'a TransformerContext,
     ) -> Result<&'a Vec<Vec<f64>>, TransformError> {
         let value = self.as_primitive(context)?;
-        match_or_bail!("array2d", Primitive::NumberMatrix(a) => Ok(a) ; (value, self))
+        match_or_bail_spanned!("array2d", Primitive::NumberMatrix(a) => Ok(&a) ; (value, self))
     }
     pub fn as_iterator<'a>(
         &self,
         context: &'a TransformerContext,
     ) -> Result<IterableKind<'a>, TransformError> {
         let value = self.as_primitive(context)?;
-        match_or_bail!("iterable", Primitive::Iterable(i) => Ok(i) ; (value, self))
+        match_or_bail_spanned!("iterable", Primitive::Iterable(i) => Ok(i) ; (value, self))
     }
     pub fn to_string(&self) -> String {
         match self {

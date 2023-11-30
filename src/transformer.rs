@@ -1,14 +1,13 @@
 use crate::{
-    consts::{Comparison, ConstantValue, Op, OptimizationType, Primitive},
+    consts::{Comparison, ConstantValue, InputSpan, IterableKind, Op, OptimizationType, Primitive},
+    functions::ToNum,
     parser::{
-        PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreObjective,
+        PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator, PreObjective,
         PreProblem, PreSet,
-    }, functions::ToNum,
+    },
 };
 use egg::*;
 use std::collections::HashMap;
-
-
 
 #[derive(Debug, Clone)]
 pub enum Exp {
@@ -136,26 +135,6 @@ impl Objective {
         )
     }
 }
-#[derive(Debug)]
-pub struct Range {
-    pub name: String,
-    pub from: i32,
-    pub to: i32,
-}
-impl Range {
-    pub fn new(name: String, from: i32, to: i32) -> Self {
-        //doesn't matter the order of from and to, it only matters the range
-        if from > to {
-            Self {
-                name,
-                from: to,
-                to: from,
-            }
-        } else {
-            Self { name, from, to }
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Condition {
@@ -208,36 +187,81 @@ impl Problem {
 
 #[derive(Debug)]
 pub enum TransformError {
-    MissingConstant(String),
     MissingVariable(String),
     AlreadyExistingVariable(String),
     OutOfBounds(String),
-    ExpectedNumber(String),
     WrongArgument(String),
-    NotFound(String),
+    //TODO not sure if this is the best way to handle this, but it makes it easier to propagate the span
+    SpannedError(Box<TransformError>, InputSpan),
+    Other(String),
+}
+impl TransformError {
+    pub fn to_string(&self) -> String {
+        match self {
+            TransformError::MissingVariable(name) => format!("Missing variable {}", name),
+            TransformError::AlreadyExistingVariable(name) => {
+                format!("Already existing variable {}", name)
+            }
+            TransformError::OutOfBounds(name) => format!("Out of bounds {}", name),
+            TransformError::WrongArgument(name) => format!("Wrong argument {}", name),
+            TransformError::Other(name) => *name,
+            TransformError::SpannedError(error, span) => {
+                format!(
+                    "{} at line: {} col: {}",
+                    error.to_string(),
+                    span.start_line,
+                    span.start_column
+                )
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
-pub struct Frame<'a>{
+pub struct Frame<'a> {
     pub variables: HashMap<String, Primitive<'a>>,
 }
 impl<'a> Frame<'a> {
+    pub fn new() -> Self {
+        Self {
+            variables: HashMap::new(),
+        }
+    }
+    pub fn from_constants(constants: &HashMap<String, ConstantValue>) -> Self {
+        let variables = constants
+            .iter()
+            .map(|(name, value)| (name.clone(), Primitive::from_constant_value(*value)))
+            .collect::<HashMap<_, _>>();
+        Self { variables }
+    }
+
     pub fn get_value(&self, name: &str) -> Option<&Primitive> {
         self.variables.get(name)
     }
-    pub fn declare_variable(&mut self, name: &str, value: Primitive<'a>) -> Result<(), TransformError> {
-        if self.variables.contains_key(name) {
+    pub fn declare_variable(
+        &mut self,
+        name: &str,
+        value: Primitive<'a>,
+    ) -> Result<(), TransformError> {
+        if self.has_variable(name) {
             return Err(TransformError::AlreadyExistingVariable(name.to_string()));
         }
         self.variables.insert(name.to_string(), value);
         Ok(())
     }
-    pub fn update_variable(&mut self, name: &str, value: Primitive<'a>) -> Result<(), TransformError> {
-        if !self.variables.contains_key(name) {
+    pub fn update_variable(
+        &mut self,
+        name: &str,
+        value: &Primitive<'a>,
+    ) -> Result<(), TransformError> {
+        if !self.has_variable(name) {
             return Err(TransformError::MissingVariable(name.to_string()));
         }
-        self.variables.insert(name.to_string(), value);
+        self.variables.insert(name.to_string(), *value);
         Ok(())
+    }
+    pub fn has_variable(&self, name: &str) -> bool {
+        self.variables.contains_key(name)
     }
     pub fn drop_variable(&mut self, name: &str) -> Result<Primitive<'a>, TransformError> {
         if !self.variables.contains_key(name) {
@@ -246,45 +270,92 @@ impl<'a> Frame<'a> {
         let value = self.variables.remove(name).unwrap();
         Ok(value)
     }
-    
 }
 
 #[derive(Debug)]
 pub struct TransformerContext<'a> {
-    constants: HashMap<String, ConstantValue>,
-    variables: HashMap<String, f64>,
     frames: Vec<Frame<'a>>,
 }
 impl TransformerContext<'_> {
     pub fn new(constants: HashMap<String, ConstantValue>, variables: HashMap<String, f64>) -> Self {
+        let frame = Frame::from_constants(&constants);
         Self {
-            constants,
-            variables,
-            frames: vec![],
+            frames: vec![frame],
         }
     }
 
-    pub fn flatten_variable_name(&self, name: &Vec<String>) -> Result<String, TransformError> {
-        let mut replaced_vars = vec![false; name.len()];
-        let mut name = name.clone();
-        for (variable_name, value) in self.variables.iter() {
-            let index = name.iter().position(|v| v == variable_name);
-            match index {
-                Some(index) => {
-                    name[index] = value.to_string();
-                    replaced_vars[index] = true;
-                }
+    pub fn flatten_variable_name(
+        &self,
+        compound_name: &Vec<String>,
+    ) -> Result<String, TransformError> {
+        let flattened = compound_name
+            .iter()
+            .map(|name| match self.get_value(name) {
+                Some(value) => match value {
+                    Primitive::Number(value) => Ok(value.to_string()),
+                    Primitive::String(value) => Ok(value.clone()),
+                    _ => Err(TransformError::WrongArgument(format!(
+                        "Expected a number or string for flattening, check the definition of {}",
+                        name
+                    ))),
+                },
+                None => Err(TransformError::MissingVariable(name.to_string())),
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(flattened.join("_"))
+    }
+
+    pub fn add_scope(&mut self) {
+        let frame = Frame::new();
+        self.frames.push(frame);
+    }
+    pub fn pop_scope(&mut self) -> Result<(), TransformError> {
+        if self.frames.len() == 1 {
+            return Err(TransformError::Other("Missing frame to pop".to_string()));
+        }
+        self.frames.pop();
+        Ok(())
+    }
+    pub fn get_value(&self, name: &str) -> Option<&Primitive> {
+        for frame in self.frames.iter().rev() {
+            match frame.get_value(name) {
+                Some(value) => return Some(value),
                 None => continue,
             }
         }
-        //check if every variable is replaced
-        if replaced_vars.iter().all(|v| *v) {
-            let name = name.join("_");
-            Ok(name)
-        } else {
-            Err(TransformError::MissingVariable(name.join("_")))
-        }
+        None
     }
+    pub fn declare_variable(
+        &mut self,
+        name: &str,
+        value: Primitive,
+        strict: bool,
+    ) -> Result<(), TransformError> {
+        if strict {
+            if self.get_value(name).is_some() {
+                return Err(TransformError::AlreadyExistingVariable(name.to_string()));
+            }
+        }
+        let frame = self.frames.last_mut().unwrap();
+        frame.declare_variable(name, value)
+    }
+    pub fn update_variable(&mut self, name: &str, value: Primitive) -> Result<(), TransformError> {
+        for frame in self.frames.iter_mut().rev() {
+            if frame.has_variable(name) {
+                return frame.update_variable(name, &value);
+            }
+        }
+        Err(TransformError::MissingVariable(name.to_string()))
+    }
+    pub fn remove_variable(&mut self, name: &str) -> Result<Primitive, TransformError> {
+        for frame in self.frames.iter_mut().rev() {
+            if frame.has_variable(name) {
+                return frame.drop_variable(name);
+            }
+        }
+        Err(TransformError::MissingVariable(name.to_string()))
+    }
+
     pub fn flatten_compound_variable(
         &self,
         name: &String,
@@ -294,109 +365,59 @@ impl TransformerContext<'_> {
         let name = format!("{}_{}", name, names);
         Ok(name)
     }
-    pub fn add_variable(&mut self, variable: &String, value: f64) -> Result<f64, TransformError> {
-        if self.variables.contains_key(variable) {
-            return Err(TransformError::AlreadyExistingVariable(variable.clone()));
-        }
-        self.variables.insert(variable.clone(), value);
-        Ok(value)
-    }
-    pub fn remove_variable(&mut self, variable: &String) -> Result<f64, TransformError> {
-        if !self.variables.contains_key(variable) {
-            return Err(TransformError::MissingVariable(variable.clone()));
-        }
-        let value = self.variables.remove(variable).unwrap();
-        Ok(value)
-    }
-    pub fn update_variable(
-        &mut self,
-        variable: &String,
-        value: f64,
-    ) -> Result<f64, TransformError> {
-        if !self.variables.contains_key(variable) {
-            return Err(TransformError::MissingVariable(variable.clone()));
-        }
-        self.variables.insert(variable.clone(), value);
-        Ok(value)
-    }
-    pub fn get_constant(&self, name: &str) -> Option<&ConstantValue> {
-        self.constants.get(name)
-    }
-    pub fn get_primitive(&self, name: &str) -> Result<Primitive, TransformError> {
-        match self.get_constant(name) {
-            Some(constant) => match &constant {
-                ConstantValue::Number(value) => Ok(Primitive::Number(*value)),
-                ConstantValue::OneDimArray(array) => Ok(Primitive::NumberArray(array)),
-                ConstantValue::TwoDimArray(array) => Ok(Primitive::NumberMatrix(array)),
-                ConstantValue::Graph(graph) => Ok(Primitive::Graph(graph)),
-                ConstantValue::String(string) => Ok(Primitive::String(string.clone())),
-            },
-            None => Err(TransformError::MissingConstant(name.to_string())),
+
+    pub fn get_numerical_constant(&self, name: &str) -> Result<f64, TransformError> {
+        match self.get_value(name) {
+            Some(v) => v.as_number(),
+            None => Err(TransformError::MissingVariable(name.to_string())),
         }
     }
-    pub fn get_numerical_constant(&self, name: &str) -> Result<&f64, TransformError> {
-        match self.get_constant(name) {
-            Some(constant) => match &constant {
-                ConstantValue::Number(value) => Ok(value),
-                _ => Err(TransformError::WrongArgument(format!(
-                    "Expected a number, check the definition of {}",
-                    name
-                ))),
-            },
-            None => Err(TransformError::MissingConstant(name.to_string())),
-        }
-    }
-    pub fn get_1d_array_constant_value(&self, name: &str, i: usize) -> Result<f64, TransformError> {
-        match self.get_constant(name) {
-            Some(constant) => match &constant {
-                ConstantValue::OneDimArray(array) => match array.get(i).map(|v| *v) {
+    pub fn get_1d_array_number_value(&self, name: &str, i: usize) -> Result<f64, TransformError> {
+        match self.get_value(name) {
+            Some(a) => {
+                let value = a.as_number_array()?.get(i).map(|v| *v);
+                match value {
                     Some(value) => Ok(value),
                     None => Err(TransformError::OutOfBounds(format!("{}[{}]", name, i))),
-                },
-                _ => Err(TransformError::WrongArgument(format!(
-                    "Expected a 1d array, check the definition of {}",
-                    name
-                ))),
-            },
-            None => Err(TransformError::MissingConstant(name.to_string())),
+                }
+            }
+            None => Err(TransformError::MissingVariable(name.to_string())),
         }
     }
-    pub fn get_2d_array_constant_value(
+    pub fn get_2d_array_number_value(
         &self,
         name: &str,
         i: usize,
         j: usize,
     ) -> Result<f64, TransformError> {
-        match self.get_constant(name) {
-            Some(constant) => match &constant {
-                ConstantValue::TwoDimArray(array) => {
-                    let value = array.get(i).and_then(|row| row.get(j)).map(|v| *v);
-                    match value {
-                        Some(value) => Ok(value),
-                        None => Err(TransformError::OutOfBounds(format!(
-                            "{}[{}][{}]",
-                            name, i, j
-                        ))),
-                    }
+        match self.get_value(name) {
+            Some(a) => {
+                let value = a
+                    .as_number_matrix()?
+                    .get(i)
+                    .map(|row| row.get(j).map(|v| *v));
+                match value {
+                    Some(Some(value)) => Ok(value),
+                    Some(None) => Err(TransformError::OutOfBounds(format!(
+                        "{}[{}][{}]",
+                        name, i, j
+                    ))),
+                    None => Err(TransformError::OutOfBounds(format!(
+                        "{}[{}][{}]",
+                        name, i, j
+                    ))),
                 }
-                _ => Err(TransformError::WrongArgument(format!(
-                    "Expected a 2d array, check the definition of {}",
-                    name
-                ))),
-            },
-            None => Err(TransformError::MissingConstant(name.to_string())),
+            }
+            None => Err(TransformError::MissingVariable(name.to_string())),
         }
     }
     pub fn get_1d_array_length(&self, name: &str) -> Result<usize, TransformError> {
-        match self.get_constant(name) {
-            Some(constant) => match &constant {
-                ConstantValue::OneDimArray(array) => Ok(array.len()),
-                _ => Err(TransformError::WrongArgument(format!(
-                    "Expected a 1d array, check the definition of {}",
-                    name
-                ))),
-            },
-            None => Err(TransformError::MissingConstant(name.to_string())),
+        match self.get_value(name) {
+            Some(a) => {
+                let value = a.as_number_array().map(|a| a.len())?;
+                Ok(value)
+            }
+            None => Err(TransformError::MissingVariable(name.to_string())),
         }
     }
     pub fn get_2d_array_length(
@@ -404,24 +425,21 @@ impl TransformerContext<'_> {
         name: &str,
         index: usize,
     ) -> Result<(usize, usize), TransformError> {
-        match self.get_constant(name) {
-            Some(constant) => match &constant {
-                ConstantValue::TwoDimArray(array) => {
-                    let rows = array.len();
-                    let cols = array.get(index).map(|row| row.len());
-                    match cols {
-                        Some(cols) => Ok((rows, cols)),
-                        None => Err(TransformError::OutOfBounds(format!("{}[{}]", name, index))),
+        match self.get_value(name) {
+            Some(a) => {
+                let value = a.as_number_matrix().map(|a| {
+                    let row = a.get(index).map(|row| row.len());
+                    match row {
+                        Some(row) => (a.len(), row),
+                        None => (a.len(), 0),
                     }
-                }
-                _ => Err(TransformError::WrongArgument(format!(
-                    "Expected a 2d array, check the definition of {}",
-                    name
-                ))),
-            },
-            None => Err(TransformError::MissingConstant(name.to_string())),
+                })?;
+                Ok(value)
+            }
+            None => Err(TransformError::MissingVariable(name.to_string())),
         }
     }
+
     pub fn get_array_access_value(
         &self,
         array_access: &PreArrayAccess,
@@ -432,17 +450,13 @@ impl TransformerContext<'_> {
             .map(|access| access.as_usize(self))
             .collect::<Result<Vec<_>, TransformError>>()?;
         match indexes.as_slice() {
-            [i] => Ok(self.get_1d_array_constant_value(&array_access.name, *i)?),
-            [i, j] => Ok(self.get_2d_array_constant_value(&array_access.name, *i, *j)?),
+            [i] => Ok(self.get_1d_array_number_value(&array_access.name, *i)?),
+            [i, j] => Ok(self.get_2d_array_number_value(&array_access.name, *i, *j)?),
             _ => Err(TransformError::OutOfBounds(format!(
-                "limit of 2d arrays, trying to access {}[{:?}]",
-                array_access.name, indexes
+                "limit of 2d arrays, trying to access {}{}",
+                array_access.name, indexes.iter().map(|i| format!("[{}]", i)).collect::<Vec<_>>().join("")
             ))),
         }
-    }
-
-    pub fn get_variable(&self, name: &str) -> Option<&f64> {
-        self.variables.get(name)
     }
 }
 
@@ -470,51 +484,55 @@ pub fn transform(pre_problem: &PreProblem) -> Result<Problem, TransformError> {
     transform_problem(pre_problem, &mut context)
 }
 
+/*
+this function gets a set, defined by a number of variables with a certain name, and an iterator,
+it should return a vector of vectors, where each vector is a set of values for the variables
+ex:
+checks that the iterator has at least the same number of elements as the set, and then returns the values in the iterator
+    in:  set {i, j} and iterator [[0, 0], [1, 1]]
+    out: [[0, 0], [1, 1]]
+    in:  set {i} and iterator [[0, 0], [1, 1]]
+    out: [[0], [1]]
+    in:  set {i, j, k} and iterator [[0, 0], [1, 1]]
+    out: error!
+*/
 
-pub fn get_variable_value(
-    name: &String,
-    context: &TransformerContext,
-) -> Result<f64, TransformError> {
-    let variable_value = match context.get_variable(name) {
-        Some(value) => *value,
-        None => return Err(TransformError::MissingVariable(name.clone())),
-    };
-    Ok(variable_value)
-}
-
-pub fn transform_range_value(
-    range_value: &dyn ToNum,
-    context: &TransformerContext,
-    is_inclusive: bool,
-) -> Result<i32, TransformError> {
-    //range is exclusive, so we need to add 1 to get the correct value
-    let append = if is_inclusive { 0 } else { 1 };
-    match range_value.to_num(context) {
-        Ok(value) => {
-            if value == 0.0 {
-                Ok(0)
-            } else {
-                Ok(value as i32 + append)
-            }
-        },
-        //TODO: add a better error message
-        Err(e) => Err(TransformError::WrongArgument("".to_string())),
-    }
-}
-
-pub fn transform_set(
+pub fn transform_set<'a>(
     range: &PreSet,
     context: &TransformerContext,
-) -> Result<Range, TransformError> {
-    todo!("implement the set transformation into a iterator")
+) -> Result<Vec<&'a Primitive<'a>>, TransformError> {
+    match range.iterator {
+        PreIterator::Range {
+            from,
+            to,
+            to_inclusive,
+        } => {
+            if range.vars_tuple.len() != 1 {
+                return Err(TransformError::WrongArgument(
+                    "Expected 1 variable in range".to_string(),
+                ));
+            }
+            let from = from.to_int(context)?;
+            let to = to.to_int(context)?;
+            if to_inclusive {
+                return Ok((from..=to).map(|i| &Primitive::Number(i as f64)).collect());
+            } else {
+                return Ok((from..to).map(|i| &Primitive::Number(i as f64)).collect());
+            }
+        }
+        PreIterator::Parameter(p) => {
+            let value = p.as_iterator(context)?;
+            let v = match value {
+                IterableKind::Nodes(n) => n
+                    .iter()
+                    .map(|v| Primitive::Ref(Box::new(RefKind::Node(*v)))),
+                _ => todo!("implement the iterator transformation"),
+            };
 
-    /*
-    let from = transform_range_value(&range.from, context, 0)?;
-    let to = transform_range_value(&range.to, context, 1)?;
-    Ok(Range::new(range.name.clone(), from, to))
-     */
+            todo!("implement the iterator transformation")
+        }
+    }
 }
-
 
 pub fn transform_condition(
     condition: &PreCondition,
@@ -529,17 +547,16 @@ pub fn transform_condition_with_iteration(
     condition: &PreCondition,
     context: &mut TransformerContext,
 ) -> Result<Vec<Condition>, TransformError> {
-    let iteration = match &condition.iteration {
-        Some(iteration) => Some(transform_set(iteration, context)?),
-        None => None,
-    };
-    match iteration {
+    /*
+    let iteration = condition.iteration.as_ref().map(|i| transform_set(i, context)?);
+        match iteration {
         //exclusive range
         Some(iteration_range) => (iteration_range.from..iteration_range.to)
             .map(|i| {
-                context.add_variable(&iteration_range.name, i as f64)?;
+                context.add_scope();
+                context.declare_variable(&iteration_range.name, i as f64)?;
                 let condition = transform_condition(condition, context)?;
-                context.remove_variable(&iteration_range.name)?;
+                context.pop_scope();
                 Ok(condition)
             })
             .collect(),
@@ -548,6 +565,8 @@ pub fn transform_condition_with_iteration(
             Ok(vec![condition])
         }
     }
+     */
+    todo!("implement the iteration transformation")
 }
 
 pub fn transform_objective(
