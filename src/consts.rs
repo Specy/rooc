@@ -1,18 +1,13 @@
 use core::panic;
-use std::{
-    collections::HashMap,
-    fmt::{format, Debug},
-    ops::Deref,
-    ops::DerefMut,
-};
+use std::{collections::HashMap, fmt::Debug, ops::Deref, ops::DerefMut};
 
 use crate::{
     bail_wrong_argument, bail_wrong_argument_spanned, match_or_bail, match_or_bail_spanned,
-    parser::{CompoundVariable, PreArrayAccess},
-    transformer::{Exp, TransformError, TransformerContext},
+    parser::{CompoundVariable, PreArrayAccess, Rule},
+    transformer::{TransformError, TransformerContext},
     wrong_argument,
 };
-use pest::Span;
+use pest::{Span, iterators::Pair};
 
 #[derive(Debug, Clone)]
 pub struct GraphEdge {
@@ -110,7 +105,7 @@ pub trait FunctionCall: Debug {
     fn from_parameters(pars: Vec<Parameter>, span: &Span) -> Result<Self, CompilationError>
     where
         Self: Sized;
-    fn call<'a>(&self, context: &'a TransformerContext) -> Result<Primitive<'a>, TransformError>;
+    fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError>;
     fn to_string(&self) -> String;
 }
 
@@ -125,6 +120,9 @@ pub struct InputSpan {
     pub tempered: bool,
 }
 impl InputSpan {
+    pub fn from_pair(pair: Pair<Rule>) -> Self {
+        let (start_line, start_col) = pair.line_col();
+    }
     pub fn from_span(span: Span) -> Self {
         let (start_line, column_start) = span.start_pos().line_col();
         let (end_line, column_end) = span.end_pos().line_col();
@@ -150,9 +148,17 @@ impl InputSpan {
         }
     }
     pub fn from_tempered_span(span: Span) -> Self {
-        let mut new_span = Self::from_span(span);
+        let mut new_span = Self::from_pair(span);
         new_span.tempered = true;
         new_span
+    }
+    pub fn get_span_text<'a>(&self, text: &'a str) -> Result<&'a str, ()> {
+        let start = self.start;
+        let end = start + self.len;
+        if start >= text.len() || end >= text.len() {
+            return Err(());
+        }
+        Ok(&text[start..end])
     }
 }
 #[derive(Clone)]
@@ -178,12 +184,7 @@ impl<T: Debug> Spanned<T> {
         self.value
     }
     pub fn get_span_text<'a>(&self, text: &'a str) -> Result<&'a str, ()> {
-        let start = self.span.start;
-        let end = start + self.span.len;
-        if start >= text.len() || end >= text.len() {
-            return Err(());
-        }
-        Ok(&text[start..end])
+        self.span.get_span_text(text)
     }
 }
 
@@ -204,16 +205,16 @@ impl<T: Debug> Deref for Spanned<T> {
     }
 }
 
-#[derive(Debug)]
-pub enum IterableKind<'a> {
+#[derive(Debug, Clone)]
+pub enum IterableKind {
     Numbers(Vec<f64>),
-    Strings(Vec<&'a str>),
+    Strings(Vec<String>),
     Edges(Vec<GraphEdge>),
-    Nodes(Vec<&'a GraphNode>),
-    Tuple(Vec<Vec<Primitive<'a>>>),
-    Iterable(Vec<IterableKind<'a>>),
+    Nodes(Vec<GraphNode>),
+    Tuple(Vec<Vec<Primitive>>),
+    Iterable(Vec<IterableKind>),
 }
-impl<'a> IterableKind<'a> {
+impl IterableKind {
     pub fn to_string(&self) -> String {
         match self {
             IterableKind::Numbers(v) => format!("{:?}", v),
@@ -231,14 +232,27 @@ impl<'a> IterableKind<'a> {
             }
         }
     }
-    pub fn to_primitive_set(self) -> Vec<Primitive<'a>> {
+    pub fn len(&self) -> usize {
+        match self {
+            IterableKind::Numbers(v) => v.len(),
+            IterableKind::Strings(v) => v.len(),
+            IterableKind::Edges(v) => v.len(),
+            IterableKind::Nodes(v) => v.len(),
+            IterableKind::Tuple(v) => v.len(),
+            IterableKind::Iterable(v) => v.len(),
+        }
+    }
+    pub fn to_primitive_set(self) -> Vec<Primitive> {
         match self {
             IterableKind::Numbers(v) => v.iter().map(|n| Primitive::Number(*n)).collect(),
             IterableKind::Strings(v) => v
                 .into_iter()
                 .map(|s| Primitive::String((*s).to_string()))
                 .collect(),
-            IterableKind::Edges(v) => v.iter().map(|e| Primitive::GraphEdge(e.to_owned())).collect(),
+            IterableKind::Edges(v) => v
+                .iter()
+                .map(|e| Primitive::GraphEdge(e.to_owned()))
+                .collect(),
             IterableKind::Nodes(v) => v
                 .into_iter()
                 .map(|n| Primitive::GraphNode(n.to_owned()))
@@ -249,21 +263,20 @@ impl<'a> IterableKind<'a> {
     }
 }
 
-#[derive(Debug)]
-pub enum Primitive<'a> {
+#[derive(Debug, Clone)]
+pub enum Primitive {
     Number(f64),
     String(String),
     //TODO instead of making these, make a recursive IterableKind
-    Iterable(IterableKind<'a>),
+    Iterable(IterableKind),
     Graph(Graph),
     GraphEdge(GraphEdge),
     GraphNode(GraphNode),
-    Tuple(Vec<Primitive<'a>>),
-    Ref(&'a Primitive<'a>),
+    Tuple(Vec<Primitive>),
     Undefined,
 }
 
-impl Primitive<'_> {
+impl Primitive {
     pub fn from_constant_value(value: ConstantValue) -> Self {
         match value {
             ConstantValue::Number(n) => Primitive::Number(n),
@@ -302,14 +315,12 @@ impl Primitive<'_> {
     }
     pub fn as_graph(&self) -> Result<&Graph, TransformError> {
         match_or_bail!("graph", 
-            Primitive::Graph(g) => Ok(g),
-            Primitive::Ref(Primitive::Graph(g)) => Ok(g)
+            Primitive::Graph(g) => Ok(g)
           ; (self, self))
     }
     pub fn as_number_array(&self) -> Result<&Vec<f64>, TransformError> {
         match self {
             Primitive::Iterable(IterableKind::Numbers(a)) => Ok(a),
-            Primitive::Ref(Primitive::Iterable(IterableKind::Numbers(a))) => Ok(a),
             _ => bail_wrong_argument!("array1d", self),
         }
     }
@@ -327,15 +338,11 @@ impl Primitive<'_> {
     }
     pub fn as_iterator(&self) -> Result<&IterableKind, TransformError> {
         match_or_bail!("iterable", 
-            Primitive::Iterable(i) => Ok(i),
-            Primitive::Ref(Primitive::Iterable(i)) => Ok(i)
+            Primitive::Iterable(i) => Ok(i)
         ; (self, self))
     }
     pub fn as_tuple(&self) -> Result<&Vec<Primitive>, TransformError> {
         match_or_bail!("tuple", Primitive::Tuple(t) => Ok(t) ; (self, self))
-    }
-    pub fn as_ref(&self) -> Result<&Primitive, TransformError> {
-        match_or_bail!("reference", Primitive::Ref(r) => Ok(r) ; (self, self))
     }
 
     pub fn to_string(&self) -> String {
@@ -362,7 +369,6 @@ impl Primitive<'_> {
             Primitive::GraphEdge(e) => e.to_string(),
             Primitive::GraphNode(n) => n.to_string(),
             Primitive::Tuple(v) => format!("{:?}", v),
-            Primitive::Ref(p) => p.to_string(),
             Primitive::Undefined => "undefined".to_string(),
         }
     }
@@ -389,21 +395,18 @@ impl Parameter {
         }
     }
 
-    pub fn as_primitive<'a>(
-        &self,
-        context: &'a TransformerContext,
-    ) -> Result<Primitive<'a>, TransformError> {
+    pub fn as_primitive(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
         match self {
             Parameter::Number(n) => Ok(Primitive::Number(**n)),
             Parameter::String(s) => Ok(Primitive::String(s.value.clone())),
             Parameter::Variable(s) => match context.get_value(s) {
-                Some(value) => Ok(Primitive::Ref(value)),
+                Some(value) => Ok(value.clone()),
                 None => Err(TransformError::MissingVariable(s.value.clone())),
             },
             Parameter::CompoundVariable(c) => {
                 let name = context.flatten_compound_variable(&c.name, &c.indexes)?;
                 match context.get_value(&name) {
-                    Some(value) => Ok(Primitive::Ref(value)),
+                    Some(value) => Ok(value.clone()),
                     None => Err(TransformError::MissingVariable(name)),
                 }
             }
@@ -418,13 +421,13 @@ impl Parameter {
         }
     }
     //TODO make this a macro
-    pub fn as_number<'a>(&self, context: &'a TransformerContext) -> Result<f64, TransformError> {
+    pub fn as_number(&self, context: &TransformerContext) -> Result<f64, TransformError> {
         let value = self
             .as_primitive(context)
             .map_err(|e| e.to_spanned_error(self.as_span()))?;
         match_or_bail_spanned!("number", Primitive::Number(n) => Ok(n) ; (value, self))
     }
-    pub fn as_integer<'a>(&self, context: &'a TransformerContext) -> Result<i64, TransformError> {
+    pub fn as_integer(&self, context: &TransformerContext) -> Result<i64, TransformError> {
         let n = self
             .as_number(context)
             .map_err(|e| e.to_spanned_error(self.as_span()))?;
@@ -434,7 +437,7 @@ impl Parameter {
             Ok(n as i64)
         }
     }
-    pub fn as_usize<'a>(&self, context: &'a TransformerContext) -> Result<usize, TransformError> {
+    pub fn as_usize(&self, context: &TransformerContext) -> Result<usize, TransformError> {
         let n = self
             .as_number(context)
             .map_err(|e| e.to_spanned_error(self.as_span()))?;
@@ -446,33 +449,37 @@ impl Parameter {
             Ok(n as usize)
         }
     }
-    pub fn as_graph<'a>(
-        &self,
-        context: &'a TransformerContext,
-    ) -> Result<&'a Graph, TransformError> {
-        self.as_graph(context)
-            .map_err(|e| e.to_spanned_error(self.as_span()))
+    pub fn as_graph(&self, context: &TransformerContext) -> Result<Graph, TransformError> {
+        self.as_primitive(context)
+            .map(|p| p.as_graph().map(|v| v.to_owned()))
+            .map_err(|e| e.to_spanned_error(self.as_span()))?
     }
-    pub fn as_number_array<'a>(
+    pub fn as_number_array(
         &self,
-        context: &'a TransformerContext,
-    ) -> Result<&'a Vec<f64>, TransformError> {
-        self.as_number_array(context)
-            .map_err(|e| e.to_spanned_error(self.as_span()))
+        context: &TransformerContext,
+    ) -> Result<Vec<f64>, TransformError> {
+        self.as_primitive(context)
+            .map(|p| p.as_number_array().map(|v| v.to_owned()))
+            .map_err(|e| e.to_spanned_error(self.as_span()))?
     }
-    pub fn as_number_matrix<'a>(
+    pub fn as_number_matrix(
         &self,
-        context: &'a TransformerContext,
-    ) -> Result<&'a Vec<Vec<f64>>, TransformError> {
-        self.as_number_matrix(context)
-            .map_err(|e| e.to_spanned_error(self.as_span()))
+        context: &TransformerContext,
+    ) -> Result<Vec<Vec<f64>>, TransformError> {
+        self.as_primitive(context)
+            .map(|p| {
+                p.as_number_matrix()
+                    .map(|v| v.iter().map(|v| (*v).to_owned()).collect::<Vec<_>>())
+            })
+            .map_err(|e| e.to_spanned_error(self.as_span()))?
     }
-    pub fn as_iterator<'a>(
+    pub fn as_iterator(
         &self,
-        context: &'a TransformerContext,
-    ) -> Result<IterableKind<'a>, TransformError> {
-        self.as_iterator(context)
-            .map_err(|e| e.to_spanned_error(self.as_span()))
+        context: &TransformerContext,
+    ) -> Result<IterableKind, TransformError> {
+        self.as_primitive(context)
+            .map(|p| p.as_iterator().map(|v| v.to_owned()))
+            .map_err(|e| e.to_spanned_error(self.as_span()))?
     }
     pub fn to_string(&self) -> String {
         match self {
@@ -582,43 +589,30 @@ impl Constant {
 
 pub struct CompilationError {
     kind: ParseError,
-    start_line: usize,
-    start: usize,
-    end_line: usize,
-    end: usize,
+    span: InputSpan,
     text: String,
 }
 impl CompilationError {
-    pub fn new(
-        kind: ParseError,
-        start_line: usize,
-        start: usize,
-        end_line: usize,
-        end: usize,
-        text: String,
-    ) -> Self {
-        Self {
-            kind,
-            start_line,
-            start,
-            end_line,
-            end,
-            text,
-        }
+    pub fn new(kind: ParseError, span: InputSpan, text: String) -> Self {
+        Self { kind, span, text }
     }
     pub fn from_span(kind: ParseError, span: &Span, exclude_string: bool) -> Self {
-        let (start_line, start) = span.start_pos().line_col();
-        let (end_line, end) = span.end_pos().line_col();
-        let text = if exclude_string { "" } else { span.as_str() }.to_string();
-        Self::new(kind, start_line, start, end_line, end, text)
+        let text = if exclude_string {
+            "".to_string()
+        } else {
+            span.as_str().to_string()
+        };
+        let span = InputSpan::from_pair(*span);
+        Self::new(kind, span, text)
     }
+    
     pub fn to_string(&self) -> String {
         format!(
             "Error at line {}:{} to {}:{}\n\t{} {}",
-            self.start_line,
-            self.start,
-            self.end_line,
-            self.end,
+            self.span.start_line,
+            self.span.start_column,
+            self.span.end_line,
+            self.span.end_column,
             self.kind.to_string(),
             self.text
         )

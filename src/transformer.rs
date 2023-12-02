@@ -1,6 +1,9 @@
 use crate::{
     consts::{Comparison, ConstantValue, InputSpan, IterableKind, Op, OptimizationType, Primitive},
-    parser::{PreArrayAccess, PreCondition, PreExp, PreIterator, PreObjective, PreProblem, PreSet},
+    parser::{
+        recursive_set_resolver, PreArrayAccess, PreCondition, PreExp, PreIterator, PreObjective,
+        PreProblem, PreSet,
+    },
 };
 use egg::*;
 use std::collections::HashMap;
@@ -92,14 +95,29 @@ impl Exp {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            Exp::BinOp(operator, lhs, rhs) => format!(
-                "({} {} {})",
-                lhs.to_string(),
-                operator.to_string(),
-                rhs.to_string(),
-            ),
-            //Exp::Parenthesis(exp) => format!("({})", exp.to_string()),
-            Exp::Neg(exp) => format!("-{}", exp.to_string()),
+            Exp::BinOp(operator, lhs, rhs) => {
+                //TODO: add parenthesis when needed
+                format!(
+                    "{} {} {}",
+                    lhs.to_string(),
+                    operator.to_string(),
+                    rhs.to_string()
+                )
+            }
+            Exp::Neg(exp) => {
+                if exp.is_leaf() {
+                    format!("-{}", exp.to_string())
+                } else {
+                    format!("-({})", exp.to_string())
+                }
+            }
+        }
+    }
+    pub fn is_leaf(&self) -> bool {
+        match self {
+            Exp::BinOp(_, _, _) => false,
+            Exp::Neg(_) => false,
+            _ => true,
         }
     }
     pub fn remove_root_parenthesis(&self) -> &Exp {
@@ -187,7 +205,6 @@ pub enum TransformError {
     AlreadyExistingVariable(String),
     OutOfBounds(String),
     WrongArgument(String),
-    //TODO not sure if this is the best way to handle this, but it makes it easier to propagate the span
     SpannedError(Box<TransformError>, InputSpan),
     Other(String),
 }
@@ -217,10 +234,10 @@ impl TransformError {
 }
 
 #[derive(Debug)]
-pub struct Frame<'a> {
-    pub variables: HashMap<String, Primitive<'a>>,
+pub struct Frame {
+    pub variables: HashMap<String, Primitive>,
 }
-impl<'a> Frame<'a> {
+impl Frame {
     pub fn new() -> Self {
         Self {
             variables: HashMap::new(),
@@ -237,22 +254,14 @@ impl<'a> Frame<'a> {
     pub fn get_value(&self, name: &str) -> Option<&Primitive> {
         self.variables.get(name)
     }
-    pub fn declare_variable(
-        &mut self,
-        name: &str,
-        value: Primitive<'a>,
-    ) -> Result<(), TransformError> {
+    pub fn declare_variable(&mut self, name: &str, value: Primitive) -> Result<(), TransformError> {
         if self.has_variable(name) {
             return Err(TransformError::AlreadyExistingVariable(name.to_string()));
         }
         self.variables.insert(name.to_string(), value);
         Ok(())
     }
-    pub fn update_variable(
-        &mut self,
-        name: &str,
-        value: Primitive<'a>,
-    ) -> Result<(), TransformError> {
+    pub fn update_variable(&mut self, name: &str, value: Primitive) -> Result<(), TransformError> {
         if !self.has_variable(name) {
             return Err(TransformError::MissingVariable(name.to_string()));
         }
@@ -262,7 +271,7 @@ impl<'a> Frame<'a> {
     pub fn has_variable(&self, name: &str) -> bool {
         self.variables.contains_key(name)
     }
-    pub fn drop_variable(&mut self, name: &str) -> Result<Primitive<'a>, TransformError> {
+    pub fn drop_variable(&mut self, name: &str) -> Result<Primitive, TransformError> {
         if !self.variables.contains_key(name) {
             return Err(TransformError::MissingVariable(name.to_string()));
         }
@@ -272,10 +281,10 @@ impl<'a> Frame<'a> {
 }
 
 #[derive(Debug)]
-pub struct TransformerContext<'a> {
-    frames: Vec<Frame<'a>>,
+pub struct TransformerContext {
+    frames: Vec<Frame>,
 }
-impl<'a> TransformerContext<'a> {
+impl TransformerContext {
     pub fn new(constants: HashMap<String, ConstantValue>) -> Self {
         let frame = Frame::from_constants(constants);
         Self {
@@ -304,16 +313,22 @@ impl<'a> TransformerContext<'a> {
         Ok(flattened.join("_"))
     }
 
+    pub fn add_populated_scope(&mut self, frame: Frame) {
+        self.frames.push(frame);
+    }
+    pub fn replace_last_frame(&mut self, frame: Frame) {
+        self.frames.pop();
+        self.frames.push(frame);
+    }
     pub fn add_scope(&mut self) {
         let frame = Frame::new();
         self.frames.push(frame);
     }
-    pub fn pop_scope(&mut self) -> Result<(), TransformError> {
-        if self.frames.len() == 1 {
+    pub fn pop_scope(&mut self) -> Result<Frame, TransformError> {
+        if self.frames.len() <= 1 {
             return Err(TransformError::Other("Missing frame to pop".to_string()));
         }
-        self.frames.pop();
-        Ok(())
+        Ok(self.frames.pop().unwrap())
     }
     pub fn get_value(&self, name: &str) -> Option<&Primitive> {
         for frame in self.frames.iter().rev() {
@@ -342,7 +357,7 @@ impl<'a> TransformerContext<'a> {
     pub fn declare_variable(
         &mut self,
         name: &str,
-        value: Primitive<'a>,
+        value: Primitive,
         strict: bool,
     ) -> Result<(), TransformError> {
         if strict {
@@ -353,7 +368,7 @@ impl<'a> TransformerContext<'a> {
         let frame = self.frames.last_mut().unwrap();
         frame.declare_variable(name, value)
     }
-    pub fn update_variable(&mut self, name: &str, value: Primitive<'a>) -> Result<(), TransformError> {
+    pub fn update_variable(&mut self, name: &str, value: Primitive) -> Result<(), TransformError> {
         for frame in self.frames.iter_mut().rev() {
             if frame.has_variable(name) {
                 return frame.update_variable(name, value);
@@ -503,48 +518,35 @@ checks that the iterator has at least the same number of elements as the set, an
     out: error!
 */
 
-pub type PrimitiveSet<'a> = Vec<Primitive<'a>>;
+pub type PrimitiveSet = Vec<Primitive>;
 
-pub struct NamedSet<'a> {
+pub struct NamedSet {
     pub vars: Vec<String>,
-    pub set: PrimitiveSet<'a>,
+    pub set: PrimitiveSet,
 }
-impl<'a> NamedSet<'a> {
-    pub fn to_string(&self) -> String {
-        let variables = self.vars.join(", ");
-        let set = self
-            .set
-            .iter()
-            .map(|v| v.to_string())
-            .collect::<Vec<_>>()
-            .join(", ");
-        format!("set {{{}}} = {{{}}}", variables, set)
-    }
-    pub fn new(variables: Vec<String>, set: PrimitiveSet<'a>) -> Self {
-        Self {
-            vars: variables,
-            set,
-        }
+impl NamedSet {
+    pub fn new(vars: Vec<String>, set: PrimitiveSet) -> Self {
+        Self { vars, set }
     }
 }
 
-pub fn transform_set<'a>(
-    range: &PreSet,
-    context: &'a TransformerContext,
-) -> Result<NamedSet<'a>, TransformError> {
-    let set = match &range.iterator {
+pub fn transform_set(
+    pre_set: &PreSet,
+    context: &TransformerContext,
+) -> Result<NamedSet, TransformError> {
+    let set = match &pre_set.iterator {
         PreIterator::Range {
             from,
             to,
             to_inclusive,
         } => {
-            if range.vars_tuple.len() != 1 {
+            if pre_set.vars_tuple.len() != 1 {
                 return Err(TransformError::WrongArgument(
                     "Expected 1 variable in range".to_string(),
                 ));
             }
-            let from = from.to_int(context)?;
-            let to = to.to_int(context)?;
+            let from = from.to_int(&context)?;
+            let to = to.to_int(&context)?;
             if *to_inclusive {
                 (from..=to).map(|i| Primitive::Number(i as f64)).collect()
             } else {
@@ -552,11 +554,11 @@ pub fn transform_set<'a>(
             }
         }
         PreIterator::Parameter(p) => {
-            let value = p.as_iterator(context)?;
+            let value = p.as_iterator(&context)?;
             value.to_primitive_set()
         }
     };
-    Ok(NamedSet::new(range.vars_tuple.clone(), set))
+    Ok(NamedSet::new(pre_set.vars_tuple.clone(), set))
 }
 
 pub fn transform_condition(
@@ -572,25 +574,19 @@ pub fn transform_condition_with_iteration(
     condition: &PreCondition,
     context: &mut TransformerContext,
 ) -> Result<Vec<Condition>, TransformError> {
-    /*
-    let iteration = condition.iteration.as_ref().map(|i| transform_set(i, context)?);
-        match iteration {
-        //exclusive range
-        Some(iteration_range) => (iteration_range.from..iteration_range.to)
-            .map(|i| {
-                context.add_scope();
-                context.declare_variable(&iteration_range.name, i as f64)?;
-                let condition = transform_condition(condition, context)?;
-                context.pop_scope();
-                Ok(condition)
-            })
-            .collect(),
-        None => {
-            let condition = transform_condition(condition, context)?;
-            Ok(vec![condition])
-        }
+    let sets = condition
+        .iteration
+        .iter()
+        .map(|set| transform_set(set, &context))
+        .collect::<Result<Vec<_>, _>>()?;
+    if sets.len() == 0 {
+        return Ok(vec![transform_condition(condition, context)?]);
     }
-     */
+    let mut results: Vec<Condition> = Vec::new();
+    recursive_set_resolver(&sets, context, &mut results, 0, &|c| {
+        transform_condition(condition, c)
+    })
+    .map_err(|e| e.to_spanned_error(&condition.span))?;
     todo!("implement the iteration transformation")
 }
 
@@ -607,13 +603,12 @@ pub fn transform_problem(
     context: &mut TransformerContext,
 ) -> Result<Problem, TransformError> {
     let objective = transform_objective(&problem.objective, context)?;
-    let conditions = problem
-        .conditions
-        .iter()
-        .map(|condition| transform_condition_with_iteration(condition, context))
-        .collect::<Result<Vec<Vec<Condition>>, TransformError>>()?
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>();
+    let mut conditions: Vec<Condition> = Vec::new();
+    for condition in problem.conditions.iter() {
+        let transformed = transform_condition_with_iteration(condition, context)?;
+        for condition in transformed {
+            conditions.push(condition);
+        }
+    }
     Ok(Problem::new(objective, conditions))
 }

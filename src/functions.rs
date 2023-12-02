@@ -1,4 +1,4 @@
-use std::{fmt::Debug};
+use std::fmt::Debug;
 
 use pest::Span;
 
@@ -24,13 +24,37 @@ impl FunctionCall for EdgesOfGraphFn {
             )),
         }
     }
-    fn call<'a>(&self, context: &'a TransformerContext) -> Result<Primitive<'a>, TransformError> {
+    fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
         let graph = self.of_graph.as_graph(context)?;
         let edges = graph.edges();
         Ok(Primitive::Iterable(IterableKind::Edges(edges)))
     }
     fn to_string(&self) -> String {
         format!("edges({})", self.of_graph.to_string())
+    }
+}
+#[derive(Debug)]
+pub struct LenOfIterableFn {
+    of_iterable: Parameter,
+}
+impl FunctionCall for LenOfIterableFn {
+    fn from_parameters(pars: Vec<Parameter>, span: &Span) -> Result<Self, CompilationError> {
+        let len = pars.len();
+        match pars.into_iter().next() {
+            Some(of_iterable) => Ok(Self { of_iterable }),
+            _ => Err(CompilationError::from_span(
+                ParseError::WrongNumberOfArguments(len, vec!["Iterable".to_string()]),
+                span,
+                true,
+            )),
+        }
+    }
+    fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
+        let value = self.of_iterable.as_iterator(context)?;
+        Ok(Primitive::Number(value.len() as f64))
+    }
+    fn to_string(&self) -> String {
+        format!("len({})", self.of_iterable.to_string())
     }
 }
 

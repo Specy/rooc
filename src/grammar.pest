@@ -19,7 +19,7 @@ condition = {
   #lhs = tagged_exp ~
   #relation = comparison ~
   #rhs = tagged_exp ~
-  (#iteration = for_iteration)?
+  (#iteration = iteration_declaration_list)?
 }
 // constants declaration
 consts_declaration = { (const_declaration ~ nl+)* ~ const_declaration }

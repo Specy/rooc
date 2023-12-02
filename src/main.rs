@@ -90,8 +90,9 @@ fn main() {
     let problem = "
     max a
     s.t.
-    (a + b - c)*(d + e) <= 0
-    a * d + a * e + b * d + b * e - c * d - c * e<= 0  
+        sum(i in 0..len(C)) { x_i * C[i] } <= 1
+    where
+        C = [1,2]
     "
     .to_string();
     let parsed = parse(&problem);
@@ -102,7 +103,7 @@ fn main() {
             println!("\n\n");
             match transformed {
                 Ok(transformed) => println!("{}", transformed.to_string()),
-                Err(e) => println!("{:#?}", e),
+                Err(e) => println!("{:?}", e.to_string()),
             }
         }
         Err(e) => {
