@@ -9,7 +9,6 @@ use crate::parser::{
     CompoundVariable, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator, PreNode,
     PreObjective, PreSet, Rule,
 };
-use crate::transformer::TransformerContext;
 use crate::{bail_missing_token, bail_semantic_error, err_unexpected_token};
 
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {
@@ -373,6 +372,7 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
     let exp_list = exp_to_parse.clone().into_inner();
     for exp in exp_list.into_iter() {
         let rule = exp.as_rule();
+        let span = InputSpan::from_span(exp.as_span());
         match rule {
             Rule::binary_op | Rule::unary_op => {
                 let op = parse_operator(&exp)?;
@@ -381,7 +381,7 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                     match (operator_stack.pop(), output_queue.pop(), output_queue.pop()) {
                         (Some(op), Some(rhs), Some(lhs)) => {
                             output_queue.push(PreExp::BinaryOperation(
-                                op,
+                                Spanned::new(op, span.clone()),
                                 lhs.to_boxed(),
                                 rhs.to_boxed(),
                             ));
@@ -397,7 +397,7 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 if rule == Rule::unary_op {
                     match op {
                         Op::Sub => {
-                            output_queue.push(PreExp::Number(0.0));
+                            output_queue.push(PreExp::Number(Spanned::new(0.0, span)));
                         }
                         _ => {
                             return err_unexpected_token!(
@@ -414,41 +414,48 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 let fun = englobe_if_multiplied_by_constant(
                     &last_token,
                     &mut output_queue,
-                    PreExp::FunctionCall(fun),
-                );
+                    PreExp::FunctionCall(Spanned::new(fun, span)),
+                )?;
                 output_queue.push(fun);
             }
             Rule::simple_variable => {
-                let variable = PreExp::Variable(exp.as_str().to_string());
+                let variable = exp.as_str().to_string();
+                let variable = PreExp::Variable(Spanned::new(variable, span));
                 let next =
-                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, variable);
+                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, variable)?;
                 output_queue.push(next);
             }
             Rule::compound_variable => {
-                let variable = PreExp::CompoundVariable(parse_compound_variable(&exp)?);
+                let variable = parse_compound_variable(&exp)?;
+                let variable = PreExp::CompoundVariable(Spanned::new(variable, span));
                 let next =
-                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, variable);
+                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, variable)?;
                 output_queue.push(next);
             }
             Rule::sum => {
                 let inner = exp.clone().into_inner();
-                let range = inner
-                    .find_first_tagged("range")
-                    .map(|r| parse_set_iterator_list(&r.into_inner()));
-                let body = inner.find_first_tagged("body").map(|b| parse_exp_list(&b));
+                let range = inner.find_first_tagged("range");
+                let body = inner.find_first_tagged("body");
                 if range.is_none() || body.is_none() {
                     return err_unexpected_token!("found {}, expected sum", exp);
                 }
-                let range = range.unwrap()?;
-                let body = body.unwrap()?;
-                let sum = PreExp::Sum(range, body.to_boxed());
-                let sum = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, sum);
+                let body = body.unwrap();
+                let body_span = InputSpan::from_span(body.as_span());
+                let body = parse_exp_list(&body)?.to_boxed();
+                let range = range.unwrap();
+                let range_span = InputSpan::from_span(range.as_span());
+                let range = parse_set_iterator_list(&range.into_inner())?;
+                let sum = PreExp::Sum(
+                    range,
+                    Spanned::new(body, body_span),
+                );
+                let sum = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, sum)?;
                 output_queue.push(sum);
             }
             Rule::number => {
                 let num = exp.as_str().parse();
                 match num {
-                    Ok(num) => output_queue.push(PreExp::Number(num)),
+                    Ok(num) => output_queue.push(PreExp::Number(Spanned::new(num, span))),
                     Err(_) => {
                         return err_unexpected_token!("found {}, expected number", exp);
                     }
@@ -458,15 +465,15 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 //i keep this only because i want to be able to format and get back the same input that
                 // was given to me
                 let par = parse_exp_list(&exp)?;
-                let par = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, par);
+                let par = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, par)?;
                 //output_queue.push(PreExp::Parenthesis(par.to_boxed()));
                 output_queue.push(par);
             }
             Rule::modulo => {
                 let exp = parse_exp_list(&exp)?;
-                let modulo = PreExp::Mod(Box::new(exp));
+                let modulo = PreExp::Mod(Spanned::new(Box::new(exp), span));
                 let modulo =
-                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, modulo);
+                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, modulo)?;
                 output_queue.push(modulo)
             }
             Rule::array_access => {
@@ -474,8 +481,8 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 let array_access = englobe_if_multiplied_by_constant(
                     &last_token,
                     &mut output_queue,
-                    PreExp::ArrayAccess(array_access),
-                );
+                    PreExp::ArrayAccess(Spanned::new(array_access, span)),
+                )?;
                 output_queue.push(array_access);
             }
             Rule::min | Rule::max => {
@@ -483,13 +490,14 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                     .into_inner()
                     .map(|member| parse_exp_list(&member))
                     .collect::<Result<Vec<PreExp>, CompilationError>>()?;
+                let members = Spanned::new(members, span);
                 let fun = match rule {
                     Rule::min => PreExp::Min(members),
                     Rule::max => PreExp::Max(members),
                     _ => unreachable!(),
                 };
 
-                let fun = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, fun);
+                let fun = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, fun)?;
                 output_queue.push(fun);
             }
             _ => {
@@ -506,7 +514,12 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
             return bail_missing_token!("missing terminal expression", exp_to_parse);
         }
         let (op, rhs, lhs) = (op.unwrap(), rhs.unwrap(), lhs.unwrap());
-        output_queue.push(PreExp::BinaryOperation(op, lhs.to_boxed(), rhs.to_boxed()));
+        let span = InputSpan::default(); //i'm lazy to save the last span
+        output_queue.push(PreExp::BinaryOperation(
+            Spanned::new(op, span),
+            lhs.to_boxed(),
+            rhs.to_boxed(),
+        ));
     }
     match output_queue.pop() {
         Some(exp) => Ok(exp),
@@ -625,7 +638,10 @@ fn parse_set_iterator(range: &Pair<Rule>) -> Result<PreSet, CompilationError> {
                 .find_first_tagged("iterator")
                 .map(|f| parse_iterator(&f));
             match (vars_tuple, iterator) {
-                (Some(vars_tuple), Some(iterator)) => Ok(PreSet::new(vars_tuple?, iterator?)),
+                (Some(vars_tuple), Some(iterator)) => {
+                    let span = InputSpan::from_span(range.as_span());
+                    Ok(PreSet::new(vars_tuple?, iterator?, span))
+                }
                 _ => err_unexpected_token!("Expected set iterator but got: {}", range),
             }
         }
@@ -780,12 +796,21 @@ fn englobe_if_multiplied_by_constant(
     prev_token: &Option<Rule>,
     queue: &mut Vec<PreExp>,
     rhs: PreExp,
-) -> PreExp {
+) -> Result<PreExp, CompilationError> {
     match prev_token {
         Some(Rule::number) => {
-            let last_number = queue.pop().unwrap();
-            PreExp::BinaryOperation(Op::Mul, last_number.to_boxed(), rhs.to_boxed())
+            let last_number = match queue.pop() {
+                Some(n @ PreExp::Number(_)) => n,
+                _ => unreachable!(), //could this ever happen?
+            };
+            let span = rhs.get_span();
+            let exp = PreExp::BinaryOperation(
+                Spanned::new(Op::Mul, span.clone()),
+                last_number.to_boxed(),
+                rhs.to_boxed(),
+            );
+            Ok(exp)
         }
-        _ => rhs,
+        _ => Ok(rhs),
     }
 }

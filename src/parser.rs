@@ -1,15 +1,17 @@
+use core::panic;
 use std::fmt::Debug;
+use std::iter;
+use std::ops::Deref;
 
 use crate::bail_missing_token;
 use crate::consts::{
-    Comparison, CompilationError, Constant, FunctionCall, Op, OptimizationType, Parameter,
-    ParseError, Primitive,
+    Comparison, CompilationError, Constant, FunctionCall, InputSpan, Op, OptimizationType,
+    Parameter, ParseError, Primitive, Spanned,
 };
 use crate::functions::{FunctionCallNumberGuard, ToNum};
 use crate::rules_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
 use crate::transformer::{
-    transform_set, Exp, TransformError,
-    TransformerContext,
+    transform_set, Exp, NamedSet, PrimitiveSet, TransformError, TransformerContext,
 };
 use pest::iterators::Pair;
 use pest::Parser;
@@ -43,7 +45,7 @@ use pest::Parser;
    TODO: Make it possible to define constraints with iterable variables
    Example: //TODO! should this be Xi or X_i, should there be an explicit definition?
 
-       max sum(i in 1..2){Ci*Xi} 
+       max sum(i in 1..2){Ci*Xi}
        s.t.
            sum(i in 1..2){Xij} <= b[j] for j in 1..2
        where
@@ -190,12 +192,14 @@ pub enum PreIterOfArray {
 pub struct PreSet {
     pub vars_tuple: Vec<String>,
     pub iterator: PreIterator,
+    pub span: InputSpan,
 }
 impl PreSet {
-    pub fn new(vars_tuple: Vec<String>, iterator: PreIterator) -> Self {
+    pub fn new(vars_tuple: Vec<String>, iterator: PreIterator, span: InputSpan) -> Self {
         Self {
             vars_tuple,
             iterator,
+            span,
         }
     }
 }
@@ -252,91 +256,154 @@ impl CompoundVariable {
 
 #[derive(Debug)]
 pub enum PreExp {
-    Number(f64),
-    Mod(Box<PreExp>),
-    Min(Vec<PreExp>),
-    Max(Vec<PreExp>),
-    Variable(String),
-    CompoundVariable(CompoundVariable),
-    BinaryOperation(Op, Box<PreExp>, Box<PreExp>),
-    UnaryNegation(Box<PreExp>),
-    ArrayAccess(PreArrayAccess),
-    Sum(Vec<PreSet>, Box<PreExp>),
-    FunctionCall(Box<dyn FunctionCall>),
+    Number(Spanned<f64>),
+    Mod(Spanned<Box<PreExp>>),
+    Min(Spanned<Vec<PreExp>>),
+    Max(Spanned<Vec<PreExp>>),
+    Variable(Spanned<String>),
+    CompoundVariable(Spanned<CompoundVariable>),
+    BinaryOperation(Spanned<Op>, Box<PreExp>, Box<PreExp>),
+    UnaryNegation(Spanned<Box<PreExp>>),
+    ArrayAccess(Spanned<PreArrayAccess>),
+    Sum(Vec<PreSet>, Spanned<Box<PreExp>>),
+    FunctionCall(Spanned<Box<dyn FunctionCall>>),
 }
 
 impl PreExp {
     pub fn to_boxed(self) -> Box<PreExp> {
         Box::new(self)
     }
-
+    pub fn get_span(&self) -> &InputSpan {
+        match self {
+            Self::Number(n) => n.get_span(),
+            Self::Mod(exp) => exp.get_span(),
+            Self::Min(exps) => exps.get_span(),
+            Self::Max(exps) => exps.get_span(),
+            Self::Variable(name) => name.get_span(),
+            Self::CompoundVariable(c) => c.get_span(),
+            Self::BinaryOperation(op, _, _) => op.get_span(),
+            Self::UnaryNegation(exp) => exp.get_span(),
+            Self::ArrayAccess(array_access) => array_access.get_span(),
+            Self::Sum(_, exp_body) => exp_body.get_span(),
+            Self::FunctionCall(function_call) => function_call.get_span(),
+        }
+    }
     //should this consume self?
-    pub fn into_exp(&self, context: &mut TransformerContext) -> Result<Exp, TransformError> {
+    pub fn into_exp(self, context: &mut TransformerContext) -> Result<Exp, TransformError> {
         let exp = match self {
             Self::BinaryOperation(op, lhs, rhs) => {
-                match (op.clone(), lhs.into_exp(context)?, rhs.into_exp(context)?) {
-                    (op, lhs, rhs) => Ok(Exp::BinOp(op, lhs.to_box(), rhs.to_box())),
+                let lhs = lhs
+                    .into_exp(context)
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                let rhs = rhs
+                    .into_exp(context)
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                match (op, lhs, rhs) {
+                    (op, lhs, rhs) => Ok(Exp::BinOp(*op, lhs.to_box(), rhs.to_box())),
                 }
             }
             Self::Number(n) => Ok(Exp::Number(*n)),
-            Self::Mod(exp) => Ok(Exp::Mod(exp.into_exp(context)?.to_box())),
+            Self::Mod(exp) => {
+                let inner = exp
+                    .into_exp(context)
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                Ok(Exp::Mod(inner.to_box()))
+            }
             Self::Min(exps) => Ok(Exp::Min(
                 exps.iter()
                     .map(|exp| exp.into_exp(context))
-                    .collect::<Result<Vec<Exp>, TransformError>>()?,
+                    .collect::<Result<Vec<Exp>, TransformError>>()
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?,
             )),
             Self::Max(exps) => Ok(Exp::Max(
                 exps.iter()
                     .map(|exp| exp.into_exp(context))
-                    .collect::<Result<Vec<Exp>, TransformError>>()?,
+                    .collect::<Result<Vec<Exp>, TransformError>>()
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?,
             )),
-            Self::UnaryNegation(exp) => Ok(Exp::Neg(exp.into_exp(context)?.to_box())),
+            Self::UnaryNegation(exp) => {
+                let inner = exp
+                    .into_exp(context)
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                Ok(Exp::Neg(inner.to_box()))
+            }
             Self::Variable(name) => {
-                let value = context.get_value(name);
+                let value = context.get_value(&*name);
                 match value {
                     //try to see if the variable is a constant, else return the variable name
                     Some(v) => {
                         match v {
                             //TODO what other kinds of constants can there be?
                             Primitive::Number(n) => Ok(Exp::Number(*n)),
-                            _ => Err(TransformError::WrongArgument("Number".to_string())),
+                            _ => {
+                                let err = TransformError::WrongArgument("Number".to_string());
+                                Err(err.to_spanned_error(self.get_span()))
+                            }
                         }
                     }
-                    None => Ok(Exp::Variable(name.clone())),
+                    None => Ok(Exp::Variable(name.clone().into_span_value())),
                 }
             }
             Self::CompoundVariable(c) => {
-                let parsed_indexes = context.flatten_variable_name(&c.indexes)?;
+                let parsed_indexes = context
+                    .flatten_variable_name(&c.indexes)
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 Ok(Exp::Variable(format!("{}_{}", c.name, parsed_indexes)))
             }
             Self::ArrayAccess(array_access) => {
-                let value = context.get_array_access_value(array_access)?;
+                let value = context
+                    .get_array_access_value(array_access)
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 Ok(Exp::Number(value))
             }
+            /*
             Self::Sum(ranges, exp_body) => {
                 /* sum(i in 0..2, j in 0..2) { X_ij } becomes:
                 x_0_0 + x_0_1 + x_0_2 + x_1_0 + x_1_1 + x_1_2 + x_2_0 + x_2_1 + x_2_2
                 */
-                let ranges = ranges
-                    .iter()
+                let sets = ranges
+                    .into_iter()
                     .map(|r| transform_set(r, context))
-                    .collect::<Result<Vec<Range>, TransformError>>()?;
+                    .collect::<Result<_, TransformError>>()
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 let mut results = Vec::new();
-                recursive_sum_resolver(exp_body, &ranges, context, &mut results, 0)?;
+                recursive_sum_resolver(exp_body, &sets, context, &mut results, 0)?;
                 results.reverse();
                 let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
                 for result in results {
                     sum = Exp::BinOp(Op::Add, sum.to_box(), result.to_box());
                 }
-                //Ok(Exp::Parenthesis(sum.to_boxed()))
                 Ok(sum)
+            }
+            */
+            Self::Sum(ranges, exp_body) => {
+                if ranges.len() == 0 {
+                    return exp_body.into_exp(context);
+                }
+                match ranges.remove(0) {
+                    range => {
+                        let first = transform_set(&range, context)?;
+                        for val in first.set {
+                            let inner = PreExp::Sum(
+                                *ranges,
+                                Spanned::new(exp_body.clone().into_span_value(), exp_body.get_span().clone()),
+                            );
+                        }
+                    }
+                }
+                todo!()
             }
             Self::FunctionCall(function_call) => {
                 //TODO improve this, what other types of functions can there be?
-                let value = function_call.call(context)?;
+                let value = function_call
+                    .call(context)
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 match value {
                     Primitive::Number(n) => Ok(Exp::Number(n)),
-                    _ => Err(TransformError::WrongArgument("Number".to_string())),
+                    _ => {
+                        let err = TransformError::WrongArgument("Number".to_string());
+                        Err(err.to_spanned_error(self.get_span()))
+                    }
                 }
             }
         };
@@ -344,34 +411,72 @@ impl PreExp {
     }
 }
 
-fn recursive_sum_resolver(
+/*
+
+function flatten(exp, ranges, context, values):
+    if ranges is empty:
+        values.append(exp)
+    range = ranges[0]
+    for value in range.set:
+        context.update_variable(range.name, value)
+        flatten(exp, ranges[1:], context, values)
+*/
+
+
+
+fn recursive_sum_resolver<'a>(
     exp: &PreExp,
-    ranges: &Vec<Range>,
-    context: &mut TransformerContext,
+    ranges: &'a Vec<NamedSet<'a>>,
+    context: &'a mut TransformerContext<'a>,
     results: &mut Vec<Exp>,
     current_level: usize,
 ) -> Result<(), TransformError> {
-    if current_level == ranges.len() {
+    if current_level >= ranges.len() {
         results.push(exp.into_exp(context)?);
         return Ok(());
     }
-    let range = match ranges.get(current_level) {
-        Some(range) => range,
-        None => return Err(TransformError::OutOfBounds("Range".to_string())),
-    };
-    let mut current_value = range.from;
+    let range = ranges.get(current_level).unwrap();
     context.add_scope();
-
-    while current_value < range.to {
-        //range is exclusive
-        context.add_variable(&range.name, current_value as f64)?;
-        recursive_sum_resolver(exp, ranges, context, results, current_level + 1)?;
-        context.remove_variable(&range.name)?;
-        current_value += 1;
+    for name in range.vars.iter() {
+        context.declare_variable(&name, Primitive::Undefined, true)?;
     }
+    for value in range.set.iter() {
+        if let Primitive::Tuple(t) = value {
+            if range.vars.len() > t.len() {
+                let error = format!(
+                    "Cannot destructure tuple of size {} into {} variables",
+                    t.len(),
+                    range.vars.len()
+                );
+                return Err(TransformError::WrongArgument(error).to_spanned_error(exp.get_span()));
+            }
+        }
+        for (i, var) in range.vars.iter().enumerate() {
+            match value {
+                Primitive::Tuple(t) => {
+                    let value = t.get(i).unwrap();
+                    context.update_variable(var, *value)?;
+                }
+                _ => {
+                    context.update_variable(var, value)?;
+                    panic!("Should not happen, the set should be a tuple");
+                }
+            }
+        }
+        recursive_sum_resolver(exp, ranges, context, results, current_level + 1)?;
+    }
+    context.pop_scope();
     Ok(())
 }
+fn iterative_sum_resolver(
+    exp: &PreExp,
+    ranges: &Vec<NamedSet>,
+    context: &mut TransformerContext,
+) -> Result<Vec<Exp>, TransformError> {
+    let results: Vec<Exp> = Vec::new();
 
+    todo!()
+}
 #[derive(Debug)]
 pub struct PreObjective {
     pub objective_type: OptimizationType,

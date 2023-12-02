@@ -48,7 +48,7 @@ macro_rules! bail_wrong_argument_spanned {
     ($expected_type: literal, $evauluated_in:expr) => {
         Err(TransformError::SpannedError(
             Box::new(wrong_argument!($expected_type, $evauluated_in)),
-            $evauluated_in.as_span(),
+            $evauluated_in.as_span().clone(),
         ))
     };
 }
@@ -74,7 +74,7 @@ macro_rules! match_or_bail_spanned {
             )+
             _ => Err(TransformError::SpannedError(
                 Box::new(wrong_argument!($expected, $value, $self)),
-                $self.as_span(),
+                $self.as_span().clone(),
             ))
         }
     };

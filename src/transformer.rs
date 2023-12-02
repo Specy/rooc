@@ -1,10 +1,6 @@
 use crate::{
     consts::{Comparison, ConstantValue, InputSpan, IterableKind, Op, OptimizationType, Primitive},
-    functions::ToNum,
-    parser::{
-        PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator, PreObjective,
-        PreProblem, PreSet,
-    },
+    parser::{PreArrayAccess, PreCondition, PreExp, PreIterator, PreObjective, PreProblem, PreSet},
 };
 use egg::*;
 use std::collections::HashMap;
@@ -204,7 +200,7 @@ impl TransformError {
             }
             TransformError::OutOfBounds(name) => format!("Out of bounds {}", name),
             TransformError::WrongArgument(name) => format!("Wrong argument {}", name),
-            TransformError::Other(name) => *name,
+            TransformError::Other(name) => name.clone(),
             TransformError::SpannedError(error, span) => {
                 format!(
                     "{} at line: {} col: {}",
@@ -215,8 +211,8 @@ impl TransformError {
             }
         }
     }
-    pub fn to_spanned_error(self, span: InputSpan) -> TransformError {
-        TransformError::SpannedError(Box::new(self), span)
+    pub fn to_spanned_error(self, span: &InputSpan) -> TransformError {
+        TransformError::SpannedError(Box::new(self), span.clone())
     }
 }
 
@@ -230,10 +226,10 @@ impl<'a> Frame<'a> {
             variables: HashMap::new(),
         }
     }
-    pub fn from_constants(constants: &HashMap<String, ConstantValue>) -> Self {
+    pub fn from_constants(constants: HashMap<String, ConstantValue>) -> Self {
         let variables = constants
-            .iter()
-            .map(|(name, value)| (name.clone(), Primitive::from_constant_value(*value)))
+            .into_iter()
+            .map(|(name, value)| (name.clone(), Primitive::from_constant_value(value)))
             .collect::<HashMap<_, _>>();
         Self { variables }
     }
@@ -255,12 +251,12 @@ impl<'a> Frame<'a> {
     pub fn update_variable(
         &mut self,
         name: &str,
-        value: &Primitive<'a>,
+        value: Primitive<'a>,
     ) -> Result<(), TransformError> {
         if !self.has_variable(name) {
             return Err(TransformError::MissingVariable(name.to_string()));
         }
-        self.variables.insert(name.to_string(), *value);
+        self.variables.insert(name.to_string(), value);
         Ok(())
     }
     pub fn has_variable(&self, name: &str) -> bool {
@@ -279,9 +275,9 @@ impl<'a> Frame<'a> {
 pub struct TransformerContext<'a> {
     frames: Vec<Frame<'a>>,
 }
-impl TransformerContext<'_> {
-    pub fn new(constants: HashMap<String, ConstantValue>, variables: HashMap<String, f64>) -> Self {
-        let frame = Frame::from_constants(&constants);
+impl<'a> TransformerContext<'a> {
+    pub fn new(constants: HashMap<String, ConstantValue>) -> Self {
+        let frame = Frame::from_constants(constants);
         Self {
             frames: vec![frame],
         }
@@ -328,10 +324,25 @@ impl TransformerContext<'_> {
         }
         None
     }
+    pub fn exists_variable(&self, name: &str, strict: bool) -> bool {
+        if strict {
+            for frame in self.frames.iter().rev() {
+                if frame.has_variable(name) {
+                    return true;
+                }
+            }
+        } else {
+            return match self.frames.last() {
+                Some(frame) => frame.has_variable(name),
+                None => false,
+            };
+        }
+        false
+    }
     pub fn declare_variable(
         &mut self,
         name: &str,
-        value: Primitive,
+        value: Primitive<'a>,
         strict: bool,
     ) -> Result<(), TransformError> {
         if strict {
@@ -342,10 +353,10 @@ impl TransformerContext<'_> {
         let frame = self.frames.last_mut().unwrap();
         frame.declare_variable(name, value)
     }
-    pub fn update_variable(&mut self, name: &str, value: Primitive) -> Result<(), TransformError> {
+    pub fn update_variable(&mut self, name: &str, value: Primitive<'a>) -> Result<(), TransformError> {
         for frame in self.frames.iter_mut().rev() {
             if frame.has_variable(name) {
-                return frame.update_variable(name, &value);
+                return frame.update_variable(name, value);
             }
         }
         Err(TransformError::MissingVariable(name.to_string()))
@@ -457,7 +468,12 @@ impl TransformerContext<'_> {
             [i, j] => Ok(self.get_2d_array_number_value(&array_access.name, *i, *j)?),
             _ => Err(TransformError::OutOfBounds(format!(
                 "limit of 2d arrays, trying to access {}{}",
-                array_access.name, indexes.iter().map(|i| format!("[{}]", i)).collect::<Vec<_>>().join("")
+                array_access.name,
+                indexes
+                    .iter()
+                    .map(|i| format!("[{}]", i))
+                    .collect::<Vec<_>>()
+                    .join("")
             ))),
         }
     }
@@ -469,21 +485,8 @@ pub fn transform(pre_problem: &PreProblem) -> Result<Problem, TransformError> {
         .iter()
         .map(|c| (c.name.clone(), c.value.clone()))
         .collect::<Vec<_>>();
-    let initial_variables = pre_problem
-        .constants
-        .iter()
-        .filter(|c| match &c.value {
-            ConstantValue::Number(_) => true,
-            _ => false,
-        })
-        .map(|c| match &c.value {
-            ConstantValue::Number(value) => (c.name.clone(), *value),
-            _ => unreachable!(),
-        })
-        .collect::<Vec<_>>();
     let constants = HashMap::from_iter(constants);
-    let variables = HashMap::from_iter(initial_variables);
-    let mut context = TransformerContext::new(constants, variables);
+    let mut context = TransformerContext::new(constants);
     transform_problem(pre_problem, &mut context)
 }
 
@@ -500,11 +503,36 @@ checks that the iterator has at least the same number of elements as the set, an
     out: error!
 */
 
+pub type PrimitiveSet<'a> = Vec<Primitive<'a>>;
+
+pub struct NamedSet<'a> {
+    pub vars: Vec<String>,
+    pub set: PrimitiveSet<'a>,
+}
+impl<'a> NamedSet<'a> {
+    pub fn to_string(&self) -> String {
+        let variables = self.vars.join(", ");
+        let set = self
+            .set
+            .iter()
+            .map(|v| v.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!("set {{{}}} = {{{}}}", variables, set)
+    }
+    pub fn new(variables: Vec<String>, set: PrimitiveSet<'a>) -> Self {
+        Self {
+            vars: variables,
+            set,
+        }
+    }
+}
+
 pub fn transform_set<'a>(
     range: &PreSet,
-    context: &TransformerContext,
-) -> Result<Vec<&'a Primitive<'a>>, TransformError> {
-    match range.iterator {
+    context: &'a TransformerContext,
+) -> Result<NamedSet<'a>, TransformError> {
+    let set = match &range.iterator {
         PreIterator::Range {
             from,
             to,
@@ -517,24 +545,18 @@ pub fn transform_set<'a>(
             }
             let from = from.to_int(context)?;
             let to = to.to_int(context)?;
-            if to_inclusive {
-                return Ok((from..=to).map(|i| &Primitive::Number(i as f64)).collect());
+            if *to_inclusive {
+                (from..=to).map(|i| Primitive::Number(i as f64)).collect()
             } else {
-                return Ok((from..to).map(|i| &Primitive::Number(i as f64)).collect());
+                (from..to).map(|i| Primitive::Number(i as f64)).collect()
             }
         }
         PreIterator::Parameter(p) => {
             let value = p.as_iterator(context)?;
-            let v = match value {
-                IterableKind::Nodes(n) => n
-                    .iter()
-                    .map(|v| Primitive::Ref(Box::new(RefKind::Node(*v)))),
-                _ => todo!("implement the iterator transformation"),
-            };
-
-            todo!("implement the iterator transformation")
+            value.to_primitive_set()
         }
-    }
+    };
+    Ok(NamedSet::new(range.vars_tuple.clone(), set))
 }
 
 pub fn transform_condition(
