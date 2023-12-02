@@ -67,7 +67,7 @@ array_access        = {
   #accesses = pointer_access_list
 }
 pointer_access_list = { (pointer_access)+ }
-pointer_access      = _{ ^"[" ~ (number | simple_variable) ~ ^"]" }
+pointer_access      = _{ ^"[" ~ parameter ~ ^"]" }
 // constants
 constant = _{ number | array | graph}
 graph = { ^"Graph" ~ "{" ~nl* ~ #body = graph_node_list ~ nl* ~ "}" }
@@ -95,4 +95,4 @@ unary_op  = @{ "-" }
 string = @ { "\"" ~ LETTER* ~ "\""}
 // ignore whitespace in whole grammar
 WHITESPACE = _{ " " | "\t" }
-range_type = @{ ".." | "..="}
+range_type = @{ "..=" | ".." }

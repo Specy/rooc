@@ -220,7 +220,7 @@ impl TransformError {
             TransformError::Other(name) => name.clone(),
             TransformError::SpannedError(error, span) => {
                 format!(
-                    "{} at line: {} col: {}",
+                    "Error at line {}:{}\n\t{}",
                     error.to_string(),
                     span.start_line,
                     span.start_column

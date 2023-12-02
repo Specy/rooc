@@ -102,7 +102,7 @@ impl Graph {
 }
 
 pub trait FunctionCall: Debug {
-    fn from_parameters(pars: Vec<Parameter>, span: &Span) -> Result<Self, CompilationError>
+    fn from_parameters(pars: Vec<Parameter>, rule: &Pair<Rule>) -> Result<Self, CompilationError>
     where
         Self: Sized;
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError>;
@@ -112,25 +112,29 @@ pub trait FunctionCall: Debug {
 #[derive(Debug, Clone)]
 pub struct InputSpan {
     pub start_line: usize,
-    pub end_line: usize,
     pub start_column: usize,
-    pub end_column: usize,
     pub start: usize,
     pub len: usize,
     pub tempered: bool,
 }
 impl InputSpan {
-    pub fn from_pair(pair: Pair<Rule>) -> Self {
-        let (start_line, start_col) = pair.line_col();
+    pub fn from_pair(pair: &Pair<Rule>) -> Self {
+        let (start_line, start_column) = pair.line_col();
+        let start = pair.as_span().start();
+        let len = pair.as_span().end() - start;
+        Self {
+            start_line,
+            start_column,
+            start,
+            len,
+            tempered: false,
+        }
     }
     pub fn from_span(span: Span) -> Self {
         let (start_line, column_start) = span.start_pos().line_col();
-        let (end_line, column_end) = span.end_pos().line_col();
         Self {
             start_line,
-            end_line,
             start_column: column_start,
-            end_column: column_end,
             start: span.start(),
             len: span.end() - span.start(),
             tempered: false,
@@ -139,18 +143,11 @@ impl InputSpan {
     pub fn default() -> Self {
         Self {
             start_line: 0,
-            end_line: 0,
             start_column: 0,
-            end_column: 0,
             start: 0,
             len: 0,
             tempered: false,
         }
-    }
-    pub fn from_tempered_span(span: Span) -> Self {
-        let mut new_span = Self::from_pair(span);
-        new_span.tempered = true;
-        new_span
     }
     pub fn get_span_text<'a>(&self, text: &'a str) -> Result<&'a str, ()> {
         let start = self.start;
@@ -596,23 +593,21 @@ impl CompilationError {
     pub fn new(kind: ParseError, span: InputSpan, text: String) -> Self {
         Self { kind, span, text }
     }
-    pub fn from_span(kind: ParseError, span: &Span, exclude_string: bool) -> Self {
+    pub fn from_pair(kind: ParseError, pair: &Pair<Rule>, exclude_string: bool) -> Self {
         let text = if exclude_string {
             "".to_string()
         } else {
-            span.as_str().to_string()
+            format!(" {} ({:?})", pair.as_str().to_string(), pair.as_rule())
         };
-        let span = InputSpan::from_pair(*span);
+        let span = InputSpan::from_pair(pair);
         Self::new(kind, span, text)
     }
     
     pub fn to_string(&self) -> String {
         format!(
-            "Error at line {}:{} to {}:{}\n\t{} {}",
+            "Error at line {}:{}\n\t{}{}",
             self.span.start_line,
             self.span.start_column,
-            self.span.end_line,
-            self.span.end_column,
             self.kind.to_string(),
             self.text
         )
@@ -637,11 +632,11 @@ pub enum ParseError {
 impl ParseError {
     pub fn to_string(&self) -> String {
         match self {
-            Self::UnexpectedToken(s) => format!("Unexpected token: \"{}\"", s),
-            Self::MissingToken(s) => format!("Missing token: \"{}\"", s),
-            Self::SemanticError(s) => format!("Semantic error: \"{}\"", s),
+            Self::UnexpectedToken(s) => format!("[Unexpected token] {}", s),
+            Self::MissingToken(s) => format!("[Missing token]\n\t{}", s),
+            Self::SemanticError(s) => format!("[Semantic error]\n\t{}", s),
             Self::WrongNumberOfArguments(got, expected) => format!(
-                "Wrong number of arguments: got {}, expected {}: ({})",
+                "[Wrong number of arguments]\n\tgot {}, expected {}: ({})",
                 got,
                 expected.len(),
                 expected.join(", ")

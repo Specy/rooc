@@ -90,7 +90,7 @@ fn main() {
     let problem = "
     max a
     s.t.
-        sum(i in 0..len(C)) { x_i * C[i] } <= 1
+        sum(i in 0..=len(C)) { x_i * C[i] } <= 1
     where
         C = [1,2]
     "

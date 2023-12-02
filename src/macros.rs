@@ -1,9 +1,9 @@
 #[macro_export]
 macro_rules! err_unexpected_token {
     ($s:literal, $arg:ident) => {
-        Err(CompilationError::from_span(
+        Err(CompilationError::from_pair(
             ParseError::UnexpectedToken(format!($s, $arg.as_str())),
-            &$arg.as_span(),
+            &$arg,
             false,
         ))
     };
@@ -84,9 +84,9 @@ macro_rules! match_or_bail_spanned {
 #[macro_export]
 macro_rules! bail_missing_token {
     ($s: literal, $arg:ident) => {
-        Err(CompilationError::from_span(
+        Err(CompilationError::from_pair(
             ParseError::MissingToken(format!($s)),
-            &$arg.as_span(),
+            &$arg,
             true,
         ))
     };
@@ -95,9 +95,9 @@ macro_rules! bail_missing_token {
 #[macro_export]
 macro_rules! bail_semantic_error {
     ($s: literal, $arg:ident) => {
-        Err(CompilationError::from_span(
+        Err(CompilationError::from_pair(
             ParseError::SemanticError(format!($s)),
-            &$arg.as_span(),
+            &$arg,
             true,
         ))
     };

@@ -1,9 +1,10 @@
 use std::fmt::Debug;
 
-use pest::Span;
+use pest::{iterators::Pair, Span};
 
 use crate::{
     consts::{CompilationError, FunctionCall, IterableKind, Parameter, ParseError, Primitive},
+    parser::Rule,
     transformer::{TransformError, TransformerContext},
 };
 
@@ -13,13 +14,13 @@ pub struct EdgesOfGraphFn {
 }
 
 impl FunctionCall for EdgesOfGraphFn {
-    fn from_parameters(pars: Vec<Parameter>, span: &Span) -> Result<Self, CompilationError> {
+    fn from_parameters(pars: Vec<Parameter>, rule: &Pair<Rule>) -> Result<Self, CompilationError> {
         let len = pars.len();
         match pars.into_iter().next() {
             Some(of_graph) => Ok(Self { of_graph }),
-            _ => Err(CompilationError::from_span(
+            _ => Err(CompilationError::from_pair(
                 ParseError::WrongNumberOfArguments(len, vec!["Graph".to_string()]),
-                span,
+                rule,
                 true,
             )),
         }
@@ -38,13 +39,13 @@ pub struct LenOfIterableFn {
     of_iterable: Parameter,
 }
 impl FunctionCall for LenOfIterableFn {
-    fn from_parameters(pars: Vec<Parameter>, span: &Span) -> Result<Self, CompilationError> {
+    fn from_parameters(pars: Vec<Parameter>, rule: &Pair<Rule>) -> Result<Self, CompilationError> {
         let len = pars.len();
         match pars.into_iter().next() {
             Some(of_iterable) => Ok(Self { of_iterable }),
-            _ => Err(CompilationError::from_span(
+            _ => Err(CompilationError::from_pair(
                 ParseError::WrongNumberOfArguments(len, vec!["Iterable".to_string()]),
-                span,
+                rule,
                 true,
             )),
         }
@@ -102,5 +103,21 @@ impl StaticNumberGuard {
 impl ToNum for StaticNumberGuard {
     fn to_num(&self, _context: &TransformerContext) -> Result<f64, TransformError> {
         Ok(self.value)
+    }
+}
+
+#[derive(Debug)]
+pub struct ParameterToNum {
+    parameter: Parameter,
+}
+impl ParameterToNum {
+    pub fn from_parameter(parameter: Parameter) -> Self {
+        Self { parameter }
+    }
+}
+impl ToNum for ParameterToNum {
+    fn to_num(&self, context: &TransformerContext) -> Result<f64, TransformError> {
+        let value = self.parameter.as_number(context)?;
+        Ok(value)
     }
 }

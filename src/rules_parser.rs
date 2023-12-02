@@ -6,7 +6,10 @@ use crate::consts::{
     Comparison, CompilationError, Constant, ConstantValue, FunctionCall, Graph, GraphEdge,
     GraphNode, InputSpan, Op, OptimizationType, Parameter, ParseError, Spanned,
 };
-use crate::functions::{EdgesOfGraphFn, FunctionCallNumberGuard, StaticNumberGuard, ToNum, LenOfIterableFn};
+use crate::functions::{
+    EdgesOfGraphFn, FunctionCallNumberGuard, LenOfIterableFn, ParameterToNum, StaticNumberGuard,
+    ToNum,
+};
 use crate::parser::{
     CompoundVariable, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator, PreNode,
     PreObjective, PreSet, Rule,
@@ -139,11 +142,7 @@ pub fn parse_const_value(const_value: &Pair<Rule>) -> Result<ConstantValue, Comp
                             "Arrays must all have the same size, using the biggest one of: {}",
                             max
                         ));
-                        return Err(CompilationError::from_span(
-                            error,
-                            &const_value.as_span(),
-                            false,
-                        ));
+                        return Err(CompilationError::from_pair(error, &const_value, false));
                     }
                     Ok(ConstantValue::TwoDimArray(values))
                 }
@@ -198,7 +197,7 @@ pub fn parse_graph_edge(edge: &Pair<Rule>, from: &String) -> Result<GraphEdge, C
                     cost,
                     parsed.unwrap_err()
                 ));
-                return Err(CompilationError::from_span(error, &cost.as_span(), false));
+                return Err(CompilationError::from_pair(error, &cost, false));
             }
             Some(parsed.unwrap())
         }
@@ -300,7 +299,7 @@ fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, CompilationEr
                         parse_comparison(&relation_type)?,
                         parse_exp_list(&rhs)?,
                         iteration,
-                        InputSpan::from_pair(span),
+                        InputSpan::from_pair(condition),
                     ))
                 }
                 _ => bail_missing_token!("Missing condition body", condition),
@@ -310,31 +309,6 @@ fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, CompilationEr
     }
 }
 
-/*
-fn parse_bounds(bounds: Pair<Rule>) -> Result<Bounds, CompilationError> {
-    match bounds.as_rule() {
-        Rule::bounds => {
-            let mut inner = bounds.into_inner();
-            let (vars, bounds_type, rhs) = (
-                inner.next(),
-                inner.next(),
-                inner.next(),
-            );
-            match (vars, bounds_type, rhs) {
-                (Some(vars), Some(bounds_type), Some(rhs)) => Ok(Bounds::new(
-                    parse_comma_separated_vars(vars)?,
-                    parse_comparison(bounds_type)?,
-                    parse_number(rhs)?
-                )),
-                _ => Err(ParseError::UnexpectedToken(
-                    "Missing bounds".to_string(),
-                )),
-            }
-        }
-        _ => Err(ParseError::UnexpectedToken("Expected bounds".to_string())),
-    }
-}
-*/
 
 fn parse_number(number: &Pair<Rule>) -> Result<f64, CompilationError> {
     match number.as_rule() {
@@ -376,7 +350,7 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
     let exp_list = exp_to_parse.clone().into_inner();
     for exp in exp_list.into_iter() {
         let rule = exp.as_rule();
-        let span = InputSpan::from_pair(exp.as_span());
+        let span = InputSpan::from_pair(&exp);
         match rule {
             Rule::binary_op | Rule::unary_op => {
                 let op = parse_operator(&exp)?;
@@ -444,15 +418,12 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                     return err_unexpected_token!("found {}, expected sum", exp);
                 }
                 let body = body.unwrap();
-                let body_span = InputSpan::from_pair(body.as_span());
+                let body_span = InputSpan::from_pair(&body);
                 let body = parse_exp_list(&body)?.to_boxed();
                 let range = range.unwrap();
-                let range_span = InputSpan::from_pair(range.as_span());
+                let range_span = InputSpan::from_pair(&range);
                 let range = parse_set_iterator_list(&range.into_inner())?;
-                let sum = PreExp::Sum(
-                    range,
-                    Spanned::new(body, body_span),
-                );
+                let sum = PreExp::Sum(range, Spanned::new(body, body_span));
                 let sum = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, sum)?;
                 output_queue.push(sum);
             }
@@ -585,18 +556,19 @@ fn parse_function(
     name: &Pair<Rule>,
     pars: Pair<Rule>,
 ) -> Result<Box<dyn FunctionCall>, CompilationError> {
-    let span = pars.as_span();
-    let pars = parse_parameters(&pars)?;
+    let parsed_pars = parse_parameters(&pars)?;
     match name.as_str() {
-        "edges" => {
-            Ok(Box::new(EdgesOfGraphFn::from_parameters(pars, &span)?))
-        }
-        "len" => {
-            Ok(Box::new(LenOfIterableFn::from_parameters(pars, &span)?))
-        }
-        _ => Err(CompilationError::from_span(
+        "edges" => Ok(Box::new(EdgesOfGraphFn::from_parameters(
+            parsed_pars,
+            &pars,
+        )?)),
+        "len" => Ok(Box::new(LenOfIterableFn::from_parameters(
+            parsed_pars,
+            &pars,
+        )?)),
+        _ => Err(CompilationError::from_pair(
             ParseError::SemanticError(format!("Unknown function {}", name)),
-            &name.as_span(),
+            &name,
             true,
         )),
     }
@@ -615,25 +587,33 @@ fn parse_parameters(pars: &Pair<Rule>) -> Result<Vec<Parameter>, CompilationErro
     }
 }
 fn parse_parameter(arg: &Pair<Rule>) -> Result<Parameter, CompilationError> {
-    let span = InputSpan::from_pair(arg.as_span());
+    let span = InputSpan::from_pair(&arg);
     match arg.as_rule() {
-        Rule::parameter => match arg.clone().into_inner().next().map(|a| a.as_rule()) {
-            Some(Rule::simple_variable) => Ok(Parameter::Variable(Spanned::new(
-                arg.as_str().to_string(),
-                span,
-            ))),
-            Some(Rule::number) => Ok(Parameter::Number(Spanned::new(parse_number(arg)?, span))),
-            Some(Rule::compound_variable) => Ok(Parameter::CompoundVariable(Spanned::new(
-                parse_compound_variable(&arg)?,
-                span,
-            ))),
-            Some(Rule::function) => Ok(Parameter::FunctionCall(Spanned::new(
-                parse_function_call(&arg)?,
-                span,
-            ))),
-            _ => err_unexpected_token!("Expected function arg but got: {}", arg),
-        },
-        _ => err_unexpected_token!("Expected function arg but got: {}", arg),
+        Rule::parameter => {
+            let mut inner = arg.clone().into_inner();
+            let first = inner.next();
+            if first.is_none() {
+                return err_unexpected_token!("Expected parameter but got: {}", arg);
+            }
+            let first = first.unwrap();
+            match first.as_rule() {
+                Rule::simple_variable => Ok(Parameter::Variable(Spanned::new(
+                    first.as_str().to_string(),
+                    span,
+                ))),
+                Rule::number => Ok(Parameter::Number(Spanned::new(parse_number(&first)?, span))),
+                Rule::compound_variable => Ok(Parameter::CompoundVariable(Spanned::new(
+                    parse_compound_variable(&first)?,
+                    span,
+                ))),
+                Rule::function => Ok(Parameter::FunctionCall(Spanned::new(
+                    parse_function_call(&first)?,
+                    span,
+                ))),
+                _ => err_unexpected_token!("Expected parameter but got: {}", arg),
+            }
+        }
+        _ => err_unexpected_token!("Expected parameter but got: {}", arg),
     }
 }
 fn parse_set_iterator(range: &Pair<Rule>) -> Result<PreSet, CompilationError> {
@@ -646,7 +626,7 @@ fn parse_set_iterator(range: &Pair<Rule>) -> Result<PreSet, CompilationError> {
                 .map(|f| parse_iterator(&f));
             match (vars_tuple, iterator) {
                 (Some(vars_tuple), Some(iterator)) => {
-                    let span = InputSpan::from_pair(range.as_span());
+                    let span = InputSpan::from_pair(&range);
                     Ok(PreSet::new(vars_tuple?, iterator?, span))
                 }
                 _ => err_unexpected_token!("Expected set iterator but got: {}", range),
@@ -673,41 +653,50 @@ fn parse_tuple(tuple: &Pair<Rule>) -> Result<Vec<String>, CompilationError> {
 
 fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreIterator, CompilationError> {
     match iterator.as_rule() {
-        Rule::range_iterator => {
-            let inner = iterator.clone().into_inner();
-            let from = inner
-                .find_first_tagged("from")
-                .map(|f| parse_range_value(&f));
-            let to = inner.find_first_tagged("to").map(|t| parse_range_value(&t));
-            let range_type = inner.find_first_tagged("range_type");
-            match (from, to, range_type) {
-                (Some(from), Some(to), Some(range_type)) => {
-                    let to_inclusive = match range_type.as_str() {
-                        ".." => false,
-                        "..=" => true,
-                        _ => {
-                            return err_unexpected_token!(
-                                "Expected range type but got: {}",
-                                range_type
-                            );
+        Rule::iterator => {
+            let mut inner = iterator.clone().into_inner();
+            let first: Option<Rule> = inner.next().map(|i| i.as_rule());
+            match first {
+                Some(Rule::range_iterator) => {
+                    let inner = iterator.clone().into_inner();
+                    let from = inner
+                        .find_first_tagged("from")
+                        .map(|f| parse_parameter(&f).map(ParameterToNum::from_parameter));
+                    let to = inner
+                        .find_first_tagged("to")
+                        .map(|t| parse_parameter(&t).map(ParameterToNum::from_parameter));
+                    let range_type = inner.find_first_tagged("range_type");
+                    match (from, to, range_type) {
+                        (Some(from), Some(to), Some(range_type)) => {
+                            let to_inclusive = match range_type.as_str() {
+                                ".." => false,
+                                "..=" => true,
+                                _ => {
+                                    return err_unexpected_token!(
+                                        "Expected range type but got: {}",
+                                        range_type
+                                    );
+                                }
+                            };
+                            Ok(PreIterator::Range {
+                                from: Box::from(from?),
+                                to: Box::from(to?),
+                                to_inclusive,
+                            })
                         }
-                    };
-                    Ok(PreIterator::Range {
-                        from: from?,
-                        to: to?,
-                        to_inclusive,
-                    })
+
+                        _ => err_unexpected_token!("Expected range iterator but got: {}", iterator),
+                    }
+                }
+                Some(Rule::parameter) => {
+                    let function = parse_parameter(&iterator)?;
+                    Ok(PreIterator::Parameter(function))
                 }
 
-                _ => err_unexpected_token!("Expected range but got: {}", iterator),
+                _ => err_unexpected_token!("Expected range or parameter but got: {}", iterator),
             }
         }
-        Rule::parameter => {
-            let function = parse_parameter(&iterator)?;
-            Ok(PreIterator::Parameter(function))
-        }
-
-        _ => err_unexpected_token!("Expected range but got: {}", iterator),
+        _ => err_unexpected_token!("Expected iterator but got: {}", iterator),
     }
 }
 
@@ -722,35 +711,6 @@ fn parse_node(node: &Pair<Rule>) -> Result<PreNode, CompilationError> {
             Ok(PreNode::Variable(name))
         }
         _ => err_unexpected_token!("Expected node but got: {}", node),
-    }
-}
-
-fn parse_range_value(range_value: &Pair<Rule>) -> Result<Box<dyn ToNum>, CompilationError> {
-    match range_value.as_rule() {
-        Rule::number => match range_value.as_str().parse::<i32>() {
-            Ok(n) => Ok(Box::new(StaticNumberGuard::new(n as f64))),
-            Err(_) => {
-                return err_unexpected_token!("found {}, expected number", range_value);
-            }
-        },
-        Rule::function => {
-            let function = parse_function_call(&range_value)?;
-            Ok(Box::new(FunctionCallNumberGuard::new(function)))
-        }
-        _ => err_unexpected_token!("Expected range value but got: {}", range_value),
-    }
-}
-fn parse_array_iter(array_access: &Pair<Rule>) -> Result<PreIterOfArray, CompilationError> {
-    match array_access.as_rule() {
-        Rule::simple_variable => {
-            let inner = array_access.clone().into_inner();
-            Ok(PreIterOfArray::Array(inner.as_str().to_string()))
-        }
-        Rule::array_access => {
-            let array_access = parse_array_access(&array_access)?;
-            Ok(PreIterOfArray::ArrayAccess(array_access))
-        }
-        _ => err_unexpected_token!("Expected len but got: {}", array_access),
     }
 }
 
