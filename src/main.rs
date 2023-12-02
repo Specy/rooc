@@ -90,9 +90,9 @@ fn main() {
     let problem = "
     max a
     s.t.
-        sum(i in 0..=len(C)) { x_i * C[i] } <= 1
+        sum(i in 0..len(C)) { x_i * C[i] } <= 1
     where
-        C = [1,2]
+        C = [4,5]
     "
     .to_string();
     let parsed = parse(&problem);
@@ -103,7 +103,7 @@ fn main() {
             println!("\n\n");
             match transformed {
                 Ok(transformed) => println!("{}", transformed.to_string()),
-                Err(e) => println!("{:?}", e.to_string()),
+                Err(e) => println!("{}", e.to_string()),
             }
         }
         Err(e) => {

@@ -219,11 +219,12 @@ impl TransformError {
             TransformError::WrongArgument(name) => format!("Wrong argument {}", name),
             TransformError::Other(name) => name.clone(),
             TransformError::SpannedError(error, span) => {
+                println!("{:#?}", error);
                 format!(
                     "Error at line {}:{}\n\t{}",
-                    error.to_string(),
                     span.start_line,
-                    span.start_column
+                    span.start_column,
+                    error.to_string(),
                 )
             }
         }

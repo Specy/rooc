@@ -1,5 +1,6 @@
 use std::vec;
 
+use pest::Span;
 use pest::iterators::{Pair, Pairs};
 
 use crate::consts::{
@@ -348,13 +349,14 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
     let mut operator_stack: Vec<Op> = Vec::new();
     let mut last_token: Option<Rule> = None;
     let exp_list = exp_to_parse.clone().into_inner();
+    let mut last_op_span = InputSpan::default();
     for exp in exp_list.into_iter() {
         let rule = exp.as_rule();
         let span = InputSpan::from_pair(&exp);
         match rule {
             Rule::binary_op | Rule::unary_op => {
+                last_op_span = span.clone();
                 let op = parse_operator(&exp)?;
-
                 while should_unwind(&operator_stack, &op) {
                     match (operator_stack.pop(), output_queue.pop(), output_queue.pop()) {
                         (Some(op), Some(rhs), Some(lhs)) => {
@@ -489,9 +491,8 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
             return bail_missing_token!("missing terminal expression", exp_to_parse);
         }
         let (op, rhs, lhs) = (op.unwrap(), rhs.unwrap(), lhs.unwrap());
-        let span = InputSpan::default(); //i'm lazy to save the last span
         output_queue.push(PreExp::BinaryOperation(
-            Spanned::new(op, span),
+            Spanned::new(op, last_op_span.clone()),
             lhs.to_boxed(),
             rhs.to_boxed(),
         ));

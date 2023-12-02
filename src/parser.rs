@@ -301,7 +301,6 @@ pub fn recursive_set_resolver<T>(
         if current_level + 1 >= sets.len() {
             let value = on_leaf(context)?;
             results.push(value);
-            return Ok(());
         }else{
             recursive_set_resolver(sets, context, results, current_level + 1, on_leaf)?;
         }
