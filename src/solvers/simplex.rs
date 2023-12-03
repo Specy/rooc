@@ -2,6 +2,7 @@ use num_rational::Rational64;
 use num_traits::cast::FromPrimitive;
 #[derive(Debug, Clone)]
 pub struct Tableau {
+    #[allow(unused)]
     variables: Vec<String>,
     c: Vec<f64>,
     a: Vec<Vec<f64>>,
@@ -111,11 +112,13 @@ impl Tableau {
         self.c.iter().all(|c| *c >= 0.0)
     }
 
+    #[allow(unused)]
     fn is_unbounded(&self, h: usize) -> bool {
         self.a.iter().all(|a| a[h] <= 0.0)
     }
 
     //finds the variable that will enter the basis
+    #[allow(unused)]
     fn find_h(&self, variables_to_avoid: &Vec<usize>) -> Option<usize> {
         //uses the Bland's rule for anti-cycling
         let min = self
@@ -240,6 +243,7 @@ impl PrettyFraction {
             denominator: *f.denom(),
         }
     }
+    #[allow(unused)]
     fn to_f64(&self) -> f64 {
         self.numerator as f64 / self.denominator as f64
     }
@@ -254,6 +258,7 @@ pub struct FractionalTableau {
     c: Vec<PrettyFraction>,
     a: Vec<Vec<PrettyFraction>>,
     b: Vec<PrettyFraction>,
+    #[allow(unused)]
     in_basis: Vec<usize>,
     value: f64,
 }

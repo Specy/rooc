@@ -27,11 +27,14 @@ macro_rules! wrong_argument {
     };
 }
 
-
 #[macro_export]
 macro_rules! bail_wrong_argument {
     ($expected_type: literal, $current_arg:expr, $evauluated_in:expr) => {
-        Err(wrong_argument!($expected_type, $current_arg, $evauluated_in))
+        Err(wrong_argument!(
+            $expected_type,
+            $current_arg,
+            $evauluated_in
+        ))
     };
     ($expected_type: literal, $evauluated_in:expr) => {
         Err(wrong_argument!($expected_type, $evauluated_in))
@@ -41,7 +44,11 @@ macro_rules! bail_wrong_argument {
 macro_rules! bail_wrong_argument_spanned {
     ($expected_type: literal, $current_arg:expr, $evauluated_in:expr) => {
         Err(TransformError::SpannedError(
-            Box::new(wrong_argument!($expected_type, $current_arg, $evauluated_in)),
+            Box::new(wrong_argument!(
+                $expected_type,
+                $current_arg,
+                $evauluated_in
+            )),
             $evauluated_in.as_span(),
         ))
     };
@@ -52,7 +59,6 @@ macro_rules! bail_wrong_argument_spanned {
         ))
     };
 }
-
 
 #[macro_export]
 macro_rules! match_or_bail {
@@ -79,7 +85,6 @@ macro_rules! match_or_bail_spanned {
         }
     };
 }
-
 
 #[macro_export]
 macro_rules! bail_missing_token {

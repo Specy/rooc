@@ -1,12 +1,10 @@
-pub mod consts;
-pub mod linear_problem;
 pub mod macros;
+pub mod math_exp_enums;
 pub mod parser;
-pub mod rules_parser;
-pub mod simplex;
-pub mod standardizer;
-pub mod transformer;
-pub mod functions;
+pub mod primitives;
+pub mod solvers;
+pub mod transformers;
+pub mod utils;
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;

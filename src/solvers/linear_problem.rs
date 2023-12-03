@@ -1,9 +1,10 @@
 use crate::{
-    consts::{Comparison, OptimizationType},
-    simplex::{
-        divide_matrix_row_by, CanonicalTransformError, IntoCanonicalTableau, Tableau, Tableauable,
-    },
-    standardizer::to_standard_form,
+    math_exp_enums::{Comparison, OptimizationType},
+    transformers::standardizer::to_standard_form,
+};
+
+use super::simplex::{
+    divide_matrix_row_by, CanonicalTransformError, IntoCanonicalTableau, Tableau, Tableauable,
 };
 
 pub struct EqualityConstraint {

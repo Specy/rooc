@@ -1,21 +1,20 @@
 use std::vec;
 
-use pest::Span;
 use pest::iterators::{Pair, Pairs};
 
-use crate::consts::{
-    Comparison, CompilationError, Constant, ConstantValue, FunctionCall, Graph, GraphEdge,
-    GraphNode, InputSpan, Op, OptimizationType, Parameter, ParseError, Spanned,
+use crate::math_exp_enums::{Comparison, Op, OptimizationType};
+use crate::primitives::consts::{Constant, ConstantValue};
+use crate::primitives::functions::{
+    EdgesOfGraphFn, FunctionCall, LenOfIterableFn, Parameter, ParameterToNum,
 };
-use crate::functions::{
-    EdgesOfGraphFn, FunctionCallNumberGuard, LenOfIterableFn, ParameterToNum, StaticNumberGuard,
-    ToNum,
-};
-use crate::parser::{
-    CompoundVariable, PreArrayAccess, PreCondition, PreExp, PreIterOfArray, PreIterator, PreNode,
-    PreObjective, PreSet, Rule,
-};
+use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
+use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 use crate::{bail_missing_token, bail_semantic_error, err_unexpected_token};
+
+use super::parser::{
+    ArrayAccess, CompoundVariable, PreCondition, PreIterator, PreObjective, PreSet, Rule,
+};
+use super::pre_exp::PreExp;
 
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {
     match objective.as_rule() {
@@ -65,7 +64,6 @@ pub fn parse_const_declaration(
 ) -> Result<Constant, CompilationError> {
     match const_declaration.as_rule() {
         Rule::const_declaration => {
-            let str = const_declaration.as_str();
             let pairs = const_declaration.clone().into_inner();
             let name = pairs
                 .find_first_tagged("name")
@@ -283,7 +281,6 @@ fn parse_var(var: Pair<Rule>) -> Result<String, CompilationError> {
 fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, CompilationError> {
     match condition.as_rule() {
         Rule::condition => {
-            let span = condition.as_span();
             let inner = condition.clone().into_inner();
             let lhs = inner.find_first_tagged("lhs");
             let relation = inner.find_first_tagged("relation");
@@ -309,7 +306,6 @@ fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, CompilationEr
         _ => err_unexpected_token!("Expected condition but got: {}", condition),
     }
 }
-
 
 fn parse_number(number: &Pair<Rule>) -> Result<f64, CompilationError> {
     match number.as_rule() {
@@ -423,7 +419,6 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 let body_span = InputSpan::from_pair(&body);
                 let body = parse_exp_list(&body)?.to_boxed();
                 let range = range.unwrap();
-                let range_span = InputSpan::from_pair(&range);
                 let range = parse_set_iterator_list(&range.into_inner())?;
                 let sum = PreExp::Sum(range, Spanned::new(body, body_span));
                 let sum = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, sum)?;
@@ -701,21 +696,7 @@ fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreIterator, CompilationError
     }
 }
 
-fn parse_node(node: &Pair<Rule>) -> Result<PreNode, CompilationError> {
-    match node.as_rule() {
-        Rule::string => {
-            let name = node.as_str().to_string();
-            Ok(PreNode::Name(name))
-        }
-        Rule::simple_variable => {
-            let name = node.as_str().to_string();
-            Ok(PreNode::Variable(name))
-        }
-        _ => err_unexpected_token!("Expected node but got: {}", node),
-    }
-}
-
-fn parse_array_access(array_access: &Pair<Rule>) -> Result<PreArrayAccess, CompilationError> {
+fn parse_array_access(array_access: &Pair<Rule>) -> Result<ArrayAccess, CompilationError> {
     match array_access.as_rule() {
         Rule::array_access => {
             let inner = array_access.clone().into_inner();
@@ -732,7 +713,7 @@ fn parse_array_access(array_access: &Pair<Rule>) -> Result<PreArrayAccess, Compi
                 .into_inner()
                 .map(|a| parse_parameter(&a))
                 .collect::<Result<Vec<_>, CompilationError>>()?;
-            Ok(PreArrayAccess { name, accesses })
+            Ok(ArrayAccess::new(name, accesses))
         }
         _ => err_unexpected_token!("Expected array access but got: {}", array_access),
     }

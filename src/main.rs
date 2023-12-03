@@ -1,12 +1,14 @@
 use rooc::{
-    consts::{Comparison, OptimizationType},
-    linear_problem::{Constraint, LinearProblem},
-    parser::parse,
-    simplex::{IntoCanonicalTableau, Tableau},
-    transformer::transform,
+    math_exp_enums::{Comparison, OptimizationType},
+    parser::{parser::parse_problem_source, transformer::transform_parsed_problem},
+    solvers::{
+        linear_problem::{Constraint, LinearProblem},
+        simplex::{IntoCanonicalTableau, Tableau},
+    },
 };
 use term_table::{row::Row, table_cell::TableCell, Table};
 
+#[allow(unused)]
 fn main() {
     let mut tableau = Tableau::new(
         vec![-3.0, -4.0, -7.0, 0.0, 0.0],
@@ -95,11 +97,11 @@ fn main() {
         C = [4,5]
     "
     .to_string();
-    let parsed = parse(&problem);
+    let parsed = parse_problem_source(&problem);
     match parsed {
         Ok(parsed) => {
             println!("{:#?}", parsed);
-            let transformed = transform(&parsed);
+            let transformed = transform_parsed_problem(&parsed);
             println!("\n\n");
             match transformed {
                 Ok(transformed) => println!("{}", transformed.to_string()),

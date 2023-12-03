@@ -1,12 +1,16 @@
-use crate::{
-    consts::{Comparison, ConstantValue, InputSpan, IterableKind, Op, OptimizationType, Primitive},
-    parser::{
-        recursive_set_resolver, PreArrayAccess, PreCondition, PreExp, PreIterator, PreObjective,
-        PreProblem, PreSet,
-    },
-};
-use egg::*;
 use std::collections::HashMap;
+
+use crate::{
+    math_exp_enums::{Comparison, Op, OptimizationType},
+    parser::parser::recursive_set_resolver,
+    primitives::{consts::ConstantValue, primitive::Primitive},
+    utils::InputSpan,
+};
+
+use super::{
+    parser::{ArrayAccess, PreCondition, PreIterator, PreObjective, PreProblem, PreSet},
+    pre_exp::PreExp,
+};
 
 #[derive(Debug, Clone)]
 pub enum Exp {
@@ -205,7 +209,7 @@ pub enum TransformError {
     AlreadyExistingVariable(String),
     OutOfBounds(String),
     WrongArgument(String),
-    SpannedError(Box<TransformError>, InputSpan),
+    SpannedError(Box<TransformError>, InputSpan), //TODO i could do this as Spanned<Box<TransformError>>
     Other(String),
 }
 impl TransformError {
@@ -219,7 +223,6 @@ impl TransformError {
             TransformError::WrongArgument(name) => format!("Wrong argument {}", name),
             TransformError::Other(name) => name.clone(),
             TransformError::SpannedError(error, span) => {
-                println!("{:#?}", error);
                 format!(
                     "Error at line {}:{}\n\t{}",
                     span.start_line,
@@ -472,7 +475,7 @@ impl TransformerContext {
 
     pub fn get_array_access_value(
         &self,
-        array_access: &PreArrayAccess,
+        array_access: &ArrayAccess,
     ) -> Result<f64, TransformError> {
         let indexes = array_access
             .accesses
@@ -495,7 +498,7 @@ impl TransformerContext {
     }
 }
 
-pub fn transform(pre_problem: &PreProblem) -> Result<Problem, TransformError> {
+pub fn transform_parsed_problem(pre_problem: &PreProblem) -> Result<Problem, TransformError> {
     let constants = pre_problem
         .constants
         .iter()

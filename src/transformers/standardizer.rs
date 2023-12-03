@@ -1,6 +1,8 @@
 use crate::{
-    consts::{Comparison, OptimizationType},
-    linear_problem::{Constraint, EqualityConstraint, LinearProblem, StandardLinearProblem},
+    math_exp_enums::{Comparison, OptimizationType},
+    solvers::linear_problem::{
+        Constraint, EqualityConstraint, LinearProblem, StandardLinearProblem,
+    },
 };
 
 pub fn to_standard_form(problem: &LinearProblem) -> Result<StandardLinearProblem, ()> {
