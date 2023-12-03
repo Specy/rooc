@@ -57,7 +57,7 @@ where
     }
 ```
 It is compiled down to:
-```rust
+```lua
 min x_A + x_B + x_C + x_D + x_E + x_F + x_G + x_H + x_I + x_J
 s.t
         x_A + x_B + x_D + x_C + x_F + x_E >= 1
@@ -72,7 +72,7 @@ s.t
         x_J + x_F + x_I + x_B >= 1
 ```
 If the compilation finds a type mismatch (for example, function parameters or compound variable flattening), a stack trace will be generated:
-```rust
+```lua
 Wrong argument Expected argument of type "GraphNode", got "Graph" evaluating "G"
         at 3:44
         at 3:32
