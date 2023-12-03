@@ -1,5 +1,5 @@
 use crate::{
-    math_exp_enums::{Comparison, OptimizationType},
+    math_enums::{Comparison, OptimizationType},
     solvers::linear_problem::{
         Constraint, EqualityConstraint, LinearProblem, StandardLinearProblem,
     },

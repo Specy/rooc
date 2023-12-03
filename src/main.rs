@@ -1,5 +1,5 @@
 use rooc::{
-    math_exp_enums::{Comparison, OptimizationType},
+    math_enums::{Comparison, OptimizationType},
     parser::{parser::parse_problem_source, transformer::transform_parsed_problem},
     solvers::{
         linear_problem::{Constraint, LinearProblem},
@@ -92,9 +92,15 @@ fn main() {
     let problem = "
     max a
     s.t.
-        sum(i in 0..len(C)) { x_i * C[i] } <= 1
+        sum(i in 0..len(C)) { x_i * C[i] } <= j * k for j in D
     where
         C = [4,5]
+        D = [1,2]
+        G = Graph {
+            A -> [B:2, C: 3],
+            B -> [C],
+            C -> [A]
+        }
     "
     .to_string();
     let parsed = parse_problem_source(&problem);
@@ -105,7 +111,7 @@ fn main() {
             println!("\n\n");
             match transformed {
                 Ok(transformed) => println!("{}", transformed.to_string()),
-                Err(e) => println!("{}", e.to_string()),
+                Err(e) => println!("{}", e.get_traced_error()),
             }
         }
         Err(e) => {

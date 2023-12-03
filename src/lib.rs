@@ -1,5 +1,5 @@
 pub mod macros;
-pub mod math_exp_enums;
+pub mod math_enums;
 pub mod parser;
 pub mod primitives;
 pub mod solvers;

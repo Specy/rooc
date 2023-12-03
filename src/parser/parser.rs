@@ -1,23 +1,23 @@
 use crate::bail_missing_token;
-use crate::math_exp_enums::{Comparison, OptimizationType};
+use crate::math_enums::{Comparison, OptimizationType};
 use crate::primitives::consts::Constant;
 use crate::primitives::functions::{Parameter, ToNum};
 use crate::primitives::primitive::Primitive;
-use crate::utils::{CompilationError, InputSpan, ParseError};
+use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 use pest::iterators::Pair;
 use pest::Parser;
 use std::fmt::Debug;
 
 use super::pre_exp::PreExp;
 use super::rules_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
-use super::transformer::{NamedSet, TransformError, TransformerContext};
+use super::transformer::{NamedSet, TransformError, TransformerContext, VariableType};
 
 /*
    TODO: add bounds to variables, including wildcards (or add a way to define variable types)
 */
 
 #[derive(Parser)]
-#[grammar = "grammar.pest"]
+#[grammar = "parser/grammar.pest"]
 struct PLParser;
 
 #[derive(Debug)]
@@ -27,14 +27,14 @@ pub enum PreIterOfArray {
 }
 #[derive(Debug)]
 pub struct PreSet {
-    pub vars_tuple: Vec<String>,
-    pub iterator: PreIterator,
+    pub var: VariableType,
+    pub iterator: Spanned<PreIterator>,
     pub span: InputSpan,
 }
 impl PreSet {
-    pub fn new(vars_tuple: Vec<String>, iterator: PreIterator, span: InputSpan) -> Self {
+    pub fn new(var: VariableType, iterator: Spanned<PreIterator>, span: InputSpan) -> Self {
         Self {
-            vars_tuple,
+            var,
             iterator,
             span,
         }
@@ -100,10 +100,22 @@ pub fn recursive_set_resolver<T>(
 ) -> Result<(), TransformError> {
     let range = sets.get(current_level).unwrap();
     context.add_scope();
-    for name in range.vars.iter() {
-        context.declare_variable(&name, Primitive::Undefined, true)?;
+    match &range.var {
+        VariableType::Single(n) => {
+            context
+                .declare_variable(n, Primitive::Undefined, true)
+                .map_err(|e| e.to_spanned_error(&range.span))?;
+        }
+        VariableType::Tuple(t) => {
+            for name in t.iter() {
+                context
+                    .declare_variable(name, Primitive::Undefined, true)
+                    .map_err(|e| e.to_spanned_error(&range.span))?;
+            }
+        }
     }
     for value in range.set.iter() {
+        //TODO decide if doing spreadable or not
         if let Primitive::Tuple(t) = value {
             if range.vars.len() > t.len() {
                 let error = format!(
@@ -111,25 +123,31 @@ pub fn recursive_set_resolver<T>(
                     t.len(),
                     range.vars.len()
                 );
-                return Err(TransformError::WrongArgument(error));
+                return Err(TransformError::WrongArgument(error).to_spanned_error(&range.span));
             }
         }
         for (i, var) in range.vars.iter().enumerate() {
             match value {
                 Primitive::Tuple(t) => {
                     if let Some(value) = t.get(i) {
-                        context.update_variable(var, value.clone())?;
+                        context
+                            .update_variable(var, value.clone())
+                            .map_err(|e| e.to_spanned_error(var.get_span()))?;
                     } else {
                         let error = format!(
                             "Cannot destructure tuple of size {} into {} variables",
                             t.len(),
                             range.vars.len()
                         );
-                        return Err(TransformError::WrongArgument(error));
+                        return Err(
+                            TransformError::WrongArgument(error).to_spanned_error(&range.span)
+                        );
                     }
                 }
                 _ => {
-                    context.update_variable(var, value.clone())?;
+                    context
+                        .update_variable(var, value.clone())
+                        .map_err(|e| e.to_spanned_error(var.get_span()))?;
                 }
             }
         }
@@ -137,7 +155,8 @@ pub fn recursive_set_resolver<T>(
             let value = on_leaf(context)?;
             results.push(value);
         } else {
-            recursive_set_resolver(sets, context, results, current_level + 1, on_leaf)?;
+            recursive_set_resolver(sets, context, results, current_level + 1, on_leaf)
+                .map_err(|e| e.to_spanned_error(&range.span))?;
         }
     }
     context.pop_scope()?;

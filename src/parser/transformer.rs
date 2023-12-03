@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use crate::{
-    math_exp_enums::{Comparison, Op, OptimizationType},
+    math_enums::{Comparison, Op, OptimizationType},
     parser::parser::recursive_set_resolver,
     primitives::{consts::ConstantValue, primitive::Primitive},
-    utils::InputSpan,
+    utils::{InputSpan, Spanned},
 };
 
 use super::{
@@ -124,12 +124,6 @@ impl Exp {
             _ => true,
         }
     }
-    pub fn remove_root_parenthesis(&self) -> &Exp {
-        match self {
-            //Exp::Parenthesis(exp) => exp,
-            _ => self,
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -139,10 +133,10 @@ pub struct Objective {
 }
 
 impl Objective {
-    pub fn new(objective_type: OptimizationType, rhs: &Exp) -> Self {
+    pub fn new(objective_type: OptimizationType, rhs: Exp) -> Self {
         Self {
             objective_type,
-            rhs: rhs.remove_root_parenthesis().clone(),
+            rhs,
         }
     }
     pub fn to_string(&self) -> String {
@@ -162,11 +156,11 @@ pub struct Condition {
 }
 
 impl Condition {
-    pub fn new(lhs: &Exp, condition_type: Comparison, rhs: &Exp) -> Self {
+    pub fn new(lhs: Exp, condition_type: Comparison, rhs: Exp) -> Self {
         Self {
-            lhs: lhs.remove_root_parenthesis().clone(),
+            lhs: lhs,
             condition_type,
-            rhs: rhs.remove_root_parenthesis().clone(),
+            rhs: rhs,
         }
     }
     pub fn to_string(&self) -> String {
@@ -203,13 +197,13 @@ impl Problem {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TransformError {
     MissingVariable(String),
     AlreadyExistingVariable(String),
     OutOfBounds(String),
     WrongArgument(String),
-    SpannedError(Box<TransformError>, InputSpan), //TODO i could do this as Spanned<Box<TransformError>>
+    SpannedError(Spanned<Box<TransformError>>, Option<String>),
     Other(String),
 }
 impl TransformError {
@@ -217,23 +211,49 @@ impl TransformError {
         match self {
             TransformError::MissingVariable(name) => format!("Missing variable {}", name),
             TransformError::AlreadyExistingVariable(name) => {
-                format!("Already existing variable {}", name)
+                format!("Variable {} was already declared", name)
             }
             TransformError::OutOfBounds(name) => format!("Out of bounds {}", name),
             TransformError::WrongArgument(name) => format!("Wrong argument {}", name),
             TransformError::Other(name) => name.clone(),
-            TransformError::SpannedError(error, span) => {
-                format!(
-                    "Error at line {}:{}\n\t{}",
-                    span.start_line,
-                    span.start_column,
-                    error.to_string(),
-                )
-            }
+            TransformError::SpannedError(error, _) => return error.to_string(),
         }
     }
+    pub fn get_traced_error(&self) -> String {
+        let error = self.to_string();
+        let trace = self.get_trace();
+        let trace = trace
+            .iter()
+            .map(|(span, origin)| {
+                let origin = if let Some(o) = origin {
+                    format!(" ({})", o)
+                } else {
+                    "".to_string()
+                };
+                format!("\tat {}:{}{}", span.start_line, span.start_column, origin)
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        format!("{}\n{}", error, trace)
+    }
     pub fn to_spanned_error(self, span: &InputSpan) -> TransformError {
-        TransformError::SpannedError(Box::new(self), span.clone())
+        TransformError::SpannedError(Spanned::new(Box::new(self), span.clone()), None)
+    }
+    pub fn get_trace(&self) -> Vec<(InputSpan, Option<String>)> {
+        match self {
+            TransformError::SpannedError(e, s) => {
+                let mut trace = vec![(e.get_span().clone(), s.clone())];
+                let mut last_error = e;
+                while let TransformError::SpannedError(ref e, ref r) = **last_error.get_span_value()
+                {
+                    trace.push((e.get_span().clone(), r.clone()));
+                    last_error = e;
+                }
+                trace.reverse();
+                trace
+            }
+            _ => Vec::new(),
+        }
     }
 }
 
@@ -307,7 +327,8 @@ impl TransformerContext {
                     Primitive::Number(value) => Ok(value.to_string()),
                     Primitive::String(value) => Ok(value.clone()),
                     _ => Err(TransformError::WrongArgument(format!(
-                        "Expected a number or string for flattening, check the definition of {}",
+                        "Expected a number or string for variable flattening, got {}, check the definition of {}",
+                        value.get_argument_name(),
                         name
                     ))),
                 },
@@ -524,30 +545,37 @@ checks that the iterator has at least the same number of elements as the set, an
 
 pub type PrimitiveSet = Vec<Primitive>;
 
+#[derive(Debug, Clone)]
+pub enum VariableType {
+    Single(Spanned<String>),
+    Tuple(Vec<Spanned<String>>),
+}
+
 pub struct NamedSet {
-    pub vars: Vec<String>,
+    pub var: VariableType,
     pub set: PrimitiveSet,
+    pub span: InputSpan,
 }
 impl NamedSet {
-    pub fn new(vars: Vec<String>, set: PrimitiveSet) -> Self {
-        Self { vars, set }
+    pub fn new(var: VariableType, set: PrimitiveSet, span: InputSpan) -> Self {
+        Self { var, set, span }
     }
 }
 
 pub fn transform_set(
-    pre_set: &PreSet,
+    pre_set: PreSet,
     context: &TransformerContext,
 ) -> Result<NamedSet, TransformError> {
-    let set = match &pre_set.iterator {
+    let set = match pre_set.iterator.get_span_value() {
         PreIterator::Range {
             from,
             to,
             to_inclusive,
         } => {
-            if pre_set.vars_tuple.len() != 1 {
-                return Err(TransformError::WrongArgument(
-                    "Expected 1 variable in range".to_string(),
-                ));
+            if matches!(pre_set.var, VariableType::Tuple(_)) {
+                return Err(TransformError::WrongArgument(format!(
+                    "Expected simple variable, got tuple"
+                )));
             }
             let from = from.to_int(&context)?;
             let to = to.to_int(&context)?;
@@ -562,7 +590,11 @@ pub fn transform_set(
             value.to_primitive_set()
         }
     };
-    Ok(NamedSet::new(pre_set.vars_tuple.clone(), set))
+    Ok(NamedSet::new(
+        pre_set.var,
+        set,
+        pre_set.span.clone(),
+    ))
 }
 
 pub fn transform_condition(
@@ -571,7 +603,7 @@ pub fn transform_condition(
 ) -> Result<Condition, TransformError> {
     let lhs = condition.lhs.into_exp(context)?;
     let rhs = condition.rhs.into_exp(context)?;
-    Ok(Condition::new(&lhs, condition.condition_type.clone(), &rhs))
+    Ok(Condition::new(lhs, condition.condition_type.clone(), rhs))
 }
 
 pub fn transform_condition_with_iteration(
@@ -580,7 +612,7 @@ pub fn transform_condition_with_iteration(
 ) -> Result<Vec<Condition>, TransformError> {
     let sets = condition
         .iteration
-        .iter()
+        .into_iter()
         .map(|set| transform_set(set, &context))
         .collect::<Result<Vec<_>, _>>()?;
     if sets.len() == 0 {
@@ -591,7 +623,7 @@ pub fn transform_condition_with_iteration(
         transform_condition(condition, c)
     })
     .map_err(|e| e.to_spanned_error(&condition.span))?;
-    todo!("implement the iteration transformation")
+    Ok(results)
 }
 
 pub fn transform_objective(
@@ -599,7 +631,7 @@ pub fn transform_objective(
     context: &mut TransformerContext,
 ) -> Result<Objective, TransformError> {
     let rhs = objective.rhs.into_exp(context)?;
-    Ok(Objective::new(objective.objective_type.clone(), &rhs))
+    Ok(Objective::new(objective.objective_type.clone(), rhs))
 }
 
 pub fn transform_problem(

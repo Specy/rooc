@@ -2,7 +2,7 @@ use std::vec;
 
 use pest::iterators::{Pair, Pairs};
 
-use crate::math_exp_enums::{Comparison, Op, OptimizationType};
+use crate::math_enums::{Comparison, Op, OptimizationType};
 use crate::primitives::consts::{Constant, ConstantValue};
 use crate::primitives::functions::{
     EdgesOfGraphFn, FunctionCall, LenOfIterableFn, Parameter, ParameterToNum,
@@ -15,6 +15,7 @@ use super::parser::{
     ArrayAccess, CompoundVariable, PreCondition, PreIterator, PreObjective, PreSet, Rule,
 };
 use super::pre_exp::PreExp;
+use super::transformer::VariableType;
 
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {
     match objective.as_rule() {
@@ -616,10 +617,13 @@ fn parse_set_iterator(range: &Pair<Rule>) -> Result<PreSet, CompilationError> {
     match range.as_rule() {
         Rule::iteration_declaration => {
             let inner = range.clone().into_inner();
-            let vars_tuple = inner.find_first_tagged("tuple").map(|n| parse_tuple(&n));
-            let iterator = inner
-                .find_first_tagged("iterator")
-                .map(|f| parse_iterator(&f));
+            let vars_tuple = inner
+                .find_first_tagged("tuple")
+                .map(|t| parse_variable_type(&t));
+            let iterator = inner.find_first_tagged("iterator").map(|f| {
+                let span = InputSpan::from_pair(&range);
+                parse_iterator(&f).map(|i| Spanned::new(i, span))
+            });
             match (vars_tuple, iterator) {
                 (Some(vars_tuple), Some(iterator)) => {
                     let span = InputSpan::from_pair(&range);
@@ -631,17 +635,27 @@ fn parse_set_iterator(range: &Pair<Rule>) -> Result<PreSet, CompilationError> {
         _ => err_unexpected_token!("Expected set iterator but got: {}", range),
     }
 }
-fn parse_tuple(tuple: &Pair<Rule>) -> Result<Vec<String>, CompilationError> {
+fn parse_variable_type(tuple: &Pair<Rule>) -> Result<VariableType, CompilationError> {
     match tuple.as_rule() {
         Rule::tuple => {
             let inner = tuple.clone().into_inner();
             let inner = inner
-                .map(|i| match i.as_rule() {
-                    Rule::simple_variable => Ok(i.as_str().to_string()),
-                    _ => err_unexpected_token!("Expected variable but got: {}", i),
+                .map(|i| {
+                    let span = InputSpan::from_pair(&tuple);
+                    match i.as_rule() {
+                        Rule::simple_variable => Ok(Spanned::new(i.as_str().to_string(), span)),
+                        _ => err_unexpected_token!("Expected variable but got: {}", i),
+                    }
                 })
-                .collect::<Result<Vec<String>, CompilationError>>()?;
-            Ok(inner)
+                .collect::<Result<Vec<_>, CompilationError>>()?;
+            Ok(VariableType::Tuple(inner))
+        }
+        Rule::simple_variable => {
+            let span = InputSpan::from_pair(&tuple);
+            Ok(VariableType::Single(Spanned::new(
+                tuple.as_str().to_string(),
+                span,
+            )))
         }
         _ => err_unexpected_token!("Expected tuple but got: {}", tuple),
     }
@@ -685,7 +699,12 @@ fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreIterator, CompilationError
                     }
                 }
                 Some(Rule::parameter) => {
-                    let function = parse_parameter(&iterator)?;
+                    let mut inner = iterator.clone().into_inner();
+                    let first = inner.next();
+                    if first.is_none() {
+                        return err_unexpected_token!("Expected parameter but got: {}", iterator);
+                    }
+                    let function = parse_parameter(&first.unwrap())?;
                     Ok(PreIterator::Parameter(function))
                 }
 

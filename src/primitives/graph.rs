@@ -4,10 +4,9 @@ use crate::parser::transformer::TransformError;
 
 #[derive(Debug, Clone)]
 pub struct GraphEdge {
-    #[allow(unused)]
-    from: String,
-    to: String,
-    weight: Option<f64>,
+    pub from: String,
+    pub to: String,
+    pub weight: Option<f64>,
 }
 impl GraphEdge {
     pub fn new(from: String, to: String, weight: Option<f64>) -> Self {

@@ -43,20 +43,14 @@ macro_rules! bail_wrong_argument {
 #[macro_export]
 macro_rules! bail_wrong_argument_spanned {
     ($expected_type: literal, $current_arg:expr, $evauluated_in:expr) => {
-        Err(TransformError::SpannedError(
-            Box::new(wrong_argument!(
-                $expected_type,
-                $current_arg,
-                $evauluated_in
-            )),
-            $evauluated_in.as_span(),
-        ))
+        Err(wrong_argument!(
+            $expected_type,
+            $current_arg,
+            $evauluated_in
+        ).to_spanned_error($evauluated_in.as_span()))
     };
     ($expected_type: literal, $evauluated_in:expr) => {
-        Err(TransformError::SpannedError(
-            Box::new(wrong_argument!($expected_type, $evauluated_in)),
-            $evauluated_in.as_span().clone(),
-        ))
+        Err(wrong_argument!($expected_type, $evauluated_in).to_spanned_error($evauluated_in.as_span()))
     };
 }
 
@@ -78,10 +72,7 @@ macro_rules! match_or_bail_spanned {
             $(
                 $enum::$variant($($var),+) => $expr,
             )+
-            _ => Err(TransformError::SpannedError(
-                Box::new(wrong_argument!($expected, $value, $self)),
-                $self.as_span().clone(),
-            ))
+            _ => Err(wrong_argument!($expected, $value, $self).to_spanned_error($self.as_span())),
         }
     };
 }

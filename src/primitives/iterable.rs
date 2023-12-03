@@ -13,20 +13,79 @@ pub enum IterableKind {
     Iterable(Vec<IterableKind>),
 }
 impl IterableKind {
+    pub fn get_argument_name(&self) -> &'static str {
+        match self {
+            IterableKind::Numbers(_) => "number",
+            IterableKind::Strings(_) => "string",
+            IterableKind::Edges(_) => "edge",
+            IterableKind::Nodes(_) => "node",
+            IterableKind::Tuple(_) => "tuple",
+            IterableKind::Iterable(_) => "iterable",
+        }
+    }
     pub fn to_string(&self) -> String {
         match self {
-            IterableKind::Numbers(v) => format!("{:?}", v),
-            IterableKind::Strings(v) => format!("{:?}", v),
-            IterableKind::Edges(v) => format!("{:?}", v),
-            IterableKind::Nodes(v) => format!("{:?}", v),
-            IterableKind::Tuple(v) => format!("{:?}", v),
+            IterableKind::Edges(v) => {
+                format!(
+                    "[{}]",
+                    v.iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+            IterableKind::Nodes(v) => {
+                format!(
+                    "[{}]",
+                    v.iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+            IterableKind::Numbers(v) => {
+                format!(
+                    "[{}]",
+                    v.iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+            IterableKind::Strings(v) => {
+                format!(
+                    "[{}]",
+                    v.iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+            IterableKind::Tuple(v) => {
+                format!(
+                    "[{}]",
+                    v.iter()
+                        .map(|e| {
+                            format!(
+                                "[{}]",
+                                e.iter()
+                                    .map(|e| e.to_string())
+                                    .collect::<Vec<_>>()
+                                    .join(", ")
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .join(",\n")
+                )
+            }
             IterableKind::Iterable(v) => {
-                let result = v
-                    .iter()
-                    .map(|i| i.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("[{}]", result)
+                format!(
+                    "[{}]",
+                    v.iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
             }
         }
     }

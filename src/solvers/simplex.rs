@@ -1,3 +1,5 @@
+//TODO make the implementation use row vectors with a trait so that i can implement fraction and float versions
+//togehter with overriding the operators, so that i can use the same code for both versions
 use num_rational::Rational64;
 use num_traits::cast::FromPrimitive;
 #[derive(Debug, Clone)]
@@ -212,7 +214,7 @@ impl Tableau {
     pub fn get_value_offset(&self) -> f64 {
         self.value_offset
     }
-    pub fn to_fractional_tableau(&mut self) -> FractionalTableau {
+    pub fn to_fractional_tableau(self) -> FractionalTableau {
         FractionalTableau::new(self)
     }
     pub fn get_a(&self) -> &Vec<Vec<f64>> {
@@ -263,7 +265,7 @@ pub struct FractionalTableau {
     value: f64,
 }
 impl FractionalTableau {
-    pub fn new(tableau: &Tableau) -> FractionalTableau {
+    pub fn new(tableau: Tableau) -> FractionalTableau {
         FractionalTableau {
             c: tableau.c.iter().map(|&c| PrettyFraction::new(c)).collect(),
             a: tableau

@@ -19,7 +19,7 @@ condition = {
   #lhs = tagged_exp ~
   #relation = comparison ~
   #rhs = tagged_exp ~
-  (#iteration = iteration_declaration_list)?
+  (#iteration = for_iteration)?
 }
 // constants declaration
 consts_declaration = { (const_declaration ~ nl+)* ~ const_declaration }
@@ -30,14 +30,14 @@ const_declaration  = {
 }
 
 // iterations
-for_iteration          = _{ (^"for" | "∀") ~ iteration_declaration }
+for_iteration          = _{ (^"for" | "∀") ~ iteration_declaration_list }
 iteration_declaration_list = { (iteration_declaration ~ comma)* ~ iteration_declaration }
 iteration_declaration      =  {
-  #tuple = tuple ~
+  #tuple = (simple_variable | tuple)  ~
   (^"in" | "∈") ~
   #iterator = iterator
 }
-tuple = { simple_variable | ("(" ~ simple_variable ~ (comma ~ simple_variable)* ~ ")")   }
+tuple = { "(" ~ simple_variable ~ (comma ~ simple_variable)* ~ ")"  }
 iterator = { range_iterator | parameter }
 //iterators
 range_iterator = {

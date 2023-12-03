@@ -1,5 +1,5 @@
 use crate::{
-    math_exp_enums::Op,
+    math_enums::Op,
     primitives::{functions::FunctionCall, primitive::Primitive},
     utils::{InputSpan, Spanned},
 };
@@ -89,7 +89,10 @@ impl PreExp {
                 let value = context.get_value(&*name).map(|v| match v {
                     Primitive::Number(n) => Ok(Exp::Number(n.clone())),
                     _ => {
-                        let err = TransformError::WrongArgument("Number".to_string());
+                        let err = TransformError::WrongArgument(format!(
+                            "Expected number, got {}",
+                            v.get_argument_name()
+                        ));
                         Err(err.to_spanned_error(self.get_span()))
                     }
                 });
@@ -138,7 +141,10 @@ impl PreExp {
                 match value {
                     Primitive::Number(n) => Ok(Exp::Number(n)),
                     _ => {
-                        let err = TransformError::WrongArgument("Number".to_string());
+                        let err = TransformError::WrongArgument(format!(
+                            "Expected number, got {}",
+                            value.get_argument_name()
+                        ));
                         Err(err.to_spanned_error(self.get_span()))
                     }
                 }

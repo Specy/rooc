@@ -21,6 +21,7 @@ pub enum Primitive {
     Undefined,
 }
 
+
 impl Primitive {
     pub fn from_constant_value(value: ConstantValue) -> Self {
         match value {
@@ -35,6 +36,31 @@ impl Primitive {
             }
             ConstantValue::Graph(g) => Primitive::Graph(g),
             ConstantValue::String(s) => Primitive::String(s),
+        }
+    }
+    pub fn spread(&self) -> Result<Vec<Primitive>, TransformError> {
+        match self {
+            Primitive::Tuple(v) => Ok(v.clone()),
+            Primitive::GraphEdge(e) => Ok(vec![
+                Primitive::String(e.from.clone()), //TODO maybe i should return the actul edge instead
+                Primitive::Number(e.weight.unwrap_or(1.0)),
+                Primitive::String(e.to.clone()),
+            ]),
+            //TODO should this be spreadable?
+            Primitive::Iterable(v) => Ok(v.clone().to_primitive_set()),
+            _ => bail_wrong_argument!("spreadable", self),   
+        }
+    }
+    pub fn get_argument_name(&self) -> &'static str {
+        match self {
+            Primitive::Number(_) => "number",
+            Primitive::String(_) => "string",
+            Primitive::Iterable(_) => "iterable",
+            Primitive::Graph(_) => "graph",
+            Primitive::GraphEdge(_) => "edge",
+            Primitive::GraphNode(_) => "node",
+            Primitive::Tuple(_) => "tuple",
+            Primitive::Undefined => "undefined",
         }
     }
     pub fn as_number(&self) -> Result<f64, TransformError> {

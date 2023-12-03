@@ -200,7 +200,10 @@ pub trait ToNum: Debug {
     fn to_int(&self, context: &TransformerContext) -> Result<i64, TransformError> {
         let num = self.to_num(context)?;
         if num.fract() != 0.0 {
-            return Err(TransformError::WrongArgument("Integer".to_string()));
+            return Err(TransformError::WrongArgument(format!(
+                "Expected integer, got {}",
+                num
+            )));
         }
         Ok(num as i64)
     }
@@ -221,7 +224,10 @@ impl ToNum for FunctionCallNumberGuard {
         let value = self.function.call(context)?;
         match value {
             Primitive::Number(n) => Ok(n),
-            _ => Err(TransformError::WrongArgument("Number".to_string())),
+            _ => Err(TransformError::WrongArgument(format!(
+                "Expected number, got {}",
+                value.get_argument_name()
+            ))),
         }
     }
 }
