@@ -326,6 +326,7 @@ impl TransformerContext {
                 Some(value) => match value {
                     Primitive::Number(value) => Ok(value.to_string()),
                     Primitive::String(value) => Ok(value.clone()),
+                    Primitive::GraphNode(v) => Ok(v.get_name().clone()),
                     _ => Err(TransformError::WrongArgument(format!(
                         "Expected a number or string for variable flattening, got {}, check the definition of {}",
                         value.get_argument_name(),
@@ -385,6 +386,9 @@ impl TransformerContext {
         value: Primitive,
         strict: bool,
     ) -> Result<(), TransformError> {
+        if name == "_" {
+            return Ok(());
+        }
         if strict {
             if self.get_value(name).is_some() {
                 return Err(TransformError::AlreadyExistingVariable(name.to_string()));
@@ -394,6 +398,9 @@ impl TransformerContext {
         frame.declare_variable(name, value)
     }
     pub fn update_variable(&mut self, name: &str, value: Primitive) -> Result<(), TransformError> {
+        if name == "_" {
+            return Ok(());
+        }
         for frame in self.frames.iter_mut().rev() {
             if frame.has_variable(name) {
                 return frame.update_variable(name, value);
@@ -402,6 +409,9 @@ impl TransformerContext {
         Err(TransformError::MissingVariable(name.to_string()))
     }
     pub fn remove_variable(&mut self, name: &str) -> Result<Primitive, TransformError> {
+        if name == "_" {
+            return Ok(Primitive::Undefined);
+        }
         for frame in self.frames.iter_mut().rev() {
             if frame.has_variable(name) {
                 return frame.drop_variable(name);
@@ -563,7 +573,7 @@ impl NamedSet {
 }
 
 pub fn transform_set(
-    pre_set: PreSet,
+    pre_set: &PreSet,
     context: &TransformerContext,
 ) -> Result<NamedSet, TransformError> {
     let set = match pre_set.iterator.get_span_value() {
@@ -591,7 +601,7 @@ pub fn transform_set(
         }
     };
     Ok(NamedSet::new(
-        pre_set.var,
+        pre_set.var.clone(),
         set,
         pre_set.span.clone(),
     ))
@@ -612,7 +622,7 @@ pub fn transform_condition_with_iteration(
 ) -> Result<Vec<Condition>, TransformError> {
     let sets = condition
         .iteration
-        .into_iter()
+        .iter()
         .map(|set| transform_set(set, &context))
         .collect::<Result<Vec<_>, _>>()?;
     if sets.len() == 0 {

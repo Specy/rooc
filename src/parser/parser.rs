@@ -1,7 +1,8 @@
 use crate::bail_missing_token;
 use crate::math_enums::{Comparison, OptimizationType};
 use crate::primitives::consts::Constant;
-use crate::primitives::functions::{Parameter, ToNum};
+use crate::primitives::functions::function_traits::ToNum;
+use crate::primitives::parameter::Parameter;
 use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 use pest::iterators::Pair;
@@ -115,39 +116,31 @@ pub fn recursive_set_resolver<T>(
         }
     }
     for value in range.set.iter() {
-        //TODO decide if doing spreadable or not
-        if let Primitive::Tuple(t) = value {
-            if range.vars.len() > t.len() {
-                let error = format!(
-                    "Cannot destructure tuple of size {} into {} variables",
-                    t.len(),
-                    range.vars.len()
-                );
-                return Err(TransformError::WrongArgument(error).to_spanned_error(&range.span));
+        match &range.var {
+            VariableType::Single(n) => {
+                context
+                    .update_variable(n, value.clone())
+                    .map_err(|e| e.to_spanned_error(&range.span))?;
             }
-        }
-        for (i, var) in range.vars.iter().enumerate() {
-            match value {
-                Primitive::Tuple(t) => {
-                    if let Some(value) = t.get(i) {
-                        context
-                            .update_variable(var, value.clone())
-                            .map_err(|e| e.to_spanned_error(var.get_span()))?;
-                    } else {
-                        let error = format!(
-                            "Cannot destructure tuple of size {} into {} variables",
-                            t.len(),
-                            range.vars.len()
-                        );
-                        return Err(
-                            TransformError::WrongArgument(error).to_spanned_error(&range.span)
-                        );
+            VariableType::Tuple(tuple) => {
+                match value {
+                    Primitive::Tuple(v) => apply_tuple(context, tuple, v)
+                        .map_err(|e| e.to_spanned_error(&range.span))?,
+                    Primitive::GraphEdge(e) => {
+                        let v = &vec![
+                            Primitive::String(e.from.clone()), //TODO maybe i should return the actul edge instead
+                            Primitive::Number(e.weight.unwrap_or(1.0)),
+                            Primitive::String(e.to.clone()),
+                        ];
+                        apply_tuple(context, tuple, v)
+                            .map_err(|e| e.to_spanned_error(&range.span))?
                     }
-                }
-                _ => {
-                    context
-                        .update_variable(var, value.clone())
-                        .map_err(|e| e.to_spanned_error(var.get_span()))?;
+                    _ => {
+                        return Err(TransformError::WrongArgument(format!(
+                            "Expected spreadable primitive, got {}",
+                            value.get_argument_name()
+                        )))
+                    }
                 }
             }
         }
@@ -160,6 +153,31 @@ pub fn recursive_set_resolver<T>(
         }
     }
     context.pop_scope()?;
+    Ok(())
+}
+
+pub fn apply_tuple(
+    context: &mut TransformerContext,
+    tuple: &Vec<Spanned<String>>,
+    spreadable: &Vec<Primitive>,
+) -> Result<(), TransformError> {
+    for (i, name) in tuple.iter().enumerate() {
+        match spreadable.get(i) {
+            Some(value) => {
+                context
+                    .update_variable(name, value.clone())
+                    .map_err(|e| e.to_spanned_error(name.get_span()))?;
+            }
+            None => {
+                let error = format!(
+                    "Cannot destructure tuple of size {} into {} variables",
+                    spreadable.len(),
+                    tuple.len()
+                );
+                return Err(TransformError::WrongArgument(error));
+            }
+        }
+    }
     Ok(())
 }
 

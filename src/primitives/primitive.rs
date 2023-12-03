@@ -38,38 +38,26 @@ impl Primitive {
             ConstantValue::String(s) => Primitive::String(s),
         }
     }
-    pub fn spread(&self) -> Result<Vec<Primitive>, TransformError> {
-        match self {
-            Primitive::Tuple(v) => Ok(v.clone()),
-            Primitive::GraphEdge(e) => Ok(vec![
-                Primitive::String(e.from.clone()), //TODO maybe i should return the actul edge instead
-                Primitive::Number(e.weight.unwrap_or(1.0)),
-                Primitive::String(e.to.clone()),
-            ]),
-            //TODO should this be spreadable?
-            Primitive::Iterable(v) => Ok(v.clone().to_primitive_set()),
-            _ => bail_wrong_argument!("spreadable", self),   
-        }
-    }
+
     pub fn get_argument_name(&self) -> &'static str {
         match self {
-            Primitive::Number(_) => "number",
-            Primitive::String(_) => "string",
-            Primitive::Iterable(_) => "iterable",
-            Primitive::Graph(_) => "graph",
-            Primitive::GraphEdge(_) => "edge",
-            Primitive::GraphNode(_) => "node",
-            Primitive::Tuple(_) => "tuple",
-            Primitive::Undefined => "undefined",
+            Primitive::Number(_) => "Number",
+            Primitive::String(_) => "String",
+            Primitive::Iterable(_) => "Iterable",
+            Primitive::Graph(_) => "Graph",
+            Primitive::GraphEdge(_) => "GraphEdge",
+            Primitive::GraphNode(_) => "GraphNode",
+            Primitive::Tuple(_) => "Tuple",
+            Primitive::Undefined => "Undefined",
         }
     }
     pub fn as_number(&self) -> Result<f64, TransformError> {
-        match_or_bail!("number", Primitive::Number(n) => Ok(*n) ; (self, self))
+        match_or_bail!("Number", Primitive::Number(n) => Ok(*n) ; (self, self))
     }
     pub fn as_integer(&self) -> Result<i64, TransformError> {
         let n = self.as_number()?;
         if n.fract() != 0.0 {
-            bail_wrong_argument!("integer", self)
+            bail_wrong_argument!("Integer", self)
         } else {
             Ok(n as i64)
         }
@@ -77,22 +65,22 @@ impl Primitive {
     pub fn as_usize(&self) -> Result<usize, TransformError> {
         let n = self.as_number()?;
         if n.fract() != 0.0 {
-            bail_wrong_argument!("integer", self)
+            bail_wrong_argument!("Integer", self)
         } else if n < 0.0 {
-            bail_wrong_argument!("positive integer", self)
+            bail_wrong_argument!("Positive integer", self)
         } else {
             Ok(n as usize)
         }
     }
     pub fn as_graph(&self) -> Result<&Graph, TransformError> {
-        match_or_bail!("graph", 
+        match_or_bail!("Graph", 
             Primitive::Graph(g) => Ok(g)
           ; (self, self))
     }
     pub fn as_number_array(&self) -> Result<&Vec<f64>, TransformError> {
         match self {
             Primitive::Iterable(IterableKind::Numbers(a)) => Ok(a),
-            _ => bail_wrong_argument!("array1d", self),
+            _ => bail_wrong_argument!("Array1d", self),
         }
     }
     pub fn as_number_matrix(&self) -> Result<Vec<&Vec<f64>>, TransformError> {
@@ -101,17 +89,17 @@ impl Primitive {
                 .into_iter()
                 .map(|row| match row {
                     IterableKind::Numbers(v) => Ok(v),
-                    _ => bail_wrong_argument!("array2d", self),
+                    _ => bail_wrong_argument!("Array2d", self),
                 })
                 .collect::<Result<Vec<_>, _>>(),
-            _ => bail_wrong_argument!("array2d", self),
+            _ => bail_wrong_argument!("Array2d", self),
         }
     }
     pub fn as_iterator(&self) -> Result<&IterableKind, TransformError> {
-        match_or_bail!("iterable", Primitive::Iterable(i) => Ok(i) ; (self, self))
+        match_or_bail!("Iterable", Primitive::Iterable(i) => Ok(i) ; (self, self))
     }
     pub fn as_tuple(&self) -> Result<&Vec<Primitive>, TransformError> {
-        match_or_bail!("tuple", Primitive::Tuple(t) => Ok(t) ; (self, self))
+        match_or_bail!("Tuple", Primitive::Tuple(t) => Ok(t) ; (self, self))
     }
 
     pub fn to_string(&self) -> String {

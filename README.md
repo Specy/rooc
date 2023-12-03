@@ -5,18 +5,22 @@ Short for the name of the courses i took at university (Ricerca Operativa, Ottim
 # What it is
 Rooc is a program to parse and convert formal mathematical models into linear problems. They will be then converted into standard linear problems so they can be solved with the simplex.
 The goal is to compile the binary to WASM and create a web wrapper to show all the individual steps needed to convert and find a solution to a problem, this way people can more easily learn how to create and solve mathematical models using the simplex method.
-The "language" supports formal definitions, i'd like to expand the project to support the solution of graphs, integer and binary problems
+The "language" supports formal definitions of problems, with the ability to define custom functions, constants, arrays and tuples. It also supports iterators and utility functions to iterate over graphs, edges, arrays, ranges, etc.
 
 # Features 
 - [ ] Syntax and parsing
-  - [x] Basic functions (min, max, mod)
+  - [x] Basic block functions (min, max, mod)
   - [x] Constant Graph definitions
   - [x] Iterators
   - [x] Tuples
-  - [ ] Iterators utility functions (for graphs, edges, etc)
-  - [ ] Definition of variable bounds
+  - [x] Iterators utility functions (for graphs, edges, etc)
+  - [x] Primitive destructuring
   - [x] Formal definition of a problem, (sum function and generic variables)
-  - [x] Constants and 1d and 2d arrays in the formal definition of a problem
+  - [x] Constants and multi dimensional arrays in the formal definition of a problem
+  - [x] Custom functions
+  - [x] Error logging and parameter validation 
+  - [x] Error traces
+  - [ ] Definition of variable bounds
 - [ ] Simplex resolution
   - [ ] Linearization of a generic problem
   - [x] Transformation of a linear problem into the standard form
@@ -33,23 +37,49 @@ The "language" supports formal definitions, i'd like to expand the project to su
 
 
 # Example
-Given the formal problem: (ignore the correctness of the problem, it's just an example)
-```lua
-max sum(i in 0..len(C), j in 0..len(b)){ X_ij * C[i] }
-s.t.
-  len(C) * sum(i in 0..len(C)){ C[i] * X_ij } <= b[j] for j in 0..len(C)
+Given the formal problem of the [Dominating set](https://en.wikipedia.org/wiki/Dominating_set) problem, which shows most of the features of the language:
+```rust
+min sum(u in nodes(G)) { x_u }
+s.t. 
+    x_v + sum((_, _, u) in neigh_edges(G)) { x_u } >= 1    for v in nodes(G)
 where
-   C = [15, 30]
-   b = [20, 25]
+    G = Graph {
+        A -> [B, C, D, E, F],
+        B -> [A, E, C, D, J],
+        C -> [A, B, D, E, I],
+        D -> [A, B, C, E, H],
+        E -> [A, B, C, D, G],
+        F -> [A, G, J],
+        G -> [E, F, H],
+        H -> [D, G, I],
+        I -> [C, H, J],
+        J -> [B, F, I]
+    }
 ```
 It is compiled down to:
-```lua
-max X_0_0 * 15 + X_1_1 * 30 + X_1_0 * 30 + X_0_1 * 15
-s.t.
-    2 * (15 * X_0_0 + 30 * X_1_0) <= 20
-    2 * (15 * X_0_1 + 30 * X_1_1) <= 25
+```rust
+min x_A + x_B + x_C + x_D + x_E + x_F + x_G + x_H + x_I + x_J
+s.t
+        x_A + x_B + x_D + x_C + x_F + x_E >= 1
+        x_B + x_D + x_E + x_J + x_C + x_A >= 1
+        x_C + x_B + x_D + x_I + x_A + x_E >= 1
+        x_D + x_E + x_H + x_C + x_A + x_B >= 1
+        x_E + x_B + x_D + x_C + x_A + x_G >= 1
+        x_F + x_J + x_G + x_A >= 1
+        x_G + x_E + x_F + x_H >= 1
+        x_H + x_D + x_I + x_G >= 1
+        x_I + x_J + x_H + x_C >= 1
+        x_J + x_F + x_I + x_B >= 1
 ```
-To then be converted into the standard form:
+If the compilation finds a type mismatch (for example, function parameters or compound variable flattening), a stack trace will be generated:
+```rust
+Wrong argument Expected argument of type "GraphNode", got "Graph" evaluating "G"
+        at 3:44
+        at 3:32
+        at 3:13
+        at 3:9
+```
+If there were no errors during compilation, it will be then be converted into the standard form:
 ```
 TODO
 ```
@@ -57,6 +87,5 @@ To then be solved using the simplex method:
 ```
 TODO
 ```
-
 # Notes
 This project is purely educational, it shouldn't be used to solve serious problems as it won't be optimized for big calculations

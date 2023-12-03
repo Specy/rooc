@@ -12,15 +12,15 @@ macro_rules! err_unexpected_token {
 macro_rules! wrong_argument {
     ($expected_type: literal, $current_arg:expr, $evauluated_in:expr) => {
         TransformError::WrongArgument(format!(
-            "Expected {}, got {:?} evaluating {:?}",
+            "Expected argument of type \"{}\", got \"{}\" evaluating \"{}\"",
             $expected_type,
-            $current_arg,
+            $current_arg.get_argument_name(),
             $evauluated_in.to_string()
         ))
     };
     ($expected_type: literal, $evauluated_in:expr) => {
         TransformError::WrongArgument(format!(
-            "Expected {}, got {:?}",
+            "Expected argument of type {}, got \"{}\"",
             $expected_type,
             $evauluated_in.to_string()
         ))
@@ -94,6 +94,17 @@ macro_rules! bail_semantic_error {
         Err(CompilationError::from_pair(
             ParseError::SemanticError(format!($s)),
             &$arg,
+            true,
+        ))
+    };
+}
+
+#[macro_export]
+macro_rules! bail_wrong_number_of_arguments {
+    ($n:expr, $expected:ident, [$($arg:literal),+]) => {
+        Err(CompilationError::from_pair(
+            ParseError::WrongNumberOfArguments($n, vec![$($arg.to_string()),+]),
+            &$expected,
             true,
         ))
     };

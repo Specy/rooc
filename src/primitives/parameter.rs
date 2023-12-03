@@ -1,18 +1,19 @@
 use std::fmt::Debug;
 
-use pest::iterators::Pair;
-
 use crate::{
     bail_wrong_argument_spanned, match_or_bail_spanned,
     parser::{
-        parser::{ArrayAccess, CompoundVariable, Rule},
+        parser::{ArrayAccess, CompoundVariable},
         transformer::{TransformError, TransformerContext},
     },
-    utils::{CompilationError, InputSpan, ParseError, Spanned},
+    utils::{InputSpan, Spanned},
     wrong_argument,
 };
 
-use super::{graph::Graph, iterable::IterableKind, primitive::Primitive};
+use super::{
+    functions::function_traits::FunctionCall, graph::{Graph, GraphNode, GraphEdge}, iterable::IterableKind,
+    primitive::Primitive,
+};
 
 #[derive(Debug)]
 pub enum Parameter {
@@ -66,14 +67,20 @@ impl Parameter {
         let value = self
             .as_primitive(context)
             .map_err(|e| e.to_spanned_error(self.as_span()))?;
-        match_or_bail_spanned!("number", Primitive::Number(n) => Ok(n) ; (value, self))
+        match_or_bail_spanned!("Number", Primitive::Number(n) => Ok(n) ; (value, self))
+    }
+    pub fn as_string(&self, context: &TransformerContext) -> Result<String, TransformError> {
+        let value = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.as_span()))?;
+        match_or_bail_spanned!("String", Primitive::String(s) => Ok(s.to_owned()) ; (value, self))
     }
     pub fn as_integer(&self, context: &TransformerContext) -> Result<i64, TransformError> {
         let n = self
             .as_number(context)
             .map_err(|e| e.to_spanned_error(self.as_span()))?;
         if n.fract() != 0.0 {
-            bail_wrong_argument_spanned!("integer", self)
+            bail_wrong_argument_spanned!("Integer", self)
         } else {
             Ok(n as i64)
         }
@@ -83,9 +90,9 @@ impl Parameter {
             .as_number(context)
             .map_err(|e| e.to_spanned_error(self.as_span()))?;
         if n.fract() != 0.0 {
-            bail_wrong_argument_spanned!("integer", self)
+            bail_wrong_argument_spanned!("Integer", self)
         } else if n < 0.0 {
-            bail_wrong_argument_spanned!("positive integer", self)
+            bail_wrong_argument_spanned!("Positive integer", self)
         } else {
             Ok(n as usize)
         }
@@ -94,6 +101,18 @@ impl Parameter {
         self.as_primitive(context)
             .map(|p| p.as_graph().map(|v| v.to_owned()))
             .map_err(|e| e.to_spanned_error(self.as_span()))?
+    }
+    pub fn as_node(&self, context: &TransformerContext) -> Result<GraphNode, TransformError> {
+        let node = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.as_span()))?;
+        match_or_bail_spanned!("GraphNode", Primitive::GraphNode(n) => Ok(n.to_owned()) ; (node, self))
+    }
+    pub fn as_edge(&self, context: &TransformerContext) -> Result<GraphEdge, TransformError> {
+        let edge = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.as_span()))?;
+        match_or_bail_spanned!("GraphEdge", Primitive::GraphEdge(e) => Ok(e.to_owned()) ; (edge, self))
     }
     pub fn as_number_array(
         &self,
@@ -131,133 +150,5 @@ impl Parameter {
             Parameter::ArrayAccess(a) => a.to_string(),
             Parameter::FunctionCall(f) => f.to_string(),
         }
-    }
-}
-
-pub trait FunctionCall: Debug {
-    fn from_parameters(pars: Vec<Parameter>, rule: &Pair<Rule>) -> Result<Self, CompilationError>
-    where
-        Self: Sized;
-    fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError>;
-    fn to_string(&self) -> String;
-}
-
-#[derive(Debug)]
-pub struct EdgesOfGraphFn {
-    of_graph: Parameter,
-}
-
-impl FunctionCall for EdgesOfGraphFn {
-    fn from_parameters(pars: Vec<Parameter>, rule: &Pair<Rule>) -> Result<Self, CompilationError> {
-        let len = pars.len();
-        match pars.into_iter().next() {
-            Some(of_graph) => Ok(Self { of_graph }),
-            _ => Err(CompilationError::from_pair(
-                ParseError::WrongNumberOfArguments(len, vec!["Graph".to_string()]),
-                rule,
-                true,
-            )),
-        }
-    }
-    fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
-        let graph = self.of_graph.as_graph(context)?;
-        let edges = graph.edges();
-        Ok(Primitive::Iterable(IterableKind::Edges(edges)))
-    }
-    fn to_string(&self) -> String {
-        format!("edges({})", self.of_graph.to_string())
-    }
-}
-#[derive(Debug)]
-pub struct LenOfIterableFn {
-    of_iterable: Parameter,
-}
-impl FunctionCall for LenOfIterableFn {
-    fn from_parameters(pars: Vec<Parameter>, rule: &Pair<Rule>) -> Result<Self, CompilationError> {
-        let len = pars.len();
-        match pars.into_iter().next() {
-            Some(of_iterable) => Ok(Self { of_iterable }),
-            _ => Err(CompilationError::from_pair(
-                ParseError::WrongNumberOfArguments(len, vec!["Iterable".to_string()]),
-                rule,
-                true,
-            )),
-        }
-    }
-    fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
-        let value = self.of_iterable.as_iterator(context)?;
-        Ok(Primitive::Number(value.len() as f64))
-    }
-    fn to_string(&self) -> String {
-        format!("len({})", self.of_iterable.to_string())
-    }
-}
-
-/* guards */
-
-pub trait ToNum: Debug {
-    fn to_num(&self, context: &TransformerContext) -> Result<f64, TransformError>;
-    fn to_int(&self, context: &TransformerContext) -> Result<i64, TransformError> {
-        let num = self.to_num(context)?;
-        if num.fract() != 0.0 {
-            return Err(TransformError::WrongArgument(format!(
-                "Expected integer, got {}",
-                num
-            )));
-        }
-        Ok(num as i64)
-    }
-}
-
-#[derive(Debug)]
-pub struct FunctionCallNumberGuard {
-    function: Box<dyn FunctionCall>,
-}
-impl FunctionCallNumberGuard {
-    pub fn new(function: Box<dyn FunctionCall>) -> Self {
-        Self { function }
-    }
-}
-//TODO make this a macro
-impl ToNum for FunctionCallNumberGuard {
-    fn to_num(&self, context: &TransformerContext) -> Result<f64, TransformError> {
-        let value = self.function.call(context)?;
-        match value {
-            Primitive::Number(n) => Ok(n),
-            _ => Err(TransformError::WrongArgument(format!(
-                "Expected number, got {}",
-                value.get_argument_name()
-            ))),
-        }
-    }
-}
-#[derive(Debug)]
-pub struct StaticNumberGuard {
-    value: f64,
-}
-impl StaticNumberGuard {
-    pub fn new(value: f64) -> Self {
-        Self { value }
-    }
-}
-impl ToNum for StaticNumberGuard {
-    fn to_num(&self, _context: &TransformerContext) -> Result<f64, TransformError> {
-        Ok(self.value)
-    }
-}
-
-#[derive(Debug)]
-pub struct ParameterToNum {
-    parameter: Parameter,
-}
-impl ParameterToNum {
-    pub fn from_parameter(parameter: Parameter) -> Self {
-        Self { parameter }
-    }
-}
-impl ToNum for ParameterToNum {
-    fn to_num(&self, context: &TransformerContext) -> Result<f64, TransformError> {
-        let value = self.parameter.as_number(context)?;
-        Ok(value)
     }
 }

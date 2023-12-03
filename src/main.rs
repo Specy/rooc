@@ -89,17 +89,23 @@ fn main() {
         }
     }
 
+    //dominant set problem
     let problem = "
-    max a
-    s.t.
-        sum(i in 0..len(C)) { x_i * C[i] } <= j * k for j in D
+    min sum(u in nodes(G)) { x_u }
+    s.t. 
+        x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1 for v in nodes(G)
     where
-        C = [4,5]
-        D = [1,2]
         G = Graph {
-            A -> [B:2, C: 3],
-            B -> [C],
-            C -> [A]
+            A -> [B, C, D, E, F],
+            B -> [A, E, C, D, J],
+            C -> [A, B, D, E, I],
+            D -> [A, B, C, E, H],
+            E -> [A, B, C, D, G],
+            F -> [A, G, J],
+            G -> [E, F, H],
+            H -> [D, G, I],
+            I -> [C, H, J],
+            J -> [B, F, I]
         }
     "
     .to_string();
@@ -127,3 +133,4 @@ fn create_variable_names(n: usize) -> Vec<String> {
     }
     variables
 }
+

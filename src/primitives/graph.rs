@@ -33,6 +33,12 @@ impl GraphNode {
             .collect::<HashMap<String, GraphEdge>>();
         Self { name, edges }
     }
+    pub fn to_edges(self) -> Vec<GraphEdge> {
+        self.edges.into_values().collect()
+    }
+    pub fn get_name (&self) -> &String {
+        &self.name
+    }
     pub fn to_string(&self) -> String {
         let edges = self
             .edges
@@ -52,17 +58,19 @@ impl Graph {
     pub fn new(vertices: Vec<GraphNode>) -> Self {
         Self { vertices }
     }
-    pub fn edges(&self) -> Vec<GraphEdge> {
+    pub fn to_edges(self) -> Vec<GraphEdge> {
         self.vertices
-            .iter()
-            .map(|node| {
-                node.edges
-                    .values()
-                    .map(|edge| edge.clone())
-                    .collect::<Vec<_>>()
-            })
+            .into_iter()
+            .map(|node| node.edges.into_values().collect::<Vec<_>>())
             .flatten()
             .collect::<Vec<_>>()
+    }
+    pub fn nodes(&self) -> &Vec<GraphNode> {
+        &self.vertices
+    }
+
+    pub fn to_nodes(self) -> Vec<GraphNode> {
+        self.vertices
     }
     pub fn vertices(&self) -> &Vec<GraphNode> {
         &self.vertices
@@ -82,7 +90,21 @@ impl Graph {
             }
         }
     }
-
+    pub fn into_neighbours_of(self, node_name: &str) -> Result<Vec<GraphEdge>, TransformError> {
+        let node = self
+            .vertices
+            .into_iter()
+            .find(|n: &GraphNode| n.name == node_name);
+        match node {
+            Some(node) => Ok(node.edges.into_values().collect()),
+            None => {
+                return Err(TransformError::Other(format!(
+                    "node {} not found in graph",
+                    node_name
+                )))
+            }
+        }
+    }
     pub fn to_string(&self) -> String {
         let nodes = self
             .vertices

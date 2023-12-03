@@ -1,6 +1,6 @@
 use crate::{
     math_enums::Op,
-    primitives::{functions::FunctionCall, primitive::Primitive},
+    primitives::{functions::function_traits::FunctionCall, primitive::Primitive},
     utils::{InputSpan, Spanned},
 };
 
@@ -126,10 +126,9 @@ impl PreExp {
                         .map_err(|e| e.to_spanned_error(self.get_span()))?;
                     Ok(inner)
                 })?;
-                results.reverse();
                 let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
-                for result in results {
-                    sum = Exp::BinOp(Op::Add, sum.to_box(), result.to_box());
+                for result in results.into_iter().rev() {
+                    sum = Exp::BinOp(Op::Add, result.to_box(), sum.to_box());
                 }
                 Ok(sum)
             }

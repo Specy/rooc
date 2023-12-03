@@ -37,7 +37,7 @@ iteration_declaration      =  {
   (^"in" | "∈") ~
   #iterator = iterator
 }
-tuple = { "(" ~ simple_variable ~ (comma ~ simple_variable)* ~ ")"  }
+tuple = { "(" ~ (simple_variable | no_par) ~ (comma ~ (simple_variable | no_par))* ~ ")"  }
 iterator = { range_iterator | parameter }
 //iterators
 range_iterator = {
@@ -55,8 +55,8 @@ parenthesis =  { "(" ~ exp ~ ")" }
 block_function    = _{ min | max | sum }
 function = {  #function_name = function_name ~ "(" ~ #function_pars = function_pars ~ ")"}
 function_pars = { (parameter ~(comma ~ parameter)*)?}
-parameter = { function | array_access | simple_variable | compound_variable | string | number}
-function_name = { LETTER ~ (LETTER | NUMBER )*}
+parameter = { function | array_access | simple_variable | compound_variable | string | number }
+function_name = { LETTER ~ (LETTER | NUMBER | "_")*}
 // block functions
 min = { ^"min" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~"}" }
 max = { ^"max" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~ "}" }
@@ -96,3 +96,4 @@ string = @ { "\"" ~ LETTER* ~ "\""}
 // ignore whitespace in whole grammar
 WHITESPACE = _{ " " | "\t" }
 range_type = @{ "..=" | ".." }
+no_par = @{ "_"}

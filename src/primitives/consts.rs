@@ -1,5 +1,7 @@
 use super::graph::Graph;
 
+
+//TODO should i even have this, maybe i can use the Primitive type directly
 #[derive(Debug, Clone)]
 pub enum ConstantValue {
     Number(f64),

@@ -4,10 +4,11 @@ use pest::iterators::{Pair, Pairs};
 
 use crate::math_enums::{Comparison, Op, OptimizationType};
 use crate::primitives::consts::{Constant, ConstantValue};
-use crate::primitives::functions::{
-    EdgesOfGraphFn, FunctionCall, LenOfIterableFn, Parameter, ParameterToNum,
-};
+use crate::primitives::functions::function_traits::{FunctionCall, ParameterToNum};
+use crate::primitives::functions::graph_functions::{EdgesOfGraphFn, NodesOfGraphFn, NeighbourOfNodeFn};
+use crate::primitives::functions::other_functions::LenOfIterableFn;
 use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
+use crate::primitives::parameter::Parameter;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 use crate::{bail_missing_token, bail_semantic_error, err_unexpected_token};
 
@@ -181,6 +182,10 @@ pub fn parse_graph_node(node: &Pair<Rule>) -> Result<GraphNode, CompilationError
                 .map(|e| parse_graph_edge(&e, &name))
                 .collect::<Result<Vec<GraphEdge>, CompilationError>>()?;
             Ok(GraphNode::new(name, edges))
+        }
+        (Some(name), None) => {
+            let name = name.as_str().to_string();
+            Ok(GraphNode::new(name, vec![]))
         }
         _ => err_unexpected_token!("Expected graph node but got: {}", node),
     }
@@ -563,6 +568,18 @@ fn parse_function(
             parsed_pars,
             &pars,
         )?)),
+        "nodes" => Ok(Box::new(NodesOfGraphFn::from_parameters(
+            parsed_pars,
+            &pars,
+        )?)),
+        "neigh_edges" => Ok(Box::new(NeighbourOfNodeFn::from_parameters(
+            parsed_pars,
+            &pars,
+        )?)),
+        "neighs_of" => Ok(Box::new(NeighbourOfNodeFn::from_parameters(
+            parsed_pars,
+            &pars,
+        )?)),
         _ => Err(CompilationError::from_pair(
             ParseError::SemanticError(format!("Unknown function {}", name)),
             &name,
@@ -643,7 +660,7 @@ fn parse_variable_type(tuple: &Pair<Rule>) -> Result<VariableType, CompilationEr
                 .map(|i| {
                     let span = InputSpan::from_pair(&tuple);
                     match i.as_rule() {
-                        Rule::simple_variable => Ok(Spanned::new(i.as_str().to_string(), span)),
+                        Rule::simple_variable | Rule::no_par => Ok(Spanned::new(i.as_str().to_string(), span)),
                         _ => err_unexpected_token!("Expected variable but got: {}", i),
                     }
                 })
