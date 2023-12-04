@@ -89,25 +89,11 @@ fn main() {
         }
     }
 
-    //dominant set problem
     let problem = "
-    min sum(u in nodes(G)) { x_u }
-    s.t. 
-        x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1 for v in nodes(G)
-    where
-        G = Graph {
-            A -> [B, C, D, E, F],
-            B -> [A, E, C, D, J],
-            C -> [A, B, D, E, I],
-            D -> [A, B, C, E, H],
-            E -> [A, B, C, D, G],
-            F -> [A, G, J],
-            G -> [E, F, H],
-            H -> [D, G, I],
-            I -> [C, H, J],
-            J -> [B, F, I]
-        }
-    "
+    min x
+    s.t.
+        sum(i in 1..3, j in 0..=i) { x_i_j } >= 1
+    " 
     .to_string();
     let parsed = parse_problem_source(&problem);
     match parsed {

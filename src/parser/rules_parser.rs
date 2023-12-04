@@ -4,17 +4,19 @@ use pest::iterators::{Pair, Pairs};
 
 use crate::math_enums::{Comparison, Op, OptimizationType};
 use crate::primitives::consts::{Constant, ConstantValue};
-use crate::primitives::functions::function_traits::{FunctionCall, ParameterToNum};
-use crate::primitives::functions::graph_functions::{EdgesOfGraphFn, NodesOfGraphFn, NeighbourOfNodeFn};
+use crate::primitives::functions::function_traits::FunctionCall;
+use crate::primitives::functions::graph_functions::{
+    EdgesOfGraphFn, NeighbourOfNodeFn, NodesOfGraphFn,
+};
+use crate::primitives::functions::number_functions::NumericRange;
 use crate::primitives::functions::other_functions::LenOfIterableFn;
 use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
 use crate::primitives::parameter::Parameter;
+use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 use crate::{bail_missing_token, bail_semantic_error, err_unexpected_token};
 
-use super::parser::{
-    ArrayAccess, CompoundVariable, PreCondition, PreIterator, PreObjective, PreSet, Rule,
-};
+use super::parser::{ArrayAccess, CompoundVariable, PreCondition, PreObjective, PreSet, Rule};
 use super::pre_exp::PreExp;
 use super::transformer::VariableType;
 
@@ -660,7 +662,9 @@ fn parse_variable_type(tuple: &Pair<Rule>) -> Result<VariableType, CompilationEr
                 .map(|i| {
                     let span = InputSpan::from_pair(&tuple);
                     match i.as_rule() {
-                        Rule::simple_variable | Rule::no_par => Ok(Spanned::new(i.as_str().to_string(), span)),
+                        Rule::simple_variable | Rule::no_par => {
+                            Ok(Spanned::new(i.as_str().to_string(), span))
+                        }
                         _ => err_unexpected_token!("Expected variable but got: {}", i),
                     }
                 })
@@ -678,7 +682,7 @@ fn parse_variable_type(tuple: &Pair<Rule>) -> Result<VariableType, CompilationEr
     }
 }
 
-fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreIterator, CompilationError> {
+fn parse_iterator(iterator: &Pair<Rule>) -> Result<Parameter, CompilationError> {
     match iterator.as_rule() {
         Rule::iterator => {
             let mut inner = iterator.clone().into_inner();
@@ -686,12 +690,8 @@ fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreIterator, CompilationError
             match first {
                 Some(Rule::range_iterator) => {
                     let inner = iterator.clone().into_inner();
-                    let from = inner
-                        .find_first_tagged("from")
-                        .map(|f| parse_parameter(&f).map(ParameterToNum::from_parameter));
-                    let to = inner
-                        .find_first_tagged("to")
-                        .map(|t| parse_parameter(&t).map(ParameterToNum::from_parameter));
+                    let from = inner.find_first_tagged("from").map(|f| parse_parameter(&f));
+                    let to = inner.find_first_tagged("to").map(|t| parse_parameter(&t));
                     let range_type = inner.find_first_tagged("range_type");
                     match (from, to, range_type) {
                         (Some(from), Some(to), Some(range_type)) => {
@@ -705,11 +705,12 @@ fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreIterator, CompilationError
                                     );
                                 }
                             };
-                            Ok(PreIterator::Range {
-                                from: Box::from(from?),
-                                to: Box::from(to?),
-                                to_inclusive,
-                            })
+                            let span = InputSpan::from_pair(&iterator);
+                            let function = NumericRange::new(from?, to?, to_inclusive);
+                            Ok(Parameter::FunctionCall(Spanned::new(
+                                Box::new(function),
+                                span,
+                            )))
                         }
 
                         _ => err_unexpected_token!("Expected range iterator but got: {}", iterator),
@@ -722,7 +723,7 @@ fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreIterator, CompilationError
                         return err_unexpected_token!("Expected parameter but got: {}", iterator);
                     }
                     let function = parse_parameter(&first.unwrap())?;
-                    Ok(PreIterator::Parameter(function))
+                    Ok(function)
                 }
 
                 _ => err_unexpected_token!("Expected range or parameter but got: {}", iterator),

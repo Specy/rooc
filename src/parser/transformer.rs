@@ -8,7 +8,7 @@ use crate::{
 };
 
 use super::{
-    parser::{ArrayAccess, PreCondition, PreIterator, PreObjective, PreProblem, PreSet},
+    parser::{ArrayAccess, PreCondition, PreObjective, PreProblem, PreSet},
     pre_exp::PreExp,
 };
 
@@ -561,51 +561,6 @@ pub enum VariableType {
     Tuple(Vec<Spanned<String>>),
 }
 
-pub struct NamedSet {
-    pub var: VariableType,
-    pub set: PrimitiveSet,
-    pub span: InputSpan,
-}
-impl NamedSet {
-    pub fn new(var: VariableType, set: PrimitiveSet, span: InputSpan) -> Self {
-        Self { var, set, span }
-    }
-}
-
-pub fn transform_set(
-    pre_set: &PreSet,
-    context: &TransformerContext,
-) -> Result<NamedSet, TransformError> {
-    let set = match pre_set.iterator.get_span_value() {
-        PreIterator::Range {
-            from,
-            to,
-            to_inclusive,
-        } => {
-            if matches!(pre_set.var, VariableType::Tuple(_)) {
-                return Err(TransformError::WrongArgument(format!(
-                    "Expected simple variable, got tuple"
-                )));
-            }
-            let from = from.to_int(&context)?;
-            let to = to.to_int(&context)?;
-            if *to_inclusive {
-                (from..=to).map(|i| Primitive::Number(i as f64)).collect()
-            } else {
-                (from..to).map(|i| Primitive::Number(i as f64)).collect()
-            }
-        }
-        PreIterator::Parameter(p) => {
-            let value = p.as_iterator(&context)?;
-            value.to_primitive_set()
-        }
-    };
-    Ok(NamedSet::new(
-        pre_set.var.clone(),
-        set,
-        pre_set.span.clone(),
-    ))
-}
 
 pub fn transform_condition(
     condition: &PreCondition,
@@ -620,16 +575,11 @@ pub fn transform_condition_with_iteration(
     condition: &PreCondition,
     context: &mut TransformerContext,
 ) -> Result<Vec<Condition>, TransformError> {
-    let sets = condition
-        .iteration
-        .iter()
-        .map(|set| transform_set(set, &context))
-        .collect::<Result<Vec<_>, _>>()?;
-    if sets.len() == 0 {
+    if condition.iteration.is_empty() {
         return Ok(vec![transform_condition(condition, context)?]);
     }
     let mut results: Vec<Condition> = Vec::new();
-    recursive_set_resolver(&sets, context, &mut results, 0, &|c| {
+    recursive_set_resolver(&condition.iteration, context, &mut results, 0, &|c| {
         transform_condition(condition, c)
     })
     .map_err(|e| e.to_spanned_error(&condition.span))?;

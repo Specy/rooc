@@ -6,7 +6,7 @@ use crate::{
 
 use super::{
     parser::{recursive_set_resolver, ArrayAccess, CompoundVariable, PreSet},
-    transformer::{transform_set, Exp, TransformError, TransformerContext},
+    transformer::{Exp, TransformError, TransformerContext},
 };
 
 #[derive(Debug)]
@@ -114,18 +114,14 @@ impl PreExp {
                 Ok(Exp::Number(value))
             }
             Self::Sum(sets, exp) => {
-                let sets = sets
-                    .into_iter()
-                    .map(|r| transform_set(r, context))
-                    .collect::<Result<Vec<_>, TransformError>>()
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 let mut results = Vec::new();
                 recursive_set_resolver(&sets, context, &mut results, 0, &|context| {
                     let inner = exp
                         .into_exp(context)
                         .map_err(|e| e.to_spanned_error(self.get_span()))?;
                     Ok(inner)
-                })?;
+                })
+                .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
                 for result in results.into_iter().rev() {
                     sum = Exp::BinOp(Op::Add, result.to_box(), sum.to_box());

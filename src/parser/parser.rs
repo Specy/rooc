@@ -1,7 +1,6 @@
 use crate::bail_missing_token;
 use crate::math_enums::{Comparison, OptimizationType};
 use crate::primitives::consts::Constant;
-use crate::primitives::functions::function_traits::ToNum;
 use crate::primitives::parameter::Parameter;
 use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
@@ -11,7 +10,7 @@ use std::fmt::Debug;
 
 use super::pre_exp::PreExp;
 use super::rules_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
-use super::transformer::{NamedSet, TransformError, TransformerContext, VariableType};
+use super::transformer::{TransformError, TransformerContext, VariableType};
 
 /*
    TODO: add bounds to variables, including wildcards (or add a way to define variable types)
@@ -29,11 +28,11 @@ pub enum PreIterOfArray {
 #[derive(Debug)]
 pub struct PreSet {
     pub var: VariableType,
-    pub iterator: Spanned<PreIterator>,
+    pub iterator: Spanned<Parameter>,
     pub span: InputSpan,
 }
 impl PreSet {
-    pub fn new(var: VariableType, iterator: Spanned<PreIterator>, span: InputSpan) -> Self {
+    pub fn new(var: VariableType, iterator: Spanned<Parameter>, span: InputSpan) -> Self {
         Self {
             var,
             iterator,
@@ -48,15 +47,6 @@ pub enum PreNode {
     Variable(String),
 }
 
-#[derive(Debug)]
-pub enum PreIterator {
-    Range {
-        from: Box<dyn ToNum>,
-        to: Box<dyn ToNum>,
-        to_inclusive: bool,
-    },
-    Parameter(Parameter),
-}
 
 #[derive(Debug)]
 pub struct ArrayAccess {
@@ -93,7 +83,7 @@ impl CompoundVariable {
 }
 
 pub fn recursive_set_resolver<T>(
-    sets: &Vec<NamedSet>,
+    sets: &Vec<PreSet>,
     context: &mut TransformerContext,
     results: &mut Vec<T>,
     current_level: usize,
@@ -115,7 +105,9 @@ pub fn recursive_set_resolver<T>(
             }
         }
     }
-    for value in range.set.iter() {
+    let values= range.iterator.as_iterator(&context)?;
+    let values = values.to_primitive_set();
+    for value in values.iter() {
         match &range.var {
             VariableType::Single(n) => {
                 context
