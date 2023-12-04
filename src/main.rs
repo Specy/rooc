@@ -92,13 +92,13 @@ fn main() {
     let problem = "
     min x
     s.t.
-        sum(i in 0..len(C), el in C[i]) { el } <= 0
-    where 
-        C = [
-            [1,2,3],
-            [4,5,6],
-            [7,8,9]
-        ]
+    sum((j, jin) in enumerate(C[i])) { j * x_i_jin } <= x_i for i in 0..len(C)
+where
+    C = [
+        [1,0,0],
+        [0,1,0], 
+        [0,0,1]
+    ]
     " 
     .to_string();
     let parsed = parse_problem_source(&problem);
