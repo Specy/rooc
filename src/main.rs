@@ -92,7 +92,13 @@ fn main() {
     let problem = "
     min x
     s.t.
-        sum(i in 1..3, j in 0..=i) { x_i_j } >= 1
+        sum(i in 0..len(C), el in C[i]) { el } <= 0
+    where 
+        C = [
+            [1,2,3],
+            [4,5,6],
+            [7,8,9]
+        ]
     " 
     .to_string();
     let parsed = parse_problem_source(&problem);

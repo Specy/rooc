@@ -1,22 +1,25 @@
+use core::panic;
 use std::vec;
 
 use pest::iterators::{Pair, Pairs};
 
 use crate::math_enums::{Comparison, Op, OptimizationType};
-use crate::primitives::consts::{Constant, ConstantValue};
+use crate::parser::iterable_utils::flatten_primitive_array_values;
+use crate::primitives::consts::Constant;
+use crate::primitives::functions::array_functions::{EnumerateArray, LenOfIterableFn};
 use crate::primitives::functions::function_traits::FunctionCall;
 use crate::primitives::functions::graph_functions::{
-    EdgesOfGraphFn, NeighbourOfNodeFn, NodesOfGraphFn,
+    EdgesOfGraphFn, NeighbourOfNodeFn, NeighboursOfNodeInGraphFn, NodesOfGraphFn,
 };
 use crate::primitives::functions::number_functions::NumericRange;
-use crate::primitives::functions::other_functions::LenOfIterableFn;
 use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
+use crate::primitives::iterable::IterableKind;
 use crate::primitives::parameter::Parameter;
-use crate::primitives::primitive::Primitive;
+use crate::primitives::primitive::{Primitive, PrimitiveKind};
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
-use crate::{bail_missing_token, bail_semantic_error, err_unexpected_token};
+use crate::{bail_missing_token, err_unexpected_token};
 
-use super::parser::{ArrayAccess, CompoundVariable, PreCondition, PreObjective, PreSet, Rule};
+use super::parser::{ArrayAccess, CompoundVariable, IterableSet, PreCondition, PreObjective, Rule};
 use super::pre_exp::PreExp;
 use super::transformer::VariableType;
 
@@ -74,16 +77,11 @@ pub fn parse_const_declaration(
                 .map(|n| n.as_str().to_string());
             let value = pairs
                 .find_first_tagged("value")
-                .map(|v| parse_const_value(&v));
-            if name.is_none() || value.is_none() {
-                return err_unexpected_token!(
-                    "Expected constant declaration but got: {}",
-                    const_declaration
-                );
+                .map(|v| parse_primitive(&v));
+            match (name, value) {
+                (Some(name), Some(value)) => Ok(Constant::new(name, value?)),
+                _ => bail_missing_token!("Missing constant body", const_declaration),
             }
-            let name = name.unwrap();
-            let value = value.unwrap()?;
-            Ok(Constant::new(name, value))
         }
         _ => err_unexpected_token!(
             "Expected constant declaration but got: {}",
@@ -92,65 +90,33 @@ pub fn parse_const_declaration(
     }
 }
 
-pub fn parse_const_value(const_value: &Pair<Rule>) -> Result<ConstantValue, CompilationError> {
+pub fn parse_primitive(const_value: &Pair<Rule>) -> Result<Primitive, CompilationError> {
     match const_value.as_rule() {
-        Rule::number => Ok(ConstantValue::Number(parse_number(const_value)?)),
+        Rule::number => Ok(Primitive::Number(parse_number(const_value)?)),
+        Rule::boolean => {
+            let value = match const_value.as_str() {
+                "true" => true,
+                "false" => false,
+                _ => {
+                    return err_unexpected_token!("Expected boolean but got: {}", const_value);
+                }
+            };
+            Ok(Primitive::Boolean(value))
+        }
+        Rule::string => {
+            let value = const_value.as_str().to_string();
+            Ok(Primitive::String(value))
+        }
         Rule::array => {
             let values = const_value
                 .clone()
                 .into_inner()
-                .map(|v| parse_array_value(&v))
-                .collect::<Result<Vec<ArrayValue>, CompilationError>>()?;
-            //make sure they are all the same type
-
-            let first = values.first();
-            if first.is_none() {
-                return Ok(ConstantValue::OneDimArray(vec![]));
-            }
-            match first.unwrap() {
-                ArrayValue::Number(_) => {
-                    let values = values
-                        .into_iter()
-                        .map(|v| match v {
-                            ArrayValue::Number(n) => Ok(n),
-                            ArrayValue::Array(_) | ArrayValue::Empty => {
-                                bail_semantic_error!(
-                                    "Expected number but got an array",
-                                    const_value
-                                )
-                            }
-                        })
-                        .collect::<Result<Vec<f64>, CompilationError>>()?;
-                    Ok(ConstantValue::OneDimArray(values))
-                }
-                ArrayValue::Array(_) => {
-                    let values = values
-                        .into_iter()
-                        .map(|v| match v {
-                            ArrayValue::Array(n) => Ok(n),
-                            ArrayValue::Number(_) | ArrayValue::Empty => {
-                                bail_semantic_error!("Expected array but got a number", const_value)
-                            }
-                        })
-                        .collect::<Result<Vec<Vec<f64>>, CompilationError>>()?;
-                    //make sure all the arrays are the same length
-                    let lengths = values.iter().map(|v| v.len()).collect::<Vec<_>>();
-                    let first = lengths.first();
-                    if first.is_none() {
-                        return Ok(ConstantValue::TwoDimArray(vec![]));
-                    }
-                    let max = lengths.iter().max().unwrap();
-                    if lengths.iter().any(|l| l != max) {
-                        let error = ParseError::SemanticError(format!(
-                            "Arrays must all have the same size, using the biggest one of: {}",
-                            max
-                        ));
-                        return Err(CompilationError::from_pair(error, &const_value, false));
-                    }
-                    Ok(ConstantValue::TwoDimArray(values))
-                }
-                ArrayValue::Empty => Ok(ConstantValue::OneDimArray(vec![])),
-            }
+                .map(|v| parse_primitive(&v))
+                .collect::<Result<Vec<_>, CompilationError>>()?;
+            let values = flatten_primitive_array_values(values).map_err(|e| {
+                CompilationError::from_pair(ParseError::UnexpectedToken(e), const_value, false)
+            })?;
+            Ok(values)
         }
         Rule::graph => {
             let inner = const_value.clone().into_inner();
@@ -163,7 +129,7 @@ pub fn parse_const_value(const_value: &Pair<Rule>) -> Result<ConstantValue, Comp
                         .map(|n| parse_graph_node(&n))
                         .collect::<Result<Vec<GraphNode>, CompilationError>>()?;
                     let graph = Graph::new(inner);
-                    Ok(ConstantValue::Graph(graph))
+                    Ok(Primitive::Graph(graph))
                 }
                 None => err_unexpected_token!("Expected graph but got: {}", const_value),
             }
@@ -216,32 +182,6 @@ pub fn parse_graph_edge(edge: &Pair<Rule>, from: &String) -> Result<GraphEdge, C
             Ok(GraphEdge::new(from.clone(), node, cost))
         }
         _ => err_unexpected_token!("Expected graph edge but got: {}", edge),
-    }
-}
-
-//simplified as it only goes up to 2d arrays
-#[derive(Debug)]
-pub enum ArrayValue {
-    Number(f64),
-    Array(Vec<f64>),
-    Empty,
-}
-
-pub fn parse_array_value(array_value: &Pair<Rule>) -> Result<ArrayValue, CompilationError> {
-    let pairs = array_value.clone().into_inner().collect::<Vec<_>>();
-    match array_value.as_rule() {
-        Rule::number => Ok(ArrayValue::Number(parse_number(array_value)?)),
-        Rule::array => {
-            let values = pairs
-                .into_iter()
-                .map(|v| parse_number(&v))
-                .collect::<Result<Vec<f64>, CompilationError>>()?;
-            if values.is_empty() {
-                return Ok(ArrayValue::Empty);
-            }
-            Ok(ArrayValue::Array(values))
-        }
-        _ => err_unexpected_token!("Expected array value but got: {}", array_value),
     }
 }
 
@@ -506,11 +446,11 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
     }
 }
 
-fn parse_set_iterator_list(range_list: &Pairs<Rule>) -> Result<Vec<PreSet>, CompilationError> {
+fn parse_set_iterator_list(range_list: &Pairs<Rule>) -> Result<Vec<IterableSet>, CompilationError> {
     range_list
         .clone()
         .map(|r| parse_set_iterator(&r))
-        .collect::<Result<Vec<PreSet>, CompilationError>>()
+        .collect::<Result<Vec<IterableSet>, CompilationError>>()
 }
 
 fn parse_compound_variable(
@@ -578,12 +518,16 @@ fn parse_function(
             parsed_pars,
             &pars,
         )?)),
-        "neighs_of" => Ok(Box::new(NeighbourOfNodeFn::from_parameters(
+        "neighs_of" => Ok(Box::new(NeighboursOfNodeInGraphFn::from_parameters(
             parsed_pars,
             &pars,
         )?)),
-        _ => Err(CompilationError::from_pair(
-            ParseError::SemanticError(format!("Unknown function {}", name)),
+        "enumerate" => Ok(Box::new(EnumerateArray::from_parameters(
+            parsed_pars,
+            &pars,
+        )?)),
+        str => Err(CompilationError::from_pair(
+            ParseError::SemanticError(format!("Unknown function {}", str)),
             &name,
             true,
         )),
@@ -609,7 +553,7 @@ fn parse_parameter(arg: &Pair<Rule>) -> Result<Parameter, CompilationError> {
             let mut inner = arg.clone().into_inner();
             let first = inner.next();
             if first.is_none() {
-                return err_unexpected_token!("Expected parameter but got: {}", arg);
+                return err_unexpected_token!("Expected parameter but got : {}", arg);
             }
             let first = first.unwrap();
             match first.as_rule() {
@@ -617,9 +561,16 @@ fn parse_parameter(arg: &Pair<Rule>) -> Result<Parameter, CompilationError> {
                     first.as_str().to_string(),
                     span,
                 ))),
-                Rule::number => Ok(Parameter::Number(Spanned::new(parse_number(&first)?, span))),
+                Rule::number | Rule::array | Rule::graph | Rule::boolean | Rule::string => {
+                    let primitive = parse_primitive(&first)?;
+                    Ok(Parameter::Primitive(Spanned::new(primitive, span)))
+                }
                 Rule::compound_variable => Ok(Parameter::CompoundVariable(Spanned::new(
                     parse_compound_variable(&first)?,
+                    span,
+                ))),
+                Rule::array_access => Ok(Parameter::ArrayAccess(Spanned::new(
+                    parse_array_access(&first)?,
                     span,
                 ))),
                 Rule::function => Ok(Parameter::FunctionCall(Spanned::new(
@@ -632,7 +583,7 @@ fn parse_parameter(arg: &Pair<Rule>) -> Result<Parameter, CompilationError> {
         _ => err_unexpected_token!("Expected parameter but got: {}", arg),
     }
 }
-fn parse_set_iterator(range: &Pair<Rule>) -> Result<PreSet, CompilationError> {
+fn parse_set_iterator(range: &Pair<Rule>) -> Result<IterableSet, CompilationError> {
     match range.as_rule() {
         Rule::iteration_declaration => {
             let inner = range.clone().into_inner();
@@ -646,7 +597,7 @@ fn parse_set_iterator(range: &Pair<Rule>) -> Result<PreSet, CompilationError> {
             match (vars_tuple, iterator) {
                 (Some(vars_tuple), Some(iterator)) => {
                     let span = InputSpan::from_pair(&range);
-                    Ok(PreSet::new(vars_tuple?, iterator?, span))
+                    Ok(IterableSet::new(vars_tuple?, iterator?, span))
                 }
                 _ => err_unexpected_token!("Expected set iterator but got: {}", range),
             }

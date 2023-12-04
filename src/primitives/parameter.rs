@@ -16,9 +16,8 @@ use super::{
 };
 
 #[derive(Debug)]
-pub enum Parameter {
-    Number(Spanned<f64>),
-    String(Spanned<String>),
+pub enum Parameter { 
+    Primitive(Spanned<Primitive>),
     Variable(Spanned<String>),
     CompoundVariable(Spanned<CompoundVariable>),
     ArrayAccess(Spanned<ArrayAccess>),
@@ -28,8 +27,7 @@ pub enum Parameter {
 impl Parameter {
     pub fn as_span(&self) -> &InputSpan {
         match self {
-            Parameter::Number(n) => n.get_span(),
-            Parameter::String(s) => s.get_span(),
+            Parameter::Primitive(p) => p.get_span(),
             Parameter::Variable(s) => s.get_span(),
             Parameter::CompoundVariable(c) => c.get_span(),
             Parameter::ArrayAccess(a) => a.get_span(),
@@ -39,8 +37,7 @@ impl Parameter {
 
     pub fn as_primitive(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
         match self {
-            Parameter::Number(n) => Ok(Primitive::Number(**n)),
-            Parameter::String(s) => Ok(Primitive::String(s.get_span_value().clone())),
+            Parameter::Primitive(p) => Ok(p.get_span_value().clone()),
             Parameter::Variable(s) => match context.get_value(s) {
                 Some(value) => Ok(value.clone()),
                 None => Err(TransformError::MissingVariable(s.get_span_value().clone())),
@@ -57,8 +54,8 @@ impl Parameter {
                 Ok(value)
             }
             Parameter::ArrayAccess(a) => {
-                let value = context.get_array_access_value(a)?;
-                Ok(Primitive::Number(value))
+                let value = context.get_array_value(a)?;
+                Ok(value.to_owned())
             }
         }
     }
@@ -97,6 +94,12 @@ impl Parameter {
             Ok(n as usize)
         }
     }
+    pub fn as_boolean(&self, context: &TransformerContext) -> Result<bool, TransformError> {
+        let value = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.as_span()))?;
+        match_or_bail_spanned!("Boolean", Primitive::Boolean(b) => Ok(b) ; (value, self))
+    }
     pub fn as_graph(&self, context: &TransformerContext) -> Result<Graph, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_graph().map(|v| v.to_owned()))
@@ -114,25 +117,7 @@ impl Parameter {
             .map_err(|e| e.to_spanned_error(self.as_span()))?;
         match_or_bail_spanned!("GraphEdge", Primitive::GraphEdge(e) => Ok(e.to_owned()) ; (edge, self))
     }
-    pub fn as_number_array(
-        &self,
-        context: &TransformerContext,
-    ) -> Result<Vec<f64>, TransformError> {
-        self.as_primitive(context)
-            .map(|p| p.as_number_array().map(|v| v.to_owned()))
-            .map_err(|e| e.to_spanned_error(self.as_span()))?
-    }
-    pub fn as_number_matrix(
-        &self,
-        context: &TransformerContext,
-    ) -> Result<Vec<Vec<f64>>, TransformError> {
-        self.as_primitive(context)
-            .map(|p| {
-                p.as_number_matrix()
-                    .map(|v| v.iter().map(|v| (*v).to_owned()).collect::<Vec<_>>())
-            })
-            .map_err(|e| e.to_spanned_error(self.as_span()))?
-    }
+
     pub fn as_iterator(
         &self,
         context: &TransformerContext,
@@ -143,8 +128,7 @@ impl Parameter {
     }
     pub fn to_string(&self) -> String {
         match self {
-            Parameter::Number(n) => n.to_string(),
-            Parameter::String(s) => s.to_string(),
+            Parameter::Primitive(p) => p.to_string(),
             Parameter::Variable(s) => s.to_string(),
             Parameter::CompoundVariable(c) => c.to_string(),
             Parameter::ArrayAccess(a) => a.to_string(),

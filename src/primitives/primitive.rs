@@ -3,10 +3,44 @@ use crate::{
 };
 
 use super::{
-    consts::ConstantValue,
     graph::{Graph, GraphEdge, GraphNode},
     iterable::IterableKind,
 };
+
+#[derive(Debug, Clone)]
+pub struct Tuple(pub Vec<Primitive>);
+impl Tuple {
+    pub fn new(v: Vec<Primitive>) -> Self {
+        Self(v)
+    }
+    pub fn get(&self, index: usize) -> Option<&Primitive> {
+        self.0
+            .get(index)
+    }
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Primitive> {
+        self.0
+            .get_mut(index)
+    }
+    pub fn into_primitives(self) -> Vec<Primitive> {
+        self.0
+    }
+    pub fn get_primitives(&self) -> &Vec<Primitive> {
+        &self.0
+    }
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+    pub fn to_string(&self) -> String {
+        format!(
+            "({})",
+            self.0
+                .iter()
+                .map(|e| e.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Primitive {
@@ -17,39 +51,53 @@ pub enum Primitive {
     Graph(Graph),
     GraphEdge(GraphEdge),
     GraphNode(GraphNode),
-    Tuple(Vec<Primitive>),
+    Tuple(Tuple),
+    Boolean(bool),
     Undefined,
 }
-
-
-impl Primitive {
-    pub fn from_constant_value(value: ConstantValue) -> Self {
-        match value {
-            ConstantValue::Number(n) => Primitive::Number(n),
-            ConstantValue::OneDimArray(v) => Primitive::Iterable(IterableKind::Numbers(v)),
-            ConstantValue::TwoDimArray(v) => {
-                let inner = v
-                    .into_iter()
-                    .map(|row| IterableKind::Numbers(row))
-                    .collect::<Vec<_>>();
-                Primitive::Iterable(IterableKind::Iterable(inner))
-            }
-            ConstantValue::Graph(g) => Primitive::Graph(g),
-            ConstantValue::String(s) => Primitive::String(s),
+pub enum PrimitiveKind {
+    Number,
+    String,
+    Iterable,
+    Graph,
+    GraphEdge,
+    GraphNode,
+    Tuple,
+    Boolean,
+    Undefined,
+}
+impl PrimitiveKind {
+    pub fn from_primitive(p: &Primitive) -> Self {
+        match p {
+            Primitive::Number(_) => PrimitiveKind::Number,
+            Primitive::String(_) => PrimitiveKind::String,
+            Primitive::Iterable(_) => PrimitiveKind::Iterable,
+            Primitive::Graph(_) => PrimitiveKind::Graph,
+            Primitive::GraphEdge(_) => PrimitiveKind::GraphEdge,
+            Primitive::GraphNode(_) => PrimitiveKind::GraphNode,
+            Primitive::Tuple(_) => PrimitiveKind::Tuple,
+            Primitive::Boolean(_) => PrimitiveKind::Boolean,
+            Primitive::Undefined => PrimitiveKind::Undefined,
         }
     }
-
-    pub fn get_argument_name(&self) -> &'static str {
+    pub fn to_string(&self) -> &'static str {
         match self {
-            Primitive::Number(_) => "Number",
-            Primitive::String(_) => "String",
-            Primitive::Iterable(_) => "Iterable",
-            Primitive::Graph(_) => "Graph",
-            Primitive::GraphEdge(_) => "GraphEdge",
-            Primitive::GraphNode(_) => "GraphNode",
-            Primitive::Tuple(_) => "Tuple",
-            Primitive::Undefined => "Undefined",
+            PrimitiveKind::Number => "Number",
+            PrimitiveKind::String => "String",
+            PrimitiveKind::Iterable => "Iterable",
+            PrimitiveKind::Graph => "Graph",
+            PrimitiveKind::GraphEdge => "GraphEdge",
+            PrimitiveKind::GraphNode => "GraphNode",
+            PrimitiveKind::Tuple => "Tuple",
+            PrimitiveKind::Boolean => "Boolean",
+            PrimitiveKind::Undefined => "Undefined",
         }
+    }
+}
+
+impl Primitive {
+    pub fn get_type(&self) -> PrimitiveKind {
+        PrimitiveKind::from_primitive(self)
     }
     pub fn as_number(&self) -> Result<f64, TransformError> {
         match_or_bail!("Number", Primitive::Number(n) => Ok(*n) ; (self, self))
@@ -77,29 +125,11 @@ impl Primitive {
             Primitive::Graph(g) => Ok(g)
           ; (self, self))
     }
-    pub fn as_number_array(&self) -> Result<&Vec<f64>, TransformError> {
-        match self {
-            Primitive::Iterable(IterableKind::Numbers(a)) => Ok(a),
-            _ => bail_wrong_argument!("Array1d", self),
-        }
-    }
-    pub fn as_number_matrix(&self) -> Result<Vec<&Vec<f64>>, TransformError> {
-        match self {
-            Primitive::Iterable(IterableKind::Iterable(a)) => a
-                .into_iter()
-                .map(|row| match row {
-                    IterableKind::Numbers(v) => Ok(v),
-                    _ => bail_wrong_argument!("Array2d", self),
-                })
-                .collect::<Result<Vec<_>, _>>(),
-            _ => bail_wrong_argument!("Array2d", self),
-        }
-    }
     pub fn as_iterator(&self) -> Result<&IterableKind, TransformError> {
         match_or_bail!("Iterable", Primitive::Iterable(i) => Ok(i) ; (self, self))
     }
     pub fn as_tuple(&self) -> Result<&Vec<Primitive>, TransformError> {
-        match_or_bail!("Tuple", Primitive::Tuple(t) => Ok(t) ; (self, self))
+        match_or_bail!("Tuple", Primitive::Tuple(t) => Ok(t.get_primitives()) ; (self, self))
     }
 
     pub fn to_string(&self) -> String {
@@ -113,6 +143,8 @@ impl Primitive {
                 IterableKind::Edges(v) => format!("{:?}", v),
                 IterableKind::Nodes(v) => format!("{:?}", v),
                 IterableKind::Tuple(v) => format!("{:?}", v),
+                IterableKind::Booleans(v) => format!("{:?}", v),
+                IterableKind::Graphs(v) => format!("{:?}", v),
                 IterableKind::Iterable(v) => {
                     let result = v
                         .iter()
@@ -126,6 +158,7 @@ impl Primitive {
             Primitive::GraphEdge(e) => e.to_string(),
             Primitive::GraphNode(n) => n.to_string(),
             Primitive::Tuple(v) => format!("{:?}", v),
+            Primitive::Boolean(b) => b.to_string(),
             Primitive::Undefined => "undefined".to_string(),
         }
     }

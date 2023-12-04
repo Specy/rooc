@@ -26,12 +26,12 @@ pub enum PreIterOfArray {
     ArrayAccess(ArrayAccess),
 }
 #[derive(Debug)]
-pub struct PreSet {
+pub struct IterableSet {
     pub var: VariableType,
     pub iterator: Spanned<Parameter>,
     pub span: InputSpan,
 }
-impl PreSet {
+impl IterableSet {
     pub fn new(var: VariableType, iterator: Spanned<Parameter>, span: InputSpan) -> Self {
         Self {
             var,
@@ -83,7 +83,7 @@ impl CompoundVariable {
 }
 
 pub fn recursive_set_resolver<T>(
-    sets: &Vec<PreSet>,
+    sets: &Vec<IterableSet>,
     context: &mut TransformerContext,
     results: &mut Vec<T>,
     current_level: usize,
@@ -116,7 +116,7 @@ pub fn recursive_set_resolver<T>(
             }
             VariableType::Tuple(tuple) => {
                 match value {
-                    Primitive::Tuple(v) => apply_tuple(context, tuple, v)
+                    Primitive::Tuple(v) => apply_tuple(context, tuple, v.get_primitives())
                         .map_err(|e| e.to_spanned_error(&range.span))?,
                     Primitive::GraphEdge(e) => {
                         let v = &vec![
@@ -130,7 +130,7 @@ pub fn recursive_set_resolver<T>(
                     _ => {
                         return Err(TransformError::WrongArgument(format!(
                             "Expected spreadable primitive, got {}",
-                            value.get_argument_name()
+                            value.get_type().to_string()
                         )))
                     }
                 }
@@ -193,7 +193,7 @@ pub struct PreCondition {
     pub lhs: PreExp,
     pub condition_type: Comparison,
     pub rhs: PreExp,
-    pub iteration: Vec<PreSet>,
+    pub iteration: Vec<IterableSet>,
     pub span: InputSpan,
 }
 
@@ -202,7 +202,7 @@ impl PreCondition {
         lhs: PreExp,
         condition_type: Comparison,
         rhs: PreExp,
-        iteration: Vec<PreSet>,
+        iteration: Vec<IterableSet>,
         span: InputSpan,
     ) -> Self {
         Self {

@@ -14,7 +14,7 @@ macro_rules! wrong_argument {
         TransformError::WrongArgument(format!(
             "Expected argument of type \"{}\", got \"{}\" evaluating \"{}\"",
             $expected_type,
-            $current_arg.get_argument_name(),
+            $current_arg.get_type().to_string(),
             $evauluated_in.to_string()
         ))
     };
@@ -107,5 +107,41 @@ macro_rules! bail_wrong_number_of_arguments {
             &$expected,
             true,
         ))
+    };
+}
+/*
+                    IterableKind::Numbers(v) => if i < v.len() {
+                        Primitive::Number(v[i])
+                    } else {
+                        return Err(TransformError::OutOfBounds(format!(
+                            "cannot access index {} of {}",
+                            i,
+                            self.to_string()
+                        )));
+                    },
+                    IterableKind::Strings(v) => if i < v.len() {
+                        Primitive::String(v[i].to_string())
+                    } else {
+                        return Err(TransformError::OutOfBounds(format!(
+                            "cannot access index {} of {}",
+                            i,
+                            self.to_string()
+                        )));
+                    },
+
+*/
+
+#[macro_export]
+macro_rules! check_bounds {
+    ($i:expr, $v:expr, $self:expr, $mapper:expr) => {
+        if $i < $v.len() {
+            $mapper
+        } else {
+            return Err(TransformError::OutOfBounds(format!(
+                "cannot access index {} of {}",
+                $i,
+                $self.to_string()
+            )));
+        }
     };
 }

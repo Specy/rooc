@@ -5,7 +5,7 @@ use crate::{
 };
 
 use super::{
-    parser::{recursive_set_resolver, ArrayAccess, CompoundVariable, PreSet},
+    parser::{recursive_set_resolver, ArrayAccess, CompoundVariable, IterableSet},
     transformer::{Exp, TransformError, TransformerContext},
 };
 
@@ -20,7 +20,7 @@ pub enum PreExp {
     BinaryOperation(Spanned<Op>, Box<PreExp>, Box<PreExp>),
     UnaryNegation(Spanned<Box<PreExp>>),
     ArrayAccess(Spanned<ArrayAccess>),
-    Sum(Vec<PreSet>, Spanned<Box<PreExp>>),
+    Sum(Vec<IterableSet>, Spanned<Box<PreExp>>),
     FunctionCall(Spanned<Box<dyn FunctionCall>>),
 }
 
@@ -91,7 +91,7 @@ impl PreExp {
                     _ => {
                         let err = TransformError::WrongArgument(format!(
                             "Expected number, got {}",
-                            v.get_argument_name()
+                            v.get_type().to_string()
                         ));
                         Err(err.to_spanned_error(self.get_span()))
                     }
@@ -109,9 +109,18 @@ impl PreExp {
             }
             Self::ArrayAccess(array_access) => {
                 let value = context
-                    .get_array_access_value(array_access)
+                    .get_array_value(array_access)
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
-                Ok(Exp::Number(value))
+                match value {
+                    Primitive::Number(n) => Ok(Exp::Number(n.clone())),
+                    _ => {
+                        let err = TransformError::WrongArgument(format!(
+                            "Expected number, got {}",
+                            value.get_type().to_string()
+                        ));
+                        Err(err.to_spanned_error(self.get_span()))
+                    }
+                }
             }
             Self::Sum(sets, exp) => {
                 let mut results = Vec::new();
@@ -138,7 +147,7 @@ impl PreExp {
                     _ => {
                         let err = TransformError::WrongArgument(format!(
                             "Expected number, got {}",
-                            value.get_argument_name()
+                            value.get_type().to_string()
                         ));
                         Err(err.to_spanned_error(self.get_span()))
                     }

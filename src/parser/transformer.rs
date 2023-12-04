@@ -1,14 +1,14 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, iter};
 
 use crate::{
     math_enums::{Comparison, Op, OptimizationType},
     parser::parser::recursive_set_resolver,
-    primitives::{consts::ConstantValue, primitive::Primitive},
+    primitives::primitive::Primitive,
     utils::{InputSpan, Spanned},
 };
 
 use super::{
-    parser::{ArrayAccess, PreCondition, PreObjective, PreProblem, PreSet},
+    parser::{ArrayAccess, PreCondition, PreObjective, PreProblem},
     pre_exp::PreExp,
 };
 
@@ -267,12 +267,10 @@ impl Frame {
             variables: HashMap::new(),
         }
     }
-    pub fn from_constants(constants: HashMap<String, ConstantValue>) -> Self {
-        let variables = constants
-            .into_iter()
-            .map(|(name, value)| (name.clone(), Primitive::from_constant_value(value)))
-            .collect::<HashMap<_, _>>();
-        Self { variables }
+    pub fn from_primitives(constants: HashMap<String, Primitive>) -> Self {
+        Self {
+            variables: constants,
+        }
     }
 
     pub fn get_value(&self, name: &str) -> Option<&Primitive> {
@@ -309,8 +307,8 @@ pub struct TransformerContext {
     frames: Vec<Frame>,
 }
 impl TransformerContext {
-    pub fn new(constants: HashMap<String, ConstantValue>) -> Self {
-        let frame = Frame::from_constants(constants);
+    pub fn new(primitives: HashMap<String, Primitive>) -> Self {
+        let frame = Frame::from_primitives(primitives);
         Self {
             frames: vec![frame],
         }
@@ -329,7 +327,7 @@ impl TransformerContext {
                     Primitive::GraphNode(v) => Ok(v.get_name().clone()),
                     _ => Err(TransformError::WrongArgument(format!(
                         "Expected a number or string for variable flattening, got {}, check the definition of {}",
-                        value.get_argument_name(),
+                        value.get_type().to_string(),
                         name
                     ))),
                 },
@@ -436,97 +434,26 @@ impl TransformerContext {
             None => Err(TransformError::MissingVariable(name.to_string())),
         }
     }
-    pub fn get_1d_array_number_value(&self, name: &str, i: usize) -> Result<f64, TransformError> {
-        match self.get_value(name) {
-            Some(a) => {
-                let value = a.as_number_array()?.get(i).map(|v| *v);
-                match value {
-                    Some(value) => Ok(value),
-                    None => Err(TransformError::OutOfBounds(format!("{}[{}]", name, i))),
-                }
-            }
-            None => Err(TransformError::MissingVariable(name.to_string())),
-        }
-    }
-    pub fn get_2d_array_number_value(
+    pub fn get_array_value(
         &self,
-        name: &str,
-        i: usize,
-        j: usize,
-    ) -> Result<f64, TransformError> {
-        match self.get_value(name) {
+        array_access: &ArrayAccess,
+    ) -> Result<Primitive, TransformError> {
+        match self.get_value(&array_access.name) {
             Some(a) => {
-                let value = a
-                    .as_number_matrix()?
-                    .get(i)
-                    .map(|row| row.get(j).map(|v| *v));
-                match value {
-                    Some(Some(value)) => Ok(value),
-                    Some(None) => Err(TransformError::OutOfBounds(format!(
-                        "{}[{}][{}]",
-                        name, i, j
-                    ))),
-                    None => Err(TransformError::OutOfBounds(format!(
-                        "{}[{}][{}]",
-                        name, i, j
-                    ))),
-                }
-            }
-            None => Err(TransformError::MissingVariable(name.to_string())),
-        }
-    }
-    pub fn get_1d_array_length(&self, name: &str) -> Result<usize, TransformError> {
-        match self.get_value(name) {
-            Some(a) => {
-                let value = a.as_number_array().map(|a| a.len())?;
+                let accesses = array_access
+                    .accesses
+                    .iter()
+                    .map(|access| access.as_usize(self))
+                    .collect::<Result<Vec<_>, TransformError>>()?;
+                let value = a.as_iterator()?.read(accesses)?;
                 Ok(value)
             }
-            None => Err(TransformError::MissingVariable(name.to_string())),
-        }
-    }
-    pub fn get_2d_array_length(
-        &self,
-        name: &str,
-        index: usize,
-    ) -> Result<(usize, usize), TransformError> {
-        match self.get_value(name) {
-            Some(a) => {
-                let value = a.as_number_matrix().map(|a| {
-                    let row = a.get(index).map(|row| row.len());
-                    match row {
-                        Some(row) => (a.len(), row),
-                        None => (a.len(), 0),
-                    }
-                })?;
-                Ok(value)
-            }
-            None => Err(TransformError::MissingVariable(name.to_string())),
+            None => Err(TransformError::MissingVariable(
+                array_access.name.to_string(),
+            )),
         }
     }
 
-    pub fn get_array_access_value(
-        &self,
-        array_access: &ArrayAccess,
-    ) -> Result<f64, TransformError> {
-        let indexes = array_access
-            .accesses
-            .iter()
-            .map(|access| access.as_usize(self))
-            .collect::<Result<Vec<_>, TransformError>>()?;
-        match indexes.as_slice() {
-            [i] => Ok(self.get_1d_array_number_value(&array_access.name, *i)?),
-            [i, j] => Ok(self.get_2d_array_number_value(&array_access.name, *i, *j)?),
-            _ => Err(TransformError::OutOfBounds(format!(
-                "limit of 2d arrays, trying to access {}{}",
-                array_access.name,
-                indexes
-                    .iter()
-                    .map(|i| format!("[{}]", i))
-                    .collect::<Vec<_>>()
-                    .join("")
-            ))),
-        }
-    }
 }
 
 pub fn transform_parsed_problem(pre_problem: &PreProblem) -> Result<Problem, TransformError> {
@@ -560,7 +487,6 @@ pub enum VariableType {
     Single(Spanned<String>),
     Tuple(Vec<Spanned<String>>),
 }
-
 
 pub fn transform_condition(
     condition: &PreCondition,

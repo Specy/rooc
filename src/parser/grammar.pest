@@ -26,7 +26,7 @@ consts_declaration = { (const_declaration ~ nl+)* ~ const_declaration }
 const_declaration  = {
   #name = simple_variable ~
   "=" ~
-  #value = constant
+  #value = primitive
 }
 
 // iterations
@@ -55,7 +55,7 @@ parenthesis =  { "(" ~ exp ~ ")" }
 block_function    = _{ min | max | sum }
 function = {  #function_name = function_name ~ "(" ~ #function_pars = function_pars ~ ")"}
 function_pars = { (parameter ~(comma ~ parameter)*)?}
-parameter = { function | array_access | simple_variable | compound_variable | string | number }
+parameter = { function | array_access | simple_variable | compound_variable | primitive }
 function_name = { LETTER ~ (LETTER | NUMBER | "_")*}
 // block functions
 min = { ^"min" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~"}" }
@@ -69,13 +69,13 @@ array_access        = {
 pointer_access_list = { (pointer_access)+ }
 pointer_access      = _{ ^"[" ~ parameter ~ ^"]" }
 // constants
-constant = _{ number | array | graph}
+primitive = _{ number | array | graph | boolean | string }
 graph = { ^"Graph" ~ "{" ~nl* ~ #body = graph_node_list ~ nl* ~ "}" }
 graph_node_list = { graph_node? ~ (comma ~ graph_node)* }
 graph_node = { #name = simple_variable ~ ( "->" ~ "[" ~ #edges = edges_list ~ "]")?}
 edges_list = {  (edge ~ comma)* ~ edge?}
 edge = { #node = simple_variable ~ (":" ~ #cost = signed_number)? }
-array    =  { "[" ~ nl* ~ ((( number | array) ~ comma)* ~ constant) ~ nl* ~ "]" }
+array    =  { "[" ~ nl* ~ ((primitive ~ comma)* ~ primitive) ~ nl* ~ "]" }
 // utilities
 comma_separated_exp = _{ (exp ~ comma)* ~ exp }
 comma = _{ "," ~ nl? }
@@ -93,6 +93,7 @@ signed_number = @{ "-"? ~ number}
 binary_op = @{ "*" | "+" | "-" | "/" }
 unary_op  = @{ "-" }
 string = @ { "\"" ~ LETTER* ~ "\""}
+boolean = @{ ^"true" | ^"false" }
 // ignore whitespace in whole grammar
 WHITESPACE = _{ " " | "\t" }
 range_type = @{ "..=" | ".." }
