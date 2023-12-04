@@ -41,7 +41,7 @@ Given the formal problem of the [Dominating set](https://en.wikipedia.org/wiki/D
 ```rust
 min sum(u in nodes(G)) { x_u }
 s.t. 
-    x_v + sum((_, _, u) in neigh_edges(G)) { x_u } >= 1    for v in nodes(G)
+    x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1    for v in nodes(G)
 where
     G = Graph {
         A -> [B, C, D, E, F],
