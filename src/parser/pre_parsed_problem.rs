@@ -1,12 +1,14 @@
 use crate::{
-    math_enums::Op,
-    primitives::{functions::function_traits::FunctionCall, primitive::Primitive},
+    math_enums::{Comparison, Op, OptimizationType},
+    primitives::{
+        functions::function_traits::FunctionCall, parameter::Parameter, primitive::Primitive,
+    },
     utils::{InputSpan, Spanned},
 };
 
 use super::{
-    parser::{ ArrayAccess, CompoundVariable, IterableSet},
-    transformer::{Exp, TransformError, TransformerContext}, recursive_set_resolver::recursive_set_resolver,
+    recursive_set_resolver::recursive_set_resolver,
+    transformer::{Exp, TransformError, TransformerContext, VariableType},
 };
 
 #[derive(Debug)]
@@ -155,5 +157,97 @@ impl PreExp {
             }
         };
         exp.map(|e: Exp| e.flatten())
+    }
+}
+
+#[derive(Debug)]
+pub struct IterableSet {
+    pub var: VariableType,
+    pub iterator: Spanned<Parameter>,
+    pub span: InputSpan,
+}
+impl IterableSet {
+    pub fn new(var: VariableType, iterator: Spanned<Parameter>, span: InputSpan) -> Self {
+        Self {
+            var,
+            iterator,
+            span,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ArrayAccess {
+    pub name: String,
+    pub accesses: Vec<Parameter>,
+}
+impl ArrayAccess {
+    pub fn new(name: String, accesses: Vec<Parameter>) -> Self {
+        Self { name, accesses }
+    }
+    pub fn to_string(&self) -> String {
+        let rest = self
+            .accesses
+            .iter()
+            .map(|a| format!("[{}]", a.to_string()))
+            .collect::<Vec<String>>()
+            .join("");
+        format!("{}{}", self.name, rest)
+    }
+}
+
+#[derive(Debug)]
+pub struct CompoundVariable {
+    pub name: String,
+    pub indexes: Vec<String>,
+}
+impl CompoundVariable {
+    pub fn new(name: String, indexes: Vec<String>) -> Self {
+        Self { name, indexes }
+    }
+    pub fn to_string(&self) -> String {
+        format!("{}_{}", self.name, self.indexes.join("_"))
+    }
+}
+
+#[derive(Debug)]
+pub struct PreObjective {
+    pub objective_type: OptimizationType,
+    pub rhs: PreExp,
+}
+
+impl PreObjective {
+    pub fn new(objective_type: OptimizationType, rhs: PreExp) -> Self {
+        Self {
+            objective_type,
+            rhs,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct PreCondition {
+    pub lhs: PreExp,
+    pub condition_type: Comparison,
+    pub rhs: PreExp,
+    pub iteration: Vec<IterableSet>,
+    pub span: InputSpan,
+}
+
+impl PreCondition {
+    pub fn new(
+        lhs: PreExp,
+        condition_type: Comparison,
+        rhs: PreExp,
+        iteration: Vec<IterableSet>,
+        span: InputSpan,
+    ) -> Self {
+        Self {
+            lhs,
+            condition_type,
+            rhs,
+            iteration,
+            span,
+        }
     }
 }

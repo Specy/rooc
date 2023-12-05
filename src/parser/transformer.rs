@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter};
+use std::collections::HashMap;
 
 use crate::{
     math_enums::{Comparison, Op, OptimizationType},
@@ -7,8 +7,9 @@ use crate::{
 };
 
 use super::{
-    parser::{ArrayAccess, PreCondition, PreObjective, PreProblem},
-    pre_exp::PreExp, recursive_set_resolver::recursive_set_resolver,
+    parser::PreProblem,
+    pre_parsed_problem::{ArrayAccess, PreCondition, PreExp, PreObjective},
+    recursive_set_resolver::recursive_set_resolver,
 };
 
 #[derive(Debug, Clone)]

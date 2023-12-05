@@ -1,8 +1,4 @@
-use super::{primitive::Primitive};
-
-
-
-
+use super::primitive::Primitive;
 
 #[derive(Debug)]
 pub struct Constant {

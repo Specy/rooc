@@ -1,6 +1,6 @@
 use crate::{
     check_bounds,
-    parser::{parser::ArrayAccess, transformer::TransformError},
+    parser::{ transformer::TransformError},
 };
 
 use super::{

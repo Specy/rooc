@@ -1,4 +1,3 @@
-use core::panic;
 use std::vec;
 
 use pest::iterators::{Pair, Pairs};
@@ -14,12 +13,14 @@ use crate::primitives::functions::graph_functions::{
 use crate::primitives::functions::number_functions::NumericRange;
 use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
 use crate::primitives::parameter::Parameter;
-use crate::primitives::primitive::{Primitive};
+use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 use crate::{bail_missing_token, err_unexpected_token};
 
-use super::parser::{ArrayAccess, CompoundVariable, IterableSet, PreCondition, PreObjective, Rule};
-use super::pre_exp::PreExp;
+use super::parser::Rule;
+use super::pre_parsed_problem::{
+    ArrayAccess, CompoundVariable, IterableSet, PreCondition, PreExp, PreObjective,
+};
 use super::transformer::VariableType;
 
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {

@@ -2,21 +2,20 @@ use std::fmt::Debug;
 
 use crate::{
     bail_wrong_argument_spanned, match_or_bail_spanned,
-    parser::{
-        parser::{ArrayAccess, CompoundVariable},
-        transformer::{TransformError, TransformerContext},
-    },
+    parser::{transformer::{TransformError, TransformerContext}, pre_parsed_problem::{CompoundVariable, ArrayAccess}},
     utils::{InputSpan, Spanned},
     wrong_argument,
 };
 
 use super::{
-    functions::function_traits::FunctionCall, graph::{Graph, GraphNode, GraphEdge}, iterable::IterableKind,
+    functions::function_traits::FunctionCall,
+    graph::{Graph, GraphEdge, GraphNode},
+    iterable::IterableKind,
     primitive::Primitive,
 };
 
 #[derive(Debug)]
-pub enum Parameter { 
+pub enum Parameter {
     Primitive(Spanned<Primitive>),
     Variable(Spanned<String>),
     CompoundVariable(Spanned<CompoundVariable>),

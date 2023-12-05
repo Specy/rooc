@@ -1,6 +1,6 @@
 use crate::{primitives::primitive::Primitive, utils::Spanned};
 
-use super::{parser::IterableSet, transformer::{TransformerContext, VariableType, TransformError}};
+use super::{transformer::{TransformerContext, VariableType, TransformError}, pre_parsed_problem::IterableSet};
 
 //TODO make this a iterator
 pub fn recursive_set_resolver<T>(
