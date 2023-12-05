@@ -1,6 +1,9 @@
 use rooc::{
     math_enums::{Comparison, OptimizationType},
-    parser::{parser::parse_problem_source, transformer::transform_parsed_problem},
+    parser::{
+        parser::{parse_problem_source, RoocParser},
+        transformer::transform_parsed_problem,
+    },
     solvers::{
         linear_problem::{Constraint, LinearProblem},
         simplex::{IntoCanonicalTableau, Tableau},
@@ -89,28 +92,25 @@ fn main() {
         }
     }
 
-    let problem = "
+    let source = "
     min x
     s.t.
-    sum(j in enumerate(C[i])) { j} <= x_i for i in 0..len(C)
-where
-    C = [
-        [1,0,0],
-        [0,1,0], 
-        [0,0,1]
-    ]
-    " 
+        sum(j in enumerate(C[i])){ j } <= x_i for i in 0..len(C)
+    where
+        C = [
+            [1,0,0],
+            [0, 1,0], 
+            [0,0,1]
+        ]
+        D = Graph { }
+    "
+    .trim()
     .to_string();
-    let parsed = parse_problem_source(&problem);
+    let parser = RoocParser::new(source);
+    let parsed = parser.parse_and_transform();
     match parsed {
         Ok(parsed) => {
-            println!("{:#?}", parsed);
-            let transformed = transform_parsed_problem(&parsed);
-            println!("\n\n");
-            match transformed {
-                Ok(transformed) => println!("{}", transformed.to_string()),
-                Err(e) => println!("{}", e.get_traced_error()),
-            }
+            println!("{:#?}", parsed.to_string());
         }
         Err(e) => {
             println!("{}", e);
@@ -125,4 +125,3 @@ fn create_variable_names(n: usize) -> Vec<String> {
     }
     variables
 }
-

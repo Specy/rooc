@@ -30,7 +30,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .map(|v| match v {
                     Primitive::Number(n) => Ok(n),
                     _ => Err(format!(
-                        "Expected number but got {}",
+                        "Expected \"Number\", got \"{}\"",
                         v.get_type().to_string()
                     )),
                 })

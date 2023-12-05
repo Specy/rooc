@@ -16,7 +16,7 @@ objective = {
 condition_list = { (condition ~ nl+)* ~ condition }
 // condition
 condition = {
-  #lhs = tagged_exp ~
+  #lhs = (tagged_exp) ~
   #relation = comparison ~
   #rhs = tagged_exp ~
   (#iteration = for_iteration)?

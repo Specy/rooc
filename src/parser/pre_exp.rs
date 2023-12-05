@@ -5,8 +5,8 @@ use crate::{
 };
 
 use super::{
-    parser::{recursive_set_resolver, ArrayAccess, CompoundVariable, IterableSet},
-    transformer::{Exp, TransformError, TransformerContext},
+    parser::{ ArrayAccess, CompoundVariable, IterableSet},
+    transformer::{Exp, TransformError, TransformerContext}, recursive_set_resolver::recursive_set_resolver,
 };
 
 #[derive(Debug)]
@@ -90,7 +90,7 @@ impl PreExp {
                     Primitive::Number(n) => Ok(Exp::Number(n.clone())),
                     _ => {
                         let err = TransformError::WrongArgument(format!(
-                            "Expected number, got {}",
+                            "Expected \"Number\", got \"{}\"",
                             v.get_type().to_string()
                         ));
                         Err(err.to_spanned_error(self.get_span()))
@@ -115,7 +115,7 @@ impl PreExp {
                     Primitive::Number(n) => Ok(Exp::Number(n.clone())),
                     _ => {
                         let err = TransformError::WrongArgument(format!(
-                            "Expected number, got {}",
+                            "Expected \"Number\", got \"{}\"",
                             value.get_type().to_string()
                         ));
                         Err(err.to_spanned_error(self.get_span()))
@@ -146,7 +146,7 @@ impl PreExp {
                     Primitive::Number(n) => Ok(Exp::Number(n)),
                     _ => {
                         let err = TransformError::WrongArgument(format!(
-                            "Expected number, got {}",
+                            "Expected \"Number\", got \"{}\"",
                             value.get_type().to_string()
                         ));
                         Err(err.to_spanned_error(self.get_span()))

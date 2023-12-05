@@ -2,14 +2,13 @@ use std::{collections::HashMap, iter};
 
 use crate::{
     math_enums::{Comparison, Op, OptimizationType},
-    parser::parser::recursive_set_resolver,
     primitives::primitive::Primitive,
     utils::{InputSpan, Spanned},
 };
 
 use super::{
     parser::{ArrayAccess, PreCondition, PreObjective, PreProblem},
-    pre_exp::PreExp,
+    pre_exp::PreExp, recursive_set_resolver::recursive_set_resolver,
 };
 
 #[derive(Debug, Clone)]
@@ -209,12 +208,12 @@ pub enum TransformError {
 impl TransformError {
     pub fn to_string(&self) -> String {
         match self {
-            TransformError::MissingVariable(name) => format!("Missing variable {}", name),
+            TransformError::MissingVariable(name) => format!("[Missing variable] {}", name),
             TransformError::AlreadyExistingVariable(name) => {
                 format!("Variable {} was already declared", name)
             }
-            TransformError::OutOfBounds(name) => format!("Out of bounds {}", name),
-            TransformError::WrongArgument(name) => format!("Wrong argument {}", name),
+            TransformError::OutOfBounds(name) => format!("[Out of bounds] {}", name),
+            TransformError::WrongArgument(name) => format!("[Wrong argument] {}", name),
             TransformError::Other(name) => name.clone(),
             TransformError::SpannedError(error, _) => return error.to_string(),
         }
@@ -262,6 +261,21 @@ impl TransformError {
             }
             _ => Vec::new(),
         }
+    }
+    pub fn get_trace_from_source(&self, source: &str) -> Result<String, ()> {
+        let trace = self.get_trace();
+        let trace = trace
+            .into_iter()
+            .map(|(span, _)| {
+                let text = span.get_span_text(source)?;
+                Ok(format!(
+                    "at {}:{} {}",
+                    span.start_line, span.start_column, text,
+                ))
+            })
+            .collect::<Result<Vec<_>, ()>>()?;
+        let join = trace.join("\n\t");
+        Ok(format!("{}\n\t{}", self.to_string(), join))
     }
 }
 

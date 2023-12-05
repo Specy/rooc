@@ -13,9 +13,8 @@ use crate::primitives::functions::graph_functions::{
 };
 use crate::primitives::functions::number_functions::NumericRange;
 use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
-use crate::primitives::iterable::IterableKind;
 use crate::primitives::parameter::Parameter;
-use crate::primitives::primitive::{Primitive, PrimitiveKind};
+use crate::primitives::primitive::{Primitive};
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 use crate::{bail_missing_token, err_unexpected_token};
 
@@ -364,11 +363,10 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                     return err_unexpected_token!("found {}, expected sum", exp);
                 }
                 let body = body.unwrap();
-                let body_span = InputSpan::from_pair(&body);
                 let body = parse_exp_list(&body)?.to_boxed();
                 let range = range.unwrap();
                 let range = parse_set_iterator_list(&range.into_inner())?;
-                let sum = PreExp::Sum(range, Spanned::new(body, body_span));
+                let sum = PreExp::Sum(range, Spanned::new(body, span));
                 let sum = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, sum)?;
                 output_queue.push(sum);
             }

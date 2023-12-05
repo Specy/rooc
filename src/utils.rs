@@ -125,6 +125,17 @@ impl CompilationError {
             self.text
         )
     }
+    pub fn to_string_from_source(&self, source: &str) -> String {
+        let span_text = self.span.get_span_text(source);
+        let span_text = span_text.unwrap_or("");
+        format!(
+            "Error at line {}:{}\n\t{}{}",
+            self.span.start_line,
+            self.span.start_column,
+            self.kind.to_string(),
+            span_text
+        )
+    }
     pub fn to_error_string(&self) -> String {
         format!("{} {}", self.kind.to_string(), self.text)
     }

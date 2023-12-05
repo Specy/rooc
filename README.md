@@ -75,11 +75,12 @@ s.t
 ```
 If the compilation finds a type mismatch (for example, function parameters or compound variable flattening), a stack trace will be generated:
 ```lua
-Wrong argument Expected argument of type "GraphNode", got "Graph" evaluating "G"
-        at 3:44
-        at 3:32
-        at 3:13
-        at 3:9
+Wrong argument Expected argument of type "Number", got "Graph" evaluating "D"
+        at 3:30 D
+        at 3:28 C[D]
+        at 3:18 enumerate(C[D])
+        at 3:9  sum(j in enumerate(C[D])) { j }
+        at 3:9  sum(j in enumerate(C[D])) { j } <= x_i for i in 0..len(C)
 ```
 If there were no errors during compilation, it will be then be converted into the standard form:
 ```

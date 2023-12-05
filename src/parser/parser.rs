@@ -10,7 +10,9 @@ use std::fmt::Debug;
 
 use super::pre_exp::PreExp;
 use super::rules_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
-use super::transformer::{TransformError, TransformerContext, VariableType};
+use super::transformer::{
+    transform_parsed_problem, Problem, TransformError, TransformerContext, VariableType,
+};
 
 /*
    TODO: add bounds to variables, including wildcards (or add a way to define variable types)
@@ -20,11 +22,6 @@ use super::transformer::{TransformError, TransformerContext, VariableType};
 #[grammar = "parser/grammar.pest"]
 struct PLParser;
 
-#[derive(Debug)]
-pub enum PreIterOfArray {
-    Array(String),
-    ArrayAccess(ArrayAccess),
-}
 #[derive(Debug)]
 pub struct IterableSet {
     pub var: VariableType,
@@ -39,12 +36,6 @@ impl IterableSet {
             span,
         }
     }
-}
-
-#[derive(Debug)]
-pub enum PreNode {
-    Name(String),
-    Variable(String),
 }
 
 #[derive(Debug)]
@@ -79,99 +70,6 @@ impl CompoundVariable {
     pub fn to_string(&self) -> String {
         format!("{}_{}", self.name, self.indexes.join("_"))
     }
-}
-
-//TODO make this a iterator
-pub fn recursive_set_resolver<T>(
-    sets: &Vec<IterableSet>,
-    context: &mut TransformerContext,
-    results: &mut Vec<T>,
-    current_level: usize,
-    on_leaf: &dyn Fn(&mut TransformerContext) -> Result<T, TransformError>,
-) -> Result<(), TransformError> {
-    let range = sets.get(current_level).unwrap();
-    context.add_scope();
-    match &range.var {
-        VariableType::Single(n) => {
-            context
-                .declare_variable(n, Primitive::Undefined, true)
-                .map_err(|e| e.to_spanned_error(&range.span))?;
-        }
-        VariableType::Tuple(t) => {
-            for name in t.iter() {
-                context
-                    .declare_variable(name, Primitive::Undefined, true)
-                    .map_err(|e| e.to_spanned_error(&range.span))?;
-            }
-        }
-    }
-    let values = range.iterator.as_iterator(&context)?;
-    let values = values.to_primitive_set();
-    for value in values.into_iter() {
-        match &range.var {
-            VariableType::Single(n) => {
-                context
-                    .update_variable(n, value.clone())
-                    .map_err(|e| e.to_spanned_error(&range.span))?;
-            }
-            VariableType::Tuple(tuple) => {
-                match value {
-                    Primitive::Tuple(v) => apply_tuple(context, tuple, v.into_primitives())
-                        .map_err(|e| e.to_spanned_error(&range.span))?,
-                    Primitive::GraphEdge(e) => {
-                        let v = vec![
-                            Primitive::String(e.from.clone()), //TODO maybe i should return the actul edge instead
-                            Primitive::Number(e.weight.unwrap_or(1.0)),
-                            Primitive::String(e.to.clone()),
-                        ];
-                        apply_tuple(context, tuple, v)
-                            .map_err(|e| e.to_spanned_error(&range.span))?
-                    }
-                    _ => {
-                        return Err(TransformError::WrongArgument(format!(
-                            "Expected spreadable primitive, got {}",
-                            value.get_type().to_string()
-                        )))
-                    }
-                }
-            }
-        }
-        if current_level + 1 >= sets.len() {
-            let value = on_leaf(context)?;
-            results.push(value); //TODO should i do this? maybe it's best to leave it out to the caller
-        } else {
-            recursive_set_resolver(sets, context, results, current_level + 1, on_leaf)
-                .map_err(|e| e.to_spanned_error(&range.span))?;
-        }
-    }
-    context.pop_scope()?;
-    Ok(())
-}
-
-pub fn apply_tuple(
-    context: &mut TransformerContext,
-    tuple: &Vec<Spanned<String>>,
-    spreadable: Vec<Primitive>,
-) -> Result<(), TransformError> {
-    if tuple.len() > spreadable.len() {
-        return Err(TransformError::WrongArgument(format!(
-            "Cannot destructure tuple of length {} in {} elements",
-            spreadable.len(),
-            tuple.len()
-        )));
-    }
-    for (i, value) in spreadable.into_iter().enumerate() {
-        let name = tuple.get(i);
-        match name {
-            Some(name) => {
-                context
-                    .update_variable(name, value)
-                    .map_err(|e| e.to_spanned_error(&name.get_span()))?;
-            }
-            None => return Ok(()), //tuple is smaller than the spreadable, ignore the rest
-        }
-    }
-    Ok(())
 }
 
 #[derive(Debug)]
@@ -217,12 +115,6 @@ impl PreCondition {
 }
 
 #[derive(Debug)]
-pub enum PreLen {
-    LenOfArray(String),
-    Number(i32),
-}
-
-#[derive(Debug)]
 pub struct PreProblem {
     pub objective: PreObjective,
     pub conditions: Vec<PreCondition>,
@@ -255,10 +147,10 @@ pub fn parse_problem_source(source: &String) -> Result<PreProblem, String> {
             let problem = problem.unwrap();
             match parse_problem(problem) {
                 Ok(problem) => Ok(problem),
-                Err(err) => Err(format!("{}", err.to_string())),
+                Err(err) => Err(err.to_string_from_source(source)),
             }
         }
-        Err(err) => Err(format!("{:#?}", err)),
+        Err(err) => Err(err.to_string()),
     }
 }
 
@@ -278,5 +170,27 @@ fn parse_problem(problem: Pair<Rule>) -> Result<PreProblem, CompilationError> {
             consts.unwrap_or(Ok(Vec::new()))?,
         )),
         _ => bail_missing_token!("Objective and conditions are required", problem),
+    }
+}
+
+pub struct RoocParser {
+    source: String,
+}
+impl RoocParser {
+    pub fn new(source: String) -> Self {
+        Self { source }
+    }
+    pub fn parse(&self) -> Result<PreProblem, String> {
+        parse_problem_source(&self.source)
+    }
+    pub fn parse_and_transform(&self) -> Result<Problem, String> {
+        let parsed = self.parse()?;
+        let transformed = transform_parsed_problem(&parsed);
+        match transformed {
+            Ok(transformed) => Ok(transformed),
+            Err(e) => Err(e
+                .get_trace_from_source(&self.source)
+                .unwrap_or(e.get_traced_error())),
+        }
     }
 }
