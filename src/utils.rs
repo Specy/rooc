@@ -4,7 +4,7 @@ use pest::{iterators::Pair, Span};
 
 use crate::parser::parser::Rule;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputSpan {
     pub start_line: usize,
     pub start_column: usize,

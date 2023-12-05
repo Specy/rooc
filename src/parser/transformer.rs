@@ -246,7 +246,15 @@ impl TransformError {
                 let mut last_error = e;
                 while let TransformError::SpannedError(ref e, ref r) = **last_error.get_span_value()
                 {
-                    trace.push((e.get_span().clone(), r.clone()));
+                    let span = e.get_span().clone();
+                    //don't add if the last span is the same as the current one
+                    if let Some((last_span, _)) = trace.last() {
+                        if last_span == &span {
+                            last_error = e;
+                            continue;
+                        }
+                    }
+                    trace.push((span, r.clone()));
                     last_error = e;
                 }
                 trace.reverse();
@@ -434,10 +442,7 @@ impl TransformerContext {
             None => Err(TransformError::MissingVariable(name.to_string())),
         }
     }
-    pub fn get_array_value(
-        &self,
-        array_access: &ArrayAccess,
-    ) -> Result<Primitive, TransformError> {
+    pub fn get_array_value(&self, array_access: &ArrayAccess) -> Result<Primitive, TransformError> {
         match self.get_value(&array_access.name) {
             Some(a) => {
                 let accesses = array_access
@@ -453,7 +458,6 @@ impl TransformerContext {
             )),
         }
     }
-
 }
 
 pub fn transform_parsed_problem(pre_problem: &PreProblem) -> Result<Problem, TransformError> {

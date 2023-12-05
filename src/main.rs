@@ -92,7 +92,7 @@ fn main() {
     let problem = "
     min x
     s.t.
-    sum((j, jin) in enumerate(C[i])) { j * x_i_jin } <= x_i for i in 0..len(C)
+    sum(j in enumerate(C[i])) { j} <= x_i for i in 0..len(C)
 where
     C = [
         [1,0,0],

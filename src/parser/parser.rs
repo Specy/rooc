@@ -47,7 +47,6 @@ pub enum PreNode {
     Variable(String),
 }
 
-
 #[derive(Debug)]
 pub struct ArrayAccess {
     pub name: String,
@@ -82,6 +81,7 @@ impl CompoundVariable {
     }
 }
 
+//TODO make this a iterator
 pub fn recursive_set_resolver<T>(
     sets: &Vec<IterableSet>,
     context: &mut TransformerContext,
@@ -105,9 +105,9 @@ pub fn recursive_set_resolver<T>(
             }
         }
     }
-    let values= range.iterator.as_iterator(&context)?;
+    let values = range.iterator.as_iterator(&context)?;
     let values = values.to_primitive_set();
-    for value in values.iter() {
+    for value in values.into_iter() {
         match &range.var {
             VariableType::Single(n) => {
                 context
@@ -116,10 +116,10 @@ pub fn recursive_set_resolver<T>(
             }
             VariableType::Tuple(tuple) => {
                 match value {
-                    Primitive::Tuple(v) => apply_tuple(context, tuple, v.get_primitives())
+                    Primitive::Tuple(v) => apply_tuple(context, tuple, v.into_primitives())
                         .map_err(|e| e.to_spanned_error(&range.span))?,
                     Primitive::GraphEdge(e) => {
-                        let v = &vec![
+                        let v = vec![
                             Primitive::String(e.from.clone()), //TODO maybe i should return the actul edge instead
                             Primitive::Number(e.weight.unwrap_or(1.0)),
                             Primitive::String(e.to.clone()),
@@ -138,7 +138,7 @@ pub fn recursive_set_resolver<T>(
         }
         if current_level + 1 >= sets.len() {
             let value = on_leaf(context)?;
-            results.push(value);
+            results.push(value); //TODO should i do this? maybe it's best to leave it out to the caller
         } else {
             recursive_set_resolver(sets, context, results, current_level + 1, on_leaf)
                 .map_err(|e| e.to_spanned_error(&range.span))?;
@@ -151,23 +151,24 @@ pub fn recursive_set_resolver<T>(
 pub fn apply_tuple(
     context: &mut TransformerContext,
     tuple: &Vec<Spanned<String>>,
-    spreadable: &Vec<Primitive>,
+    spreadable: Vec<Primitive>,
 ) -> Result<(), TransformError> {
-    for (i, name) in tuple.iter().enumerate() {
-        match spreadable.get(i) {
-            Some(value) => {
+    if tuple.len() > spreadable.len() {
+        return Err(TransformError::WrongArgument(format!(
+            "Cannot destructure tuple of length {} in {} elements",
+            spreadable.len(),
+            tuple.len()
+        )));
+    }
+    for (i, value) in spreadable.into_iter().enumerate() {
+        let name = tuple.get(i);
+        match name {
+            Some(name) => {
                 context
-                    .update_variable(name, value.clone())
-                    .map_err(|e| e.to_spanned_error(name.get_span()))?;
+                    .update_variable(name, value)
+                    .map_err(|e| e.to_spanned_error(&name.get_span()))?;
             }
-            None => {
-                let error = format!(
-                    "Cannot destructure tuple of size {} into {} variables",
-                    spreadable.len(),
-                    tuple.len()
-                );
-                return Err(TransformError::WrongArgument(error));
-            }
+            None => return Ok(()), //tuple is smaller than the spreadable, ignore the rest
         }
     }
     Ok(())
