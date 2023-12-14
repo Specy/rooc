@@ -92,7 +92,7 @@ fn main() {
     let source = "
     min 1
     s.t.
-      avg { x1, x2, x3 } <= 0
+        sum(i in 0..3, j in 0..i) { } <= 1
     "
     .trim()
     .to_string();

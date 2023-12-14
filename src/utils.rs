@@ -129,11 +129,11 @@ impl CompilationError {
         let span_text = self.span.get_span_text(source);
         let span_text = span_text.unwrap_or("");
         format!(
-            "Error at line {}:{}\n\t{}{}",
+            "Error at line {}:{} ({})\n\t{}",
             self.span.start_line,
             self.span.start_column,
-            self.kind.to_string(),
-            span_text
+            span_text,
+            self.kind.to_string()
         )
     }
     pub fn to_error_string(&self) -> String {
@@ -157,10 +157,10 @@ impl ParseError {
     pub fn to_string(&self) -> String {
         match self {
             Self::UnexpectedToken(s) => format!("[Unexpected token] {}", s),
-            Self::MissingToken(s) => format!("[Missing token]\n\t{}", s),
-            Self::SemanticError(s) => format!("[Semantic error]\n\t{}", s),
+            Self::MissingToken(s) => format!("[Missing token] {}", s),
+            Self::SemanticError(s) => format!("[Semantic error] {}", s),
             Self::WrongNumberOfArguments(got, expected) => format!(
-                "[Wrong number of arguments]\n\tgot {}, expected {}: ({})",
+                "[Wrong number of arguments] got {}, expected {}: ({})",
                 got,
                 expected.len(),
                 expected.join(", ")

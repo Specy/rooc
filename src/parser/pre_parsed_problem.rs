@@ -1,4 +1,5 @@
 use crate::{
+    enum_with_variants_to_string,
     math_enums::{Comparison, Op, OptimizationType},
     primitives::{
         functions::function_traits::FunctionCall, parameter::Parameter, primitive::Primitive,
@@ -11,18 +12,13 @@ use super::{
     transformer::{Exp, TransformError, TransformerContext, VariableType},
 };
 
-#[derive(Debug)]
-pub enum BlockScopedFunctionKind {
-    Sum,
-    Prod,
+enum_with_variants_to_string! {
+    pub enum BlockScopedFunctionKind derives[Debug] {
+        Sum,
+        Prod,
+    }
 }
 impl BlockScopedFunctionKind {
-    pub fn kinds() -> Vec<Self> {
-        vec![Self::Sum, Self::Prod]
-    }
-    pub fn kinds_to_string() -> Vec<String> {
-        Self::kinds().iter().map(|k| k.to_string()).collect()
-    }
     pub fn to_string(&self) -> String {
         match self {
             Self::Sum => "sum".to_string(),
@@ -30,19 +26,15 @@ impl BlockScopedFunctionKind {
         }
     }
 }
-#[derive(Debug)]
-pub enum BlockFunctionKind {
-    Min,
-    Max,
-    Avg,
+enum_with_variants_to_string! {
+    pub enum BlockFunctionKind derives[Debug] {
+        Min,
+        Max,
+        Avg,
+    }
 }
+
 impl BlockFunctionKind {
-    pub fn kinds() -> Vec<Self> {
-        vec![Self::Min, Self::Max, Self::Avg]
-    }
-    pub fn kinds_to_string() -> Vec<String> {
-        Self::kinds().iter().map(|k| k.to_string()).collect()
-    }
     pub fn to_string(&self) -> String {
         match self {
             Self::Min => "min".to_string(),

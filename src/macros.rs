@@ -109,27 +109,6 @@ macro_rules! bail_wrong_number_of_arguments {
         ))
     };
 }
-/*
-                    IterableKind::Numbers(v) => if i < v.len() {
-                        Primitive::Number(v[i])
-                    } else {
-                        return Err(TransformError::OutOfBounds(format!(
-                            "cannot access index {} of {}",
-                            i,
-                            self.to_string()
-                        )));
-                    },
-                    IterableKind::Strings(v) => if i < v.len() {
-                        Primitive::String(v[i].to_string())
-                    } else {
-                        return Err(TransformError::OutOfBounds(format!(
-                            "cannot access index {} of {}",
-                            i,
-                            self.to_string()
-                        )));
-                    },
-
-*/
 
 #[macro_export]
 macro_rules! check_bounds {
@@ -142,6 +121,26 @@ macro_rules! check_bounds {
                 $i,
                 $self.to_string()
             )));
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! enum_with_variants_to_string {
+    ($vis:vis enum $name:ident derives[$($derive:tt)+] { $($variant:ident),* $(,)? }) => {
+        #[derive($($derive)*)]
+        $vis enum $name {
+            $($variant),*
+        }
+
+        impl $name {
+            pub fn kinds() -> Vec<Self> {
+                vec![$(Self::$variant),*]
+            }
+
+            pub fn kinds_to_string() -> Vec<String> {
+                Self::kinds().iter().map(|k| k.to_string()).collect()
+            }
         }
     };
 }

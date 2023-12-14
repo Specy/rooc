@@ -496,12 +496,12 @@ pub fn parse_block_function_type(
         "avg" => Ok(BlockFunctionKind::Avg),
         _ => Err(CompilationError::from_pair(
             ParseError::SemanticError(format!(
-                "Unknown block function {}, expected one of {}",
+                "Unknown block function \"{}\", expected one of \"{}\"",
                 block_function_type.as_str(),
-                BlockFunctionKind::kinds_to_string().join(",")
+                BlockFunctionKind::kinds_to_string().join(", ")
             )),
             &block_function_type,
-            true,
+            false,
         )),
     }
 }
@@ -513,9 +513,9 @@ pub fn parse_scoped_block_function_type(
         "prod" => Ok(BlockScopedFunctionKind::Prod),
         _ => Err(CompilationError::from_pair(
             ParseError::SemanticError(format!(
-                "Unknown scoped block function {}, expected one of {}",
+                "Unknown scoped block function \"{}\", expected one of \"{}\"",
                 scoped_block_function_type.as_str(),
-                BlockScopedFunctionKind::kinds_to_string().join(",")
+                BlockScopedFunctionKind::kinds_to_string().join(", ")
             )),
             &scoped_block_function_type,
             true,
