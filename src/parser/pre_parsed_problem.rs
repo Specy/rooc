@@ -16,6 +16,9 @@ enum_with_variants_to_string! {
     pub enum BlockScopedFunctionKind derives[Debug] {
         Sum,
         Prod,
+        Min,
+        Max,
+        Avg,
     }
 }
 impl BlockScopedFunctionKind {
@@ -23,6 +26,9 @@ impl BlockScopedFunctionKind {
         match self {
             Self::Sum => "sum".to_string(),
             Self::Prod => "prod".to_string(),
+            Self::Min => "min".to_string(),
+            Self::Max => "max".to_string(),
+            Self::Avg => "avg".to_string(),
         }
     }
 }
@@ -214,6 +220,24 @@ impl PreExp {
                             prod = Exp::BinOp(Op::Mul, result.to_box(), prod.to_box());
                         }
                         Ok(prod)
+                    }
+                    BlockScopedFunctionKind::Min => {
+                        Ok(Exp::Min(results))
+                    }
+                    BlockScopedFunctionKind::Max => {
+                        Ok(Exp::Max(results))
+                    },
+                    BlockScopedFunctionKind::Avg => {
+                        let len = results.len();
+                        let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
+                        for result in results.into_iter().rev() {
+                            sum = Exp::BinOp(Op::Add, result.to_box(), sum.to_box());
+                        }
+                        Ok(Exp::BinOp(
+                            Op::Div,
+                            sum.to_box(),
+                            Exp::Number(len as f64).to_box(),
+                        ))
                     }
                 }
             }

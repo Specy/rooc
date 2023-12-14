@@ -511,6 +511,9 @@ pub fn parse_scoped_block_function_type(
     match scoped_block_function_type.as_str() {
         "sum" => Ok(BlockScopedFunctionKind::Sum),
         "prod" => Ok(BlockScopedFunctionKind::Prod),
+        "min" => Ok(BlockScopedFunctionKind::Min),
+        "max" => Ok(BlockScopedFunctionKind::Max),
+        "avg" => Ok(BlockScopedFunctionKind::Avg),
         _ => Err(CompilationError::from_pair(
             ParseError::SemanticError(format!(
                 "Unknown scoped block function \"{}\", expected one of \"{}\"",

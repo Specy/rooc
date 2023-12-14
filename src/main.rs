@@ -91,8 +91,13 @@ fn main() {
 
     let source = "
     min 1
-    s.t.
-        sum(i in 0..3, j in 0..i) { } <= 1
+    s.t. 
+         sum(row in M) { avg{ row }  } <= 3
+    where 
+        M = [
+            [1,2,3, 4],
+            [4,5,6]
+        ]
     "
     .trim()
     .to_string();
