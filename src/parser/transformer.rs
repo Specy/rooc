@@ -70,8 +70,8 @@ impl Exp {
                 //(a +- b)/c = a/c +- b/c
                 (Op::Div, Exp::BinOp(inner_op @ (Op::Add | Op::Sub), lhs, rhs), c) => Exp::BinOp(
                     inner_op,
-                    Exp::make_binop(Op::Div, *lhs, c.clone()),
-                    Exp::make_binop(Op::Div, *rhs, c),
+                    Exp::make_binop(Op::Div, *lhs, c.clone()).flatten().to_box(),
+                    Exp::make_binop(Op::Div, *rhs, c).flatten().to_box(),
                 ),
 
                 (op, lhs, rhs) => Exp::BinOp(op, lhs.flatten().to_box(), rhs.flatten().to_box()),

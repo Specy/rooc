@@ -12,18 +12,84 @@ use super::{
 };
 
 #[derive(Debug)]
+pub enum BlockScopedFunctionKind {
+    Sum,
+    Prod,
+}
+impl BlockScopedFunctionKind {
+    pub fn kinds() -> Vec<Self> {
+        vec![Self::Sum, Self::Prod]
+    }
+    pub fn kinds_to_string() -> Vec<String> {
+        Self::kinds().iter().map(|k| k.to_string()).collect()
+    }
+    pub fn to_string(&self) -> String {
+        match self {
+            Self::Sum => "sum".to_string(),
+            Self::Prod => "prod".to_string(),
+        }
+    }
+}
+#[derive(Debug)]
+pub enum BlockFunctionKind {
+    Min,
+    Max,
+    Avg,
+}
+impl BlockFunctionKind {
+    pub fn kinds() -> Vec<Self> {
+        vec![Self::Min, Self::Max, Self::Avg]
+    }
+    pub fn kinds_to_string() -> Vec<String> {
+        Self::kinds().iter().map(|k| k.to_string()).collect()
+    }
+    pub fn to_string(&self) -> String {
+        match self {
+            Self::Min => "min".to_string(),
+            Self::Max => "max".to_string(),
+            Self::Avg => "avg".to_string(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct BlockScopedFunction {
+    kind: BlockScopedFunctionKind,
+    iters: Vec<IterableSet>,
+    exp: Box<PreExp>,
+}
+impl BlockScopedFunction {
+    pub fn new(kind: BlockScopedFunctionKind, iters: Vec<IterableSet>, exp: Box<PreExp>) -> Self {
+        Self { kind, iters, exp }
+    }
+    pub fn get_body_span(&self) -> InputSpan {
+        self.exp.get_span().clone()
+    }
+}
+#[derive(Debug)]
+pub struct BlockFunction {
+    kind: BlockFunctionKind,
+    exps: Vec<PreExp>,
+}
+impl BlockFunction {
+    pub fn new(kind: BlockFunctionKind, exps: Vec<PreExp>) -> Self {
+        Self { kind, exps }
+    }
+}
+
+#[derive(Debug)]
 pub enum PreExp {
     Number(Spanned<f64>),
     Mod(Spanned<Box<PreExp>>),
-    Min(Spanned<Vec<PreExp>>),
-    Max(Spanned<Vec<PreExp>>),
+    BlockFunction(Spanned<BlockFunction>),
     Variable(Spanned<String>),
     CompoundVariable(Spanned<CompoundVariable>),
+    ArrayAccess(Spanned<ArrayAccess>),
+    BlockScopedFunction(Spanned<BlockScopedFunction>),
+    FunctionCall(Spanned<Box<dyn FunctionCall>>),
+
     BinaryOperation(Spanned<Op>, Box<PreExp>, Box<PreExp>),
     UnaryNegation(Spanned<Box<PreExp>>),
-    ArrayAccess(Spanned<ArrayAccess>),
-    Sum(Vec<IterableSet>, Spanned<Box<PreExp>>),
-    FunctionCall(Spanned<Box<dyn FunctionCall>>),
 }
 
 impl PreExp {
@@ -34,14 +100,13 @@ impl PreExp {
         match self {
             Self::Number(n) => n.get_span(),
             Self::Mod(exp) => exp.get_span(),
-            Self::Min(exps) => exps.get_span(),
-            Self::Max(exps) => exps.get_span(),
+            Self::BlockFunction(f) => f.get_span(),
             Self::Variable(name) => name.get_span(),
             Self::CompoundVariable(c) => c.get_span(),
             Self::BinaryOperation(op, _, _) => op.get_span(),
             Self::UnaryNegation(exp) => exp.get_span(),
             Self::ArrayAccess(array_access) => array_access.get_span(),
-            Self::Sum(_, exp_body) => exp_body.get_span(),
+            Self::BlockScopedFunction(function) => function.get_span(),
             Self::FunctionCall(function_call) => function_call.get_span(),
         }
     }
@@ -65,22 +130,31 @@ impl PreExp {
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 Ok(Exp::Mod(inner.to_box()))
             }
-            Self::Min(exps) => {
-                let parsed_exp = exps
+            Self::BlockFunction(f) => {
+                let mut parsed_exp = f
+                    .exps
                     .iter()
                     .map(|exp| exp.into_exp(context))
                     .collect::<Result<Vec<Exp>, TransformError>>()
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
-                Ok(Exp::Min(parsed_exp))
+                match f.kind {
+                    BlockFunctionKind::Min => Ok(Exp::Min(parsed_exp)),
+                    BlockFunctionKind::Max => Ok(Exp::Max(parsed_exp)),
+                    BlockFunctionKind::Avg => {
+                        let len = parsed_exp.len();
+                        let mut sum = parsed_exp.pop().unwrap_or(Exp::Number(0.0));
+                        for exp in parsed_exp.into_iter().rev() {
+                            sum = Exp::BinOp(Op::Add, exp.to_box(), sum.to_box());
+                        }
+                        Ok(Exp::BinOp(
+                            Op::Div,
+                            sum.to_box(),
+                            Exp::Number(len as f64).to_box(),
+                        ))
+                    }
+                }
             }
-            Self::Max(exps) => {
-                let parsed_exp = exps
-                    .iter()
-                    .map(|exp| exp.into_exp(context))
-                    .collect::<Result<Vec<Exp>, TransformError>>()
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
-                Ok(Exp::Max(parsed_exp))
-            }
+
             Self::UnaryNegation(exp) => {
                 let inner = exp
                     .into_exp(context)
@@ -124,20 +198,32 @@ impl PreExp {
                     }
                 }
             }
-            Self::Sum(sets, exp) => {
+            Self::BlockScopedFunction(f) => {
                 let mut results = Vec::new();
-                recursive_set_resolver(&sets, context, &mut results, 0, &|context| {
-                    let inner = exp
+                recursive_set_resolver(&f.iters, context, &mut results, 0, &|context| {
+                    let inner = f
+                        .exp
                         .into_exp(context)
                         .map_err(|e| e.to_spanned_error(self.get_span()))?;
                     Ok(inner)
                 })
                 .map_err(|e| e.to_spanned_error(self.get_span()))?;
-                let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
-                for result in results.into_iter().rev() {
-                    sum = Exp::BinOp(Op::Add, result.to_box(), sum.to_box());
+                match f.kind {
+                    BlockScopedFunctionKind::Sum => {
+                        let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
+                        for result in results.into_iter().rev() {
+                            sum = Exp::BinOp(Op::Add, result.to_box(), sum.to_box());
+                        }
+                        Ok(sum)
+                    }
+                    BlockScopedFunctionKind::Prod => {
+                        let mut prod = results.pop().unwrap_or(Exp::Number(1.0));
+                        for result in results.into_iter().rev() {
+                            prod = Exp::BinOp(Op::Mul, result.to_box(), prod.to_box());
+                        }
+                        Ok(prod)
+                    }
                 }
-                Ok(sum)
             }
             Self::FunctionCall(function_call) => {
                 //TODO improve this, what other types of functions can there be?

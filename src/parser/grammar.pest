@@ -49,18 +49,23 @@ range_iterator = {
 // expressions
 tagged_exp = { exp }
 exp         = _{ unary_op? ~ exp_body ~ (binary_op ~ unary_op? ~ exp_body)* }
-exp_body    = _{ block_function | function | parenthesis | modulo | number | array_access | variable }
+exp_body    = _{ block_scoped_function | block_function | function | parenthesis | modulo | number | array_access | variable }
 modulo      =  { "|" ~ exp ~ "|" }
 parenthesis =  { "(" ~ exp ~ ")" }
-block_function    = _{ min | max | sum }
 function = {  #function_name = function_name ~ "(" ~ #function_pars = function_pars ~ ")"}
 function_pars = { (parameter ~(comma ~ parameter)*)?}
 parameter = { function | array_access | simple_variable | compound_variable | primitive }
 function_name = { LETTER ~ (LETTER | NUMBER | "_")*}
 // block functions
-min = { ^"min" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~"}" }
-max = { ^"max" ~ "{" ~ nl* ~ comma_separated_exp ~ nl* ~ "}" }
-sum = { (^"sum" | "∑") ~ "(" ~ nl* ~ #range = iteration_declaration_list ~ nl* ~")" ~ "{" ~ nl* ~ #body = tagged_exp ~ nl* ~ "}" }
+block_function = {
+	#name = function_name ~
+    "{" ~ nl* ~ #body = comma_separated_exp ~ nl* ~"}"
+}	
+block_scoped_function = {
+	#name = function_name ~ 
+    "(" ~ nl* ~ #range = iteration_declaration_list ~ nl* ~")" ~ 
+    "{" ~ nl* ~ #body = tagged_exp ~ nl* ~ "}"
+}
 // pointer access var[i][j] or var[0] etc...
 array_access        = {
   #name = simple_variable ~
@@ -77,7 +82,7 @@ edges_list = {  (edge ~ comma)* ~ edge?}
 edge = { #node = simple_variable ~ (":" ~ #cost = signed_number)? }
 array    =  { "[" ~ nl* ~ ((primitive ~ comma)* ~ primitive) ~ nl* ~ "]" }
 // utilities
-comma_separated_exp = _{ (exp ~ comma)* ~ exp }
+comma_separated_exp = { (tagged_exp ~ comma)* ~ tagged_exp }
 comma = _{ "," ~ nl? }
 nl = _{NEWLINE}
 variable       = _{ compound_variable | simple_variable }
@@ -97,4 +102,4 @@ boolean = @{ ^"true" | ^"false" }
 // ignore whitespace in whole grammar
 WHITESPACE = _{ " " | "\t" }
 range_type = @{ "..=" | ".." }
-no_par = @{ "_"}
+no_par = @{ "_" }

@@ -90,16 +90,9 @@ fn main() {
     }
 
     let source = "
-    min x
+    min 1
     s.t.
-        sum(j in enumerate(C[i])){ j } <= x_i for i in 0..len(C)
-    where
-        C = [
-            [1,0,0],
-            [0, 1,0], 
-            [0,0,1]
-        ]
-        D = Graph { }
+      avg { x1, x2, x3 } <= 0
     "
     .trim()
     .to_string();
@@ -107,7 +100,7 @@ fn main() {
     let parsed = parser.parse_and_transform();
     match parsed {
         Ok(parsed) => {
-            println!("{:#?}", parsed.to_string());
+            println!("{}", parsed.to_string());
         }
         Err(e) => {
             println!("{}", e);

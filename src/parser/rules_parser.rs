@@ -19,7 +19,8 @@ use crate::{bail_missing_token, err_unexpected_token};
 
 use super::parser::Rule;
 use super::pre_parsed_problem::{
-    ArrayAccess, CompoundVariable, IterableSet, PreCondition, PreExp, PreObjective,
+    ArrayAccess, BlockFunction, BlockFunctionKind, BlockScopedFunction, BlockScopedFunctionKind,
+    CompoundVariable, IterableSet, PreCondition, PreExp, PreObjective,
 };
 use super::transformer::VariableType;
 
@@ -356,19 +357,42 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                     englobe_if_multiplied_by_constant(&last_token, &mut output_queue, variable)?;
                 output_queue.push(next);
             }
-            Rule::sum => {
+            Rule::block_function => {
                 let inner = exp.clone().into_inner();
-                let range = inner.find_first_tagged("range");
+                let name = inner.find_first_tagged("name");
                 let body = inner.find_first_tagged("body");
-                if range.is_none() || body.is_none() {
-                    return err_unexpected_token!("found {}, expected sum", exp);
+                if name.is_none() || body.is_none() {
+                    return err_unexpected_token!("found {}, expected block function", exp);
+                }
+                let members = body
+                    .unwrap()
+                    .into_inner()
+                    .map(|member| parse_exp_list(&member))
+                    .collect::<Result<Vec<PreExp>, CompilationError>>()?;
+                let kind = parse_block_function_type(&name.unwrap())?;
+                let fun = BlockFunction::new(kind, members);
+                let fun_exp = PreExp::BlockFunction(Spanned::new(fun, span));
+                let sum =
+                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, fun_exp)?;
+                output_queue.push(sum);
+            }
+            Rule::block_scoped_function => {
+                let inner = exp.clone().into_inner();
+                let name = inner.find_first_tagged("name");
+                let iters = inner.find_first_tagged("range");
+                let body = inner.find_first_tagged("body");
+                if name.is_none() || iters.is_none() || body.is_none() {
+                    return err_unexpected_token!("found {}, expected scoped block function", exp);
                 }
                 let body = body.unwrap();
                 let body = parse_exp_list(&body)?.to_boxed();
-                let range = range.unwrap();
-                let range = parse_set_iterator_list(&range.into_inner())?;
-                let sum = PreExp::Sum(range, Spanned::new(body, span));
-                let sum = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, sum)?;
+                let iters = iters.unwrap();
+                let iters = parse_set_iterator_list(&iters.into_inner())?;
+                let kind = parse_scoped_block_function_type(&name.unwrap())?;
+                let fun = BlockScopedFunction::new(kind, iters, body);
+                let fun_exp = PreExp::BlockScopedFunction(Spanned::new(fun, span));
+                let sum =
+                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, fun_exp)?;
                 output_queue.push(sum);
             }
             Rule::number => {
@@ -403,21 +427,6 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                     PreExp::ArrayAccess(Spanned::new(array_access, span)),
                 )?;
                 output_queue.push(array_access);
-            }
-            Rule::min | Rule::max => {
-                let members = exp
-                    .into_inner()
-                    .map(|member| parse_exp_list(&member))
-                    .collect::<Result<Vec<PreExp>, CompilationError>>()?;
-                let members = Spanned::new(members, span);
-                let fun = match rule {
-                    Rule::min => PreExp::Min(members),
-                    Rule::max => PreExp::Max(members),
-                    _ => unreachable!(),
-                };
-
-                let fun = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, fun)?;
-                output_queue.push(fun);
             }
             _ => {
                 return err_unexpected_token!("found {}, expected exp, binary_op, unary_op, len, variable, sum, number, parenthesis, array_access, min or max", exp);
@@ -478,6 +487,41 @@ fn parse_compound_variable(
     }
 }
 
+pub fn parse_block_function_type(
+    block_function_type: &Pair<Rule>,
+) -> Result<BlockFunctionKind, CompilationError> {
+    match block_function_type.as_str() {
+        "max" => Ok(BlockFunctionKind::Max),
+        "min" => Ok(BlockFunctionKind::Min),
+        "avg" => Ok(BlockFunctionKind::Avg),
+        _ => Err(CompilationError::from_pair(
+            ParseError::SemanticError(format!(
+                "Unknown block function {}, expected one of {}",
+                block_function_type.as_str(),
+                BlockFunctionKind::kinds_to_string().join(",")
+            )),
+            &block_function_type,
+            true,
+        )),
+    }
+}
+pub fn parse_scoped_block_function_type(
+    scoped_block_function_type: &Pair<Rule>,
+) -> Result<BlockScopedFunctionKind, CompilationError> {
+    match scoped_block_function_type.as_str() {
+        "sum" => Ok(BlockScopedFunctionKind::Sum),
+        "prod" => Ok(BlockScopedFunctionKind::Prod),
+        _ => Err(CompilationError::from_pair(
+            ParseError::SemanticError(format!(
+                "Unknown scoped block function {}, expected one of {}",
+                scoped_block_function_type.as_str(),
+                BlockScopedFunctionKind::kinds_to_string().join(",")
+            )),
+            &scoped_block_function_type,
+            true,
+        )),
+    }
+}
 fn parse_function_call(
     function_call: &Pair<Rule>,
 ) -> Result<Box<dyn FunctionCall>, CompilationError> {
