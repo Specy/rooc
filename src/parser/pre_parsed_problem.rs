@@ -1,10 +1,14 @@
 use crate::{
-    enum_with_variants_to_string,
+    bail_wrong_argument_spanned, enum_with_variants_to_string, match_or_bail_spanned,
     math_enums::{Comparison, Op, OptimizationType},
     primitives::{
-        functions::function_traits::FunctionCall, parameter::Parameter, primitive::Primitive,
+        functions::function_traits::FunctionCall,
+        graph::{Graph, GraphEdge, GraphNode},
+        iterable::IterableKind,
+        primitive::Primitive,
     },
     utils::{InputSpan, Spanned},
+    wrong_argument,
 };
 
 use super::{
@@ -63,6 +67,19 @@ impl BlockScopedFunction {
     pub fn get_body_span(&self) -> InputSpan {
         self.exp.get_span().clone()
     }
+    pub fn to_string(&self) -> String {
+        let name = self.kind.to_string();
+        format!(
+            "{}({}){{{}}}",
+            name,
+            self.iters
+                .iter()
+                .map(|i| i.iterator.to_string())
+                .collect::<Vec<String>>()
+                .join(", "),
+            self.exp.to_string()
+        )
+    }
 }
 #[derive(Debug)]
 pub struct BlockFunction {
@@ -73,11 +90,23 @@ impl BlockFunction {
     pub fn new(kind: BlockFunctionKind, exps: Vec<PreExp>) -> Self {
         Self { kind, exps }
     }
+    pub fn to_string(&self) -> String {
+        let name = self.kind.to_string();
+        format!(
+            "{}{{{}}}",
+            name,
+            self.exps
+                .iter()
+                .map(|e| e.to_string())
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
+    }
 }
 
 #[derive(Debug)]
 pub enum PreExp {
-    Number(Spanned<f64>),
+    Primitive(Spanned<Primitive>),
     Mod(Spanned<Box<PreExp>>),
     BlockFunction(Spanned<BlockFunction>),
     Variable(Spanned<String>),
@@ -96,7 +125,7 @@ impl PreExp {
     }
     pub fn get_span(&self) -> &InputSpan {
         match self {
-            Self::Number(n) => n.get_span(),
+            Self::Primitive(n) => n.get_span(),
             Self::Mod(exp) => exp.get_span(),
             Self::BlockFunction(f) => f.get_span(),
             Self::Variable(name) => name.get_span(),
@@ -121,7 +150,16 @@ impl PreExp {
                     (op, lhs, rhs) => Ok(Exp::BinOp(**op, lhs.to_box(), rhs.to_box())),
                 }
             }
-            Self::Number(n) => Ok(Exp::Number(**n)),
+            Self::Primitive(n) => match **n {
+                Primitive::Number(n) => Ok(Exp::Number(n)),
+                _ => {
+                    let err = TransformError::WrongArgument(format!(
+                        "Expected \"Number\", got \"{}\"",
+                        n.get_type().to_string()
+                    ));
+                    Err(err.to_spanned_error(self.get_span()))
+                }
+            },
             Self::Mod(exp) => {
                 let inner = exp
                     .into_exp(context)
@@ -221,12 +259,8 @@ impl PreExp {
                         }
                         Ok(prod)
                     }
-                    BlockScopedFunctionKind::Min => {
-                        Ok(Exp::Min(results))
-                    }
-                    BlockScopedFunctionKind::Max => {
-                        Ok(Exp::Max(results))
-                    },
+                    BlockScopedFunctionKind::Min => Ok(Exp::Min(results)),
+                    BlockScopedFunctionKind::Max => Ok(Exp::Max(results)),
                     BlockScopedFunctionKind::Avg => {
                         let len = results.len();
                         let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
@@ -260,16 +294,147 @@ impl PreExp {
         };
         exp.map(|e: Exp| e.flatten())
     }
+
+    pub fn as_primitive(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
+        match self {
+            PreExp::Primitive(p) => Ok(p.get_span_value().clone()),
+            PreExp::Variable(s) => match context.get_value(s) {
+                Some(value) => Ok(value.clone()),
+                None => Err(TransformError::MissingVariable(s.get_span_value().clone())),
+            },
+            PreExp::CompoundVariable(c) => {
+                let name = context.flatten_compound_variable(&c.name, &c.indexes)?;
+                match context.get_value(&name) {
+                    Some(value) => Ok(value.clone()),
+                    None => Err(TransformError::MissingVariable(name)),
+                }
+            }
+            PreExp::FunctionCall(f) => {
+                let value = f.call(context)?;
+                Ok(value)
+            }
+            PreExp::ArrayAccess(a) => {
+                let value = context.get_array_value(a)?;
+                Ok(value.to_owned())
+            }
+            PreExp::UnaryNegation(v) => {
+                //TODO implement operator overloading for every primitive
+                let val = v.as_number(context)?;
+                Ok(Primitive::Number(-val))
+            }
+            PreExp::BinaryOperation(op, lhs, rhs) => {
+                //TODO implement operator overloading for every primitive
+                let lhs = lhs.as_number(context)?;
+                let rhs = rhs.as_number(context)?;
+                match **op {
+                    Op::Add => Ok(Primitive::Number(lhs + rhs)),
+                    Op::Sub => Ok(Primitive::Number(lhs - rhs)),
+                    Op::Mul => Ok(Primitive::Number(lhs * rhs)),
+                    Op::Div => Ok(Primitive::Number(lhs / rhs)),
+                }
+            }
+            _ => Err(TransformError::WrongArgument(format!(
+                "Expected \"Primitive\"" //TODO add the value of the primitive
+            ))),
+        }
+    }
+    //TODO make this a macro
+    pub fn as_number(&self, context: &TransformerContext) -> Result<f64, TransformError> {
+        let value = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.get_span()))?;
+        match_or_bail_spanned!("Number", Primitive::Number(n) => Ok(n) ; (value, self))
+    }
+    pub fn as_string(&self, context: &TransformerContext) -> Result<String, TransformError> {
+        let value = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.get_span()))?;
+        match_or_bail_spanned!("String", Primitive::String(s) => Ok(s.to_owned()) ; (value, self))
+    }
+    pub fn as_integer(&self, context: &TransformerContext) -> Result<i64, TransformError> {
+        let n = self
+            .as_number(context)
+            .map_err(|e| e.to_spanned_error(self.get_span()))?;
+        if n.fract() != 0.0 {
+            bail_wrong_argument_spanned!("Integer", self)
+        } else {
+            Ok(n as i64)
+        }
+    }
+    pub fn as_usize(&self, context: &TransformerContext) -> Result<usize, TransformError> {
+        let n = self
+            .as_number(context)
+            .map_err(|e| e.to_spanned_error(self.get_span()))?;
+        if n.fract() != 0.0 {
+            bail_wrong_argument_spanned!("Integer", self)
+        } else if n < 0.0 {
+            bail_wrong_argument_spanned!("Positive integer", self)
+        } else {
+            Ok(n as usize)
+        }
+    }
+    pub fn as_boolean(&self, context: &TransformerContext) -> Result<bool, TransformError> {
+        let value = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.get_span()))?;
+        match_or_bail_spanned!("Boolean", Primitive::Boolean(b) => Ok(b) ; (value, self))
+    }
+    pub fn as_graph(&self, context: &TransformerContext) -> Result<Graph, TransformError> {
+        self.as_primitive(context)
+            .map(|p| p.as_graph().map(|v| v.to_owned()))
+            .map_err(|e| e.to_spanned_error(self.get_span()))?
+    }
+    pub fn as_node(&self, context: &TransformerContext) -> Result<GraphNode, TransformError> {
+        let node = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.get_span()))?;
+        match_or_bail_spanned!("GraphNode", Primitive::GraphNode(n) => Ok(n.to_owned()) ; (node, self))
+    }
+    pub fn as_edge(&self, context: &TransformerContext) -> Result<GraphEdge, TransformError> {
+        let edge = self
+            .as_primitive(context)
+            .map_err(|e| e.to_spanned_error(self.get_span()))?;
+        match_or_bail_spanned!("GraphEdge", Primitive::GraphEdge(e) => Ok(e.to_owned()) ; (edge, self))
+    }
+
+    pub fn as_iterator(
+        &self,
+        context: &TransformerContext,
+    ) -> Result<IterableKind, TransformError> {
+        self.as_primitive(context)
+            .map(|p| p.as_iterator().map(|v| v.to_owned()))
+            .map_err(|e| e.to_spanned_error(self.get_span()))?
+    }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            Self::ArrayAccess(a) => a.to_string(),
+            Self::BlockFunction(f) => f.to_string(),
+            Self::BlockScopedFunction(f) => f.to_string(),
+            Self::BinaryOperation(op, lhs, rhs) => format!(
+                "({} {} {})",
+                lhs.to_string(),
+                op.to_string(),
+                rhs.to_string()
+            ),
+            Self::CompoundVariable(c) => c.to_string(),
+            Self::FunctionCall(f) => f.to_string(),
+            Self::Mod(exp) => format!("|{}|", exp.to_string()),
+            Self::Primitive(p) => p.to_string(),
+            Self::UnaryNegation(exp) => format!("-{}", exp.to_string()),
+            Self::Variable(name) => name.to_string(),
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct IterableSet {
     pub var: VariableType,
-    pub iterator: Spanned<Parameter>,
+    pub iterator: Spanned<PreExp>,
     pub span: InputSpan,
 }
 impl IterableSet {
-    pub fn new(var: VariableType, iterator: Spanned<Parameter>, span: InputSpan) -> Self {
+    pub fn new(var: VariableType, iterator: Spanned<PreExp>, span: InputSpan) -> Self {
         Self {
             var,
             iterator,
@@ -281,10 +446,10 @@ impl IterableSet {
 #[derive(Debug)]
 pub struct ArrayAccess {
     pub name: String,
-    pub accesses: Vec<Parameter>,
+    pub accesses: Vec<PreExp>,
 }
 impl ArrayAccess {
-    pub fn new(name: String, accesses: Vec<Parameter>) -> Self {
+    pub fn new(name: String, accesses: Vec<PreExp>) -> Self {
         Self { name, accesses }
     }
     pub fn to_string(&self) -> String {

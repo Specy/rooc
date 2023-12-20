@@ -4,11 +4,10 @@ use crate::{
     bail_wrong_number_of_arguments,
     parser::{
         parser::Rule,
-        transformer::{TransformError, TransformerContext},
+        transformer::{TransformError, TransformerContext}, pre_parsed_problem::PreExp,
     },
     primitives::{
         iterable::IterableKind,
-        parameter::Parameter,
         primitive::{Primitive, Tuple},
     },
     utils::{CompilationError, ParseError},
@@ -18,12 +17,12 @@ use super::function_traits::FunctionCall;
 
 #[derive(Debug)]
 pub struct EnumerateArray {
-    array: Parameter,
+    array: PreExp,
 }
 
 impl FunctionCall for EnumerateArray {
     fn from_parameters(
-        mut pars: Vec<Parameter>,
+        mut pars: Vec<PreExp>,
         origin_rule: &Pair<Rule>,
     ) -> Result<Self, CompilationError> {
         match pars.len() {
@@ -50,11 +49,11 @@ impl FunctionCall for EnumerateArray {
 
 #[derive(Debug)]
 pub struct LenOfIterableFn {
-    of_iterable: Parameter,
+    of_iterable: PreExp,
 }
 impl FunctionCall for LenOfIterableFn {
     fn from_parameters(
-        mut pars: Vec<Parameter>,
+        mut pars: Vec<PreExp>,
         rule: &Pair<Rule>,
     ) -> Result<Self, CompilationError> {
         match pars.len() {

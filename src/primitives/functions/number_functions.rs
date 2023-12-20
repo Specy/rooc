@@ -4,9 +4,9 @@ use crate::{
     bail_wrong_number_of_arguments,
     parser::{
         parser::Rule,
-        transformer::{TransformError, TransformerContext},
+        transformer::{TransformError, TransformerContext}, pre_parsed_problem::PreExp,
     },
-    primitives::{iterable::IterableKind, parameter::Parameter, primitive::Primitive},
+    primitives::{iterable::IterableKind, primitive::Primitive},
     utils::{CompilationError, InputSpan, ParseError, Spanned},
 };
 
@@ -14,16 +14,16 @@ use super::function_traits::FunctionCall;
 
 #[derive(Debug)]
 pub struct NumericRange {
-    from: Parameter,
-    to: Parameter,
-    to_inclusive: Parameter,
+    from: PreExp,
+    to: PreExp,
+    to_inclusive: PreExp,
 }
 impl NumericRange {
-    pub fn new(from: Parameter, to: Parameter, to_inclusive: bool) -> Self {
+    pub fn new(from: PreExp, to: PreExp, to_inclusive: bool) -> Self {
         Self {
             from,
             to,
-            to_inclusive: Parameter::Primitive(Spanned::new(
+            to_inclusive: PreExp::Primitive(Spanned::new(
                 Primitive::Boolean(to_inclusive),
                 InputSpan::default(),
             )),
@@ -33,7 +33,7 @@ impl NumericRange {
 
 impl FunctionCall for NumericRange {
     fn from_parameters(
-        mut pars: Vec<Parameter>,
+        mut pars: Vec<PreExp>,
         origin_rule: &Pair<Rule>,
     ) -> Result<Self, CompilationError> {
         match pars.len() {

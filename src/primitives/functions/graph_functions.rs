@@ -2,9 +2,9 @@ use crate::{
     bail_wrong_number_of_arguments,
     parser::{
         parser::Rule,
-        transformer::{TransformError, TransformerContext},
+        transformer::{TransformError, TransformerContext}, pre_parsed_problem::PreExp,
     },
-    primitives::{iterable::IterableKind, parameter::Parameter, primitive::Primitive},
+    primitives::{iterable::IterableKind, primitive::Primitive},
     utils::{CompilationError, ParseError},
 };
 use pest::iterators::Pair;
@@ -14,12 +14,12 @@ use super::function_traits::FunctionCall;
 
 #[derive(Debug)]
 pub struct EdgesOfGraphFn {
-    of_graph: Parameter,
+    of_graph: PreExp,
 }
 
 impl FunctionCall for EdgesOfGraphFn {
     fn from_parameters(
-        mut pars: Vec<Parameter>,
+        mut pars: Vec<PreExp>,
         rule: &Pair<Rule>,
     ) -> Result<Self, CompilationError> {
         match pars.len() {
@@ -41,11 +41,11 @@ impl FunctionCall for EdgesOfGraphFn {
 
 #[derive(Debug)]
 pub struct NodesOfGraphFn {
-    of_graph: Parameter,
+    of_graph: PreExp,
 }
 impl FunctionCall for NodesOfGraphFn {
     fn from_parameters(
-        mut pars: Vec<Parameter>,
+        mut pars: Vec<PreExp>,
         rule: &Pair<Rule>,
     ) -> Result<Self, CompilationError> {
         match pars.len() {
@@ -67,12 +67,12 @@ impl FunctionCall for NodesOfGraphFn {
 
 #[derive(Debug)]
 pub struct NeighbourOfNodeFn {
-    of_node: Parameter,
+    of_node: PreExp,
 }
 
 impl FunctionCall for NeighbourOfNodeFn {
     fn from_parameters(
-        mut pars: Vec<Parameter>,
+        mut pars: Vec<PreExp>,
         rule: &Pair<Rule>,
     ) -> Result<Self, CompilationError> {
         match pars.len() {
@@ -95,12 +95,12 @@ impl FunctionCall for NeighbourOfNodeFn {
 
 #[derive(Debug)]
 pub struct NeighboursOfNodeInGraphFn {
-    of_node: Parameter,
-    in_graph: Parameter,
+    of_node: PreExp,
+    in_graph: PreExp,
 }
 impl FunctionCall for NeighboursOfNodeInGraphFn {
     fn from_parameters(
-        mut pars: Vec<Parameter>,
+        mut pars: Vec<PreExp>,
         rule: &Pair<Rule>,
     ) -> Result<Self, CompilationError> {
         match pars.len() {

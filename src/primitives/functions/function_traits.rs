@@ -2,11 +2,11 @@ use std::fmt::Debug;
 
 use pest::iterators::Pair;
 
-use crate::{parser::{transformer::{TransformerContext, TransformError}, parser::Rule}, primitives::{parameter::Parameter, primitive::Primitive}, utils::CompilationError};
+use crate::{parser::{transformer::{TransformerContext, TransformError}, parser::Rule, pre_parsed_problem::PreExp}, primitives::{primitive::Primitive}, utils::CompilationError};
 
 
 pub trait FunctionCall: Debug {
-    fn from_parameters(pars: Vec<Parameter>, origin_rule: &Pair<Rule>) -> Result<Self, CompilationError>
+    fn from_parameters(pars: Vec<PreExp>, origin_rule: &Pair<Rule>) -> Result<Self, CompilationError>
     where
         Self: Sized;
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError>;

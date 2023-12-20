@@ -47,10 +47,10 @@ macro_rules! bail_wrong_argument_spanned {
             $expected_type,
             $current_arg,
             $evauluated_in
-        ).to_spanned_error($evauluated_in.as_span()))
+        ).to_spanned_error($evauluated_in.get_span()))
     };
     ($expected_type: literal, $evauluated_in:expr) => {
-        Err(wrong_argument!($expected_type, $evauluated_in).to_spanned_error($evauluated_in.as_span()))
+        Err(wrong_argument!($expected_type, $evauluated_in).to_spanned_error($evauluated_in.get_span()))
     };
 }
 
@@ -72,7 +72,7 @@ macro_rules! match_or_bail_spanned {
             $(
                 $enum::$variant($($var),+) => $expr,
             )+
-            _ => Err(wrong_argument!($expected, $value, $self).to_spanned_error($self.as_span())),
+            _ => Err(wrong_argument!($expected, $value, $self).to_spanned_error($self.get_span())),
         }
     };
 }

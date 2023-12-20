@@ -12,7 +12,6 @@ use crate::primitives::functions::graph_functions::{
 };
 use crate::primitives::functions::number_functions::NumericRange;
 use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
-use crate::primitives::parameter::Parameter;
 use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 use crate::{bail_missing_token, err_unexpected_token};
@@ -42,7 +41,7 @@ pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, Compilatio
                 }
             };
             match objective_body {
-                Some(rhs) => Ok(PreObjective::new(objective_type, parse_exp_list(&rhs)?)),
+                Some(rhs) => Ok(PreObjective::new(objective_type, parse_exp(&rhs)?)),
                 None => bail_missing_token!("Missing objective body", objective),
             }
         }
@@ -93,6 +92,14 @@ pub fn parse_const_declaration(
 
 pub fn parse_primitive(const_value: &Pair<Rule>) -> Result<Primitive, CompilationError> {
     match const_value.as_rule() {
+        Rule::primitive => {
+            let mut inner = const_value.clone().into_inner();
+            let inner = inner.next();
+            match inner {
+                Some(inner) => parse_primitive(&inner),
+                None => err_unexpected_token!("Expected constant value but got: {}", const_value),
+            }
+        }
         Rule::number => Ok(Primitive::Number(parse_number(const_value)?)),
         Rule::boolean => {
             let value = match const_value.as_str() {
@@ -242,9 +249,9 @@ fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, CompilationEr
                         None => vec![],
                     };
                     Ok(PreCondition::new(
-                        parse_exp_list(&lhs)?,
+                        parse_exp(&lhs)?,
                         parse_comparison(&relation_type)?,
-                        parse_exp_list(&rhs)?,
+                        parse_exp(&rhs)?,
                         iteration,
                         InputSpan::from_pair(condition),
                     ))
@@ -288,7 +295,7 @@ fn parse_comparison(comparison: &Pair<Rule>) -> Result<Comparison, CompilationEr
     }
 }
 
-fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError> {
+fn parse_exp(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError> {
     //use shunting yard algorithm to parse expression list into a PreExp tree
     let mut output_queue: Vec<PreExp> = Vec::new();
     let mut operator_stack: Vec<Op> = Vec::new();
@@ -322,7 +329,10 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 if rule == Rule::unary_op {
                     match op {
                         Op::Sub => {
-                            output_queue.push(PreExp::Number(Spanned::new(0.0, span)));
+                            output_queue.push(PreExp::Primitive(Spanned::new(
+                                Primitive::Number(0.0),
+                                span,
+                            )));
                         }
                         _ => {
                             return err_unexpected_token!(
@@ -367,7 +377,7 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 let members = body
                     .unwrap()
                     .into_inner()
-                    .map(|member| parse_exp_list(&member))
+                    .map(|member| parse_exp(&member))
                     .collect::<Result<Vec<PreExp>, CompilationError>>()?;
                 let kind = parse_block_function_type(&name.unwrap())?;
                 let fun = BlockFunction::new(kind, members);
@@ -385,7 +395,7 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                     return err_unexpected_token!("found {}, expected scoped block function", exp);
                 }
                 let body = body.unwrap();
-                let body = parse_exp_list(&body)?.to_boxed();
+                let body = parse_exp(&body)?.to_boxed();
                 let iters = iters.unwrap();
                 let iters = parse_set_iterator_list(&iters.into_inner())?;
                 let kind = parse_scoped_block_function_type(&name.unwrap())?;
@@ -395,25 +405,21 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                     englobe_if_multiplied_by_constant(&last_token, &mut output_queue, fun_exp)?;
                 output_queue.push(sum);
             }
-            Rule::number => {
-                let num = exp.as_str().parse();
-                match num {
-                    Ok(num) => output_queue.push(PreExp::Number(Spanned::new(num, span))),
-                    Err(_) => {
-                        return err_unexpected_token!("found {}, expected number", exp);
-                    }
-                }
+            Rule::primitive => {
+                let prim = parse_primitive(&exp)?;
+                let prim = Spanned::new(prim, span);
+                output_queue.push(PreExp::Primitive(prim));
             }
             Rule::parenthesis => {
                 //i keep this only because i want to be able to format and get back the same input that
                 // was given to me
-                let par = parse_exp_list(&exp)?;
+                let par = parse_exp(&exp)?;
                 let par = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, par)?;
                 //output_queue.push(PreExp::Parenthesis(par.to_boxed()));
                 output_queue.push(par);
             }
             Rule::modulo => {
-                let exp = parse_exp_list(&exp)?;
+                let exp = parse_exp(&exp)?;
                 let modulo = PreExp::Mod(Spanned::new(Box::new(exp), span));
                 let modulo =
                     englobe_if_multiplied_by_constant(&last_token, &mut output_queue, modulo)?;
@@ -429,7 +435,11 @@ fn parse_exp_list(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError>
                 output_queue.push(array_access);
             }
             _ => {
-                return err_unexpected_token!("found {}, expected exp, binary_op, unary_op, len, variable, sum, number, parenthesis, array_access, min or max", exp);
+                println!("exp: {:#?}", exp);
+                return err_unexpected_token!(
+                    "found \"{}\", expected exp, binary_op, unary_op, len, variable, sum, primitive, parenthesis, array_access, min, max, block function or scoped function", 
+                    exp
+                );
             }
         }
         last_token = Some(rule);
@@ -580,53 +590,23 @@ fn parse_function(
     }
 }
 
-fn parse_parameters(pars: &Pair<Rule>) -> Result<Vec<Parameter>, CompilationError> {
+fn parse_parameters(pars: &Pair<Rule>) -> Result<Vec<PreExp>, CompilationError> {
     match pars.as_rule() {
         Rule::function_pars => {
             let inner = pars.clone().into_inner();
             let pars = inner
                 .map(|a| parse_parameter(&a))
-                .collect::<Result<Vec<Parameter>, CompilationError>>()?;
+                .collect::<Result<Vec<PreExp>, CompilationError>>()?;
             Ok(pars)
         }
         _ => err_unexpected_token!("Expected function args but got: {}", pars),
     }
 }
-fn parse_parameter(arg: &Pair<Rule>) -> Result<Parameter, CompilationError> {
+fn parse_parameter(arg: &Pair<Rule>) -> Result<PreExp, CompilationError> {
     let span = InputSpan::from_pair(&arg);
     match arg.as_rule() {
-        Rule::parameter => {
-            let mut inner = arg.clone().into_inner();
-            let first = inner.next();
-            if first.is_none() {
-                return err_unexpected_token!("Expected parameter but got : {}", arg);
-            }
-            let first = first.unwrap();
-            match first.as_rule() {
-                Rule::simple_variable => Ok(Parameter::Variable(Spanned::new(
-                    first.as_str().to_string(),
-                    span,
-                ))),
-                Rule::number | Rule::array | Rule::graph | Rule::boolean | Rule::string => {
-                    let primitive = parse_primitive(&first)?;
-                    Ok(Parameter::Primitive(Spanned::new(primitive, span)))
-                }
-                Rule::compound_variable => Ok(Parameter::CompoundVariable(Spanned::new(
-                    parse_compound_variable(&first)?,
-                    span,
-                ))),
-                Rule::array_access => Ok(Parameter::ArrayAccess(Spanned::new(
-                    parse_array_access(&first)?,
-                    span,
-                ))),
-                Rule::function => Ok(Parameter::FunctionCall(Spanned::new(
-                    parse_function_call(&first)?,
-                    span,
-                ))),
-                _ => err_unexpected_token!("Expected parameter but got: {}", arg),
-            }
-        }
-        _ => err_unexpected_token!("Expected parameter but got: {}", arg),
+        Rule::tagged_exp => parse_exp(&arg),
+        _ => err_unexpected_token!("Expected function arg but got: {}", arg),
     }
 }
 fn parse_set_iterator(range: &Pair<Rule>) -> Result<IterableSet, CompilationError> {
@@ -679,7 +659,7 @@ fn parse_variable_type(tuple: &Pair<Rule>) -> Result<VariableType, CompilationEr
     }
 }
 
-fn parse_iterator(iterator: &Pair<Rule>) -> Result<Parameter, CompilationError> {
+fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreExp, CompilationError> {
     match iterator.as_rule() {
         Rule::iterator => {
             let mut inner = iterator.clone().into_inner();
@@ -704,16 +684,13 @@ fn parse_iterator(iterator: &Pair<Rule>) -> Result<Parameter, CompilationError> 
                             };
                             let span = InputSpan::from_pair(&iterator);
                             let function = NumericRange::new(from?, to?, to_inclusive);
-                            Ok(Parameter::FunctionCall(Spanned::new(
-                                Box::new(function),
-                                span,
-                            )))
+                            Ok(PreExp::FunctionCall(Spanned::new(Box::new(function), span)))
                         }
 
                         _ => err_unexpected_token!("Expected range iterator but got: {}", iterator),
                     }
                 }
-                Some(Rule::parameter) => {
+                Some(Rule::tagged_exp) => {
                     let mut inner = iterator.clone().into_inner();
                     let first = inner.next();
                     if first.is_none() {
@@ -783,7 +760,7 @@ fn englobe_if_multiplied_by_constant(
     match prev_token {
         Some(Rule::number) => {
             let last_number = match queue.pop() {
-                Some(n @ PreExp::Number(_)) => n,
+                Some(n @ PreExp::Primitive(_)) => n,
                 _ => unreachable!(), //could this ever happen?
             };
             let span = rhs.get_span();

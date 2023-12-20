@@ -38,23 +38,22 @@ iteration_declaration      =  {
   #iterator = iterator
 }
 tuple = { "(" ~ (simple_variable | no_par) ~ (comma ~ (simple_variable | no_par))* ~ ")"  }
-iterator = { range_iterator | parameter }
+iterator = { range_iterator | tagged_exp }
 //iterators
 range_iterator = {
-  #from = (parameter) ~
+  #from = (tagged_exp) ~
   #range_type = range_type ~
-  #to = (parameter)
+  #to = (tagged_exp)
 }
 
 // expressions
 tagged_exp = { exp }
 exp         = _{ unary_op? ~ exp_body ~ (binary_op ~ unary_op? ~ exp_body)* }
-exp_body    = _{ block_scoped_function | block_function | function | parenthesis | modulo | number | array_access | variable }
+exp_body    = _{ block_scoped_function | block_function | function | parenthesis | modulo  | array_access | primitive | variable }
 modulo      =  { "|" ~ exp ~ "|" }
 parenthesis =  { "(" ~ exp ~ ")" }
 function = {  #function_name = function_name ~ "(" ~ #function_pars = function_pars ~ ")"}
-function_pars = { (parameter ~(comma ~ parameter)*)?}
-parameter = { function | array_access | simple_variable | compound_variable | primitive }
+function_pars = { (tagged_exp ~(comma ~ tagged_exp)*)?}
 function_name = { LETTER ~ (LETTER | NUMBER | "_")*}
 // block functions
 block_function = {
@@ -72,15 +71,16 @@ array_access        = {
   #accesses = pointer_access_list
 }
 pointer_access_list = { (pointer_access)+ }
-pointer_access      = _{ ^"[" ~ parameter ~ ^"]" }
+pointer_access      = _{ ^"[" ~ tagged_exp ~ ^"]" }
 // constants
-primitive = _{ number | array | graph | boolean | string }
+primitive = { _primitive }
+_primitive = _{ number | array | graph | boolean | string }
 graph = { ^"Graph" ~ "{" ~nl* ~ #body = graph_node_list ~ nl* ~ "}" }
 graph_node_list = { graph_node? ~ (comma ~ graph_node)* }
 graph_node = { #name = simple_variable ~ ( "->" ~ "[" ~ #edges = edges_list ~ "]")?}
 edges_list = {  (edge ~ comma)* ~ edge?}
 edge = { #node = simple_variable ~ (":" ~ #cost = signed_number)? }
-array    =  { "[" ~ nl* ~ ((primitive ~ comma)* ~ primitive) ~ nl* ~ "]" }
+array    =  { "[" ~ nl* ~ ((_primitive ~ comma)* ~ _primitive) ~ nl* ~ "]" }
 // utilities
 comma_separated_exp = { (tagged_exp ~ comma)* ~ tagged_exp }
 comma = _{ "," ~ nl? }
