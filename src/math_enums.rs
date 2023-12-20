@@ -22,7 +22,15 @@ pub enum Op {
     Sub,
     Mul,
     Div,
+    //And
+    //Or 
+    //Not
+    //Xor
+    
 }
+
+
+
 impl Op {
     pub fn precedence(&self) -> u8 {
         match self {

@@ -20,9 +20,11 @@ The "language" supports formal definitions of problems, with the ability to call
   - [x] Formal definition of a problem, (sum function and generic variables)
   - [x] Constants and multi dimensional arrays in the formal definition of a problem
   - [x] Custom functions
+  - [x] Expressions as function parameters
   - [x] Error logging and parameter validation 
   - [x] Error traces
   - [ ] Definition of variable bounds
+  - [ ] Primitives Operator overloading (for example, `+` for strings)
 - [ ] Simplex resolution
   - [ ] Linearization of a generic problem
   - [x] Transformation of a linear problem into the standard form
