@@ -1,10 +1,3 @@
-use serde::de::value::Error;
-
-use crate::primitives::{
-    graph::{Graph, GraphEdge, GraphNode},
-    iterable::IterableKind,
-    primitive::{Primitive, Tuple},
-};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Op {
@@ -41,10 +34,11 @@ impl Op {
 pub trait ApplyOp {
     type Target;
     type Error;
-    fn apply_op(
+    fn apply_binary_op(
         &self,
         op: Op,
         to: &Self::Target,
     ) -> Result<Self::Target, Self::Error>;
+    fn apply_unary_op(&self, op: Op) -> Result<Self::Target, Self::Error>;
 }
 

@@ -22,7 +22,7 @@ pub enum Exp {
     Min(Vec<Exp>),
     Max(Vec<Exp>),
     BinOp(Op, Box<Exp>, Box<Exp>),
-    Neg(Box<Exp>),
+    UnOp(Op, Box<Exp>),
 }
 
 impl Exp {
@@ -62,12 +62,12 @@ impl Exp {
                 )
                 .flatten(),
                 //-(a)b = -ab
-                (Op::Mul, Exp::Neg(lhs), c) => {
-                    Exp::Neg(Exp::make_binop(Op::Mul, *lhs, c).flatten().to_box())
+                (Op::Mul, Exp::UnOp(op @ Op::Sub, lhs), c) => {
+                    Exp::UnOp(op, Exp::make_binop(Op::Mul, *lhs, c).flatten().to_box())
                 }
                 //a(-b) = -ab
-                (Op::Mul, c, Exp::Neg(rhs)) => {
-                    Exp::Neg(Exp::make_binop(Op::Mul, c, *rhs).flatten().to_box())
+                (Op::Mul, c, Exp::UnOp(op @ Op::Sub,rhs)) => {
+                    Exp::UnOp(op, Exp::make_binop(Op::Mul, c, *rhs).flatten().to_box())
                 }
                 //(a +- b)/c = a/c +- b/c
                 (Op::Div, Exp::BinOp(inner_op @ (Op::Add | Op::Sub), lhs, rhs), c) => Exp::BinOp(
@@ -110,11 +110,11 @@ impl Exp {
                     rhs.to_string()
                 )
             }
-            Exp::Neg(exp) => {
+            Exp::UnOp(op, exp) => {
                 if exp.is_leaf() {
-                    format!("-{}", exp.to_string())
+                    format!("{}{}",op.to_string(), exp.to_string())
                 } else {
-                    format!("-({})", exp.to_string())
+                    format!("{}({})",op.to_string(), exp.to_string())
                 }
             }
         }
@@ -122,7 +122,7 @@ impl Exp {
     pub fn is_leaf(&self) -> bool {
         match self {
             Exp::BinOp(_, _, _) => false,
-            Exp::Neg(_) => false,
+            Exp::UnOp(_, _) => false,
             _ => true,
         }
     }
@@ -354,7 +354,7 @@ impl TransformerContext {
                     Primitive::GraphNode(v) => Ok(v.get_name().clone()),
                     _ => Err(TransformError::WrongArgument(format!(
                         "Expected a number or string for variable flattening, got {}, check the definition of {}",
-                        value.get_type().to_string(),
+                        value.get_type_string(),
                         name
                     ))),
                 },

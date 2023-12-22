@@ -51,7 +51,7 @@ pub fn recursive_set_resolver<T>(
                     _ => {
                         return Err(TransformError::WrongArgument(format!(
                             "Expected spreadable primitive, got {}",
-                            value.get_type().to_string()
+                            value.get_type_string()
                         )))
                     }
                 }

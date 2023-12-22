@@ -18,7 +18,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     Primitive::Boolean(b) => Ok(b),
                     _ => Err(format!(
                         "Expected boolean but got {}",
-                        v.get_type().to_string()
+                        v.get_type_string()
                     )),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
@@ -31,7 +31,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     Primitive::Number(n) => Ok(n),
                     _ => Err(format!(
                         "Expected \"Number\", got \"{}\"",
-                        v.get_type().to_string()
+                        v.get_type_string()
                     )),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
@@ -44,7 +44,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     Primitive::String(s) => Ok(s),
                     _ => Err(format!(
                         "Expected string but got {}",
-                        v.get_type().to_string()
+                        v.get_type_string()
                     )),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
@@ -57,7 +57,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     Primitive::GraphEdge(e) => Ok(e),
                     _ => Err(format!(
                         "Expected graph edge but got {}",
-                        v.get_type().to_string()
+                        v.get_type_string()
                     )),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
@@ -70,7 +70,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     Primitive::GraphNode(n) => Ok(n),
                     _ => Err(format!(
                         "Expected graph node but got {}",
-                        v.get_type().to_string()
+                        v.get_type_string()
                     )),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
@@ -83,7 +83,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     Primitive::Tuple(t) => Ok(t),
                     _ => Err(format!(
                         "Expected tuple but got {}",
-                        v.get_type().to_string()
+                        v.get_type_string()
                     )),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
@@ -96,7 +96,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     Primitive::Iterable(i) => Ok(i),
                     _ => Err(format!(
                         "Expected iterable but got {}",
-                        v.get_type().to_string()
+                        v.get_type_string()
                     )),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
@@ -110,7 +110,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     Primitive::Graph(g) => Ok(g),
                     _ => Err(format!(
                         "Expected graph but got {}",
-                        v.get_type().to_string()
+                        v.get_type_string()
                     )),
                 })
                 .collect::<Result<Vec<_>, String>>()?;

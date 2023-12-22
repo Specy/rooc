@@ -92,7 +92,7 @@ fn main() {
     let source = "
     min 1
     s.t.
-        sum(i in 0..n){ x_i } <= 1  for n in N
+        sum(i in 0..(1 + n)){ 10 + -x_i } <= 1  for n in N
     where 
         N = [1,2,3]
     "

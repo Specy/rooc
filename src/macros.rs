@@ -14,7 +14,7 @@ macro_rules! wrong_argument {
         TransformError::WrongArgument(format!(
             "Expected argument of type \"{}\", got \"{}\" evaluating \"{}\"",
             $expected_type,
-            $current_arg.get_type().to_string(),
+            $current_arg.get_type_string(),
             $evauluated_in.to_string()
         ))
     };

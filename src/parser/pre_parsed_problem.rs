@@ -117,7 +117,7 @@ pub enum PreExp {
     FunctionCall(Spanned<Box<dyn FunctionCall>>),
 
     BinaryOperation(Spanned<Op>, Box<PreExp>, Box<PreExp>),
-    UnaryNegation(Spanned<Box<PreExp>>),
+    UnaryOperation(Spanned<Op>, Spanned<Box<PreExp>>),
 }
 
 impl PreExp {
@@ -132,7 +132,7 @@ impl PreExp {
             Self::Variable(name) => name.get_span(),
             Self::CompoundVariable(c) => c.get_span(),
             Self::BinaryOperation(op, _, _) => op.get_span(),
-            Self::UnaryNegation(exp) => exp.get_span(),
+            Self::UnaryOperation(op, _) => op.get_span(),
             Self::ArrayAccess(array_access) => array_access.get_span(),
             Self::BlockScopedFunction(function) => function.get_span(),
             Self::FunctionCall(function_call) => function_call.get_span(),
@@ -156,7 +156,7 @@ impl PreExp {
                 _ => {
                     let err = TransformError::WrongArgument(format!(
                         "Expected \"Number\", got \"{}\"",
-                        n.get_type().to_string()
+                        n.get_type_string()
                     ));
                     Err(err.to_spanned_error(self.get_span()))
                 }
@@ -192,11 +192,11 @@ impl PreExp {
                 }
             }
 
-            Self::UnaryNegation(exp) => {
+            Self::UnaryOperation(op, exp) => {
                 let inner = exp
                     .into_exp(context)
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
-                Ok(Exp::Neg(inner.to_box()))
+                Ok(Exp::UnOp(**op, inner.to_box()))
             }
             Self::Variable(name) => {
                 let value = context.get_value(&*name).map(|v| match v {
@@ -204,7 +204,7 @@ impl PreExp {
                     _ => {
                         let err = TransformError::WrongArgument(format!(
                             "Expected \"Number\", got \"{}\"",
-                            v.get_type().to_string()
+                            v.get_type_string()
                         ));
                         Err(err.to_spanned_error(self.get_span()))
                     }
@@ -229,7 +229,7 @@ impl PreExp {
                     _ => {
                         let err = TransformError::WrongArgument(format!(
                             "Expected \"Number\", got \"{}\"",
-                            value.get_type().to_string()
+                            value.get_type_string()
                         ));
                         Err(err.to_spanned_error(self.get_span()))
                     }
@@ -286,7 +286,7 @@ impl PreExp {
                     _ => {
                         let err = TransformError::WrongArgument(format!(
                             "Expected \"Number\", got \"{}\"",
-                            value.get_type().to_string()
+                            value.get_type_string()
                         ));
                         Err(err.to_spanned_error(self.get_span()))
                     }
@@ -318,15 +318,20 @@ impl PreExp {
                 let value = context.get_array_value(a)?;
                 Ok(value.to_owned())
             }
-            PreExp::UnaryNegation(v) => {
-                //TODO implement operator overloading for every primitive
-                let val = v.as_number(context)?;
-                Ok(Primitive::Number(-val))
+            PreExp::UnaryOperation(op, v) => {
+                let value = v.as_primitive(context)?;
+                match value.apply_unary_op(**op) {
+                    Ok(value) => Ok(value),
+                    Err(e) => {
+                        let err = TransformError::OperatorError(e.to_string());
+                        Err(err.to_spanned_error(self.get_span()))
+                    }
+                }
             }
             PreExp::BinaryOperation(op, lhs, rhs) => {
                 let lhs = lhs.as_primitive(context)?;
                 let rhs = rhs.as_primitive(context)?;
-                match lhs.apply_op(**op, &rhs) {
+                match lhs.apply_binary_op(**op, &rhs) {
                     Ok(value) => Ok(value),
                     Err(e) => {
                         let err = TransformError::OperatorError(e.to_string());
@@ -422,7 +427,7 @@ impl PreExp {
             Self::FunctionCall(f) => f.to_string(),
             Self::Mod(exp) => format!("|{}|", exp.to_string()),
             Self::Primitive(p) => p.to_string(),
-            Self::UnaryNegation(exp) => format!("-{}", exp.to_string()),
+            Self::UnaryOperation(op, exp) => format!("{}{}",op.to_string(), exp.to_string()),
             Self::Variable(name) => name.to_string(),
         }
     }
