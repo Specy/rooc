@@ -23,8 +23,8 @@ The "language" supports formal definitions of problems, with the ability to call
   - [x] Expressions as function parameters
   - [x] Error logging and parameter validation 
   - [x] Error traces
+  - [x] Primitives Operator overloading (for example, `+` for strings)
   - [ ] Definition of variable bounds
-  - [ ] Primitives Operator overloading (for example, `+` for strings)
 - [ ] Simplex resolution
   - [ ] Linearization of a generic problem
   - [x] Transformation of a linear problem into the standard form

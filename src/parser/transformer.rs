@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
+use crate::math::math_enums::{Comparison, OptimizationType};
+use crate::math::operators::Op;
+
 use crate::{
-    math_enums::{Comparison, Op, OptimizationType},
     primitives::primitive::Primitive,
     utils::{InputSpan, Spanned},
 };
@@ -204,6 +206,7 @@ pub enum TransformError {
     OutOfBounds(String),
     WrongArgument(String),
     SpannedError(Spanned<Box<TransformError>>, Option<String>),
+    OperatorError(String),
     Other(String),
 }
 impl TransformError {
@@ -215,6 +218,7 @@ impl TransformError {
             }
             TransformError::OutOfBounds(name) => format!("[Out of bounds] {}", name),
             TransformError::WrongArgument(name) => format!("[Wrong argument] {}", name),
+            TransformError::OperatorError(name) => format!("[Operator error] {}", name),
             TransformError::Other(name) => name.clone(),
             TransformError::SpannedError(error, _) => return error.to_string(),
         }

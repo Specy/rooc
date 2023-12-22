@@ -1,5 +1,5 @@
 use crate::{
-    math_enums::{Comparison, OptimizationType},
+    math::math_enums::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
 };
 

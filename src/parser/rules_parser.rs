@@ -2,7 +2,8 @@ use std::vec;
 
 use pest::iterators::{Pair, Pairs};
 
-use crate::math_enums::{Comparison, Op, OptimizationType};
+use crate::math::math_enums::{Comparison, OptimizationType};
+use crate::math::operators::Op;
 use crate::parser::iterable_utils::flatten_primitive_array_values;
 use crate::primitives::consts::Constant;
 use crate::primitives::functions::array_functions::{EnumerateArray, LenOfIterableFn};

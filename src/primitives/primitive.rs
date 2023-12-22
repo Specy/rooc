@@ -1,5 +1,8 @@
 use crate::{
-    bail_wrong_argument, match_or_bail, parser::transformer::TransformError, wrong_argument,
+    bail_wrong_argument, match_or_bail,
+    math::operators::{ApplyOp, Op},
+    parser::transformer::TransformError,
+    wrong_argument,
 };
 
 use super::{
@@ -14,12 +17,10 @@ impl Tuple {
         Self(v)
     }
     pub fn get(&self, index: usize) -> Option<&Primitive> {
-        self.0
-            .get(index)
+        self.0.get(index)
     }
     pub fn get_mut(&mut self, index: usize) -> Option<&mut Primitive> {
-        self.0
-            .get_mut(index)
+        self.0.get_mut(index)
     }
     pub fn into_primitives(self) -> Vec<Primitive> {
         self.0
@@ -55,6 +56,7 @@ pub enum Primitive {
     Boolean(bool),
     Undefined,
 }
+
 pub enum PrimitiveKind {
     Number,
     String,
@@ -98,6 +100,9 @@ impl PrimitiveKind {
 impl Primitive {
     pub fn get_type(&self) -> PrimitiveKind {
         PrimitiveKind::from_primitive(self)
+    }
+    pub fn get_type_string(&self) -> &'static str {
+        self.get_type().to_string()
     }
     pub fn as_number(&self) -> Result<f64, TransformError> {
         match_or_bail!("Number", Primitive::Number(n) => Ok(*n) ; (self, self))
@@ -160,6 +165,142 @@ impl Primitive {
             Primitive::Tuple(v) => format!("{:?}", v),
             Primitive::Boolean(b) => b.to_string(),
             Primitive::Undefined => "undefined".to_string(),
+        }
+    }
+}
+
+pub enum OperatorError {
+    IncompatibleType {
+        operator: Op,
+        expected: PrimitiveKind,
+        found: PrimitiveKind,
+    },
+    UnsupportedOperation {
+        operator: Op,
+        found: PrimitiveKind,
+    },
+    UndefinedUse,
+}
+impl OperatorError {
+    pub fn incompatible_type(op: Op, expected: PrimitiveKind, found: PrimitiveKind) -> Self {
+        OperatorError::IncompatibleType {
+            operator: op,
+            expected,
+            found
+        }
+    }
+    pub fn unsupported_operation(op: Op, found: PrimitiveKind) -> Self {
+        OperatorError::UnsupportedOperation { operator: op, found }
+    }
+}
+
+impl ApplyOp for f64 {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
+        match to {
+            Primitive::Number(n) => match op {
+                Op::Add => Ok(Primitive::Number(self + n)),
+                Op::Sub => Ok(Primitive::Number(self - n)),
+                Op::Mul => Ok(Primitive::Number(self * n)),
+                Op::Div => Ok(Primitive::Number(self / n)),
+            },
+            _ => Err(OperatorError::incompatible_type(op, PrimitiveKind::Number, to.get_type())),
+        }
+    }
+}
+impl ApplyOp for String {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
+        match to {
+            Primitive::String(s) => match op {
+                Op::Add => Ok(Primitive::String(format!("{}{}", self, s))),
+                _ => Err(OperatorError::unsupported_operation(op, PrimitiveKind::String)),
+            },
+            _ => Err(OperatorError::incompatible_type(op, PrimitiveKind::String, to.get_type())),
+        }
+    }
+}
+impl ApplyOp for bool {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
+        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Boolean))
+    }
+}
+impl ApplyOp for Tuple {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
+        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Boolean))
+    }
+}
+
+impl ApplyOp for GraphNode {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
+        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Boolean))
+    }
+}
+impl ApplyOp for GraphEdge {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
+        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Boolean))
+    }
+}
+impl ApplyOp for Graph {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
+        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Boolean))
+    }
+}
+impl ApplyOp for IterableKind {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
+        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Boolean))
+    }
+}
+impl OperatorError {
+    pub fn to_string(&self) -> String {
+        match self {
+            OperatorError::IncompatibleType {
+                expected,
+                found,
+                operator,
+            } => format!(
+                "Incompatible types for {}, expected \"{}\", found \"{}\"",
+                operator.to_string(),
+                expected.to_string(),
+                found.to_string()
+            ),
+            OperatorError::UnsupportedOperation { operator, found } => format!(
+                "Unsupported operation \"{}\" for type \"{}\"",
+                operator.to_string(),
+                found.to_string()
+            ),
+            OperatorError::UndefinedUse => "Used \"Undefined\" in operation".to_string(),
+        }
+    }
+}
+impl ApplyOp for Primitive {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_op(&self, op: Op, to: &Self::Target) -> Result<Primitive, OperatorError> {
+        match self {
+            Primitive::Boolean(b) => b.apply_op(op, to),
+            Primitive::String(s) => s.apply_op(op, to),
+            Primitive::Tuple(t) => t.apply_op(op, to),
+            Primitive::GraphNode(gn) => gn.apply_op(op, to),
+            Primitive::GraphEdge(ge) => ge.apply_op(op, to),
+            Primitive::Graph(g) => g.apply_op(op, to),
+            Primitive::Iterable(i) => i.apply_op(op, to),
+            Primitive::Number(i) => i.apply_op(op, to),
+            Primitive::Undefined => Err(OperatorError::UndefinedUse),
         }
     }
 }

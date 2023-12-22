@@ -1,5 +1,5 @@
 use rooc::{
-    math_enums::{Comparison, OptimizationType},
+    math::math_enums::{Comparison, OptimizationType},
     parser::parser::RoocParser,
     solvers::{
         linear_problem::{Constraint, LinearProblem},
@@ -92,7 +92,7 @@ fn main() {
     let source = "
     min 1
     s.t.
-        sum(i in 0..2){ x_i } <= 1  for n in N
+        sum(i in 0..n){ x_i } <= 1  for n in N
     where 
         N = [1,2,3]
     "

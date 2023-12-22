@@ -1,6 +1,12 @@
+use super::{
+    recursive_set_resolver::recursive_set_resolver,
+    transformer::{Exp, TransformError, TransformerContext, VariableType},
+};
+use crate::math::operators::ApplyOp;
 use crate::{
     bail_wrong_argument_spanned, enum_with_variants_to_string, match_or_bail_spanned,
-    math_enums::{Comparison, Op, OptimizationType},
+    math::math_enums::{Comparison, OptimizationType},
+    math::operators::Op,
     primitives::{
         functions::function_traits::FunctionCall,
         graph::{Graph, GraphEdge, GraphNode},
@@ -9,11 +15,6 @@ use crate::{
     },
     utils::{InputSpan, Spanned},
     wrong_argument,
-};
-
-use super::{
-    recursive_set_resolver::recursive_set_resolver,
-    transformer::{Exp, TransformError, TransformerContext, VariableType},
 };
 
 enum_with_variants_to_string! {
@@ -323,14 +324,14 @@ impl PreExp {
                 Ok(Primitive::Number(-val))
             }
             PreExp::BinaryOperation(op, lhs, rhs) => {
-                //TODO implement operator overloading for every primitive
-                let lhs = lhs.as_number(context)?;
-                let rhs = rhs.as_number(context)?;
-                match **op {
-                    Op::Add => Ok(Primitive::Number(lhs + rhs)),
-                    Op::Sub => Ok(Primitive::Number(lhs - rhs)),
-                    Op::Mul => Ok(Primitive::Number(lhs * rhs)),
-                    Op::Div => Ok(Primitive::Number(lhs / rhs)),
+                let lhs = lhs.as_primitive(context)?;
+                let rhs = rhs.as_primitive(context)?;
+                match lhs.apply_op(**op, &rhs) {
+                    Ok(value) => Ok(value),
+                    Err(e) => {
+                        let err = TransformError::OperatorError(e.to_string());
+                        Err(err.to_spanned_error(self.get_span()))
+                    }
                 }
             }
             _ => Err(TransformError::WrongArgument(format!(
