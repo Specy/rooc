@@ -307,14 +307,15 @@ fn parse_exp(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError> {
         let rule = exp.as_rule();
         let span = InputSpan::from_pair(&exp);
         match rule {
-            Rule::binary_op | Rule::unary_op => {
+            Rule::binary_op => {
                 last_op_span = span.clone();
                 let op = parse_operator(&exp)?;
                 while should_unwind(&operator_stack, &op) {
                     match (operator_stack.pop(), output_queue.pop(), output_queue.pop()) {
                         (Some(op), Some(rhs), Some(lhs)) => {
+                            let spanned_op = Spanned::new(op, span.clone());
                             output_queue.push(PreExp::BinaryOperation(
-                                Spanned::new(op, span.clone()),
+                                spanned_op,
                                 lhs.to_boxed(),
                                 rhs.to_boxed(),
                             ));
@@ -324,23 +325,22 @@ fn parse_exp(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError> {
                         }
                     }
                 }
-                //check if the operator is unary, if so, add a zero to the output queue
-                //old if last_token == Some(Rule::op) || last_token == None
-                //TODO prove this works
-                if rule == Rule::unary_op {
-                    match op {
-                        Op::Sub => {
-                            output_queue.push(PreExp::Primitive(Spanned::new(
-                                Primitive::Number(0.0),
-                                span,
-                            )));
-                        }
-                        _ => {
-                            return err_unexpected_token!(
-                                "Unexpected unary token {}, expected exp",
-                                exp
-                            );
-                        }
+            }
+            Rule::unary_op => {
+                last_op_span = span.clone();
+                let op = parse_operator(&exp)?;
+                match op {
+                    Op::Sub => {
+                        output_queue.push(PreExp::Primitive(Spanned::new(
+                            Primitive::Number(0.0),
+                            span,
+                        )));
+                    }
+                    _ => {
+                        return err_unexpected_token!(
+                            "Unexpected unary token {}, expected exp",
+                            exp
+                        );
                     }
                 }
                 operator_stack.push(op);
@@ -412,11 +412,8 @@ fn parse_exp(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError> {
                 output_queue.push(PreExp::Primitive(prim));
             }
             Rule::parenthesis => {
-                //i keep this only because i want to be able to format and get back the same input that
-                // was given to me
                 let par = parse_exp(&exp)?;
                 let par = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, par)?;
-                //output_queue.push(PreExp::Parenthesis(par.to_boxed()));
                 output_queue.push(par);
             }
             Rule::modulo => {

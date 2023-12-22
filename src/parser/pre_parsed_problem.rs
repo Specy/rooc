@@ -117,7 +117,7 @@ pub enum PreExp {
     FunctionCall(Spanned<Box<dyn FunctionCall>>),
 
     BinaryOperation(Spanned<Op>, Box<PreExp>, Box<PreExp>),
-    UnaryOperation(Spanned<Op>, Spanned<Box<PreExp>>),
+    UnaryOperation(Spanned<Op>, Box<PreExp>),
 }
 
 impl PreExp {

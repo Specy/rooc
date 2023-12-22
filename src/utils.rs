@@ -58,7 +58,7 @@ pub struct Spanned<T>
 where
     T: Debug,
 {
-    value: T,
+    pub value: T,
     span: InputSpan,
 }
 impl<T: Debug> Spanned<T> {
