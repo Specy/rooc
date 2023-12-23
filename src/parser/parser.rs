@@ -6,12 +6,9 @@ use pest::Parser;
 use std::fmt::Debug;
 
 use super::pre_parsed_problem::{PreCondition, PreObjective};
-use super::rules_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
+use super::rules_parser::other_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
 use super::transformer::{transform_parsed_problem, Problem};
 
-/*
-   TODO: add bounds to variables, including wildcards (or add a way to define variable types)
-*/
 
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]

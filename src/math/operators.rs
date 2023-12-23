@@ -1,15 +1,20 @@
+use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum Op {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    //And
-    //Or
-    //Not
-    //Xor
+use crate::enum_with_variants_to_string;
+
+enum_with_variants_to_string!{
+    pub enum Op derives[Debug, PartialEq, Clone, Copy] {
+        Add,
+        Sub,
+        Mul,
+        Div,
+        //And
+        //Or
+        //Not
+        //Xor
+    }
 }
+
 
 impl Op {
     pub fn precedence(&self) -> u8 {
@@ -29,6 +34,41 @@ impl Op {
         }
     }
 }
+impl FromStr for Op {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "+" => Ok(Op::Add),
+            "-" => Ok(Op::Sub),
+            "*" => Ok(Op::Mul),
+            "/" => Ok(Op::Div),
+            _ => Err(()),
+        }
+    }
+}
+
+
+enum_with_variants_to_string!{
+    pub enum UnOp derives[Debug, PartialEq, Clone, Copy] {
+        Neg,
+    }
+}
+impl UnOp {
+    pub fn to_string(&self) -> String {
+        match self {
+            UnOp::Neg => "-".to_string(),
+        }
+    }
+}
+impl FromStr for UnOp {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "-" => Ok(UnOp::Neg),
+            _ => Err(()),
+        }
+    }
+}
 
 
 pub trait ApplyOp {
@@ -39,6 +79,6 @@ pub trait ApplyOp {
         op: Op,
         to: &Self::Target,
     ) -> Result<Self::Target, Self::Error>;
-    fn apply_unary_op(&self, op: Op) -> Result<Self::Target, Self::Error>;
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error>;
 }
 

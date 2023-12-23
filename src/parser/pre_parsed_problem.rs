@@ -1,8 +1,10 @@
+use std::str::FromStr;
+
 use super::{
     recursive_set_resolver::recursive_set_resolver,
     transformer::{Exp, TransformError, TransformerContext, VariableType},
 };
-use crate::math::operators::ApplyOp;
+use crate::math::operators::{ApplyOp, UnOp};
 use crate::{
     bail_wrong_argument_spanned, enum_with_variants_to_string, match_or_bail_spanned,
     math::math_enums::{Comparison, OptimizationType},
@@ -37,11 +39,38 @@ impl BlockScopedFunctionKind {
         }
     }
 }
+impl FromStr for BlockScopedFunctionKind {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "sum" => Ok(Self::Sum),
+            "prod" => Ok(Self::Prod),
+            "min" => Ok(Self::Min),
+            "max" => Ok(Self::Max),
+            "avg" => Ok(Self::Avg),
+            _ => Err(()),
+        }
+    }
+}
+
+
 enum_with_variants_to_string! {
     pub enum BlockFunctionKind derives[Debug] {
         Min,
         Max,
         Avg,
+    }
+}
+
+impl FromStr for BlockFunctionKind {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "min" => Ok(Self::Min),
+            "max" => Ok(Self::Max),
+            "avg" => Ok(Self::Avg),
+            _ => Err(()),
+        }
     }
 }
 
@@ -115,9 +144,8 @@ pub enum PreExp {
     ArrayAccess(Spanned<ArrayAccess>),
     BlockScopedFunction(Spanned<BlockScopedFunction>),
     FunctionCall(Spanned<Box<dyn FunctionCall>>),
-
     BinaryOperation(Spanned<Op>, Box<PreExp>, Box<PreExp>),
-    UnaryOperation(Spanned<Op>, Box<PreExp>),
+    UnaryOperation(Spanned<UnOp>, Box<PreExp>),
 }
 
 impl PreExp {

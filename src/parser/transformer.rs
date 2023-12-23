@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::math::math_enums::{Comparison, OptimizationType};
-use crate::math::operators::Op;
+use crate::math::operators::{Op, UnOp};
 
 use crate::{
     primitives::primitive::Primitive,
@@ -22,7 +22,7 @@ pub enum Exp {
     Min(Vec<Exp>),
     Max(Vec<Exp>),
     BinOp(Op, Box<Exp>, Box<Exp>),
-    UnOp(Op, Box<Exp>),
+    UnOp(UnOp, Box<Exp>),
 }
 
 impl Exp {
@@ -62,11 +62,11 @@ impl Exp {
                 )
                 .flatten(),
                 //-(a)b = -ab
-                (Op::Mul, Exp::UnOp(op @ Op::Sub, lhs), c) => {
+                (Op::Mul, Exp::UnOp(op @ UnOp::Neg, lhs), c) => {
                     Exp::UnOp(op, Exp::make_binop(Op::Mul, *lhs, c).flatten().to_box())
                 }
                 //a(-b) = -ab
-                (Op::Mul, c, Exp::UnOp(op @ Op::Sub,rhs)) => {
+                (Op::Mul, c, Exp::UnOp(op @ UnOp::Neg,rhs)) => {
                     Exp::UnOp(op, Exp::make_binop(Op::Mul, c, *rhs).flatten().to_box())
                 }
                 //(a +- b)/c = a/c +- b/c

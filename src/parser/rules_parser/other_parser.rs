@@ -3,8 +3,8 @@ use std::vec;
 use pest::iterators::{Pair, Pairs};
 
 use crate::math::math_enums::{Comparison, OptimizationType};
-use crate::math::operators::Op;
 use crate::parser::iterable_utils::flatten_primitive_array_values;
+use crate::parser::parser::Rule;
 use crate::primitives::consts::Constant;
 use crate::primitives::functions::array_functions::{EnumerateArray, LenOfIterableFn};
 use crate::primitives::functions::function_traits::FunctionCall;
@@ -17,12 +17,12 @@ use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 use crate::{bail_missing_token, err_unexpected_token};
 
-use super::parser::Rule;
-use super::pre_parsed_problem::{
-    ArrayAccess, BlockFunction, BlockFunctionKind, BlockScopedFunction, BlockScopedFunctionKind,
-    CompoundVariable, IterableSet, PreCondition, PreExp, PreObjective,
+use super::exp_parser::parse_exp;
+use crate::parser::pre_parsed_problem::{
+    ArrayAccess, BlockFunction, BlockFunctionKind, BlockScopedFunctionKind, CompoundVariable,
+    IterableSet, PreCondition, PreExp, PreObjective,
 };
-use super::transformer::VariableType;
+use crate::parser::transformer::VariableType;
 
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {
     match objective.as_rule() {
@@ -206,36 +206,8 @@ pub fn parse_condition_list(
         _ => err_unexpected_token!("Expected condition list but got: {}", condition_list),
     }
 }
-/*
-pub fn parse_bounds_list(bounds_list: Pair<Rule>) -> Result<Vec<Bounds>, CompilationError> {
-    match bounds_list.as_rule() {
-        Rule::bounds_list => bounds_list
-            .into_inner()
-            .map(|c| parse_bounds(c))
-            .collect::<Result<Vec<Bounds>, ParseError>>(),
-        _ => Err(ParseError::UnexpectedToken("Expected bounds list".to_string())),
-    }
-}
-fn parse_comma_separated_vars(vars: Pair<Rule>) -> Result<Vec<String>, CompilationError> {
-    match vars.as_rule() {
-        Rule::comma_separated_vars => vars
-            .into_inner()
-            .map(|c| parse_var(c))
-            .collect::<Result<Vec<String>, ParseError>>(),
-        _ => Err(ParseError::UnexpectedToken(
-            "Expected comma separated vars".to_string(),
-        )),
-    }
-}
-fn parse_var(var: Pair<Rule>) -> Result<String, CompilationError> {
-    match var.as_rule() {
-        Rule::variable => Ok(var.as_str().to_string()),
-        _ => Err(ParseError::UnexpectedToken("Expected var".to_string())),
-    }
-}
-*/
 
-fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, CompilationError> {
+pub fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, CompilationError> {
     match condition.as_rule() {
         Rule::condition => {
             let inner = condition.clone().into_inner();
@@ -264,7 +236,7 @@ fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, CompilationEr
     }
 }
 
-fn parse_number(number: &Pair<Rule>) -> Result<f64, CompilationError> {
+pub fn parse_number(number: &Pair<Rule>) -> Result<f64, CompilationError> {
     match number.as_rule() {
         Rule::number => {
             let number = match number.as_str().parse::<f64>() {
@@ -279,7 +251,7 @@ fn parse_number(number: &Pair<Rule>) -> Result<f64, CompilationError> {
     }
 }
 
-fn parse_comparison(comparison: &Pair<Rule>) -> Result<Comparison, CompilationError> {
+pub fn parse_comparison(comparison: &Pair<Rule>) -> Result<Comparison, CompilationError> {
     match comparison.as_rule() {
         Rule::comparison => {
             let comparison = match comparison.as_str() {
@@ -296,180 +268,50 @@ fn parse_comparison(comparison: &Pair<Rule>) -> Result<Comparison, CompilationEr
     }
 }
 
-fn parse_exp(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError> {
-    //use shunting yard algorithm to parse expression list into a PreExp tree
-    let mut output_queue: Vec<PreExp> = Vec::new();
-    let mut operator_stack: Vec<Op> = Vec::new();
-    let mut last_token: Option<Rule> = None;
-    let exp_list = exp_to_parse.clone().into_inner();
-    let mut last_op_span = InputSpan::default();
-    for exp in exp_list.into_iter() {
-        let rule = exp.as_rule();
-        let span = InputSpan::from_pair(&exp);
-        match rule {
-            Rule::binary_op => {
-                last_op_span = span.clone();
-                let op = parse_operator(&exp)?;
-                while should_unwind(&operator_stack, &op) {
-                    match (operator_stack.pop(), output_queue.pop(), output_queue.pop()) {
-                        (Some(op), Some(rhs), Some(lhs)) => {
-                            let spanned_op = Spanned::new(op, span.clone());
-                            output_queue.push(PreExp::BinaryOperation(
-                                spanned_op,
-                                lhs.to_boxed(),
-                                rhs.to_boxed(),
-                            ));
-                        }
-                        _ => {
-                            return err_unexpected_token!("found {}, expected exp", exp);
-                        }
-                    }
-                }
-            }
-            Rule::unary_op => {
-                last_op_span = span.clone();
-                let op = parse_operator(&exp)?;
-                match op {
-                    Op::Sub => {
-                        output_queue.push(PreExp::Primitive(Spanned::new(
-                            Primitive::Number(0.0),
-                            span,
-                        )));
-                    }
-                    _ => {
-                        return err_unexpected_token!(
-                            "Unexpected unary token {}, expected exp",
-                            exp
-                        );
-                    }
-                }
-                operator_stack.push(op);
-            }
-            Rule::function => {
-                let fun = parse_function_call(&exp)?;
-                let fun = englobe_if_multiplied_by_constant(
-                    &last_token,
-                    &mut output_queue,
-                    PreExp::FunctionCall(Spanned::new(fun, span)),
-                )?;
-                output_queue.push(fun);
-            }
-            Rule::simple_variable => {
-                let variable = exp.as_str().to_string();
-                let variable = PreExp::Variable(Spanned::new(variable, span));
-                let next =
-                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, variable)?;
-                output_queue.push(next);
-            }
-            Rule::compound_variable => {
-                let variable = parse_compound_variable(&exp)?;
-                let variable = PreExp::CompoundVariable(Spanned::new(variable, span));
-                let next =
-                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, variable)?;
-                output_queue.push(next);
-            }
-            Rule::block_function => {
-                let inner = exp.clone().into_inner();
-                let name = inner.find_first_tagged("name");
-                let body = inner.find_first_tagged("body");
-                if name.is_none() || body.is_none() {
-                    return err_unexpected_token!("found {}, expected block function", exp);
-                }
-                let members = body
-                    .unwrap()
-                    .into_inner()
-                    .map(|member| parse_exp(&member))
-                    .collect::<Result<Vec<PreExp>, CompilationError>>()?;
-                let kind = parse_block_function_type(&name.unwrap())?;
-                let fun = BlockFunction::new(kind, members);
-                let fun_exp = PreExp::BlockFunction(Spanned::new(fun, span));
-                let sum =
-                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, fun_exp)?;
-                output_queue.push(sum);
-            }
-            Rule::block_scoped_function => {
-                let inner = exp.clone().into_inner();
-                let name = inner.find_first_tagged("name");
-                let iters = inner.find_first_tagged("range");
-                let body = inner.find_first_tagged("body");
-                if name.is_none() || iters.is_none() || body.is_none() {
-                    return err_unexpected_token!("found {}, expected scoped block function", exp);
-                }
-                let body = body.unwrap();
-                let body = parse_exp(&body)?.to_boxed();
-                let iters = iters.unwrap();
-                let iters = parse_set_iterator_list(&iters.into_inner())?;
-                let kind = parse_scoped_block_function_type(&name.unwrap())?;
-                let fun = BlockScopedFunction::new(kind, iters, body);
-                let fun_exp = PreExp::BlockScopedFunction(Spanned::new(fun, span));
-                let sum =
-                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, fun_exp)?;
-                output_queue.push(sum);
-            }
-            Rule::primitive => {
-                let prim = parse_primitive(&exp)?;
-                let prim = Spanned::new(prim, span);
-                output_queue.push(PreExp::Primitive(prim));
-            }
-            Rule::parenthesis => {
-                let par = parse_exp(&exp)?;
-                let par = englobe_if_multiplied_by_constant(&last_token, &mut output_queue, par)?;
-                output_queue.push(par);
-            }
-            Rule::modulo => {
-                let exp = parse_exp(&exp)?;
-                let modulo = PreExp::Mod(Spanned::new(Box::new(exp), span));
-                let modulo =
-                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, modulo)?;
-                output_queue.push(modulo)
-            }
-            Rule::array_access => {
-                let array_access = parse_array_access(&exp)?;
-                let array_access = englobe_if_multiplied_by_constant(
-                    &last_token,
-                    &mut output_queue,
-                    PreExp::ArrayAccess(Spanned::new(array_access, span)),
-                )?;
-                output_queue.push(array_access);
-            }
-            _ => {
-                println!("exp: {:#?}", exp);
-                return err_unexpected_token!(
-                    "found \"{}\", expected exp, binary_op, unary_op, len, variable, sum, primitive, parenthesis, array_access, min, max, block function or scoped function", 
-                    exp
-                );
-            }
-        }
-        last_token = Some(rule);
-    }
-    while !operator_stack.is_empty() {
-        let op = operator_stack.pop();
-        let rhs = output_queue.pop();
-        let lhs = output_queue.pop();
-        if op.is_none() || rhs.is_none() || lhs.is_none() {
-            return bail_missing_token!("missing terminal expression", exp_to_parse);
-        }
-        let (op, rhs, lhs) = (op.unwrap(), rhs.unwrap(), lhs.unwrap());
-        output_queue.push(PreExp::BinaryOperation(
-            Spanned::new(op, last_op_span.clone()),
-            lhs.to_boxed(),
-            rhs.to_boxed(),
-        ));
-    }
-    match output_queue.pop() {
-        Some(exp) => Ok(exp),
-        None => err_unexpected_token!("Invalid empty expression: {}", exp_to_parse),
-    }
-}
 
-fn parse_set_iterator_list(range_list: &Pairs<Rule>) -> Result<Vec<IterableSet>, CompilationError> {
+pub fn parse_set_iterator_list(range_list: &Pairs<Rule>) -> Result<Vec<IterableSet>, CompilationError> {
     range_list
         .clone()
         .map(|r| parse_set_iterator(&r))
         .collect::<Result<Vec<IterableSet>, CompilationError>>()
 }
 
-fn parse_compound_variable(
+pub fn parse_block_scoped_function(exp: &Pair<Rule>) -> Result<PreExp, CompilationError> {
+    let span = InputSpan::from_pair(&exp);
+    let inner = exp.clone().into_inner();
+    let name = inner.find_first_tagged("name");
+    let body = inner.find_first_tagged("body");
+    if name.is_none() || body.is_none() {
+        return err_unexpected_token!("found {}, expected block function", exp);
+    }
+    let members = body
+        .unwrap()
+        .into_inner()
+        .map(|member| parse_exp(&member))
+        .collect::<Result<Vec<PreExp>, CompilationError>>()?;
+    let kind = parse_block_function_type(&name.unwrap())?;
+    let fun = BlockFunction::new(kind, members);
+    Ok(PreExp::BlockFunction(Spanned::new(fun, span)))
+}
+
+pub fn parse_block_function(exp: &Pair<Rule>) -> Result<PreExp, CompilationError> {
+    let span = InputSpan::from_pair(&exp);
+    let inner = exp.clone().into_inner();
+    let name = inner.find_first_tagged("name");
+    let body = inner.find_first_tagged("body");
+    if name.is_none() || body.is_none() {
+        return err_unexpected_token!("found {}, expected block function", exp);
+    }
+    let members = body
+        .unwrap()
+        .into_inner()
+        .map(|member| parse_exp(&member))
+        .collect::<Result<Vec<PreExp>, CompilationError>>()?;
+    let kind = parse_block_function_type(&name.unwrap())?;
+    let fun = BlockFunction::new(kind, members);
+    Ok(PreExp::BlockFunction(Spanned::new(fun, span)))
+}
+pub fn parse_compound_variable(
     compound_variable: &Pair<Rule>,
 ) -> Result<CompoundVariable, CompilationError> {
     match compound_variable.as_rule() {
@@ -498,42 +340,28 @@ fn parse_compound_variable(
 pub fn parse_block_function_type(
     block_function_type: &Pair<Rule>,
 ) -> Result<BlockFunctionKind, CompilationError> {
-    match block_function_type.as_str() {
-        "max" => Ok(BlockFunctionKind::Max),
-        "min" => Ok(BlockFunctionKind::Min),
-        "avg" => Ok(BlockFunctionKind::Avg),
-        _ => Err(CompilationError::from_pair(
-            ParseError::SemanticError(format!(
-                "Unknown block function \"{}\", expected one of \"{}\"",
-                block_function_type.as_str(),
-                BlockFunctionKind::kinds_to_string().join(", ")
-            )),
-            &block_function_type,
-            false,
-        )),
+    match block_function_type.as_str().parse() {
+        Ok(kind) => Ok(kind),
+        Err(_) => err_unexpected_token!(
+            "Unknown block function \"{}\", expected one of \"{}\"",
+            block_function_type,
+            BlockFunctionKind::kinds_to_string().join(", ")
+        ),
     }
 }
 pub fn parse_scoped_block_function_type(
     scoped_block_function_type: &Pair<Rule>,
 ) -> Result<BlockScopedFunctionKind, CompilationError> {
-    match scoped_block_function_type.as_str() {
-        "sum" => Ok(BlockScopedFunctionKind::Sum),
-        "prod" => Ok(BlockScopedFunctionKind::Prod),
-        "min" => Ok(BlockScopedFunctionKind::Min),
-        "max" => Ok(BlockScopedFunctionKind::Max),
-        "avg" => Ok(BlockScopedFunctionKind::Avg),
-        _ => Err(CompilationError::from_pair(
-            ParseError::SemanticError(format!(
-                "Unknown scoped block function \"{}\", expected one of \"{}\"",
-                scoped_block_function_type.as_str(),
-                BlockScopedFunctionKind::kinds_to_string().join(", ")
-            )),
-            &scoped_block_function_type,
-            true,
-        )),
+    match scoped_block_function_type.as_str().parse() {
+        Ok(kind) => Ok(kind),
+        Err(_) => err_unexpected_token!(
+            "Unknown scoped block function \"{}\", expected one of \"{}\"",
+            scoped_block_function_type,
+            BlockScopedFunctionKind::kinds_to_string().join(", ")
+        ),
     }
 }
-fn parse_function_call(
+pub fn parse_function_call(
     function_call: &Pair<Rule>,
 ) -> Result<Box<dyn FunctionCall>, CompilationError> {
     match function_call.as_rule() {
@@ -550,7 +378,7 @@ fn parse_function_call(
     }
 }
 
-fn parse_function(
+pub fn parse_function(
     name: &Pair<Rule>,
     pars: Pair<Rule>,
 ) -> Result<Box<dyn FunctionCall>, CompilationError> {
@@ -588,7 +416,7 @@ fn parse_function(
     }
 }
 
-fn parse_parameters(pars: &Pair<Rule>) -> Result<Vec<PreExp>, CompilationError> {
+pub fn parse_parameters(pars: &Pair<Rule>) -> Result<Vec<PreExp>, CompilationError> {
     match pars.as_rule() {
         Rule::function_pars => {
             let inner = pars.clone().into_inner();
@@ -600,14 +428,13 @@ fn parse_parameters(pars: &Pair<Rule>) -> Result<Vec<PreExp>, CompilationError> 
         _ => err_unexpected_token!("Expected function args but got: {}", pars),
     }
 }
-fn parse_parameter(arg: &Pair<Rule>) -> Result<PreExp, CompilationError> {
-    let span = InputSpan::from_pair(&arg);
+pub fn parse_parameter(arg: &Pair<Rule>) -> Result<PreExp, CompilationError> {
     match arg.as_rule() {
         Rule::tagged_exp => parse_exp(&arg),
         _ => err_unexpected_token!("Expected function arg but got: {}", arg),
     }
 }
-fn parse_set_iterator(range: &Pair<Rule>) -> Result<IterableSet, CompilationError> {
+pub fn parse_set_iterator(range: &Pair<Rule>) -> Result<IterableSet, CompilationError> {
     match range.as_rule() {
         Rule::iteration_declaration => {
             let inner = range.clone().into_inner();
@@ -629,7 +456,7 @@ fn parse_set_iterator(range: &Pair<Rule>) -> Result<IterableSet, CompilationErro
         _ => err_unexpected_token!("Expected set iterator but got: {}", range),
     }
 }
-fn parse_variable_type(tuple: &Pair<Rule>) -> Result<VariableType, CompilationError> {
+pub fn parse_variable_type(tuple: &Pair<Rule>) -> Result<VariableType, CompilationError> {
     match tuple.as_rule() {
         Rule::tuple => {
             let inner = tuple.clone().into_inner();
@@ -657,7 +484,7 @@ fn parse_variable_type(tuple: &Pair<Rule>) -> Result<VariableType, CompilationEr
     }
 }
 
-fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreExp, CompilationError> {
+pub fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreExp, CompilationError> {
     match iterator.as_rule() {
         Rule::iterator => {
             let mut inner = iterator.clone().into_inner();
@@ -705,7 +532,7 @@ fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreExp, CompilationError> {
     }
 }
 
-fn parse_array_access(array_access: &Pair<Rule>) -> Result<ArrayAccess, CompilationError> {
+pub fn parse_array_access(array_access: &Pair<Rule>) -> Result<ArrayAccess, CompilationError> {
     match array_access.as_rule() {
         Rule::array_access => {
             let inner = array_access.clone().into_inner();
@@ -728,47 +555,4 @@ fn parse_array_access(array_access: &Pair<Rule>) -> Result<ArrayAccess, Compilat
     }
 }
 
-fn should_unwind(operator_stack: &Vec<Op>, op: &Op) -> bool {
-    match operator_stack.last() {
-        Some(top) => top.precedence() >= op.precedence(),
-        None => false,
-    }
-}
 
-fn parse_operator(operator: &Pair<Rule>) -> Result<Op, CompilationError> {
-    match operator.as_rule() {
-        //TODO add separate unary operators?
-        Rule::binary_op | Rule::unary_op => match operator.as_str() {
-            "+" => Ok(Op::Add),
-            "-" => Ok(Op::Sub),
-            "*" => Ok(Op::Mul),
-            "/" => Ok(Op::Div),
-            _ => err_unexpected_token!("found {}, expected +, -, *, /", operator),
-        },
-        _ => err_unexpected_token!("found {}, expected op", operator),
-    }
-}
-
-//if the previous token was a number, englobe the rhs in a multiplication, this is to implement the implicit multiplication
-fn englobe_if_multiplied_by_constant(
-    prev_token: &Option<Rule>,
-    queue: &mut Vec<PreExp>,
-    rhs: PreExp,
-) -> Result<PreExp, CompilationError> {
-    match prev_token {
-        Some(Rule::number) => {
-            let last_number = match queue.pop() {
-                Some(n @ PreExp::Primitive(_)) => n,
-                _ => unreachable!(), //could this ever happen?
-            };
-            let span = rhs.get_span();
-            let exp = PreExp::BinaryOperation(
-                Spanned::new(Op::Mul, span.clone()),
-                last_number.to_boxed(),
-                rhs.to_boxed(),
-            );
-            Ok(exp)
-        }
-        _ => Ok(rhs),
-    }
-}

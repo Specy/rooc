@@ -1,6 +1,6 @@
 use crate::{
     bail_wrong_argument, match_or_bail,
-    math::operators::{ApplyOp, Op},
+    math::operators::{ApplyOp, Op, UnOp},
     parser::transformer::TransformError,
     wrong_argument,
 };
@@ -102,7 +102,7 @@ impl Primitive {
         PrimitiveKind::from_primitive(self)
     }
     pub fn get_type_string(&self) -> &'static str {
-        self.get_type_string()
+        self.get_type().to_string()
     }
     pub fn as_number(&self) -> Result<f64, TransformError> {
         match_or_bail!("Number", Primitive::Number(n) => Ok(*n) ; (self, self))
@@ -175,12 +175,20 @@ pub enum OperatorError {
         expected: PrimitiveKind,
         found: PrimitiveKind,
     },
-    UnsupportedOperation {
+    UnsupportedBinOperation {
         operator: Op,
+        found: PrimitiveKind,
+    },
+    UnsupportedUnOperation {
+        operator: UnOp,
         found: PrimitiveKind,
     },
     UndefinedUse,
 }
+
+
+
+
 impl OperatorError {
     pub fn incompatible_type(op: Op, expected: PrimitiveKind, found: PrimitiveKind) -> Self {
         OperatorError::IncompatibleType {
@@ -189,8 +197,11 @@ impl OperatorError {
             found
         }
     }
-    pub fn unsupported_operation(op: Op, found: PrimitiveKind) -> Self {
-        OperatorError::UnsupportedOperation { operator: op, found }
+    pub fn unsupported_bin_operation(op: Op, found: PrimitiveKind) -> Self {
+        OperatorError::UnsupportedBinOperation { operator: op, found }
+    }
+    pub fn unsupported_un_operation(op: UnOp, found: PrimitiveKind) -> Self {
+        OperatorError::UnsupportedUnOperation { operator: op, found }
     }
 }
 
@@ -208,10 +219,10 @@ impl ApplyOp for f64 {
             _ => Err(OperatorError::incompatible_type(op, PrimitiveKind::Number, to.get_type())),
         }
     }
-    fn apply_unary_op(&self, op: Op) -> Result<Self::Target, Self::Error> {
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
         match op {
-            Op::Sub => Ok(Primitive::Number(-self)),
-            _ => Err(OperatorError::unsupported_operation(op, PrimitiveKind::Number)),
+            UnOp::Neg => Ok(Primitive::Number(-self)),
+            _ => Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::Number)),
         }
     }
 }
@@ -222,33 +233,33 @@ impl ApplyOp for String {
         match to {
             Primitive::String(s) => match op {
                 Op::Add => Ok(Primitive::String(format!("{}{}", self, s))),
-                _ => Err(OperatorError::unsupported_operation(op, PrimitiveKind::String)),
+                _ => Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::String)),
             },
             _ => Err(OperatorError::incompatible_type(op, PrimitiveKind::String, to.get_type())),
         }
     }
-    fn apply_unary_op(&self, op: Op) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_operation(op, PrimitiveKind::String))
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
+        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::String))
     }
 }
 impl ApplyOp for bool {
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
-        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Boolean))
+        Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::Boolean))
     }
-    fn apply_unary_op(&self, op: Op) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Boolean))
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
+        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::Boolean))
     }
 }
 impl ApplyOp for Tuple {
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
-        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Tuple))
+        Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::Tuple))
     }
-    fn apply_unary_op(&self, op: Op) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Tuple))
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
+        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::Tuple))
     }
 }
 
@@ -256,40 +267,40 @@ impl ApplyOp for GraphNode {
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
-        Err(OperatorError::unsupported_operation(op, PrimitiveKind::GraphNode))
+        Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::GraphNode))
     }
-    fn apply_unary_op(&self, op: Op) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_operation(op, PrimitiveKind::GraphNode))
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
+        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::GraphNode))
     }
 }
 impl ApplyOp for GraphEdge {
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
-        Err(OperatorError::unsupported_operation(op, PrimitiveKind::GraphEdge))
+        Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::GraphEdge))
     }
-    fn apply_unary_op(&self, op: Op) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_operation(op, PrimitiveKind::GraphEdge))
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
+        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::GraphEdge))
     }
 }
 impl ApplyOp for Graph {
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
-        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Graph))
+        Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::Graph))
     }
-    fn apply_unary_op(&self, op: Op) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Graph))
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
+        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::Graph))
     }
 }
 impl ApplyOp for IterableKind {
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: Op, to: &Primitive) -> Result<Primitive, OperatorError> {
-        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Iterable))
+        Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::Iterable))
     }
-    fn apply_unary_op(&self, op: Op) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_operation(op, PrimitiveKind::Iterable))
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
+        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::Iterable))
     }
 }
 impl OperatorError {
@@ -305,8 +316,13 @@ impl OperatorError {
                 expected.to_string(),
                 found.to_string()
             ),
-            OperatorError::UnsupportedOperation { operator, found } => format!(
-                "Unsupported operation \"{}\" for type \"{}\"",
+            OperatorError::UnsupportedBinOperation { operator, found } => format!(
+                "Unsupported binary operation \"{}\" for type \"{}\"",
+                operator.to_string(),
+                found.to_string()
+            ),
+            OperatorError::UnsupportedUnOperation { operator, found } => format!(
+                "Unsupported unary operation \"{}\" for type \"{}\"",
                 operator.to_string(),
                 found.to_string()
             ),
@@ -330,7 +346,7 @@ impl ApplyOp for Primitive {
             Primitive::Undefined => Err(OperatorError::UndefinedUse),
         }
     }
-    fn apply_unary_op(&self, op: Op) -> Result<Self::Target, Self::Error> {
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
         match self {
             Primitive::Boolean(b) => b.apply_unary_op(op),
             Primitive::String(s) => s.apply_unary_op(op),

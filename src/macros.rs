@@ -1,8 +1,8 @@
 #[macro_export]
 macro_rules! err_unexpected_token {
-    ($s:literal, $arg:ident) => {
+    ($s:literal, $arg:ident $(, $x:expr )*) => {
         Err(CompilationError::from_pair(
-            ParseError::UnexpectedToken(format!($s, $arg.as_str())),
+            ParseError::UnexpectedToken(format!($s, $arg.as_str(), $($x),*)),
             &$arg,
             false,
         ))
