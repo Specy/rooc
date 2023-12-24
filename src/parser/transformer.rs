@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::math::math_enums::{Comparison, OptimizationType};
-use crate::math::operators::{Op, UnOp};
+use crate::math::operators::{BinOp, UnOp};
 
 use crate::{
     primitives::primitive::Primitive,
@@ -21,12 +21,12 @@ pub enum Exp {
     Mod(Box<Exp>),
     Min(Vec<Exp>),
     Max(Vec<Exp>),
-    BinOp(Op, Box<Exp>, Box<Exp>),
+    BinOp(BinOp, Box<Exp>, Box<Exp>),
     UnOp(UnOp, Box<Exp>),
 }
 
 impl Exp {
-    pub fn make_binop(op: Op, lhs: Exp, rhs: Exp) -> Box<Self> {
+    pub fn make_binop(op: BinOp, lhs: Exp, rhs: Exp) -> Box<Self> {
         Exp::BinOp(op, lhs.to_box(), rhs.to_box()).to_box()
     }
 
@@ -48,32 +48,32 @@ impl Exp {
         match self {
             Exp::BinOp(op, lhs, rhs) => match (op, *lhs, *rhs) {
                 //(a +- b)c = ac +- bc
-                (Op::Mul, Exp::BinOp(inner_op @ (Op::Add | Op::Sub), lhs, rhs), c) => Exp::BinOp(
+                (BinOp::Mul, Exp::BinOp(inner_op @ (BinOp::Add | BinOp::Sub), lhs, rhs), c) => Exp::BinOp(
                     inner_op,
-                    Exp::make_binop(Op::Mul, *lhs, c.clone()),
-                    Exp::make_binop(Op::Mul, *rhs, c),
+                    Exp::make_binop(BinOp::Mul, *lhs, c.clone()),
+                    Exp::make_binop(BinOp::Mul, *rhs, c),
                 )
                 .flatten(),
                 //c(a +- b) = ac +- bc
-                (Op::Mul, c, Exp::BinOp(inner_op @ (Op::Add | Op::Sub), lhs, rhs)) => Exp::BinOp(
+                (BinOp::Mul, c, Exp::BinOp(inner_op @ (BinOp::Add | BinOp::Sub), lhs, rhs)) => Exp::BinOp(
                     inner_op,
-                    Exp::make_binop(Op::Mul, c.clone(), *lhs),
-                    Exp::make_binop(Op::Mul, c, *rhs),
+                    Exp::make_binop(BinOp::Mul, c.clone(), *lhs),
+                    Exp::make_binop(BinOp::Mul, c, *rhs),
                 )
                 .flatten(),
                 //-(a)b = -ab
-                (Op::Mul, Exp::UnOp(op @ UnOp::Neg, lhs), c) => {
-                    Exp::UnOp(op, Exp::make_binop(Op::Mul, *lhs, c).flatten().to_box())
+                (BinOp::Mul, Exp::UnOp(op @ UnOp::Neg, lhs), c) => {
+                    Exp::UnOp(op, Exp::make_binop(BinOp::Mul, *lhs, c).flatten().to_box())
                 }
                 //a(-b) = -ab
-                (Op::Mul, c, Exp::UnOp(op @ UnOp::Neg,rhs)) => {
-                    Exp::UnOp(op, Exp::make_binop(Op::Mul, c, *rhs).flatten().to_box())
+                (BinOp::Mul, c, Exp::UnOp(op @ UnOp::Neg,rhs)) => {
+                    Exp::UnOp(op, Exp::make_binop(BinOp::Mul, c, *rhs).flatten().to_box())
                 }
                 //(a +- b)/c = a/c +- b/c
-                (Op::Div, Exp::BinOp(inner_op @ (Op::Add | Op::Sub), lhs, rhs), c) => Exp::BinOp(
+                (BinOp::Div, Exp::BinOp(inner_op @ (BinOp::Add | BinOp::Sub), lhs, rhs), c) => Exp::BinOp(
                     inner_op,
-                    Exp::make_binop(Op::Div, *lhs, c.clone()).flatten().to_box(),
-                    Exp::make_binop(Op::Div, *rhs, c).flatten().to_box(),
+                    Exp::make_binop(BinOp::Div, *lhs, c.clone()).flatten().to_box(),
+                    Exp::make_binop(BinOp::Div, *rhs, c).flatten().to_box(),
                 ),
 
                 (op, lhs, rhs) => Exp::BinOp(op, lhs.flatten().to_box(), rhs.flatten().to_box()),

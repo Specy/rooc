@@ -8,7 +8,7 @@ use crate::math::operators::{ApplyOp, UnOp};
 use crate::{
     bail_wrong_argument_spanned, enum_with_variants_to_string, match_or_bail_spanned,
     math::math_enums::{Comparison, OptimizationType},
-    math::operators::Op,
+    math::operators::BinOp,
     primitives::{
         functions::function_traits::FunctionCall,
         graph::{Graph, GraphEdge, GraphNode},
@@ -144,7 +144,7 @@ pub enum PreExp {
     ArrayAccess(Spanned<ArrayAccess>),
     BlockScopedFunction(Spanned<BlockScopedFunction>),
     FunctionCall(Spanned<Box<dyn FunctionCall>>),
-    BinaryOperation(Spanned<Op>, Box<PreExp>, Box<PreExp>),
+    BinaryOperation(Spanned<BinOp>, Box<PreExp>, Box<PreExp>),
     UnaryOperation(Spanned<UnOp>, Box<PreExp>),
 }
 
@@ -209,10 +209,10 @@ impl PreExp {
                         let len = parsed_exp.len();
                         let mut sum = parsed_exp.pop().unwrap_or(Exp::Number(0.0));
                         for exp in parsed_exp.into_iter().rev() {
-                            sum = Exp::BinOp(Op::Add, exp.to_box(), sum.to_box());
+                            sum = Exp::BinOp(BinOp::Add, exp.to_box(), sum.to_box());
                         }
                         Ok(Exp::BinOp(
-                            Op::Div,
+                            BinOp::Div,
                             sum.to_box(),
                             Exp::Number(len as f64).to_box(),
                         ))
@@ -277,14 +277,14 @@ impl PreExp {
                     BlockScopedFunctionKind::Sum => {
                         let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
                         for result in results.into_iter().rev() {
-                            sum = Exp::BinOp(Op::Add, result.to_box(), sum.to_box());
+                            sum = Exp::BinOp(BinOp::Add, result.to_box(), sum.to_box());
                         }
                         Ok(sum)
                     }
                     BlockScopedFunctionKind::Prod => {
                         let mut prod = results.pop().unwrap_or(Exp::Number(1.0));
                         for result in results.into_iter().rev() {
-                            prod = Exp::BinOp(Op::Mul, result.to_box(), prod.to_box());
+                            prod = Exp::BinOp(BinOp::Mul, result.to_box(), prod.to_box());
                         }
                         Ok(prod)
                     }
@@ -294,10 +294,10 @@ impl PreExp {
                         let len = results.len();
                         let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
                         for result in results.into_iter().rev() {
-                            sum = Exp::BinOp(Op::Add, result.to_box(), sum.to_box());
+                            sum = Exp::BinOp(BinOp::Add, result.to_box(), sum.to_box());
                         }
                         Ok(Exp::BinOp(
-                            Op::Div,
+                            BinOp::Div,
                             sum.to_box(),
                             Exp::Number(len as f64).to_box(),
                         ))

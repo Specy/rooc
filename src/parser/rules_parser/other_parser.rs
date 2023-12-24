@@ -20,7 +20,7 @@ use crate::{bail_missing_token, err_unexpected_token};
 use super::exp_parser::parse_exp;
 use crate::parser::pre_parsed_problem::{
     ArrayAccess, BlockFunction, BlockFunctionKind, BlockScopedFunctionKind, CompoundVariable,
-    IterableSet, PreCondition, PreExp, PreObjective,
+    IterableSet, PreCondition, PreExp, PreObjective, BlockScopedFunction,
 };
 use crate::parser::transformer::VariableType;
 
@@ -33,17 +33,19 @@ pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, Compilatio
             if objective_type.is_none() {
                 return bail_missing_token!("Missing min/max in objective", objective);
             }
-            let objective_type = objective_type.unwrap().as_str();
-            let objective_type = match objective_type {
-                "min" => OptimizationType::Min,
-                "max" => OptimizationType::Max,
-                _ => {
-                    return err_unexpected_token!("found {}, expected min/max", objective);
+            match (objective_body, objective_type) {
+                (Some(body), Some(objective_type)) => {
+                    let obj_type = objective_type.as_str().parse::<OptimizationType>();
+                    if obj_type.is_err() {
+                        return err_unexpected_token!(
+                            "Unknown objective type \"{}\", expected one of \"{}\"",
+                            objective_type,
+                            OptimizationType::kinds_to_string().join(", ")
+                        );
+                    }
+                    Ok(PreObjective::new(obj_type.unwrap(), parse_exp(&body)?))
                 }
-            };
-            match objective_body {
-                Some(rhs) => Ok(PreObjective::new(objective_type, parse_exp(&rhs)?)),
-                None => bail_missing_token!("Missing objective body", objective),
+                _ => bail_missing_token!("Missing objective", objective),
             }
         }
         _ => {
@@ -102,16 +104,11 @@ pub fn parse_primitive(const_value: &Pair<Rule>) -> Result<Primitive, Compilatio
             }
         }
         Rule::number => Ok(Primitive::Number(parse_number(const_value)?)),
-        Rule::boolean => {
-            let value = match const_value.as_str() {
-                "true" => true,
-                "false" => false,
-                _ => {
-                    return err_unexpected_token!("Expected boolean but got: {}", const_value);
-                }
-            };
-            Ok(Primitive::Boolean(value))
-        }
+        Rule::boolean => match const_value.as_str() {
+            "true" => Ok(Primitive::Boolean(true)),
+            "false" => Ok(Primitive::Boolean(false)),
+            _ => return err_unexpected_token!("Expected boolean but got: {}", const_value),
+        },
         Rule::string => {
             let value = const_value.as_str().to_string();
             Ok(Primitive::String(value))
@@ -238,60 +235,70 @@ pub fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, Compilati
 
 pub fn parse_number(number: &Pair<Rule>) -> Result<f64, CompilationError> {
     match number.as_rule() {
-        Rule::number => {
-            let number = match number.as_str().parse::<f64>() {
-                Ok(number) => number,
-                Err(_) => {
-                    return err_unexpected_token!("found {}, expected number", number);
-                }
-            };
-            Ok(number)
-        }
+        Rule::number => match number.as_str().parse::<f64>() {
+            Ok(number) => Ok(number),
+            Err(_) => err_unexpected_token!("found {}, expected number", number),
+        },
         _ => err_unexpected_token!("Expected number but got: {}", number),
     }
 }
 
 pub fn parse_comparison(comparison: &Pair<Rule>) -> Result<Comparison, CompilationError> {
     match comparison.as_rule() {
-        Rule::comparison => {
-            let comparison = match comparison.as_str() {
-                "<=" => Comparison::LowerOrEqual,
-                ">=" => Comparison::UpperOrEqual,
-                "=" => Comparison::Equal,
-                _ => {
-                    return err_unexpected_token!("found {}, expected comparison", comparison);
-                }
-            };
-            Ok(comparison)
-        }
+        Rule::comparison => match comparison.as_str().parse() {
+            Ok(comparison) => Ok(comparison),
+            Err(_) => err_unexpected_token!("found {}, expected comparison", comparison),
+        },
         _ => err_unexpected_token!("Expected comparison but got: {}", comparison),
     }
 }
 
-
-pub fn parse_set_iterator_list(range_list: &Pairs<Rule>) -> Result<Vec<IterableSet>, CompilationError> {
+pub fn parse_set_iterator_list(
+    range_list: &Pairs<Rule>,
+) -> Result<Vec<IterableSet>, CompilationError> {
     range_list
         .clone()
         .map(|r| parse_set_iterator(&r))
         .collect::<Result<Vec<IterableSet>, CompilationError>>()
 }
+/*
+                let inner = exp.clone().into_inner();
+                let name = inner.find_first_tagged("name");
+                let iters = inner.find_first_tagged("range");
+                let body = inner.find_first_tagged("body");
+                if name.is_none() || iters.is_none() || body.is_none() {
+                    return err_unexpected_token!("found {}, expected scoped block function", exp);
+                }
+                let body = body.unwrap();
+                let body = parse_exp(&body)?.to_boxed();
+                let iters = iters.unwrap();
+                let iters = parse_set_iterator_list(&iters.into_inner())?;
+                let kind = parse_scoped_block_function_type(&name.unwrap())?;
+                let fun = BlockScopedFunction::new(kind, iters, body);
+                let fun_exp = PreExp::BlockScopedFunction(Spanned::new(fun, span));
+                let sum =
+                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, fun_exp)?;
+                output_queue.push(sum);
 
+*/
 pub fn parse_block_scoped_function(exp: &Pair<Rule>) -> Result<PreExp, CompilationError> {
     let span = InputSpan::from_pair(&exp);
     let inner = exp.clone().into_inner();
     let name = inner.find_first_tagged("name");
     let body = inner.find_first_tagged("body");
-    if name.is_none() || body.is_none() {
-        return err_unexpected_token!("found {}, expected block function", exp);
+    let iters = inner.find_first_tagged("range");
+    if name.is_none() || iters.is_none() || body.is_none() {
+        return err_unexpected_token!("found {}, expected scoped block function", exp);
     }
-    let members = body
-        .unwrap()
-        .into_inner()
-        .map(|member| parse_exp(&member))
-        .collect::<Result<Vec<PreExp>, CompilationError>>()?;
-    let kind = parse_block_function_type(&name.unwrap())?;
-    let fun = BlockFunction::new(kind, members);
-    Ok(PreExp::BlockFunction(Spanned::new(fun, span)))
+    let body = body.unwrap();
+    let name = name.unwrap();
+    let iters = iters.unwrap();
+
+    let iters = parse_set_iterator_list(&iters.into_inner())?;
+    let kind = parse_scoped_block_function_type(&name)?;
+    let body = parse_exp(&body)?.to_boxed();
+    let fun = BlockScopedFunction::new(kind, iters, body);
+    Ok(PreExp::BlockScopedFunction(Spanned::new(fun, span)))
 }
 
 pub fn parse_block_function(exp: &Pair<Rule>) -> Result<PreExp, CompilationError> {
@@ -554,5 +561,3 @@ pub fn parse_array_access(array_access: &Pair<Rule>) -> Result<ArrayAccess, Comp
         _ => err_unexpected_token!("Expected array access but got: {}", array_access),
     }
 }
-
-

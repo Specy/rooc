@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use crate::{parser::{parser::Rule, pre_parsed_problem::PreExp}, utils::{CompilationError, InputSpan, Spanned, ParseError}, math::operators::{Op, UnOp}, err_unexpected_token, primitives::primitive::Primitive, bail_missing_token};
+use crate::{parser::{parser::Rule, pre_parsed_problem::PreExp}, utils::{CompilationError, InputSpan, Spanned, ParseError}, math::operators::{BinOp, UnOp}, err_unexpected_token, primitives::primitive::Primitive, bail_missing_token};
 
 use super::other_parser::{parse_function_call, parse_block_function, parse_block_scoped_function, parse_primitive, parse_array_access, parse_compound_variable};
 
@@ -9,10 +9,11 @@ use super::other_parser::{parse_function_call, parse_block_function, parse_block
 
 pub fn parse_exp(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError> {
     let mut output_queue: Vec<PreExp> = Vec::new();
-    let mut operator_stack: Vec<Op> = Vec::new();
+    let mut operator_stack: Vec<BinOp> = Vec::new();
     let mut last_token: Option<Rule> = None;
     let exp_list = exp_to_parse.clone().into_inner();
     let mut last_op_span = InputSpan::default();
+
     for exp in exp_list.into_iter() {
         let rule = exp.as_rule();
         let span = InputSpan::from_pair(&exp);
@@ -40,7 +41,7 @@ pub fn parse_exp(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError> 
                 last_op_span = span.clone();
                 let op = parse_bin_operator(&exp)?;
                 match op {
-                    Op::Sub => {
+                    BinOp::Sub => {
                         output_queue.push(PreExp::Primitive(Spanned::new(
                             Primitive::Number(0.0),
                             span,
@@ -146,14 +147,14 @@ pub fn parse_exp(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError> 
 }
 
 
-fn should_unwind(operator_stack: &Vec<Op>, op: &Op) -> bool {
+fn should_unwind(operator_stack: &Vec<BinOp>, op: &BinOp) -> bool {
     match operator_stack.last() {
         Some(top) => top.precedence() >= op.precedence(),
         None => false,
     }
 }
 
-fn parse_bin_operator(operator: &Pair<Rule>) -> Result<Op, CompilationError> {
+fn parse_bin_operator(operator: &Pair<Rule>) -> Result<BinOp, CompilationError> {
     match operator.as_rule() {
         //TODO add separate unary operators?
         Rule::binary_op | Rule::unary_op => match operator.as_str().parse() {
@@ -192,7 +193,7 @@ pub fn englobe_if_multiplied_by_constant(
             };
             let span = rhs.get_span();
             let exp = PreExp::BinaryOperation(
-                Spanned::new(Op::Mul, span.clone()),
+                Spanned::new(BinOp::Mul, span.clone()),
                 last_number.to_boxed(),
                 rhs.to_boxed(),
             );

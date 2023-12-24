@@ -90,11 +90,22 @@ fn main() {
     }
 
     let source = "
-    min 1
-    s.t.
-        sum(i in 0..(1 + n)){ 10 + -x_i } <= 1  for n in N
-    where 
-        N = [1,2,3]
+    min sum(u in nodes(G)) { x_u }
+    s.t. 
+        x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1    for v in nodes(G)
+    where
+        G = Graph {
+            A -> [B, C, D, E, F],
+            B -> [A, E, C, D, J],
+            C -> [A, B, D, E, I],
+            D -> [A, B, C, E, H],
+            E -> [A, B, C, D, G],
+            F -> [A, G, J],
+            G -> [E, F, H],
+            H -> [D, G, I],
+            I -> [C, H, J],
+            J -> [B, F, I]
+        }
     "
     .trim()
     .to_string();
