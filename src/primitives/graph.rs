@@ -1,6 +1,14 @@
 use std::collections::HashMap;
 
-use crate::parser::transformer::TransformError;
+use crate::{
+    math::operators::{BinOp, UnOp},
+    parser::transformer::TransformError,
+};
+
+use super::{
+    primitive::{Primitive, PrimitiveKind},
+    primitive_traits::{ApplyOp, OperatorError, Spreadable},
+};
 
 #[derive(Debug, Clone)]
 pub struct GraphEdge {
@@ -36,7 +44,7 @@ impl GraphNode {
     pub fn to_edges(self) -> Vec<GraphEdge> {
         self.edges.into_values().collect()
     }
-    pub fn get_name (&self) -> &String {
+    pub fn get_name(&self) -> &String {
         &self.name
     }
     pub fn to_string(&self) -> String {
@@ -113,5 +121,74 @@ impl Graph {
             .collect::<Vec<_>>()
             .join("\n");
         format!("[{}]", nodes)
+    }
+}
+
+impl ApplyOp for GraphNode {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
+        Err(OperatorError::unsupported_bin_operation(
+            op,
+            PrimitiveKind::GraphNode,
+        ))
+    }
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
+        Err(OperatorError::unsupported_un_operation(
+            op,
+            PrimitiveKind::GraphNode,
+        ))
+    }
+}
+impl ApplyOp for GraphEdge {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
+        Err(OperatorError::unsupported_bin_operation(
+            op,
+            PrimitiveKind::GraphEdge,
+        ))
+    }
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
+        Err(OperatorError::unsupported_un_operation(
+            op,
+            PrimitiveKind::GraphEdge,
+        ))
+    }
+}
+impl ApplyOp for Graph {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
+        Err(OperatorError::unsupported_bin_operation(
+            op,
+            PrimitiveKind::Graph,
+        ))
+    }
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
+        Err(OperatorError::unsupported_un_operation(
+            op,
+            PrimitiveKind::Graph,
+        ))
+    }
+}
+
+impl Spreadable for GraphEdge {
+    fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError> {
+        Ok(vec![
+            Primitive::String(self.from),
+            Primitive::Number(self.weight.unwrap_or(1.0)),
+            Primitive::String(self.to),
+        ])
+    }
+}
+impl Spreadable for GraphNode {
+    fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError> {
+        Err(TransformError::Unspreadable(PrimitiveKind::GraphNode))
+    }
+}
+impl Spreadable for Graph {
+    fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError> {
+        Err(TransformError::Unspreadable(PrimitiveKind::Graph))
     }
 }

@@ -1,11 +1,11 @@
 use crate::{
     check_bounds,
-    parser::{ transformer::TransformError},
+    parser::{ transformer::TransformError}, math::operators::{BinOp, UnOp},
 };
 
 use super::{
     graph::{Graph, GraphEdge, GraphNode},
-    primitive::{Primitive, Tuple},
+    primitive::{Primitive, PrimitiveKind}, primitive_traits::{ApplyOp, OperatorError, Spreadable}, tuple::Tuple,
 };
 
 #[derive(Debug, Clone)]
@@ -130,7 +130,7 @@ impl IterableKind {
             IterableKind::Graphs(v) => v.len(),
         }
     }
-    pub fn to_primitive_set(self) -> Vec<Primitive> {
+    pub fn to_primitives(self) -> Vec<Primitive> {
         match self {
             IterableKind::Numbers(v) => v.iter().map(|n| Primitive::Number(*n)).collect(),
             IterableKind::Strings(v) => v
@@ -219,4 +219,27 @@ impl IterableKind {
         )))
     }
 
+}
+
+
+impl ApplyOp for IterableKind {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
+        Err(OperatorError::unsupported_bin_operation(
+            op,
+            PrimitiveKind::Iterable,
+        ))
+    }
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
+        Err(OperatorError::unsupported_un_operation(
+            op,
+            PrimitiveKind::Iterable,
+        ))
+    }
+}
+impl Spreadable for IterableKind {
+    fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError> {
+        Ok(self.to_primitives())
+    }
 }

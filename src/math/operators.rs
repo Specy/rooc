@@ -130,10 +130,3 @@ impl FromStr for UnOp {
         }
     }
 }
-
-pub trait ApplyOp {
-    type Target;
-    type Error;
-    fn apply_binary_op(&self, op: BinOp, to: &Self::Target) -> Result<Self::Target, Self::Error>;
-    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error>;
-}

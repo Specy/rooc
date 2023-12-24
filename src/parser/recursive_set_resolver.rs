@@ -1,6 +1,12 @@
-use crate::{primitives::primitive::Primitive, utils::Spanned};
+use crate::{
+    primitives::{primitive::Primitive, primitive_traits::Spreadable},
+    utils::Spanned,
+};
 
-use super::{transformer::{TransformerContext, VariableType, TransformError}, pre_parsed_problem::IterableSet};
+use super::{
+    pre_parsed_problem::IterableSet,
+    transformer::{TransformError, TransformerContext, VariableType},
+};
 
 //TODO make this a iterator
 pub fn recursive_set_resolver<T>(
@@ -27,7 +33,7 @@ pub fn recursive_set_resolver<T>(
         }
     }
     let values = range.iterator.as_iterator(&context)?;
-    let values = values.to_primitive_set();
+    let values = values.to_primitives();
     for value in values.into_iter() {
         match &range.var {
             VariableType::Single(n) => {
@@ -36,25 +42,8 @@ pub fn recursive_set_resolver<T>(
                     .map_err(|e| e.to_spanned_error(&range.span))?;
             }
             VariableType::Tuple(tuple) => {
-                match value {
-                    Primitive::Tuple(v) => apply_tuple(context, tuple, v.into_primitives())
-                        .map_err(|e| e.to_spanned_error(&range.span))?,
-                    Primitive::GraphEdge(e) => {
-                        let v = vec![
-                            Primitive::String(e.from.clone()), //TODO maybe i should return the actul edge instead
-                            Primitive::Number(e.weight.unwrap_or(1.0)),
-                            Primitive::String(e.to.clone()),
-                        ];
-                        apply_tuple(context, tuple, v)
-                            .map_err(|e| e.to_spanned_error(&range.span))?
-                    }
-                    _ => {
-                        return Err(TransformError::WrongArgument(format!(
-                            "Expected spreadable primitive, got {}",
-                            value.get_type_string()
-                        )))
-                    }
-                }
+                let values = value.to_primitive_set()?;
+                apply_tuple(context, tuple, values).map_err(|e| e.to_spanned_error(&range.span))?;
             }
         }
         if current_level + 1 >= sets.len() {
@@ -68,8 +57,6 @@ pub fn recursive_set_resolver<T>(
     context.pop_scope()?;
     Ok(())
 }
-
-
 
 pub fn apply_tuple(
     context: &mut TransformerContext,

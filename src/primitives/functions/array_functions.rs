@@ -8,7 +8,7 @@ use crate::{
     },
     primitives::{
         iterable::IterableKind,
-        primitive::{Primitive, Tuple},
+        primitive::{Primitive}, tuple::Tuple,
     },
     utils::{CompilationError, ParseError},
 };
@@ -34,7 +34,7 @@ impl FunctionCall for EnumerateArray {
     }
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
         let array = self.array.as_iterator(context)?;
-        let values = array.to_primitive_set();
+        let values = array.to_primitives();
         let mut result = Vec::new();
         for (i, item) in values.into_iter().enumerate() {
             result.push(Tuple::new(vec![item.clone(), Primitive::Number(i as f64)]));

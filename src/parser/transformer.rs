@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::math::math_enums::{Comparison, OptimizationType};
 use crate::math::operators::{BinOp, UnOp};
 
+use crate::primitives::primitive::PrimitiveKind;
 use crate::{
     primitives::primitive::Primitive,
     utils::{InputSpan, Spanned},
@@ -206,6 +207,7 @@ pub enum TransformError {
     OutOfBounds(String),
     WrongArgument(String),
     SpannedError(Spanned<Box<TransformError>>, Option<String>),
+    Unspreadable(PrimitiveKind),
     OperatorError(String),
     Other(String),
 }
@@ -220,6 +222,7 @@ impl TransformError {
             TransformError::WrongArgument(name) => format!("[Wrong argument] {}", name),
             TransformError::OperatorError(name) => format!("[Operator error] {}", name),
             TransformError::Other(name) => name.clone(),
+            TransformError::Unspreadable(kind) => format!("{} is not spreadable", kind.to_string()),
             TransformError::SpannedError(error, _) => return error.to_string(),
         }
     }
@@ -461,10 +464,11 @@ impl TransformerContext {
             None => Err(TransformError::MissingVariable(name.to_string())),
         }
     }
-    pub fn get_addressable_value(&self, array_access: &AddressableAccess) -> Result<Primitive, TransformError> {
-        match self.get_value(&array_access.name) {
+    pub fn get_addressable_value(&self, addressable_access: &AddressableAccess) -> Result<Primitive, TransformError> {
+        //TODO add support for object access like G["a"] or g.a
+        match self.get_value(&addressable_access.name) {
             Some(a) => {
-                let accesses = array_access
+                let accesses = addressable_access
                     .accesses
                     .iter()
                     .map(|access| access.as_usize(self))
@@ -473,7 +477,7 @@ impl TransformerContext {
                 Ok(value)
             }
             None => Err(TransformError::MissingVariable(
-                array_access.name.to_string(),
+                addressable_access.name.to_string(),
             )),
         }
     }

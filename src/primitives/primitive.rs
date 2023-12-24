@@ -1,47 +1,14 @@
 use crate::{
     bail_wrong_argument, match_or_bail,
-    math::operators::{ApplyOp, BinOp, UnOp},
+    math::operators::{ BinOp, UnOp},
     parser::transformer::TransformError,
     wrong_argument,
 };
 
 use super::{
     graph::{Graph, GraphEdge, GraphNode},
-    iterable::IterableKind,
+    iterable::IterableKind, tuple::Tuple,
 };
-
-#[derive(Debug, Clone)]
-pub struct Tuple(pub Vec<Primitive>);
-impl Tuple {
-    pub fn new(v: Vec<Primitive>) -> Self {
-        Self(v)
-    }
-    pub fn get(&self, index: usize) -> Option<&Primitive> {
-        self.0.get(index)
-    }
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut Primitive> {
-        self.0.get_mut(index)
-    }
-    pub fn into_primitives(self) -> Vec<Primitive> {
-        self.0
-    }
-    pub fn get_primitives(&self) -> &Vec<Primitive> {
-        &self.0
-    }
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-    pub fn to_string(&self) -> String {
-        format!(
-            "({})",
-            self.0
-                .iter()
-                .map(|e| e.to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
-    }
-}
 
 #[derive(Debug, Clone)]
 pub enum Primitive {
@@ -57,6 +24,7 @@ pub enum Primitive {
     Undefined,
 }
 
+#[derive(Debug, Clone)]
 pub enum PrimitiveKind {
     Number,
     String,
@@ -169,194 +137,4 @@ impl Primitive {
     }
 }
 
-pub enum OperatorError {
-    IncompatibleType {
-        operator: BinOp,
-        expected: PrimitiveKind,
-        found: PrimitiveKind,
-    },
-    UnsupportedBinOperation {
-        operator: BinOp,
-        found: PrimitiveKind,
-    },
-    UnsupportedUnOperation {
-        operator: UnOp,
-        found: PrimitiveKind,
-    },
-    UndefinedUse,
-}
 
-
-
-
-impl OperatorError {
-    pub fn incompatible_type(op: BinOp, expected: PrimitiveKind, found: PrimitiveKind) -> Self {
-        OperatorError::IncompatibleType {
-            operator: op,
-            expected,
-            found
-        }
-    }
-    pub fn unsupported_bin_operation(op: BinOp, found: PrimitiveKind) -> Self {
-        OperatorError::UnsupportedBinOperation { operator: op, found }
-    }
-    pub fn unsupported_un_operation(op: UnOp, found: PrimitiveKind) -> Self {
-        OperatorError::UnsupportedUnOperation { operator: op, found }
-    }
-}
-
-impl ApplyOp for f64 {
-    type Target = Primitive;
-    type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
-        match to {
-            Primitive::Number(n) => match op {
-                BinOp::Add => Ok(Primitive::Number(self + n)),
-                BinOp::Sub => Ok(Primitive::Number(self - n)),
-                BinOp::Mul => Ok(Primitive::Number(self * n)),
-                BinOp::Div => Ok(Primitive::Number(self / n)),
-            },
-            _ => Err(OperatorError::incompatible_type(op, PrimitiveKind::Number, to.get_type())),
-        }
-    }
-    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
-        match op {
-            UnOp::Neg => Ok(Primitive::Number(-self)),
-            _ => Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::Number)),
-        }
-    }
-}
-impl ApplyOp for String {
-    type Target = Primitive;
-    type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
-        match to {
-            Primitive::String(s) => match op {
-                BinOp::Add => Ok(Primitive::String(format!("{}{}", self, s))),
-                _ => Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::String)),
-            },
-            _ => Err(OperatorError::incompatible_type(op, PrimitiveKind::String, to.get_type())),
-        }
-    }
-    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::String))
-    }
-}
-impl ApplyOp for bool {
-    type Target = Primitive;
-    type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
-        Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::Boolean))
-    }
-    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::Boolean))
-    }
-}
-impl ApplyOp for Tuple {
-    type Target = Primitive;
-    type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
-        Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::Tuple))
-    }
-    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::Tuple))
-    }
-}
-
-impl ApplyOp for GraphNode {
-    type Target = Primitive;
-    type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
-        Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::GraphNode))
-    }
-    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::GraphNode))
-    }
-}
-impl ApplyOp for GraphEdge {
-    type Target = Primitive;
-    type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
-        Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::GraphEdge))
-    }
-    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::GraphEdge))
-    }
-}
-impl ApplyOp for Graph {
-    type Target = Primitive;
-    type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
-        Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::Graph))
-    }
-    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::Graph))
-    }
-}
-impl ApplyOp for IterableKind {
-    type Target = Primitive;
-    type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
-        Err(OperatorError::unsupported_bin_operation(op, PrimitiveKind::Iterable))
-    }
-    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_un_operation(op, PrimitiveKind::Iterable))
-    }
-}
-impl OperatorError {
-    pub fn to_string(&self) -> String {
-        match self {
-            OperatorError::IncompatibleType {
-                expected,
-                found,
-                operator,
-            } => format!(
-                "Incompatible types for operator \"{}\", expected \"{}\", found \"{}\"",
-                operator.to_string(),
-                expected.to_string(),
-                found.to_string()
-            ),
-            OperatorError::UnsupportedBinOperation { operator, found } => format!(
-                "Unsupported binary operation \"{}\" for type \"{}\"",
-                operator.to_string(),
-                found.to_string()
-            ),
-            OperatorError::UnsupportedUnOperation { operator, found } => format!(
-                "Unsupported unary operation \"{}\" for type \"{}\"",
-                operator.to_string(),
-                found.to_string()
-            ),
-            OperatorError::UndefinedUse => "Used \"Undefined\" in operation".to_string(),
-        }
-    }
-}
-impl ApplyOp for Primitive {
-    type Target = Primitive;
-    type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Self::Target) -> Result<Primitive, OperatorError> {
-        match self {
-            Primitive::Boolean(b) => b.apply_binary_op(op, to),
-            Primitive::String(s) => s.apply_binary_op(op, to),
-            Primitive::Tuple(t) => t.apply_binary_op(op, to),
-            Primitive::GraphNode(gn) => gn.apply_binary_op(op, to),
-            Primitive::GraphEdge(ge) => ge.apply_binary_op(op, to),
-            Primitive::Graph(g) => g.apply_binary_op(op, to),
-            Primitive::Iterable(i) => i.apply_binary_op(op, to),
-            Primitive::Number(i) => i.apply_binary_op(op, to),
-            Primitive::Undefined => Err(OperatorError::UndefinedUse),
-        }
-    }
-    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
-        match self {
-            Primitive::Boolean(b) => b.apply_unary_op(op),
-            Primitive::String(s) => s.apply_unary_op(op),
-            Primitive::Tuple(t) => t.apply_unary_op(op),
-            Primitive::GraphNode(gn) => gn.apply_unary_op(op),
-            Primitive::GraphEdge(ge) => ge.apply_unary_op(op),
-            Primitive::Graph(g) => g.apply_unary_op(op),
-            Primitive::Iterable(i) => i.apply_unary_op(op),
-            Primitive::Number(i) => i.apply_unary_op(op),
-            Primitive::Undefined => Err(OperatorError::UndefinedUse),
-        }
-    }
-}

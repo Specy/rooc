@@ -1,0 +1,127 @@
+use crate::{math::operators::{BinOp, UnOp}, parser::transformer::TransformError};
+
+use super::primitive::{PrimitiveKind, Primitive};
+
+
+pub trait ApplyOp {
+    type Target;
+    type Error;
+    fn apply_binary_op(&self, op: BinOp, to: &Self::Target) -> Result<Self::Target, Self::Error>;
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error>;
+}
+
+
+pub trait Spreadable {
+    fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError>;
+}
+
+
+pub enum OperatorError {
+    IncompatibleType {
+        operator: BinOp,
+        expected: PrimitiveKind,
+        found: PrimitiveKind,
+    },
+    UnsupportedBinOperation {
+        operator: BinOp,
+        found: PrimitiveKind,
+    },
+    UnsupportedUnOperation {
+        operator: UnOp,
+        found: PrimitiveKind,
+    },
+    UndefinedUse,
+}
+
+
+
+
+impl OperatorError {
+    pub fn incompatible_type(op: BinOp, expected: PrimitiveKind, found: PrimitiveKind) -> Self {
+        OperatorError::IncompatibleType {
+            operator: op,
+            expected,
+            found
+        }
+    }
+    pub fn unsupported_bin_operation(op: BinOp, found: PrimitiveKind) -> Self {
+        OperatorError::UnsupportedBinOperation { operator: op, found }
+    }
+    pub fn unsupported_un_operation(op: UnOp, found: PrimitiveKind) -> Self {
+        OperatorError::UnsupportedUnOperation { operator: op, found }
+    }
+}
+
+impl OperatorError {
+    pub fn to_string(&self) -> String {
+        match self {
+            OperatorError::IncompatibleType {
+                expected,
+                found,
+                operator,
+            } => format!(
+                "Incompatible types for operator \"{}\", expected \"{}\", found \"{}\"",
+                operator.to_string(),
+                expected.to_string(),
+                found.to_string()
+            ),
+            OperatorError::UnsupportedBinOperation { operator, found } => format!(
+                "Unsupported binary operation \"{}\" for type \"{}\"",
+                operator.to_string(),
+                found.to_string()
+            ),
+            OperatorError::UnsupportedUnOperation { operator, found } => format!(
+                "Unsupported unary operation \"{}\" for type \"{}\"",
+                operator.to_string(),
+                found.to_string()
+            ),
+            OperatorError::UndefinedUse => "Used \"Undefined\" in operation".to_string(),
+        }
+    }
+}
+impl ApplyOp for Primitive {
+    type Target = Primitive;
+    type Error = OperatorError;
+    fn apply_binary_op(&self, op: BinOp, to: &Self::Target) -> Result<Primitive, OperatorError> {
+        match self {
+            Primitive::Boolean(b) => b.apply_binary_op(op, to),
+            Primitive::String(s) => s.apply_binary_op(op, to),
+            Primitive::Tuple(t) => t.apply_binary_op(op, to),
+            Primitive::GraphNode(gn) => gn.apply_binary_op(op, to),
+            Primitive::GraphEdge(ge) => ge.apply_binary_op(op, to),
+            Primitive::Graph(g) => g.apply_binary_op(op, to),
+            Primitive::Iterable(i) => i.apply_binary_op(op, to),
+            Primitive::Number(i) => i.apply_binary_op(op, to),
+            Primitive::Undefined => Err(OperatorError::UndefinedUse),
+        }
+    }
+    fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
+        match self {
+            Primitive::Boolean(b) => b.apply_unary_op(op),
+            Primitive::String(s) => s.apply_unary_op(op),
+            Primitive::Tuple(t) => t.apply_unary_op(op),
+            Primitive::GraphNode(gn) => gn.apply_unary_op(op),
+            Primitive::GraphEdge(ge) => ge.apply_unary_op(op),
+            Primitive::Graph(g) => g.apply_unary_op(op),
+            Primitive::Iterable(i) => i.apply_unary_op(op),
+            Primitive::Number(i) => i.apply_unary_op(op),
+            Primitive::Undefined => Err(OperatorError::UndefinedUse),
+        }
+    }
+}
+
+impl Spreadable for Primitive {
+    fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError> {
+        match self {
+            Primitive::Boolean(b) => b.to_primitive_set(),
+            Primitive::String(s) => s.to_primitive_set(),
+            Primitive::Tuple(t) => t.to_primitive_set(),
+            Primitive::GraphNode(gn) => gn.to_primitive_set(),
+            Primitive::GraphEdge(ge) => ge.to_primitive_set(),
+            Primitive::Graph(g) => g.to_primitive_set(),
+            Primitive::Iterable(i) => i.to_primitive_set(),
+            Primitive::Number(i) => i.to_primitive_set(),
+            Primitive::Undefined => Err(TransformError::Unspreadable(PrimitiveKind::Undefined)),
+        }
+    }
+}
