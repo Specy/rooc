@@ -54,7 +54,7 @@ modulo      =  { "|" ~ exp ~ "|" }
 parenthesis =  { "(" ~ exp ~ ")" }
 function = {  #function_name = function_name ~ "(" ~ #function_pars = function_pars ~ ")"}
 function_pars = { (tagged_exp ~(comma ~ tagged_exp)*)?}
-function_name = { LETTER ~ (LETTER | NUMBER | "_")*}
+
 // block functions
 block_function = {
 	#name = function_name ~
@@ -89,7 +89,6 @@ variable       = _{ compound_variable | simple_variable }
 // terminal characters
 objective_type = @{ ^"min" | ^"max" }
 comparison     = @{ "<=" | ">=" | "=" }
-// should I make this not a terminal so that i can get variable > compound_variable?
 simple_variable   = @{ LETTER+ ~ (NUMBER)* }
 compound_variable = @{ simple_variable ~ ("_" ~ LETTER+)+ }
 // maybe i should do ("_" ~ LETTER+)+
@@ -99,6 +98,7 @@ binary_op = @{ "*" | "+" | "-" | "/" }
 unary_op  = @{ "-" }
 string = @ { "\"" ~ LETTER* ~ "\""}
 boolean = @{ ^"true" | ^"false" }
+function_name = @{ LETTER ~ (LETTER | NUMBER | "_")*}
 // ignore whitespace in whole grammar
 WHITESPACE = _{ " " | "\t" }
 range_type = @{ "..=" | ".." }

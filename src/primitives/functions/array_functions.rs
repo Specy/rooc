@@ -29,7 +29,7 @@ impl FunctionCall for EnumerateArray {
             1 => Ok(Self {
                 array: pars.remove(0),
             }),
-            n => bail_wrong_number_of_arguments!(n, origin_rule, ["Array"]),
+            n => bail_wrong_number_of_arguments!(n, origin_rule, "enumerate", ["Array"]),
         }
     }
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
@@ -60,7 +60,7 @@ impl FunctionCall for LenOfIterableFn {
             1 => Ok(Self {
                 of_iterable: pars.remove(0),
             }),
-            n => bail_wrong_number_of_arguments!(n, rule, ["Iterable"]),
+            n => bail_wrong_number_of_arguments!(n, rule,"len", ["Iterable"]),
         }
     }
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {

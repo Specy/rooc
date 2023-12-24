@@ -4,3 +4,4 @@ pub mod rules_parser;
 pub mod transformer;
 pub mod iterable_utils;
 pub mod recursive_set_resolver;
+pub mod tests;

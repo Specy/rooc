@@ -26,7 +26,7 @@ impl FunctionCall for EdgesOfGraphFn {
             1 => Ok(Self {
                 of_graph: pars.remove(0),
             }),
-            n => bail_wrong_number_of_arguments!(n, rule, ["Graph"]),
+            n => bail_wrong_number_of_arguments!(n, rule,"edges" , ["Graph"]),
         }
     }
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
@@ -52,7 +52,7 @@ impl FunctionCall for NodesOfGraphFn {
             1 => Ok(Self {
                 of_graph: pars.remove(0),
             }),
-            n => bail_wrong_number_of_arguments!(n, rule, ["Graph"]),
+            n => bail_wrong_number_of_arguments!(n, rule, "nodes", ["Graph"]),
         }
     }
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
@@ -79,7 +79,7 @@ impl FunctionCall for NeighbourOfNodeFn {
             1 => Ok(Self {
                 of_node: pars.remove(0),
             }),
-            n => bail_wrong_number_of_arguments!(n, rule, ["Node"]),
+            n => bail_wrong_number_of_arguments!(n, rule,"neighs_edges", ["Node"]),
         }
     }
 
@@ -108,7 +108,7 @@ impl FunctionCall for NeighboursOfNodeInGraphFn {
                 of_node: pars.remove(0),
                 in_graph: pars.remove(0),
             }),
-            n => bail_wrong_number_of_arguments!(n, rule, ["Node", "Graph"]),
+            n => bail_wrong_number_of_arguments!(n, rule, "neigh_edges_of", ["Node", "Graph"]),
         }
     }
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
@@ -119,7 +119,7 @@ impl FunctionCall for NeighboursOfNodeInGraphFn {
     }
     fn to_string(&self) -> String {
         format!(
-            "neighs_of({},{})",
+            "neigh_edges_of({},{})",
             self.of_node.to_string(),
             self.in_graph.to_string()
         )

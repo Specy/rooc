@@ -19,7 +19,7 @@ use crate::{bail_missing_token, err_unexpected_token};
 
 use super::exp_parser::parse_exp;
 use crate::parser::pre_parsed_problem::{
-    ArrayAccess, BlockFunction, BlockFunctionKind, BlockScopedFunctionKind, CompoundVariable,
+    AddressableAccess, BlockFunction, BlockFunctionKind, BlockScopedFunctionKind, CompoundVariable,
     IterableSet, PreCondition, PreExp, PreObjective, BlockScopedFunction,
 };
 use crate::parser::transformer::VariableType;
@@ -407,7 +407,7 @@ pub fn parse_function(
             parsed_pars,
             &pars,
         )?)),
-        "neighs_of" => Ok(Box::new(NeighboursOfNodeInGraphFn::from_parameters(
+        "neigh_edges_of" => Ok(Box::new(NeighboursOfNodeInGraphFn::from_parameters(
             parsed_pars,
             &pars,
         )?)),
@@ -539,7 +539,7 @@ pub fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreExp, CompilationError>
     }
 }
 
-pub fn parse_array_access(array_access: &Pair<Rule>) -> Result<ArrayAccess, CompilationError> {
+pub fn parse_array_access(array_access: &Pair<Rule>) -> Result<AddressableAccess, CompilationError> {
     match array_access.as_rule() {
         Rule::array_access => {
             let inner = array_access.clone().into_inner();
@@ -556,7 +556,7 @@ pub fn parse_array_access(array_access: &Pair<Rule>) -> Result<ArrayAccess, Comp
                 .into_inner()
                 .map(|a| parse_parameter(&a))
                 .collect::<Result<Vec<_>, CompilationError>>()?;
-            Ok(ArrayAccess::new(name, accesses))
+            Ok(AddressableAccess::new(name, accesses))
         }
         _ => err_unexpected_token!("Expected array access but got: {}", array_access),
     }

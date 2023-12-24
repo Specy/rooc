@@ -10,7 +10,7 @@ use crate::{
 
 use super::{
     parser::PreProblem,
-    pre_parsed_problem::{ArrayAccess, PreCondition, PreExp, PreObjective},
+    pre_parsed_problem::{AddressableAccess, PreCondition, PreExp, PreObjective},
     recursive_set_resolver::recursive_set_resolver,
 };
 
@@ -461,7 +461,7 @@ impl TransformerContext {
             None => Err(TransformError::MissingVariable(name.to_string())),
         }
     }
-    pub fn get_array_value(&self, array_access: &ArrayAccess) -> Result<Primitive, TransformError> {
+    pub fn get_addressable_value(&self, array_access: &AddressableAccess) -> Result<Primitive, TransformError> {
         match self.get_value(&array_access.name) {
             Some(a) => {
                 let accesses = array_access

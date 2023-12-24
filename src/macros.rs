@@ -101,9 +101,13 @@ macro_rules! bail_semantic_error {
 
 #[macro_export]
 macro_rules! bail_wrong_number_of_arguments {
-    ($n:expr, $expected:ident, [$($arg:literal),+]) => {
+    ($n:expr, $expected:ident, $name:expr, [$($arg:literal),+]) => {
         Err(CompilationError::from_pair(
-            ParseError::WrongNumberOfArguments($n, vec![$($arg.to_string()),+]),
+            ParseError::WrongNumberOfArguments{
+                got: $n, 
+                expected: vec![$($arg.to_string()),+],
+                name: $name.to_string()
+            },
             &$expected,
             true,
         ))

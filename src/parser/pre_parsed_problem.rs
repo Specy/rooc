@@ -53,7 +53,6 @@ impl FromStr for BlockScopedFunctionKind {
     }
 }
 
-
 enum_with_variants_to_string! {
     pub enum BlockFunctionKind derives[Debug] {
         Min,
@@ -141,7 +140,7 @@ pub enum PreExp {
     BlockFunction(Spanned<BlockFunction>),
     Variable(Spanned<String>),
     CompoundVariable(Spanned<CompoundVariable>),
-    ArrayAccess(Spanned<ArrayAccess>),
+    ArrayAccess(Spanned<AddressableAccess>),
     BlockScopedFunction(Spanned<BlockScopedFunction>),
     FunctionCall(Spanned<Box<dyn FunctionCall>>),
     BinaryOperation(Spanned<BinOp>, Box<PreExp>, Box<PreExp>),
@@ -231,7 +230,7 @@ impl PreExp {
                     Primitive::Number(n) => Ok(Exp::Number(n.clone())),
                     _ => {
                         let err = TransformError::WrongArgument(format!(
-                            "Expected \"Number\", got \"{}\"",
+                            "Type \"{}\" cannot be used as a value for a variable, expected \"Number\"",
                             v.get_type_string()
                         ));
                         Err(err.to_spanned_error(self.get_span()))
@@ -250,7 +249,7 @@ impl PreExp {
             }
             Self::ArrayAccess(array_access) => {
                 let value = context
-                    .get_array_value(array_access)
+                    .get_addressable_value(array_access)
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 match value {
                     Primitive::Number(n) => Ok(Exp::Number(n.clone())),
@@ -343,7 +342,7 @@ impl PreExp {
                 Ok(value)
             }
             PreExp::ArrayAccess(a) => {
-                let value = context.get_array_value(a)?;
+                let value = context.get_addressable_value(a)?;
                 Ok(value.to_owned())
             }
             PreExp::UnaryOperation(op, v) => {
@@ -455,7 +454,7 @@ impl PreExp {
             Self::FunctionCall(f) => f.to_string(),
             Self::Mod(exp) => format!("|{}|", exp.to_string()),
             Self::Primitive(p) => p.to_string(),
-            Self::UnaryOperation(op, exp) => format!("{}{}",op.to_string(), exp.to_string()),
+            Self::UnaryOperation(op, exp) => format!("{}{}", op.to_string(), exp.to_string()),
             Self::Variable(name) => name.to_string(),
         }
     }
@@ -478,11 +477,11 @@ impl IterableSet {
 }
 
 #[derive(Debug)]
-pub struct ArrayAccess {
+pub struct AddressableAccess {
     pub name: String,
     pub accesses: Vec<PreExp>,
 }
-impl ArrayAccess {
+impl AddressableAccess {
     pub fn new(name: String, accesses: Vec<PreExp>) -> Self {
         Self { name, accesses }
     }

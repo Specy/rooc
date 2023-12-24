@@ -42,7 +42,7 @@ impl FunctionCall for NumericRange {
                 to: pars.remove(0),
                 to_inclusive: pars.remove(0),
             }),
-            n => bail_wrong_number_of_arguments!(n, origin_rule, ["Number", "Number"]),
+            n => bail_wrong_number_of_arguments!(n, origin_rule, "", ["Number", "Number"]),
         }
     }
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {

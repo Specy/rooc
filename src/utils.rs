@@ -151,7 +151,11 @@ pub enum ParseError {
     UnexpectedToken(String),
     MissingToken(String),
     SemanticError(String),
-    WrongNumberOfArguments(usize, Vec<String>),
+    WrongNumberOfArguments{
+        got: usize,
+        expected: Vec<String>,
+        name: String,
+    },
 }
 impl ParseError {
     pub fn to_string(&self) -> String {
@@ -159,11 +163,12 @@ impl ParseError {
             Self::UnexpectedToken(s) => format!("[Unexpected token] {}", s),
             Self::MissingToken(s) => format!("[Missing token] {}", s),
             Self::SemanticError(s) => format!("[Semantic error] {}", s),
-            Self::WrongNumberOfArguments(got, expected) => format!(
-                "[Wrong number of arguments] got {}, expected {}: ({})",
+            Self::WrongNumberOfArguments{got, expected, name} => format!(
+                "[Wrong number of arguments] got {}, expected {}, for \"function {}({})\"",
                 got,
                 expected.len(),
-                expected.join(", ")
+                name,
+                expected.iter().enumerate().map(|(i, s)| format!("p{}: {}",i, s)).collect::<Vec<String>>().join(", ")
             ),
         }
     }

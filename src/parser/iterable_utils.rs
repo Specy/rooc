@@ -17,7 +17,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .map(|v| match v {
                     Primitive::Boolean(b) => Ok(b),
                     _ => Err(format!(
-                        "Expected boolean but got {}",
+                        "Expected Boolean but got {}",
                         v.get_type_string()
                     )),
                 })
@@ -30,7 +30,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .map(|v| match v {
                     Primitive::Number(n) => Ok(n),
                     _ => Err(format!(
-                        "Expected \"Number\", got \"{}\"",
+                        "Expected Number, got \"{}\"",
                         v.get_type_string()
                     )),
                 })
@@ -43,7 +43,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .map(|v| match v {
                     Primitive::String(s) => Ok(s),
                     _ => Err(format!(
-                        "Expected string but got {}",
+                        "Expected String but got {}",
                         v.get_type_string()
                     )),
                 })
@@ -56,7 +56,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .map(|v| match v {
                     Primitive::GraphEdge(e) => Ok(e),
                     _ => Err(format!(
-                        "Expected graph edge but got {}",
+                        "Expected GraphEdge but got {}",
                         v.get_type_string()
                     )),
                 })
@@ -69,7 +69,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .map(|v| match v {
                     Primitive::GraphNode(n) => Ok(n),
                     _ => Err(format!(
-                        "Expected graph node but got {}",
+                        "Expected GraphNode but got {}",
                         v.get_type_string()
                     )),
                 })
@@ -82,7 +82,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .map(|v| match v {
                     Primitive::Tuple(t) => Ok(t),
                     _ => Err(format!(
-                        "Expected tuple but got {}",
+                        "Expected Tuple but got {}",
                         v.get_type_string()
                     )),
                 })
@@ -95,7 +95,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .map(|v| match v {
                     Primitive::Iterable(i) => Ok(i),
                     _ => Err(format!(
-                        "Expected iterable but got {}",
+                        "Expected Iterable but got {}",
                         v.get_type_string()
                     )),
                 })
@@ -109,7 +109,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .map(|v| match v {
                     Primitive::Graph(g) => Ok(g),
                     _ => Err(format!(
-                        "Expected graph but got {}",
+                        "Expected Graph but got {}",
                         v.get_type_string()
                     )),
                 })
