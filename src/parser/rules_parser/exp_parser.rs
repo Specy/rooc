@@ -147,7 +147,7 @@ pub fn parse_exp(exp_to_parse: &Pair<Rule>) -> Result<PreExp, CompilationError> 
 }
 
 
-fn should_unwind(operator_stack: &Vec<BinOp>, op: &BinOp) -> bool {
+fn should_unwind(operator_stack: &[BinOp], op: &BinOp) -> bool {
     match operator_stack.last() {
         Some(top) => top.precedence() >= op.precedence(),
         None => false,

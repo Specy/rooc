@@ -1,3 +1,5 @@
+use core::fmt;
+
 use super::primitive::Primitive;
 
 #[derive(Debug)]
@@ -9,7 +11,10 @@ impl Constant {
     pub fn new(name: String, value: Primitive) -> Self {
         Self { name, value }
     }
-    pub fn to_string(&self) -> String {
-        format!("{} = {}", self.name, self.value.to_string())
+}
+
+impl fmt::Display for Constant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} = {}", self.name, self.value)
     }
 }

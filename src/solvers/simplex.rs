@@ -1,3 +1,5 @@
+use core::fmt;
+
 //TODO make the implementation use row vectors with a trait so that i can implement fraction and float versions
 //togehter with overriding the operators, so that i can use the same code for both versions
 use num_rational::Rational64;
@@ -179,7 +181,7 @@ impl Tableau {
         let c = &mut self.c;
         let pivot = a[t][h];
 
-        //normalize the pivot column 
+        //normalize the pivot column
         for i in 0..a.len() {
             if i != t {
                 let factor = a[i][h] / pivot;
@@ -321,14 +323,15 @@ pub enum CanonicalTransformError {
     Infesible(String),
     SimplexError(String),
 }
-impl CanonicalTransformError {
-    pub fn to_string(&self) -> String {
-        match self {
+impl fmt::Display for CanonicalTransformError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
             Self::Raw(s) => s.clone(),
             Self::InvalidBasis(s) => format!("Invalid Basis: {}", s),
             Self::Infesible(s) => format!("Infesible: {}", s),
             Self::SimplexError(s) => format!("Simplex Error: {}", s),
-        }
+        };
+        f.write_str(&s)
     }
 }
 pub trait IntoCanonicalTableau {

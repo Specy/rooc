@@ -1,3 +1,4 @@
+use core::fmt;
 use std::collections::HashMap;
 
 use crate::{
@@ -20,14 +21,16 @@ impl GraphEdge {
     pub fn new(from: String, to: String, weight: Option<f64>) -> Self {
         Self { from, to, weight }
     }
-    pub fn to_string(&self) -> String {
-        match self.weight {
+}
+impl fmt::Display for GraphEdge {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self.weight {
             Some(w) => format!("{}:{}", self.to, w),
             None => self.to.clone(),
-        }
+        };
+        write!(f, "{}", s)
     }
 }
-
 #[derive(Debug, Clone)]
 pub struct GraphNode {
     name: String,
@@ -47,15 +50,18 @@ impl GraphNode {
     pub fn get_name(&self) -> &String {
         &self.name
     }
-    pub fn to_string(&self) -> String {
+}
+impl fmt::Display for GraphNode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let edges = self
-            .edges.values().map(|edge| edge.to_string())
+            .edges
+            .values()
+            .map(|edge| edge.to_string())
             .collect::<Vec<_>>()
             .join(", ");
-        format!("{}: {{{}}}", self.name, edges)
+        write!(f, "{}: {{{}}}", self.name, edges)
     }
 }
-
 #[derive(Debug, Clone)]
 pub struct Graph {
     vertices: Vec<GraphNode>,
@@ -87,12 +93,10 @@ impl Graph {
             .find(|n: &&GraphNode| n.name == node_name);
         match node {
             Some(node) => Ok(node.edges.values().collect()),
-            None => {
-                Err(TransformError::Other(format!(
-                    "node {} not found in graph",
-                    node_name
-                )))
-            }
+            None => Err(TransformError::Other(format!(
+                "node {} not found in graph",
+                node_name
+            ))),
         }
     }
     pub fn into_neighbours_of(self, node_name: &str) -> Result<Vec<GraphEdge>, TransformError> {
@@ -102,22 +106,22 @@ impl Graph {
             .find(|n: &GraphNode| n.name == node_name);
         match node {
             Some(node) => Ok(node.edges.into_values().collect()),
-            None => {
-                Err(TransformError::Other(format!(
-                    "node {} not found in graph",
-                    node_name
-                )))
-            }
+            None => Err(TransformError::Other(format!(
+                "node {} not found in graph",
+                node_name
+            ))),
         }
     }
-    pub fn to_string(&self) -> String {
+}
+impl fmt::Display for Graph {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let nodes = self
             .vertices
             .iter()
             .map(|node| node.to_string())
             .collect::<Vec<_>>()
             .join("\n");
-        format!("[{}]", nodes)
+        write!(f, "[{}]", nodes)
     }
 }
 

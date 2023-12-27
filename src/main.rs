@@ -113,7 +113,7 @@ fn main() {
     let parsed = parser.parse_and_transform();
     match parsed {
         Ok(parsed) => {
-            println!("{}", parsed.to_string());
+            println!("{}", parsed);
         }
         Err(e) => {
             println!("{}", e);

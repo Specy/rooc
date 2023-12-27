@@ -1,12 +1,13 @@
+use core::fmt;
+
 use crate::{
-    bail_wrong_argument, match_or_bail,
-    parser::transformer::TransformError,
-    wrong_argument,
+    bail_wrong_argument, match_or_bail, parser::transformer::TransformError, wrong_argument,
 };
 
 use super::{
     graph::{Graph, GraphEdge, GraphNode},
-    iterable::IterableKind, tuple::Tuple,
+    iterable::IterableKind,
+    tuple::Tuple,
 };
 
 #[derive(Debug, Clone)]
@@ -103,10 +104,11 @@ impl Primitive {
     pub fn as_tuple(&self) -> Result<&Vec<Primitive>, TransformError> {
         match_or_bail!("Tuple", Primitive::Tuple(t) => Ok(t.get_primitives()) ; (self, self))
     }
+}
 
-    pub fn to_string(&self) -> String {
-        //TODO improve this
-        match self {
+impl fmt::Display for Primitive {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
             Primitive::Number(n) => n.to_string(),
             Primitive::String(s) => s.to_string(),
             Primitive::Iterable(i) => match i {
@@ -132,8 +134,7 @@ impl Primitive {
             Primitive::Tuple(v) => format!("{:?}", v),
             Primitive::Boolean(b) => b.to_string(),
             Primitive::Undefined => "undefined".to_string(),
-        }
+        };
+        f.write_str(&s)
     }
 }
-
-

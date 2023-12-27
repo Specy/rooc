@@ -1,5 +1,6 @@
 //TODO find a better name for this file
 
+use core::fmt;
 use std::str::FromStr;
 
 use crate::enum_with_variants_to_string;
@@ -12,15 +13,18 @@ enum_with_variants_to_string! {
     }
 }
 
-impl Comparison {
-    pub fn to_string(&self) -> String {
-        match self {
+impl fmt::Display for Comparison {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
             Comparison::LowerOrEqual => "<=".to_string(),
             Comparison::UpperOrEqual => ">=".to_string(),
             Comparison::Equal => "=".to_string(),
-        }
+        };
+
+        f.write_str(&s)
     }
-}
+} 
+
 impl FromStr for Comparison {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -39,12 +43,14 @@ enum_with_variants_to_string! {
         Max,
     }
 }
-impl OptimizationType {
-    pub fn to_string(&self) -> String {
-        match self {
+impl fmt::Display for OptimizationType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
             OptimizationType::Min => "min".to_string(),
             OptimizationType::Max => "max".to_string(),
-        }
+        };
+
+        f.write_str(&s)
     }
 }
 

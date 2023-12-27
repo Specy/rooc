@@ -1,3 +1,4 @@
+use core::fmt;
 use std::str::FromStr;
 
 use super::{
@@ -28,15 +29,16 @@ enum_with_variants_to_string! {
         Avg,
     }
 }
-impl BlockScopedFunctionKind {
-    pub fn to_string(&self) -> String {
-        match self {
+impl fmt::Display for BlockScopedFunctionKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
             Self::Sum => "sum".to_string(),
             Self::Prod => "prod".to_string(),
             Self::Min => "min".to_string(),
             Self::Max => "max".to_string(),
             Self::Avg => "avg".to_string(),
-        }
+        };
+        f.write_str(&s)
     }
 }
 impl FromStr for BlockScopedFunctionKind {
@@ -73,13 +75,14 @@ impl FromStr for BlockFunctionKind {
     }
 }
 
-impl BlockFunctionKind {
-    pub fn to_string(&self) -> String {
-        match self {
+impl fmt::Display for BlockFunctionKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s =         match self {
             Self::Min => "min".to_string(),
             Self::Max => "max".to_string(),
             Self::Avg => "avg".to_string(),
-        }
+        };
+        f.write_str(&s)
     }
 }
 
@@ -96,9 +99,12 @@ impl BlockScopedFunction {
     pub fn get_body_span(&self) -> InputSpan {
         self.exp.get_span().clone()
     }
-    pub fn to_string(&self) -> String {
+}
+impl fmt::Display for BlockScopedFunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name = self.kind.to_string();
-        format!(
+        write!(
+            f,
             "{}({}){{{}}}",
             name,
             self.iters
@@ -106,7 +112,7 @@ impl BlockScopedFunction {
                 .map(|i| i.iterator.to_string())
                 .collect::<Vec<String>>()
                 .join(", "),
-            self.exp.to_string()
+            self.exp
         )
     }
 }
@@ -119,9 +125,12 @@ impl BlockFunction {
     pub fn new(kind: BlockFunctionKind, exps: Vec<PreExp>) -> Self {
         Self { kind, exps }
     }
-    pub fn to_string(&self) -> String {
+}
+impl fmt::Display for BlockFunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name = self.kind.to_string();
-        format!(
+        write!(
+            f,
             "{}{{{}}}",
             name,
             self.exps
@@ -174,9 +183,7 @@ impl PreExp {
                 let rhs = rhs
                     .into_exp(context)
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
-                match (op, lhs, rhs) {
-                    (op, lhs, rhs) => Ok(Exp::BinOp(**op, lhs.to_box(), rhs.to_box())),
-                }
+                Ok(Exp::BinOp(**op, lhs.to_box(), rhs.to_box()))
             }
             Self::Primitive(n) => match **n {
                 Primitive::Number(n) => Ok(Exp::Number(n)),
@@ -366,7 +373,9 @@ impl PreExp {
                     }
                 }
             }
-            _ => Err(TransformError::WrongArgument("Expected \"Primitive\"".to_string())),
+            _ => Err(TransformError::WrongArgument(
+                "Expected \"Primitive\"".to_string(),
+            )),
         }
     }
     //TODO make this a macro
@@ -436,28 +445,29 @@ impl PreExp {
             .map(|p| p.as_iterator().map(|v| v.to_owned()))
             .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
-
-    pub fn to_string(&self) -> String {
-        match self {
+}
+impl fmt::Display for PreExp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
             Self::ArrayAccess(a) => a.to_string(),
             Self::BlockFunction(f) => f.to_string(),
             Self::BlockScopedFunction(f) => f.to_string(),
             Self::BinaryOperation(op, lhs, rhs) => format!(
                 "({} {} {})",
-                lhs.to_string(),
-                op.to_string(),
-                rhs.to_string()
+                lhs,
+                **op,
+                rhs
             ),
             Self::CompoundVariable(c) => c.to_string(),
             Self::FunctionCall(f) => f.to_string(),
-            Self::Mod(exp) => format!("|{}|", exp.to_string()),
+            Self::Mod(exp) => format!("|{}|", **exp),
             Self::Primitive(p) => p.to_string(),
-            Self::UnaryOperation(op, exp) => format!("{}{}", op.to_string(), exp.to_string()),
+            Self::UnaryOperation(op, exp) => format!("{}{}", **op, exp),
             Self::Variable(name) => name.to_string(),
-        }
+        };
+        f.write_str(&s)
     }
 }
-
 #[derive(Debug)]
 pub struct IterableSet {
     pub var: VariableType,
@@ -483,17 +493,18 @@ impl AddressableAccess {
     pub fn new(name: String, accesses: Vec<PreExp>) -> Self {
         Self { name, accesses }
     }
-    pub fn to_string(&self) -> String {
+}
+impl fmt::Display for AddressableAccess {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let rest = self
             .accesses
             .iter()
-            .map(|a| format!("[{}]", a.to_string()))
+            .map(|a| format!("[{}]", a))
             .collect::<Vec<String>>()
             .join("");
-        format!("{}{}", self.name, rest)
+        write!(f, "{}{}", self.name, rest)
     }
 }
-
 #[derive(Debug)]
 pub struct CompoundVariable {
     pub name: String,
@@ -503,11 +514,12 @@ impl CompoundVariable {
     pub fn new(name: String, indexes: Vec<String>) -> Self {
         Self { name, indexes }
     }
-    pub fn to_string(&self) -> String {
-        format!("{}_{}", self.name, self.indexes.join("_"))
+}
+impl fmt::Display for CompoundVariable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}_{}", self.name, self.indexes.join("_"))
     }
 }
-
 #[derive(Debug)]
 pub struct PreObjective {
     pub objective_type: OptimizationType,

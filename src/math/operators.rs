@@ -1,3 +1,4 @@
+use core::fmt;
 use std::str::FromStr;
 
 use crate::enum_with_variants_to_string;
@@ -12,15 +13,6 @@ enum_with_variants_to_string! {
     }
 }
 impl Operator {
-    pub fn to_string(&self) -> String {
-        match self {
-            Operator::Add => "+".to_string(),
-            Operator::Sub => "-".to_string(),
-            Operator::Mul => "*".to_string(),
-            Operator::Div => "/".to_string(),
-            Operator::Neg => "-".to_string(),
-        }
-    }
     pub fn precedence(&self) -> u8 {
         match self {
             Operator::Add | Operator::Sub => 1,
@@ -35,7 +27,19 @@ impl Operator {
         }
     }
 }
+impl fmt::Display for Operator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Operator::Add => "+".to_string(),
+            Operator::Sub => "-".to_string(),
+            Operator::Mul => "*".to_string(),
+            Operator::Div => "/".to_string(),
+            Operator::Neg => "-".to_string(),
+        };
 
+        f.write_str(&s)
+    }
+}
 
 enum_with_variants_to_string! {
     pub enum BinOp derives[Debug, PartialEq, Clone, Copy] {
@@ -51,14 +55,6 @@ enum_with_variants_to_string! {
 }
 
 impl BinOp {
-    pub fn to_string(&self) -> String {
-        match self {
-            BinOp::Add => "+".to_string(),
-            BinOp::Sub => "-".to_string(),
-            BinOp::Mul => "*".to_string(),
-            BinOp::Div => "/".to_string(),
-        }
-    }
     pub fn precedence(&self) -> u8 {
         match self {
             BinOp::Add | BinOp::Sub => 1,
@@ -77,6 +73,18 @@ impl BinOp {
             BinOp::Mul => Operator::Mul,
             BinOp::Div => Operator::Div,
         }
+    }
+}
+impl fmt::Display for BinOp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            BinOp::Add => "+".to_string(),
+            BinOp::Sub => "-".to_string(),
+            BinOp::Mul => "*".to_string(),
+            BinOp::Div => "/".to_string(),
+        };
+
+        f.write_str(&s)
     }
 }
 
@@ -99,11 +107,6 @@ enum_with_variants_to_string! {
     }
 }
 impl UnOp {
-    pub fn to_string(&self) -> String {
-        match self {
-            UnOp::Neg => "-".to_string(),
-        }
-    }
     pub fn precedence(&self) -> u8 {
         match self {
             UnOp::Neg => 3,
@@ -120,7 +123,15 @@ impl UnOp {
         }
     }
 }
+impl fmt::Display for UnOp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            UnOp::Neg => "-".to_string(),
+        };
 
+        f.write_str(&s)
+    }
+}
 impl FromStr for UnOp {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {

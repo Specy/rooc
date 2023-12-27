@@ -1,11 +1,16 @@
+use core::fmt;
+
 use crate::{
     check_bounds,
-    parser::{ transformer::TransformError}, math::operators::{BinOp, UnOp},
+    math::operators::{BinOp, UnOp},
+    parser::transformer::TransformError,
 };
 
 use super::{
     graph::{Graph, GraphEdge, GraphNode},
-    primitive::{Primitive, PrimitiveKind}, primitive_traits::{ApplyOp, OperatorError, Spreadable}, tuple::Tuple,
+    primitive::{Primitive, PrimitiveKind},
+    primitive_traits::{ApplyOp, OperatorError, Spreadable},
+    tuple::Tuple,
 };
 
 #[derive(Debug, Clone)]
@@ -32,9 +37,119 @@ impl IterableKind {
             IterableKind::Iterable(_) => "iterable",
         }
     }
-    //TODO make this a macro
-    pub fn to_string(&self) -> String {
+    pub fn len(&self) -> usize {
         match self {
+            IterableKind::Numbers(v) => v.len(),
+            IterableKind::Strings(v) => v.len(),
+            IterableKind::Edges(v) => v.len(),
+            IterableKind::Nodes(v) => v.len(),
+            IterableKind::Tuple(v) => v.len(),
+            IterableKind::Iterable(v) => v.len(),
+            IterableKind::Booleans(v) => v.len(),
+            IterableKind::Graphs(v) => v.len(),
+        }
+    }
+    pub fn is_empty(&self) -> bool {
+        match self {
+            IterableKind::Numbers(v) => v.is_empty(),
+            IterableKind::Strings(v) => v.is_empty(),
+            IterableKind::Edges(v) => v.is_empty(),
+            IterableKind::Nodes(v) => v.is_empty(),
+            IterableKind::Tuple(v) => v.is_empty(),
+            IterableKind::Iterable(v) => v.is_empty(),
+            IterableKind::Booleans(v) => v.is_empty(),
+            IterableKind::Graphs(v) => v.is_empty(),
+        }
+    }
+    pub fn to_primitives(self) -> Vec<Primitive> {
+        match self {
+            IterableKind::Numbers(v) => v.iter().map(|n| Primitive::Number(*n)).collect(),
+            IterableKind::Strings(v) => v
+                .into_iter()
+                .map(|s| Primitive::String((*s).to_string()))
+                .collect(),
+            IterableKind::Edges(v) => v
+                .iter()
+                .map(|e| Primitive::GraphEdge(e.to_owned()))
+                .collect(),
+            IterableKind::Nodes(v) => v.into_iter().map(Primitive::GraphNode).collect(),
+            IterableKind::Tuple(v) => v.into_iter().map(Primitive::Tuple).collect(),
+            IterableKind::Iterable(v) => v.into_iter().map(Primitive::Iterable).collect(),
+            IterableKind::Booleans(v) => v.into_iter().map(Primitive::Boolean).collect(),
+            IterableKind::Graphs(v) => v.into_iter().map(Primitive::Graph).collect(),
+        }
+    }
+
+    //TODO refactor this
+    pub fn read(&self, indexes: Vec<usize>) -> Result<Primitive, TransformError> {
+        if indexes.is_empty() {
+            return Ok(Primitive::Undefined);
+        }
+
+        let mut current = self;
+        let mut indexes = indexes;
+        while !indexes.is_empty() {
+            let i = indexes.remove(0);
+            let ended = indexes.is_empty();
+            if ended {
+                let val = match current {
+                    IterableKind::Booleans(v) => {
+                        check_bounds!(i, v, self, Primitive::Boolean(v[i]))
+                    }
+                    IterableKind::Numbers(v) => check_bounds!(i, v, self, Primitive::Number(v[i])),
+                    IterableKind::Strings(v) => {
+                        check_bounds!(i, v, self, Primitive::String(v[i].to_string()))
+                    }
+                    IterableKind::Edges(v) => {
+                        check_bounds!(i, v, self, Primitive::GraphEdge(v[i].to_owned()))
+                    }
+                    IterableKind::Nodes(v) => {
+                        check_bounds!(i, v, self, Primitive::GraphNode(v[i].to_owned()))
+                    }
+                    IterableKind::Tuple(v) => {
+                        check_bounds!(i, v, self, Primitive::Tuple(v[i].clone()))
+                    }
+                    IterableKind::Iterable(v) => {
+                        check_bounds!(i, v, self, Primitive::Iterable(v[i].clone()))
+                    }
+                    IterableKind::Graphs(v) => {
+                        check_bounds!(i, v, self, Primitive::Graph(v[i].clone()))
+                    }
+                };
+                return Ok(val);
+            } else {
+                match current {
+                    IterableKind::Iterable(v) => {
+                        if i < v.len() {
+                            current = &v[i];
+                        } else {
+                            return Err(TransformError::OutOfBounds(format!(
+                                "cannot access index {} of {}",
+                                i,
+                                self
+                            )));
+                        }
+                    }
+                    _ => {
+                        return Err(TransformError::OutOfBounds(format!(
+                            "cannot access index {} of {}",
+                            i,
+                            self
+                        )));
+                    }
+                }
+            }
+        }
+        Err(TransformError::OutOfBounds(format!(
+            "cannot access index {} of {}",
+            indexes[0],
+            self
+        )))
+    }
+}
+impl fmt::Display for IterableKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
             IterableKind::Edges(v) => {
                 format!(
                     "[{}]",
@@ -116,111 +231,10 @@ impl IterableKind {
                         .join(", ")
                 )
             }
-        }
+        };
+        f.write_str(&s)
     }
-    pub fn len(&self) -> usize {
-        match self {
-            IterableKind::Numbers(v) => v.len(),
-            IterableKind::Strings(v) => v.len(),
-            IterableKind::Edges(v) => v.len(),
-            IterableKind::Nodes(v) => v.len(),
-            IterableKind::Tuple(v) => v.len(),
-            IterableKind::Iterable(v) => v.len(),
-            IterableKind::Booleans(v) => v.len(),
-            IterableKind::Graphs(v) => v.len(),
-        }
-    }
-    pub fn to_primitives(self) -> Vec<Primitive> {
-        match self {
-            IterableKind::Numbers(v) => v.iter().map(|n| Primitive::Number(*n)).collect(),
-            IterableKind::Strings(v) => v
-                .into_iter()
-                .map(|s| Primitive::String((*s).to_string()))
-                .collect(),
-            IterableKind::Edges(v) => v
-                .iter()
-                .map(|e| Primitive::GraphEdge(e.to_owned()))
-                .collect(),
-            IterableKind::Nodes(v) => v
-                .into_iter()
-                .map(|n| Primitive::GraphNode(n))
-                .collect(),
-            IterableKind::Tuple(v) => v.into_iter().map(Primitive::Tuple).collect(),
-            IterableKind::Iterable(v) => v.into_iter().map(Primitive::Iterable).collect(),
-            IterableKind::Booleans(v) => v.into_iter().map(Primitive::Boolean).collect(),
-            IterableKind::Graphs(v) => v.into_iter().map(Primitive::Graph).collect(),
-        }
-    }
-
-    //TODO refactor this
-    pub fn read(&self, indexes: Vec<usize>) -> Result<Primitive, TransformError> {
-        if indexes.is_empty() {
-            return Ok(Primitive::Undefined);
-        }
-
-        let mut current = self;
-        let mut indexes = indexes;
-        while !indexes.is_empty() {
-            let i = indexes.remove(0);
-            let ended = indexes.is_empty();
-            if ended {
-                let val = match current {
-                    IterableKind::Booleans(v) => {
-                        check_bounds!(i, v, self, Primitive::Boolean(v[i]))
-                    }
-                    IterableKind::Numbers(v) => check_bounds!(i, v, self, Primitive::Number(v[i])),
-                    IterableKind::Strings(v) => {
-                        check_bounds!(i, v, self, Primitive::String(v[i].to_string()))
-                    }
-                    IterableKind::Edges(v) => {
-                        check_bounds!(i, v, self, Primitive::GraphEdge(v[i].to_owned()))
-                    }
-                    IterableKind::Nodes(v) => {
-                        check_bounds!(i, v, self, Primitive::GraphNode(v[i].to_owned()))
-                    }
-                    IterableKind::Tuple(v) => {
-                        check_bounds!(i, v, self, Primitive::Tuple(v[i].clone()))
-                    }
-                    IterableKind::Iterable(v) => {
-                        check_bounds!(i, v, self, Primitive::Iterable(v[i].clone()))
-                    }
-                    IterableKind::Graphs(v) => {
-                        check_bounds!(i, v, self, Primitive::Graph(v[i].clone()))
-                    }
-                };
-                return Ok(val);
-            } else {
-                match current {
-                    IterableKind::Iterable(v) => {
-                        if i < v.len() {
-                            current = &v[i];
-                        } else {
-                            return Err(TransformError::OutOfBounds(format!(
-                                "cannot access index {} of {}",
-                                i,
-                                self.to_string()
-                            )));
-                        }
-                    }
-                    _ => {
-                        return Err(TransformError::OutOfBounds(format!(
-                            "cannot access index {} of {}",
-                            i,
-                            self.to_string()
-                        )));
-                    }
-                }
-            }
-        }
-        Err(TransformError::OutOfBounds(format!(
-            "cannot access index {} of {}",
-            indexes[0],
-            self.to_string()
-        )))
-    }
-
 }
-
 
 impl ApplyOp for IterableKind {
     type Target = Primitive;

@@ -14,14 +14,11 @@ pub fn to_standard_form(problem: &LinearProblem) -> Result<StandardLinearProblem
     for constraint in problem.get_constraints() {
         let (equality_constraint, added_variable) =
             normalize_constraint(constraint, slack_surplus_index, total_variables);
-        match added_variable {
-            Some(variable) => {
-                variables.push(variable);
-                slack_surplus_index += 1;
-                total_variables += 1;
-            }
-            None => {}
-        }
+        if let Some(variable) = added_variable {
+            variables.push(variable);
+            slack_surplus_index += 1;
+            total_variables += 1;
+        };
         constraints.push(equality_constraint);
     }
     constraints

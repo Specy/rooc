@@ -35,7 +35,7 @@ impl FunctionCall for EdgesOfGraphFn {
         Ok(Primitive::Iterable(IterableKind::Edges(edges)))
     }
     fn to_string(&self) -> String {
-        format!("edges({})", self.of_graph.to_string())
+        format!("edges({})", self.of_graph)
     }
 }
 
@@ -61,7 +61,7 @@ impl FunctionCall for NodesOfGraphFn {
         Ok(Primitive::Iterable(IterableKind::Nodes(nodes)))
     }
     fn to_string(&self) -> String {
-        format!("nodes({})", self.of_graph.to_string())
+        format!("nodes({})", self.of_graph)
     }
 }
 
@@ -89,7 +89,7 @@ impl FunctionCall for NeighbourOfNodeFn {
     }
     
     fn to_string(&self) -> String {
-        format!("neighs_edges({})", self.of_node.to_string())
+        format!("neighs_edges({})", self.of_node)
     }
 }
 
@@ -120,8 +120,8 @@ impl FunctionCall for NeighboursOfNodeInGraphFn {
     fn to_string(&self) -> String {
         format!(
             "neigh_edges_of({},{})",
-            self.of_node.to_string(),
-            self.in_graph.to_string()
+            self.of_node,
+            self.in_graph
         )
     }
 }

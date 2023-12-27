@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{fmt::Debug, ops::Deref, ops::DerefMut};
 
 use pest::{iterators::Pair, Span};
@@ -5,6 +6,7 @@ use pest::{iterators::Pair, Span};
 use crate::parser::parser::Rule;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default)]
 pub struct InputSpan {
     pub start_line: usize,
     pub start_column: usize,
@@ -35,15 +37,7 @@ impl InputSpan {
             tempered: false,
         }
     }
-    pub fn default() -> Self {
-        Self {
-            start_line: 0,
-            start_column: 0,
-            start: 0,
-            len: 0,
-            tempered: false,
-        }
-    }
+
     pub fn get_span_text<'a>(&self, text: &'a str) -> Result<&'a str, ()> {
         let start = self.start;
         let end = start + self.len;
@@ -53,6 +47,8 @@ impl InputSpan {
         Ok(&text[start..end])
     }
 }
+
+
 #[derive(Clone)]
 pub struct Spanned<T>
 where
@@ -98,13 +94,17 @@ impl<T: Debug> Deref for Spanned<T> {
 }
 
 pub struct CompilationError {
-    kind: ParseError,
-    span: InputSpan,
+    kind: Box<ParseError>,
+    span: Box<InputSpan>,
     text: String,
 }
 impl CompilationError {
     pub fn new(kind: ParseError, span: InputSpan, text: String) -> Self {
-        Self { kind, span, text }
+        Self { 
+            kind: Box::new(kind),
+            span: Box::new(span),
+            text
+        }
     }
     pub fn from_pair(kind: ParseError, pair: &Pair<Rule>, exclude_string: bool) -> Self {
         let text = if exclude_string {
@@ -116,33 +116,25 @@ impl CompilationError {
         Self::new(kind, span, text)
     }
 
-    pub fn to_string(&self) -> String {
-        format!(
-            "Error at line {}:{}\n\t{}{}",
-            self.span.start_line,
-            self.span.start_column,
-            self.kind.to_string(),
-            self.text
-        )
-    }
     pub fn to_string_from_source(&self, source: &str) -> String {
         let span_text = self.span.get_span_text(source);
         let span_text = span_text.unwrap_or("");
         format!(
             "Error at line {}:{} ({})\n\t{}",
-            self.span.start_line,
-            self.span.start_column,
-            span_text,
-            self.kind.to_string()
+            self.span.start_line, self.span.start_column, span_text, self.kind
         )
     }
     pub fn to_error_string(&self) -> String {
-        format!("{} {}", self.kind.to_string(), self.text)
+        format!("{} {}", self.kind, self.text)
     }
 }
 impl std::fmt::Debug for CompilationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.to_string())
+        let s = format!(
+            "Error at line {}:{}\n\t{}{}",
+            self.span.start_line, self.span.start_column, self.kind, self.text
+        );
+        f.write_str(&s)
     }
 }
 
@@ -151,25 +143,35 @@ pub enum ParseError {
     UnexpectedToken(String),
     MissingToken(String),
     SemanticError(String),
-    WrongNumberOfArguments{
+    WrongNumberOfArguments {
         got: usize,
         expected: Vec<String>,
         name: String,
     },
 }
-impl ParseError {
-    pub fn to_string(&self) -> String {
-        match self {
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
             Self::UnexpectedToken(s) => format!("[Unexpected token] {}", s),
             Self::MissingToken(s) => format!("[Missing token] {}", s),
             Self::SemanticError(s) => format!("[Semantic error] {}", s),
-            Self::WrongNumberOfArguments{got, expected, name} => format!(
+            Self::WrongNumberOfArguments {
+                got,
+                expected,
+                name,
+            } => format!(
                 "[Wrong number of arguments] got {}, expected {}, for \"function {}({})\"",
                 got,
                 expected.len(),
                 name,
-                expected.iter().enumerate().map(|(i, s)| format!("p{}: {}",i, s)).collect::<Vec<String>>().join(", ")
+                expected
+                    .iter()
+                    .enumerate()
+                    .map(|(i, s)| format!("p{}: {}", i, s))
+                    .collect::<Vec<String>>()
+                    .join(", ")
             ),
-        }
+        };
+        f.write_str(&s)
     }
 }

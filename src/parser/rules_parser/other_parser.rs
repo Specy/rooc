@@ -163,7 +163,7 @@ pub fn parse_graph_node(node: &Pair<Rule>) -> Result<GraphNode, CompilationError
         _ => err_unexpected_token!("Expected graph node but got: {}", node),
     }
 }
-pub fn parse_graph_edge(edge: &Pair<Rule>, from: &String) -> Result<GraphEdge, CompilationError> {
+pub fn parse_graph_edge(edge: &Pair<Rule>, from: &str) -> Result<GraphEdge, CompilationError> {
     let inner = edge.clone().into_inner();
     let node = inner.find_first_tagged("node");
     let cost = match inner.find_first_tagged("cost") {
@@ -184,7 +184,7 @@ pub fn parse_graph_edge(edge: &Pair<Rule>, from: &String) -> Result<GraphEdge, C
     match node {
         Some(node) => {
             let node = node.as_str().to_string();
-            Ok(GraphEdge::new(from.clone(), node, cost))
+            Ok(GraphEdge::new(from.to_owned(), node, cost))
         }
         _ => err_unexpected_token!("Expected graph edge but got: {}", edge),
     }

@@ -35,7 +35,7 @@ impl PreProblem {
     }
 }
 
-pub fn parse_problem_source(source: &String) -> Result<PreProblem, String> {
+pub fn parse_problem_source(source: &str) -> Result<PreProblem, String> {
     let source = source.trim();
     let problem = PLParser::parse(Rule::problem, source);
     match problem {

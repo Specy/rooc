@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::{math::operators::{BinOp, UnOp}, parser::transformer::TransformError};
 
 use super::primitive::{PrimitiveKind, Primitive};
@@ -51,34 +53,36 @@ impl OperatorError {
         OperatorError::UnsupportedUnOperation { operator: op, found }
     }
 }
-
-impl OperatorError {
-    pub fn to_string(&self) -> String {
-        match self {
+impl fmt::Display for OperatorError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
             OperatorError::IncompatibleType {
                 expected,
                 found,
                 operator,
             } => format!(
                 "Incompatible types for operator \"{}\", expected \"{}\", found \"{}\"",
-                operator.to_string(),
+                operator,
                 expected.to_string(),
                 found.to_string()
             ),
             OperatorError::UnsupportedBinOperation { operator, found } => format!(
                 "Unsupported binary operation \"{}\" for type \"{}\"",
-                operator.to_string(),
+                operator,
                 found.to_string()
             ),
             OperatorError::UnsupportedUnOperation { operator, found } => format!(
                 "Unsupported unary operation \"{}\" for type \"{}\"",
-                operator.to_string(),
+                operator,
                 found.to_string()
             ),
             OperatorError::UndefinedUse => "Used \"Undefined\" in operation".to_string(),
-        }
+        };
+        f.write_str(&s)
     }
 }
+
+
 impl ApplyOp for Primitive {
     type Target = Primitive;
     type Error = OperatorError;

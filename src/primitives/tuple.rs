@@ -1,7 +1,14 @@
-use crate::{math::operators::{BinOp, UnOp}, parser::transformer::TransformError};
+use core::fmt;
 
-use super::{primitive::{Primitive, PrimitiveKind}, primitive_traits::{ApplyOp, OperatorError, Spreadable}};
+use crate::{
+    math::operators::{BinOp, UnOp},
+    parser::transformer::TransformError,
+};
 
+use super::{
+    primitive::{Primitive, PrimitiveKind},
+    primitive_traits::{ApplyOp, OperatorError, Spreadable},
+};
 
 #[derive(Debug, Clone)]
 pub struct Tuple(pub Vec<Primitive>);
@@ -24,18 +31,23 @@ impl Tuple {
     pub fn len(&self) -> usize {
         self.0.len()
     }
-    pub fn to_string(&self) -> String {
-        format!(
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+impl fmt::Display for Tuple {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = format!(
             "({})",
             self.0
                 .iter()
                 .map(|e| e.to_string())
                 .collect::<Vec<_>>()
                 .join(", ")
-        )
+        );
+        f.write_str(&s)
     }
 }
-
 impl ApplyOp for Tuple {
     type Target = Primitive;
     type Error = OperatorError;

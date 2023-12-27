@@ -42,7 +42,7 @@ impl FunctionCall for EnumerateArray {
         Ok(Primitive::Iterable(IterableKind::Tuple(result)))
     }
     fn to_string(&self) -> String {
-        format!("enumerate({})", self.array.to_string())
+        format!("enumerate({})", self.array)
     }
 }
 
@@ -68,6 +68,6 @@ impl FunctionCall for LenOfIterableFn {
         Ok(Primitive::Number(value.len() as f64))
     }
     fn to_string(&self) -> String {
-        format!("len({})", self.of_iterable.to_string())
+        format!("len({})", self.of_iterable)
     }
 }

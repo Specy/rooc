@@ -1,3 +1,4 @@
+use core::fmt;
 use std::collections::HashMap;
 
 use crate::math::math_enums::{Comparison, OptimizationType};
@@ -49,33 +50,41 @@ impl Exp {
         match self {
             Exp::BinOp(op, lhs, rhs) => match (op, *lhs, *rhs) {
                 //(a +- b)c = ac +- bc
-                (BinOp::Mul, Exp::BinOp(inner_op @ (BinOp::Add | BinOp::Sub), lhs, rhs), c) => Exp::BinOp(
-                    inner_op,
-                    Exp::make_binop(BinOp::Mul, *lhs, c.clone()),
-                    Exp::make_binop(BinOp::Mul, *rhs, c),
-                )
-                .flatten(),
+                (BinOp::Mul, Exp::BinOp(inner_op @ (BinOp::Add | BinOp::Sub), lhs, rhs), c) => {
+                    Exp::BinOp(
+                        inner_op,
+                        Exp::make_binop(BinOp::Mul, *lhs, c.clone()),
+                        Exp::make_binop(BinOp::Mul, *rhs, c),
+                    )
+                    .flatten()
+                }
                 //c(a +- b) = ac +- bc
-                (BinOp::Mul, c, Exp::BinOp(inner_op @ (BinOp::Add | BinOp::Sub), lhs, rhs)) => Exp::BinOp(
-                    inner_op,
-                    Exp::make_binop(BinOp::Mul, c.clone(), *lhs),
-                    Exp::make_binop(BinOp::Mul, c, *rhs),
-                )
-                .flatten(),
+                (BinOp::Mul, c, Exp::BinOp(inner_op @ (BinOp::Add | BinOp::Sub), lhs, rhs)) => {
+                    Exp::BinOp(
+                        inner_op,
+                        Exp::make_binop(BinOp::Mul, c.clone(), *lhs),
+                        Exp::make_binop(BinOp::Mul, c, *rhs),
+                    )
+                    .flatten()
+                }
                 //-(a)b = -ab
                 (BinOp::Mul, Exp::UnOp(op @ UnOp::Neg, lhs), c) => {
                     Exp::UnOp(op, Exp::make_binop(BinOp::Mul, *lhs, c).flatten().to_box())
                 }
                 //a(-b) = -ab
-                (BinOp::Mul, c, Exp::UnOp(op @ UnOp::Neg,rhs)) => {
+                (BinOp::Mul, c, Exp::UnOp(op @ UnOp::Neg, rhs)) => {
                     Exp::UnOp(op, Exp::make_binop(BinOp::Mul, c, *rhs).flatten().to_box())
                 }
                 //(a +- b)/c = a/c +- b/c
-                (BinOp::Div, Exp::BinOp(inner_op @ (BinOp::Add | BinOp::Sub), lhs, rhs), c) => Exp::BinOp(
-                    inner_op,
-                    Exp::make_binop(BinOp::Div, *lhs, c.clone()).flatten().to_box(),
-                    Exp::make_binop(BinOp::Div, *rhs, c).flatten().to_box(),
-                ),
+                (BinOp::Div, Exp::BinOp(inner_op @ (BinOp::Add | BinOp::Sub), lhs, rhs), c) => {
+                    Exp::BinOp(
+                        inner_op,
+                        Exp::make_binop(BinOp::Div, *lhs, c.clone())
+                            .flatten()
+                            .to_box(),
+                        Exp::make_binop(BinOp::Div, *rhs, c).flatten().to_box(),
+                    )
+                }
 
                 (op, lhs, rhs) => Exp::BinOp(op, lhs.flatten().to_box(), rhs.flatten().to_box()),
             },
@@ -83,11 +92,16 @@ impl Exp {
         }
     }
 
-    pub fn to_string(&self) -> String {
-        match self {
+    pub fn is_leaf(&self) -> bool {
+        matches!(self, Exp::BinOp(_, _, _) | Exp::UnOp(_, _))
+    }
+}
+impl fmt::Display for Exp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
             Exp::Number(value) => value.to_string(),
             Exp::Variable(name) => name.clone(),
-            Exp::Mod(exp) => format!("|{}|", exp.to_string()),
+            Exp::Mod(exp) => format!("|{}|", exp),
             Exp::Min(exps) => format!(
                 "min{{ {} }}",
                 exps.iter()
@@ -106,29 +120,22 @@ impl Exp {
                 //TODO: add parenthesis when needed
                 format!(
                     "{} {} {}",
-                    lhs.to_string(),
-                    operator.to_string(),
-                    rhs.to_string()
+                    lhs,
+                    operator,
+                    rhs
                 )
             }
             Exp::UnOp(op, exp) => {
                 if exp.is_leaf() {
-                    format!("{}{}",op.to_string(), exp.to_string())
+                    format!("{}{}", op, exp)
                 } else {
-                    format!("{}({})",op.to_string(), exp.to_string())
+                    format!("{}({})", op, exp)
                 }
             }
-        }
-    }
-    pub fn is_leaf(&self) -> bool {
-        match self {
-            Exp::BinOp(_, _, _) => false,
-            Exp::UnOp(_, _) => false,
-            _ => true,
-        }
+        };
+        f.write_str(&s)
     }
 }
-
 #[derive(Debug)]
 pub struct Objective {
     objective_type: OptimizationType,
@@ -142,11 +149,14 @@ impl Objective {
             rhs,
         }
     }
-    pub fn to_string(&self) -> String {
-        format!(
+}
+impl fmt::Display for Objective {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
             "{} {}",
-            self.objective_type.to_string(),
-            self.rhs.to_string()
+            self.objective_type,
+            self.rhs
         )
     }
 }
@@ -166,16 +176,18 @@ impl Condition {
             rhs,
         }
     }
-    pub fn to_string(&self) -> String {
-        format!(
+}
+impl fmt::Display for Condition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
             "{} {} {}",
-            self.lhs.to_string(),
-            self.condition_type.to_string(),
-            self.rhs.to_string()
+            self.lhs,
+            self.condition_type,
+            self.rhs
         )
     }
 }
-
 #[derive(Debug)]
 pub struct Problem {
     objective: Objective,
@@ -189,17 +201,18 @@ impl Problem {
             conditions,
         }
     }
-    pub fn to_string(&self) -> String {
+}
+impl fmt::Display for Problem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let conditions = self
             .conditions
             .iter()
             .map(|condition| condition.to_string())
             .collect::<Vec<_>>()
             .join("\n\t");
-        format!("{}\ns.t\n\t{}", self.objective.to_string(), conditions)
+        write!(f, "{}\ns.t\n\t{}", self.objective, conditions)
     }
 }
-
 #[derive(Debug, Clone)]
 pub enum TransformError {
     MissingVariable(String),
@@ -211,9 +224,9 @@ pub enum TransformError {
     OperatorError(String),
     Other(String),
 }
-impl TransformError {
-    pub fn to_string(&self) -> String {
-        match self {
+impl fmt::Display for TransformError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
             TransformError::MissingVariable(name) => format!("[Missing variable] {}", name),
             TransformError::AlreadyExistingVariable(name) => {
                 format!("Variable {} was already declared", name)
@@ -224,8 +237,12 @@ impl TransformError {
             TransformError::Other(name) => name.clone(),
             TransformError::Unspreadable(kind) => format!("{} is not spreadable", kind.to_string()),
             TransformError::SpannedError(error, _) => error.to_string(),
-        }
+        };
+        f.write_str(&s)
     }
+}
+
+impl TransformError {
     pub fn get_traced_error(&self) -> String {
         let error = self.to_string();
         let trace = self.get_trace();
@@ -283,7 +300,7 @@ impl TransformError {
             })
             .collect::<Result<Vec<_>, ()>>()?;
         let join = trace.join("\n\t");
-        Ok(format!("{}\n\t{}", self.to_string(), join))
+        Ok(format!("{}\n\t{}", self, join))
     }
 }
 
@@ -331,7 +348,11 @@ impl Frame {
         Ok(value)
     }
 }
-
+impl Default for Frame {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 #[derive(Debug)]
 pub struct TransformerContext {
     frames: Vec<Frame>,
@@ -346,7 +367,7 @@ impl TransformerContext {
 
     pub fn flatten_variable_name(
         &self,
-        compound_name: &Vec<String>,
+        compound_name: &[String],
     ) -> Result<String, TransformError> {
         let flattened = compound_name
             .iter()
@@ -449,7 +470,7 @@ impl TransformerContext {
     pub fn flatten_compound_variable(
         &self,
         name: &String,
-        indexes: &Vec<String>,
+        indexes: &[String],
     ) -> Result<String, TransformError> {
         let names: String = self.flatten_variable_name(indexes)?;
         let name = format!("{}_{}", name, names);
@@ -462,7 +483,10 @@ impl TransformerContext {
             None => Err(TransformError::MissingVariable(name.to_string())),
         }
     }
-    pub fn get_addressable_value(&self, addressable_access: &AddressableAccess) -> Result<Primitive, TransformError> {
+    pub fn get_addressable_value(
+        &self,
+        addressable_access: &AddressableAccess,
+    ) -> Result<Primitive, TransformError> {
         //TODO add support for object access like G["a"] or g.a
         match self.get_value(&addressable_access.name) {
             Some(a) => {

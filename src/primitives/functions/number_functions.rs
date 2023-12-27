@@ -57,6 +57,6 @@ impl FunctionCall for NumericRange {
         Ok(Primitive::Iterable(IterableKind::Numbers(range)))
     }
     fn to_string(&self) -> String {
-        format!("{}..{}", self.from.to_string(), self.to.to_string())
+        format!("{}..{}", self.from, self.to)
     }
 }
