@@ -110,7 +110,7 @@ impl CompilationError {
         let text = if exclude_string {
             "".to_string()
         } else {
-            format!(" {} ({:?})", pair.as_str().to_string(), pair.as_rule())
+            format!(" {} ({:?})", pair.as_str(), pair.as_rule())
         };
         let span = InputSpan::from_pair(pair);
         Self::new(kind, span, text)

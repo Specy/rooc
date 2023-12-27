@@ -63,7 +63,7 @@ impl ApplyOp for String {
 impl ApplyOp for bool {
     type Target = Primitive;
     type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
+    fn apply_binary_op(&self, op: BinOp, _to: &Primitive) -> Result<Primitive, OperatorError> {
         Err(OperatorError::unsupported_bin_operation(
             op,
             PrimitiveKind::Boolean,

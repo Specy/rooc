@@ -1,6 +1,5 @@
 use crate::{
     bail_wrong_argument, match_or_bail,
-    math::operators::{ BinOp, UnOp},
     parser::transformer::TransformError,
     wrong_argument,
 };

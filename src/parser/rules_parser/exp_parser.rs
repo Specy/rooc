@@ -160,7 +160,7 @@ fn parse_bin_operator(operator: &Pair<Rule>) -> Result<BinOp, CompilationError> 
         Rule::binary_op | Rule::unary_op => match operator.as_str().parse() {
             Ok(op) => Ok(op),
             Err(_) => {
-                return err_unexpected_token!("found {}, expected", operator);
+                err_unexpected_token!("found {}, expected", operator)
             }
         },
         _ => err_unexpected_token!("found {}, expected op", operator),
@@ -172,7 +172,7 @@ fn parse_un_operator(operator: &Pair<Rule>) -> Result<UnOp, CompilationError> {
         Rule::unary_op => match operator.as_str().parse() {
             Ok(op) => Ok(op),
             Err(_) => {
-                return err_unexpected_token!("found {}, expected op", operator);
+                err_unexpected_token!("found {}, expected op", operator)
             }
         },
         _ => err_unexpected_token!("found {}, expected op", operator),

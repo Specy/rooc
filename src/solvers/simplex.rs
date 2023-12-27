@@ -129,10 +129,7 @@ impl Tableau {
             .enumerate()
             .filter(|(i, c)| !self.in_basis.contains(i) && **c < 0.0)
             .min_by(|(_, c1), (_, c2)| c1.partial_cmp(c2).unwrap());
-        match min {
-            Some((i, _)) => Some(i),
-            None => None,
-        }
+        min.map(|(i, _)| i)
     }
 
     //finds the variable that will leave the basis, prioritize variabls_to_prefer
@@ -182,7 +179,7 @@ impl Tableau {
         let c = &mut self.c;
         let pivot = a[t][h];
 
-        //normalize the pivot column
+        //normalize the pivot column 
         for i in 0..a.len() {
             if i != t {
                 let factor = a[i][h] / pivot;

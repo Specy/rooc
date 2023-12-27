@@ -49,9 +49,7 @@ impl GraphNode {
     }
     pub fn to_string(&self) -> String {
         let edges = self
-            .edges
-            .iter()
-            .map(|(_, edge)| edge.to_string())
+            .edges.values().map(|edge| edge.to_string())
             .collect::<Vec<_>>()
             .join(", ");
         format!("{}: {{{}}}", self.name, edges)
@@ -69,8 +67,7 @@ impl Graph {
     pub fn to_edges(self) -> Vec<GraphEdge> {
         self.vertices
             .into_iter()
-            .map(|node| node.edges.into_values().collect::<Vec<_>>())
-            .flatten()
+            .flat_map(|node| node.edges.into_values().collect::<Vec<_>>())
             .collect::<Vec<_>>()
     }
     pub fn nodes(&self) -> &Vec<GraphNode> {
@@ -91,7 +88,7 @@ impl Graph {
         match node {
             Some(node) => Ok(node.edges.values().collect()),
             None => {
-                return Err(TransformError::Other(format!(
+                Err(TransformError::Other(format!(
                     "node {} not found in graph",
                     node_name
                 )))
@@ -106,7 +103,7 @@ impl Graph {
         match node {
             Some(node) => Ok(node.edges.into_values().collect()),
             None => {
-                return Err(TransformError::Other(format!(
+                Err(TransformError::Other(format!(
                     "node {} not found in graph",
                     node_name
                 )))
@@ -127,7 +124,7 @@ impl Graph {
 impl ApplyOp for GraphNode {
     type Target = Primitive;
     type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
+    fn apply_binary_op(&self, op: BinOp, _to: &Primitive) -> Result<Primitive, OperatorError> {
         Err(OperatorError::unsupported_bin_operation(
             op,
             PrimitiveKind::GraphNode,
@@ -143,7 +140,7 @@ impl ApplyOp for GraphNode {
 impl ApplyOp for GraphEdge {
     type Target = Primitive;
     type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
+    fn apply_binary_op(&self, op: BinOp, _to: &Primitive) -> Result<Primitive, OperatorError> {
         Err(OperatorError::unsupported_bin_operation(
             op,
             PrimitiveKind::GraphEdge,
@@ -159,7 +156,7 @@ impl ApplyOp for GraphEdge {
 impl ApplyOp for Graph {
     type Target = Primitive;
     type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
+    fn apply_binary_op(&self, op: BinOp, _to: &Primitive) -> Result<Primitive, OperatorError> {
         Err(OperatorError::unsupported_bin_operation(
             op,
             PrimitiveKind::Graph,

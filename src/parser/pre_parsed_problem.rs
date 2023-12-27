@@ -226,8 +226,8 @@ impl PreExp {
                 Ok(Exp::UnOp(**op, inner.to_box()))
             }
             Self::Variable(name) => {
-                let value = context.get_value(&*name).map(|v| match v {
-                    Primitive::Number(n) => Ok(Exp::Number(n.clone())),
+                let value = context.get_value(name).map(|v| match v {
+                    Primitive::Number(n) => Ok(Exp::Number(*n)),
                     _ => {
                         let err = TransformError::WrongArgument(format!(
                             "Type \"{}\" cannot be used as a value for a variable, expected \"Number\"",
@@ -252,7 +252,7 @@ impl PreExp {
                     .get_addressable_value(array_access)
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 match value {
-                    Primitive::Number(n) => Ok(Exp::Number(n.clone())),
+                    Primitive::Number(n) => Ok(Exp::Number(n)),
                     _ => {
                         let err = TransformError::WrongArgument(format!(
                             "Expected \"Number\", got \"{}\"",
@@ -306,7 +306,7 @@ impl PreExp {
             Self::FunctionCall(function_call) => {
                 //TODO improve this, what other types of functions can there be?
                 let value = function_call
-                    .call(&context)
+                    .call(context)
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 match value {
                     Primitive::Number(n) => Ok(Exp::Number(n)),
@@ -343,7 +343,7 @@ impl PreExp {
             }
             PreExp::ArrayAccess(a) => {
                 let value = context.get_addressable_value(a)?;
-                Ok(value.to_owned())
+                Ok(value)
             }
             PreExp::UnaryOperation(op, v) => {
                 let value = v.as_primitive(context)?;
@@ -366,9 +366,7 @@ impl PreExp {
                     }
                 }
             }
-            _ => Err(TransformError::WrongArgument(format!(
-                "Expected \"Primitive\"" //TODO add the value of the primitive
-            ))),
+            _ => Err(TransformError::WrongArgument("Expected \"Primitive\"".to_string())),
         }
     }
     //TODO make this a macro
@@ -382,7 +380,7 @@ impl PreExp {
         let value = self
             .as_primitive(context)
             .map_err(|e| e.to_spanned_error(self.get_span()))?;
-        match_or_bail_spanned!("String", Primitive::String(s) => Ok(s.to_owned()) ; (value, self))
+        match_or_bail_spanned!("String", Primitive::String(s) => Ok(s) ; (value, self))
     }
     pub fn as_integer(&self, context: &TransformerContext) -> Result<i64, TransformError> {
         let n = self
@@ -421,13 +419,13 @@ impl PreExp {
         let node = self
             .as_primitive(context)
             .map_err(|e| e.to_spanned_error(self.get_span()))?;
-        match_or_bail_spanned!("GraphNode", Primitive::GraphNode(n) => Ok(n.to_owned()) ; (node, self))
+        match_or_bail_spanned!("GraphNode", Primitive::GraphNode(n) => Ok(n) ; (node, self))
     }
     pub fn as_edge(&self, context: &TransformerContext) -> Result<GraphEdge, TransformError> {
         let edge = self
             .as_primitive(context)
             .map_err(|e| e.to_spanned_error(self.get_span()))?;
-        match_or_bail_spanned!("GraphEdge", Primitive::GraphEdge(e) => Ok(e.to_owned()) ; (edge, self))
+        match_or_bail_spanned!("GraphEdge", Primitive::GraphEdge(e) => Ok(e) ; (edge, self))
     }
 
     pub fn as_iterator(

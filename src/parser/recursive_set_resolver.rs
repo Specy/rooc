@@ -32,7 +32,7 @@ pub fn recursive_set_resolver<T>(
             }
         }
     }
-    let values = range.iterator.as_iterator(&context)?;
+    let values = range.iterator.as_iterator(context)?;
     let values = values.to_primitives();
     for value in values.into_iter() {
         match &range.var {
@@ -76,7 +76,7 @@ pub fn apply_tuple(
             Some(name) => {
                 context
                     .update_variable(name, value)
-                    .map_err(|e| e.to_spanned_error(&name.get_span()))?;
+                    .map_err(|e| e.to_spanned_error(name.get_span()))?;
             }
             None => return Ok(()), //tuple is smaller than the spreadable, ignore the rest
         }

@@ -154,7 +154,7 @@ impl IntoCanonicalTableau for StandardLinearProblem {
             //TODO can i simplify this by only adding necessary artificial variables? reusing the independent variables?
             let number_of_artificial_variables = self.constraints.len();
             let number_of_variables = self.variables.len();
-            let mut variables = self.get_variables().clone();
+            let mut variables = self.get_variables();
             let mut c = vec![0.0; number_of_variables + number_of_artificial_variables];
             let mut basis = vec![0; number_of_artificial_variables];
             for i in 0..number_of_artificial_variables {

@@ -143,26 +143,26 @@ impl IterableKind {
                 .collect(),
             IterableKind::Nodes(v) => v
                 .into_iter()
-                .map(|n| Primitive::GraphNode(n.to_owned()))
+                .map(|n| Primitive::GraphNode(n))
                 .collect(),
-            IterableKind::Tuple(v) => v.into_iter().map(|t| Primitive::Tuple(t)).collect(),
-            IterableKind::Iterable(v) => v.into_iter().map(|i| Primitive::Iterable(i)).collect(),
-            IterableKind::Booleans(v) => v.into_iter().map(|b| Primitive::Boolean(b)).collect(),
-            IterableKind::Graphs(v) => v.into_iter().map(|g| Primitive::Graph(g)).collect(),
+            IterableKind::Tuple(v) => v.into_iter().map(Primitive::Tuple).collect(),
+            IterableKind::Iterable(v) => v.into_iter().map(Primitive::Iterable).collect(),
+            IterableKind::Booleans(v) => v.into_iter().map(Primitive::Boolean).collect(),
+            IterableKind::Graphs(v) => v.into_iter().map(Primitive::Graph).collect(),
         }
     }
 
     //TODO refactor this
     pub fn read(&self, indexes: Vec<usize>) -> Result<Primitive, TransformError> {
-        if indexes.len() == 0 {
+        if indexes.is_empty() {
             return Ok(Primitive::Undefined);
         }
 
         let mut current = self;
         let mut indexes = indexes;
-        while indexes.len() > 0 {
+        while !indexes.is_empty() {
             let i = indexes.remove(0);
-            let ended = indexes.len() == 0;
+            let ended = indexes.is_empty();
             if ended {
                 let val = match current {
                     IterableKind::Booleans(v) => {
@@ -225,7 +225,7 @@ impl IterableKind {
 impl ApplyOp for IterableKind {
     type Target = Primitive;
     type Error = OperatorError;
-    fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
+    fn apply_binary_op(&self, op: BinOp, _to: &Primitive) -> Result<Primitive, OperatorError> {
         Err(OperatorError::unsupported_bin_operation(
             op,
             PrimitiveKind::Iterable,

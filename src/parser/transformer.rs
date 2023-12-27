@@ -161,9 +161,9 @@ pub struct Condition {
 impl Condition {
     pub fn new(lhs: Exp, condition_type: Comparison, rhs: Exp) -> Self {
         Self {
-            lhs: lhs,
+            lhs,
             condition_type,
-            rhs: rhs,
+            rhs,
         }
     }
     pub fn to_string(&self) -> String {
@@ -223,7 +223,7 @@ impl TransformError {
             TransformError::OperatorError(name) => format!("[Operator error] {}", name),
             TransformError::Other(name) => name.clone(),
             TransformError::Unspreadable(kind) => format!("{} is not spreadable", kind.to_string()),
-            TransformError::SpannedError(error, _) => return error.to_string(),
+            TransformError::SpannedError(error, _) => error.to_string(),
         }
     }
     pub fn get_traced_error(&self) -> String {
@@ -417,10 +417,8 @@ impl TransformerContext {
         if name == "_" {
             return Ok(());
         }
-        if strict {
-            if self.get_value(name).is_some() {
-                return Err(TransformError::AlreadyExistingVariable(name.to_string()));
-            }
+        if strict && self.get_value(name).is_some() {
+            return Err(TransformError::AlreadyExistingVariable(name.to_string()));
         }
         let frame = self.frames.last_mut().unwrap();
         frame.declare_variable(name, value)
@@ -521,7 +519,7 @@ pub fn transform_condition(
 ) -> Result<Condition, TransformError> {
     let lhs = condition.lhs.into_exp(context)?;
     let rhs = condition.rhs.into_exp(context)?;
-    Ok(Condition::new(lhs, condition.condition_type.clone(), rhs))
+    Ok(Condition::new(lhs, condition.condition_type, rhs))
 }
 
 pub fn transform_condition_with_iteration(
