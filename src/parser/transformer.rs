@@ -1,14 +1,13 @@
 use core::fmt;
 use std::collections::HashMap;
 
-use crate::math::math_enums::{Comparison, OptimizationType};
-use crate::math::operators::{BinOp, UnOp};
-
-use crate::primitives::primitive::PrimitiveKind;
 use crate::{
     primitives::primitive::Primitive,
     utils::{InputSpan, Spanned},
 };
+use crate::math::math_enums::{Comparison, OptimizationType};
+use crate::math::operators::{BinOp, UnOp};
+use crate::primitives::primitive::PrimitiveKind;
 
 use super::{
     parser::PreProblem,

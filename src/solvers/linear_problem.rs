@@ -4,7 +4,7 @@ use crate::{
 };
 
 use super::simplex::{
-    divide_matrix_row_by, CanonicalTransformError, IntoCanonicalTableau, Tableau, Tableauable,
+    CanonicalTransformError, divide_matrix_row_by, IntoCanonicalTableau, Tableau, Tableauable,
 };
 
 pub struct EqualityConstraint {

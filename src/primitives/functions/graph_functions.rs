@@ -1,14 +1,16 @@
+use std::fmt::Debug;
+
+use pest::iterators::Pair;
+
 use crate::{
     bail_wrong_number_of_arguments,
     parser::{
         parser::Rule,
-        transformer::{TransformError, TransformerContext}, pre_parsed_problem::PreExp,
+        pre_parsed_problem::PreExp, transformer::{TransformerContext, TransformError},
     },
     primitives::{iterable::IterableKind, primitive::Primitive},
     utils::{CompilationError, ParseError},
 };
-use pest::iterators::Pair;
-use std::fmt::Debug;
 
 use super::function_traits::FunctionCall;
 

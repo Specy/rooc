@@ -1,12 +1,6 @@
 use core::fmt;
 use std::str::FromStr;
 
-use super::{
-    recursive_set_resolver::recursive_set_resolver,
-    transformer::{Exp, TransformError, TransformerContext, VariableType},
-};
-use crate::math::operators::UnOp;
-use crate::primitives::primitive_traits::ApplyOp;
 use crate::{
     bail_wrong_argument_spanned, enum_with_variants_to_string, match_or_bail_spanned,
     math::math_enums::{Comparison, OptimizationType},
@@ -20,6 +14,14 @@ use crate::{
     utils::{InputSpan, Spanned},
     wrong_argument,
 };
+use crate::math::operators::UnOp;
+use crate::primitives::primitive_traits::ApplyOp;
+
+use super::{
+    recursive_set_resolver::recursive_set_resolver,
+    transformer::{Exp, TransformerContext, TransformError, VariableType},
+};
+
 enum_with_variants_to_string! {
     pub enum BlockScopedFunctionKind derives[Debug] {
         Sum,

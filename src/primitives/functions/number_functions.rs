@@ -4,7 +4,7 @@ use crate::{
     bail_wrong_number_of_arguments,
     parser::{
         parser::Rule,
-        transformer::{TransformError, TransformerContext}, pre_parsed_problem::PreExp,
+        pre_parsed_problem::PreExp, transformer::{TransformerContext, TransformError},
     },
     primitives::{iterable::IterableKind, primitive::Primitive},
     utils::{CompilationError, InputSpan, ParseError, Spanned},

@@ -93,7 +93,20 @@ where
             .parse_and_transform()
             .expect("Failed to parse and transform problem");
     }
-
+    #[test]
+    fn test_prefix_operators() {
+        let input = "
+            min 1
+            s.t.
+               10 * -1 >= 1
+               x + -1 >= 1
+               -1 * (x) >= 1
+               2 * -1 * (x) >= 1
+            ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect("Failed to parse and transform problem");
+    }
     #[test]
     #[should_panic]
     fn test_parser_errors1() {

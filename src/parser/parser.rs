@@ -1,14 +1,15 @@
+use std::fmt::Debug;
+
+use pest::iterators::Pair;
+use pest::Parser;
+
 use crate::bail_missing_token;
 use crate::primitives::consts::Constant;
 use crate::utils::{CompilationError, ParseError};
-use pest::iterators::Pair;
-use pest::Parser;
-use std::fmt::Debug;
 
 use super::pre_parsed_problem::{PreCondition, PreObjective};
 use super::rules_parser::other_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
-use super::transformer::{transform_parsed_problem, Problem};
-
+use super::transformer::{Problem, transform_parsed_problem};
 
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]

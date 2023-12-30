@@ -48,13 +48,14 @@ range_iterator = {
 
 // expressions
 tagged_exp = { exp }
-exp         = _{ unary_op? ~ exp_body ~ (binary_op ~ unary_op? ~ exp_body)* }
-exp_body    = _{ block_scoped_function | block_function | function | parenthesis | modulo  | array_access | primitive | variable }
+exp         = _{ unary_op? ~ exp_leaf ~ (binary_op ~ unary_op? ~ exp_leaf)* }
+exp_leaf    = _{  block_scoped_function | block_function | function | parenthesis | modulo  | array_access | primitive | variable  }
 modulo      =  { "|" ~ exp ~ "|" }
 parenthesis =  { "(" ~ exp ~ ")" }
 function = {  #function_name = function_name ~ "(" ~ #function_pars = function_pars ~ ")"}
 function_pars = { (tagged_exp ~(comma ~ tagged_exp)*)?}
-
+//currently the only non ambiguous implied multiplications
+//implied_mul = { primitive ~ variable | primitive ~ parenthesis}
 // block functions
 block_function = {
 	#name = function_name ~
@@ -94,8 +95,16 @@ compound_variable = @{ simple_variable ~ ("_" ~ LETTER+)+ }
 // maybe i should do ("_" ~ LETTER+)+
 number    = @{ '0'..'9'+ ~ ("." ~ '0'..'9'+)? }
 signed_number = @{ "-"? ~ number}
-binary_op = @{ "*" | "+" | "-" | "/" }
-unary_op  = @{ "-" }
+
+binary_op = _{ mul | add | sub | div }
+mul = { "*" }
+add = { "+" }
+sub = { "-" }
+div = { "/" }
+
+unary_op  = _{ neg }
+neg = { "-" }
+
 string = @ { "\"" ~ LETTER* ~ "\""}
 boolean = @{ ^"true" | ^"false" }
 function_name = @{ LETTER ~ (LETTER | NUMBER | "_")*}

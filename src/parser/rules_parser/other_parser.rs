@@ -2,9 +2,15 @@ use std::vec;
 
 use pest::iterators::{Pair, Pairs};
 
+use crate::{bail_missing_token, err_unexpected_token};
 use crate::math::math_enums::{Comparison, OptimizationType};
 use crate::parser::iterable_utils::flatten_primitive_array_values;
 use crate::parser::parser::Rule;
+use crate::parser::pre_parsed_problem::{
+    AddressableAccess, BlockFunction, BlockFunctionKind, BlockScopedFunction, BlockScopedFunctionKind,
+    CompoundVariable, IterableSet, PreCondition, PreExp, PreObjective,
+};
+use crate::parser::transformer::VariableType;
 use crate::primitives::consts::Constant;
 use crate::primitives::functions::array_functions::{EnumerateArray, LenOfIterableFn};
 use crate::primitives::functions::function_traits::FunctionCall;
@@ -15,14 +21,8 @@ use crate::primitives::functions::number_functions::NumericRange;
 use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
 use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
-use crate::{bail_missing_token, err_unexpected_token};
 
 use super::exp_parser::parse_exp;
-use crate::parser::pre_parsed_problem::{
-    AddressableAccess, BlockFunction, BlockFunctionKind, BlockScopedFunctionKind, CompoundVariable,
-    IterableSet, PreCondition, PreExp, PreObjective, BlockScopedFunction,
-};
-use crate::parser::transformer::VariableType;
 
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {
     match objective.as_rule() {
@@ -43,7 +43,7 @@ pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, Compilatio
                             OptimizationType::kinds_to_string().join(", ")
                         );
                     }
-                    Ok(PreObjective::new(obj_type.unwrap(), parse_exp(&body)?))
+                    Ok(PreObjective::new(obj_type.unwrap(), parse_exp(body)?))
                 }
                 _ => bail_missing_token!("Missing objective", objective),
             }
@@ -218,9 +218,9 @@ pub fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, Compilati
                         None => vec![],
                     };
                     Ok(PreCondition::new(
-                        parse_exp(&lhs)?,
+                        parse_exp(lhs)?,
                         parse_comparison(&relation_type)?,
-                        parse_exp(&rhs)?,
+                        parse_exp(rhs)?,
                         iteration,
                         InputSpan::from_pair(condition),
                     ))
@@ -295,7 +295,7 @@ pub fn parse_block_scoped_function(exp: &Pair<Rule>) -> Result<PreExp, Compilati
 
     let iters = parse_set_iterator_list(&iters.into_inner())?;
     let kind = parse_scoped_block_function_type(&name)?;
-    let body = parse_exp(&body)?.to_boxed();
+    let body = parse_exp(body)?.to_boxed();
     let fun = BlockScopedFunction::new(kind, iters, body);
     Ok(PreExp::BlockScopedFunction(Spanned::new(fun, span)))
 }
@@ -311,7 +311,7 @@ pub fn parse_block_function(exp: &Pair<Rule>) -> Result<PreExp, CompilationError
     let members = body
         .unwrap()
         .into_inner()
-        .map(|member| parse_exp(&member))
+        .map(parse_exp)
         .collect::<Result<Vec<PreExp>, CompilationError>>()?;
     let kind = parse_block_function_type(&name.unwrap())?;
     let fun = BlockFunction::new(kind, members);
@@ -427,14 +427,14 @@ pub fn parse_parameters(pars: &Pair<Rule>) -> Result<Vec<PreExp>, CompilationErr
         Rule::function_pars => {
             let inner = pars.clone().into_inner();
             let pars = inner
-                .map(|a| parse_parameter(&a))
+                .map(parse_parameter)
                 .collect::<Result<Vec<PreExp>, CompilationError>>()?;
             Ok(pars)
         }
         _ => err_unexpected_token!("Expected function args but got: {}", pars),
     }
 }
-pub fn parse_parameter(arg: &Pair<Rule>) -> Result<PreExp, CompilationError> {
+pub fn parse_parameter(arg: Pair<Rule>) -> Result<PreExp, CompilationError> {
     match arg.as_rule() {
         Rule::tagged_exp => parse_exp(arg),
         _ => err_unexpected_token!("Expected function arg but got: {}", arg),
@@ -498,8 +498,8 @@ pub fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreExp, CompilationError>
             match first {
                 Some(Rule::range_iterator) => {
                     let inner = iterator.clone().into_inner();
-                    let from = inner.find_first_tagged("from").map(|f| parse_parameter(&f));
-                    let to = inner.find_first_tagged("to").map(|t| parse_parameter(&t));
+                    let from = inner.find_first_tagged("from").map(parse_parameter);
+                    let to = inner.find_first_tagged("to").map(parse_parameter);
                     let range_type = inner.find_first_tagged("range_type");
                     match (from, to, range_type) {
                         (Some(from), Some(to), Some(range_type)) => {
@@ -527,7 +527,7 @@ pub fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreExp, CompilationError>
                     if first.is_none() {
                         return err_unexpected_token!("Expected parameter but got: {}", iterator);
                     }
-                    let function = parse_parameter(&first.unwrap())?;
+                    let function = parse_parameter(first.unwrap())?;
                     Ok(function)
                 }
 
@@ -553,7 +553,7 @@ pub fn parse_array_access(array_access: &Pair<Rule>) -> Result<AddressableAccess
             let accesses = accesses.unwrap();
             let accesses = accesses
                 .into_inner()
-                .map(|a| parse_parameter(&a))
+                .map(parse_parameter)
                 .collect::<Result<Vec<_>, CompilationError>>()?;
             Ok(AddressableAccess::new(name, accesses))
         }

@@ -5,7 +5,7 @@ use crate::{
 
 use super::{
     pre_parsed_problem::IterableSet,
-    transformer::{TransformError, TransformerContext, VariableType},
+    transformer::{TransformerContext, TransformError, VariableType},
 };
 
 //TODO make this a iterator

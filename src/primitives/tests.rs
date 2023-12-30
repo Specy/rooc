@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod primitive_tests {
-    use crate::parser::{parser::RoocParser};
+    use crate::parser::parser::RoocParser;
 
     #[test]
     fn test_spreadability() {

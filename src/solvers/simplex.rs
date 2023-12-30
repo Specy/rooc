@@ -4,6 +4,7 @@ use core::fmt;
 //togehter with overriding the operators, so that i can use the same code for both versions
 use num_rational::Rational64;
 use num_traits::cast::FromPrimitive;
+
 #[derive(Debug, Clone)]
 pub struct Tableau {
     #[allow(unused)]

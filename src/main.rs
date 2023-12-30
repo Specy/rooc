@@ -1,3 +1,5 @@
+use term_table::{row::Row, Table, table_cell::TableCell};
+
 use rooc::{
     math::math_enums::{Comparison, OptimizationType},
     parser::parser::RoocParser,
@@ -6,7 +8,6 @@ use rooc::{
         simplex::{IntoCanonicalTableau, Tableau},
     },
 };
-use term_table::{row::Row, table_cell::TableCell, Table};
 
 #[allow(unused)]
 fn main() {
@@ -90,22 +91,11 @@ fn main() {
     }
 
     let source = "
-    min sum(u in nodes(G)) { x_u }
-    s.t. 
-        x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1    for v in nodes(G)
+    min 1 + 20
+    s.t.
+        10 * (5 - x + 3) <= 20
     where
-        G = Graph {
-            A -> [B, C, D, E, F],
-            B -> [A, E, C, D, J],
-            C -> [A, B, D, E, I],
-            D -> [A, B, C, E, H],
-            E -> [A, B, C, D, G],
-            F -> [A, G, J],
-            G -> [E, F, H],
-            H -> [D, G, I],
-            I -> [C, H, J],
-            J -> [B, F, I]
-        }
+        C = [1, 2, 3]
     "
     .trim()
     .to_string();

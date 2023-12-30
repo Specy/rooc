@@ -2,8 +2,7 @@ use core::fmt;
 
 use crate::{math::operators::{BinOp, UnOp}, parser::transformer::TransformError};
 
-use super::primitive::{PrimitiveKind, Primitive};
-
+use super::primitive::{Primitive, PrimitiveKind};
 
 pub trait ApplyOp {
     type Target;
