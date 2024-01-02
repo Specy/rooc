@@ -30,11 +30,11 @@ const_declaration  = {
 }
 
 // iterations
-for_iteration          = _{ (^"for" | "∀") ~ iteration_declaration_list }
+for_iteration          = _{ ^"for" ~ iteration_declaration_list }
 iteration_declaration_list = { (iteration_declaration ~ comma)* ~ iteration_declaration }
 iteration_declaration      =  {
   #tuple = (simple_variable | tuple)  ~
-  (^"in" | "∈") ~
+  "in" ~
   #iterator = iterator
 }
 tuple = { "(" ~ (simple_variable | no_par) ~ (comma ~ (simple_variable | no_par))* ~ ")"  }
@@ -47,9 +47,14 @@ range_iterator = {
 }
 
 // expressions
+test_exp = { SOI ~ exp ~ EOI }
 tagged_exp = { exp }
 exp         = _{ unary_op? ~ exp_leaf ~ (binary_op ~ unary_op? ~ exp_leaf)* }
-exp_leaf    = _{  block_scoped_function | block_function | function | parenthesis | modulo  | array_access | primitive | variable  }
+exp_leaf    = _{  block_scoped_function | block_function | function | implicit_mul | parenthesis | modulo  | array_access | primitive | variable  }
+implicit_mul = { 
+	(number | parenthesis | modulo){2,} ~ variable? |
+  (number | parenthesis | modulo) ~ variable
+}
 modulo      =  { "|" ~ exp ~ "|" }
 parenthesis =  { "(" ~ exp ~ ")" }
 function = {  #function_name = function_name ~ "(" ~ #function_pars = function_pars ~ ")"}
@@ -86,7 +91,7 @@ array    =  { "[" ~ nl* ~ ((_primitive ~ comma)* ~ _primitive) ~ nl* ~ "]" }
 comma_separated_exp = { (tagged_exp ~ comma)* ~ tagged_exp }
 comma = _{ "," ~ nl? }
 nl = _{NEWLINE}
-variable       = _{ compound_variable | simple_variable }
+variable       = _{ !keyword ~ (compound_variable | simple_variable) }
 // terminal characters
 objective_type = @{ ^"min" | ^"max" }
 comparison     = @{ "<=" | ">=" | "=" }
@@ -95,7 +100,7 @@ compound_variable = @{ simple_variable ~ ("_" ~ LETTER+)+ }
 // maybe i should do ("_" ~ LETTER+)+
 number    = @{ '0'..'9'+ ~ ("." ~ '0'..'9'+)? }
 signed_number = @{ "-"? ~ number}
-
+keyword = { "for" | "min" | "max" | "where" | "true" | "false" | "in" | "s.t."}
 binary_op = _{ mul | add | sub | div }
 mul = { "*" }
 add = { "+" }

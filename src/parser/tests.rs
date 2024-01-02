@@ -108,6 +108,31 @@ where
             .expect("Failed to parse and transform problem");
     }
     #[test]
+    fn test_implicit_multiplication() {
+        let input = "
+        min 1
+        s.t.
+            10x >= 1
+            10(x + y) + 2 >= 1    
+            10|x + y| + 2>= 1      
+
+            (x + y)10 + 2 >= 1
+            (x + y)(z - 2) + 2 >= 1
+            (x + y)|x + y| + 2 >= 1  
+            (x + y)z + 2 >= 1
+
+            |x + y|10 + 2 >= 1
+            |x + y|(z - 2) + 2 >= 1
+            |x + y||x + y| + 2 >= 1
+            |x + y|z + 2 >= 1
+
+            2(x + y)3|x + y|z + 2 >= 1
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect("Failed to parse and transform problem");
+    }
+    #[test]
     #[should_panic]
     fn test_parser_errors1() {
         let input = "

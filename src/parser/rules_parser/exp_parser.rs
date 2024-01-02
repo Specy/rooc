@@ -27,43 +27,7 @@ lazy_static::lazy_static! {
 //TODO add implicit multiplication: 2x = 2 * x, should this be as a preprocessor? or part of the grammar?
 pub fn parse_exp(exp_to_parse: Pair<Rule>) -> Result<PreExp, CompilationError> {
     PRATT_PARSER
-        .map_primary(|exp| {
-            let span = InputSpan::from_pair(&exp);
-            match exp.as_rule() {
-                Rule::function => {
-                    let fun = parse_function_call(&exp)?;
-                    Ok(PreExp::FunctionCall(Spanned::new(fun, span)))
-                }
-                Rule::simple_variable => {
-                    let variable = exp.as_str().to_string();
-                    Ok(PreExp::Variable(Spanned::new(variable, span)))
-                }
-                Rule::compound_variable => {
-                    let variable = parse_compound_variable(&exp)?;
-                    Ok(PreExp::CompoundVariable(Spanned::new(variable, span)))
-                }
-                Rule::block_function => parse_block_function(&exp),
-                Rule::block_scoped_function => parse_block_scoped_function(&exp),
-                Rule::primitive => {
-                    let prim = parse_primitive(&exp)?;
-                    let spanned = Spanned::new(prim, span);
-                    Ok(PreExp::Primitive(spanned))
-                }
-                Rule::parenthesis => parse_exp(exp),
-                Rule::modulo => {
-                    let exp = parse_exp(exp)?;
-                    Ok(PreExp::Mod(Spanned::new(Box::new(exp), span)))
-                }
-                Rule::array_access => {
-                    let access = parse_array_access(&exp)?;
-                    Ok(PreExp::ArrayAccess(Spanned::new(access, span)))
-                },
-                _ => err_unexpected_token!(
-                    "found \"{}\", expected exp, binary_op, unary_op, len, variable, sum, primitive, parenthesis, array_access, min, max, block function or scoped function",
-                    exp
-                ),
-            }
-        })
+        .map_primary(parse_exp_leaf)
         .map_infix(|lhs, op, rhs| {
             let span = InputSpan::from_pair(&op);
             let op = match op.as_rule() {
@@ -91,4 +55,64 @@ pub fn parse_exp(exp_to_parse: Pair<Rule>) -> Result<PreExp, CompilationError> {
             ))
         })
         .parse(exp_to_parse.into_inner())
+}
+
+pub fn parse_exp_leaf(exp: Pair<Rule>) -> Result<PreExp, CompilationError> {
+    let span = InputSpan::from_pair(&exp);
+    match exp.as_rule() {
+        Rule::function => {
+            let fun = parse_function_call(&exp)?;
+            Ok(PreExp::FunctionCall(Spanned::new(fun, span)))
+        }
+        Rule::simple_variable => {
+            let variable = exp.as_str().to_string();
+            Ok(PreExp::Variable(Spanned::new(variable, span)))
+        }
+        Rule::compound_variable => {
+            let variable = parse_compound_variable(&exp)?;
+            Ok(PreExp::CompoundVariable(Spanned::new(variable, span)))
+        }
+        Rule::block_function => parse_block_function(&exp),
+        Rule::block_scoped_function => parse_block_scoped_function(&exp),
+        //also adding number since the implicit multiplication rule uses it without being part of the primitive
+        Rule::primitive | Rule::number => {
+            let prim = parse_primitive(&exp)?;
+            let spanned = Spanned::new(prim, span);
+            Ok(PreExp::Primitive(spanned))
+        }
+        Rule::parenthesis => parse_exp(exp),
+        Rule::modulo => {
+            let exp = parse_exp(exp)?;
+            Ok(PreExp::Mod(Spanned::new(Box::new(exp), span)))
+        }
+        Rule::implicit_mul => {
+            let exps = exp.clone().into_inner().map(parse_exp_leaf).collect::<Result<Vec<_>, _>>()?;
+            if exps.len() < 2 {
+                return err_unexpected_token!("implicit multiplication must have at least 2 operands, got {}", exp);
+            }
+            let mut iter = exps.into_iter();
+            let first = iter.next().unwrap();
+            let mut res = PreExp::BinaryOperation(
+                Spanned::new(BinOp::Mul, span.clone()),
+                first.to_boxed(),
+                iter.next().unwrap().to_boxed(),
+            );
+            for exp in iter {
+                res = PreExp::BinaryOperation(
+                    Spanned::new(BinOp::Mul, span.clone()),
+                    res.to_boxed(),
+                    exp.to_boxed(),
+                );
+            }
+            Ok(res)
+        }
+        Rule::array_access => {
+            let access = parse_array_access(&exp)?;
+            Ok(PreExp::ArrayAccess(Spanned::new(access, span)))
+        },
+        _ => err_unexpected_token!(
+            "found \"{}\"({:?}), expected exp, binary_op, unary_op, len, variable, sum, primitive, parenthesis, array_access, min, max, block function or scoped function",
+            exp, exp.as_rule()
+        ),
+    }
 }
