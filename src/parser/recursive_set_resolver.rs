@@ -7,7 +7,8 @@ use super::{
     pre_parsed_problem::IterableSet,
     transformer::{TransformerContext, TransformError, VariableType},
 };
-
+use serde::{Serialize, Deserialize};
+use wasm_bindgen::prelude::*;
 //TODO make this a iterator
 pub fn recursive_set_resolver<T>(
     sets: &Vec<IterableSet>,

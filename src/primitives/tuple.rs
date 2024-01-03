@@ -1,5 +1,7 @@
 use core::fmt;
 
+use serde::Serialize;
+
 use crate::{
     math::operators::{BinOp, UnOp},
     parser::transformer::TransformError,
@@ -10,7 +12,7 @@ use super::{
     primitive_traits::{ApplyOp, OperatorError, Spreadable},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Tuple(pub Vec<Primitive>);
 impl Tuple {
     pub fn new(v: Vec<Primitive>) -> Self {

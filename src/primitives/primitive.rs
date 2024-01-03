@@ -1,5 +1,7 @@
 use core::fmt;
 
+use serde::Serialize;
+
 use crate::{
     bail_wrong_argument, match_or_bail, parser::transformer::TransformError, wrong_argument,
 };
@@ -10,7 +12,7 @@ use super::{
     tuple::Tuple,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Primitive {
     Number(f64),
     String(String),
@@ -24,7 +26,7 @@ pub enum Primitive {
     Undefined,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum PrimitiveKind {
     Number,
     String,

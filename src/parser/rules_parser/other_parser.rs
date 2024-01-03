@@ -23,7 +23,8 @@ use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 
 use super::exp_parser::parse_exp;
-
+use serde::{Serialize, Deserialize};
+use wasm_bindgen::prelude::*;
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {
     match objective.as_rule() {
         Rule::objective => {
@@ -515,7 +516,7 @@ pub fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreExp, CompilationError>
                             };
                             let span = InputSpan::from_pair(iterator);
                             let function = NumericRange::new(from?, to?, to_inclusive);
-                            Ok(PreExp::FunctionCall(Spanned::new(Box::new(function), span)))
+                            Ok(PreExp::FunctionCall(span, Box::new(function)))
                         }
 
                         _ => err_unexpected_token!("Expected range iterator but got: {}", iterator),

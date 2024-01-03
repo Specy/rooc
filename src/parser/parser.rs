@@ -10,12 +10,13 @@ use crate::utils::{CompilationError, ParseError};
 use super::pre_parsed_problem::{PreCondition, PreObjective};
 use super::rules_parser::other_parser::{parse_condition_list, parse_consts_declaration, parse_objective};
 use super::transformer::{Problem, transform_parsed_problem};
-
+use serde::{Serialize, Deserialize};
+use wasm_bindgen::prelude::*;
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]
 struct PLParser;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct PreProblem {
     pub objective: PreObjective,
     pub conditions: Vec<PreCondition>,
@@ -74,24 +75,3 @@ fn parse_problem(problem: Pair<Rule>) -> Result<PreProblem, CompilationError> {
     }
 }
 
-pub struct RoocParser {
-    source: String,
-}
-impl RoocParser {
-    pub fn new(source: String) -> Self {
-        Self { source }
-    }
-    pub fn parse(&self) -> Result<PreProblem, String> {
-        parse_problem_source(&self.source)
-    }
-    pub fn parse_and_transform(&self) -> Result<Problem, String> {
-        let parsed = self.parse()?;
-        let transformed = transform_parsed_problem(&parsed);
-        match transformed {
-            Ok(transformed) => Ok(transformed),
-            Err(e) => Err(e
-                .get_trace_from_source(&self.source)
-                .unwrap_or(e.get_traced_error())),
-        }
-    }
-}

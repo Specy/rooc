@@ -1,8 +1,10 @@
 use core::fmt;
 
+use serde::Serialize;
+
 use super::primitive::Primitive;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Constant {
     pub name: String,
     pub value: Primitive,

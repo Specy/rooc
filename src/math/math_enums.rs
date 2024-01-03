@@ -2,11 +2,11 @@
 
 use core::fmt;
 use std::str::FromStr;
-
 use crate::enum_with_variants_to_string;
-
+use serde::{Serialize, Deserialize};
+use wasm_bindgen::prelude::*;
 enum_with_variants_to_string! {
-    pub enum Comparison derives[Debug, PartialEq, Clone, Copy] {
+    pub enum Comparison derives[Debug, PartialEq, Clone, Copy] with_wasm {
         LowerOrEqual,
         UpperOrEqual,
         Equal,
@@ -36,9 +36,8 @@ impl FromStr for Comparison {
         }
     }
 }
-
 enum_with_variants_to_string! {
-    pub enum OptimizationType derives[Debug, PartialEq, Clone] {
+    pub enum OptimizationType derives[Debug, PartialEq, Clone] with_wasm {
         Min,
         Max,
     }

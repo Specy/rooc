@@ -1,6 +1,8 @@
 use core::fmt;
 use std::collections::HashMap;
 
+use serde::Serialize;
+
 use crate::{
     math::operators::{BinOp, UnOp},
     parser::transformer::TransformError,
@@ -11,7 +13,7 @@ use super::{
     primitive_traits::{ApplyOp, OperatorError, Spreadable},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct GraphEdge {
     pub from: String,
     pub to: String,
@@ -31,7 +33,7 @@ impl fmt::Display for GraphEdge {
         write!(f, "{}", s)
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct GraphNode {
     name: String,
     edges: HashMap<String, GraphEdge>,
@@ -62,7 +64,7 @@ impl fmt::Display for GraphNode {
         write!(f, "{}: {{{}}}", self.name, edges)
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Graph {
     vertices: Vec<GraphNode>,
 }

@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use pest::iterators::Pair;
+use serde::Serialize;
 
 use crate::{
     bail_wrong_number_of_arguments,
@@ -14,7 +15,7 @@ use crate::{
 
 use super::function_traits::FunctionCall;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EdgesOfGraphFn {
     of_graph: PreExp,
 }
@@ -41,7 +42,7 @@ impl FunctionCall for EdgesOfGraphFn {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct NodesOfGraphFn {
     of_graph: PreExp,
 }
@@ -67,7 +68,7 @@ impl FunctionCall for NodesOfGraphFn {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct NeighbourOfNodeFn {
     of_node: PreExp,
 }
@@ -95,7 +96,7 @@ impl FunctionCall for NeighbourOfNodeFn {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct NeighboursOfNodeInGraphFn {
     of_node: PreExp,
     in_graph: PreExp,

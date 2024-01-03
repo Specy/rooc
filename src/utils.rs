@@ -2,11 +2,14 @@ use core::fmt;
 use std::{fmt::Debug, ops::Deref, ops::DerefMut};
 
 use pest::{iterators::Pair, Span};
+use serde::Serialize;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::parser::parser::Rule;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Default, Serialize)]
+#[wasm_bindgen]
 pub struct InputSpan {
     pub start_line: usize,
     pub start_column: usize,
@@ -49,15 +52,15 @@ impl InputSpan {
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub struct Spanned<T>
 where
-    T: Debug,
+    T: Debug + Serialize,
 {
     pub value: T,
     span: InputSpan,
 }
-impl<T: Debug> Spanned<T> {
+impl<T: Debug + Serialize> Spanned<T> {
     pub fn new(value: T, span: InputSpan) -> Self {
         Self { value, span }
     }
@@ -76,17 +79,17 @@ impl<T: Debug> Spanned<T> {
     }
 }
 
-impl<T: Debug> DerefMut for Spanned<T> {
+impl<T: Debug + Serialize> DerefMut for Spanned<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.value
     }
 }
-impl<T: Debug> Debug for Spanned<T> {
+impl<T: Debug + Serialize> Debug for Spanned<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&format!("{:?}", self.value))
     }
 }
-impl<T: Debug> Deref for Spanned<T> {
+impl<T: Debug + Serialize> Deref for Spanned<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         &self.value

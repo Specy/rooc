@@ -1,5 +1,7 @@
 use core::fmt;
 
+use serde::Serialize;
+
 use crate::{
     check_bounds,
     math::operators::{BinOp, UnOp},
@@ -13,7 +15,7 @@ use super::{
     tuple::Tuple,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum IterableKind {
     Numbers(Vec<f64>),
     Strings(Vec<String>),

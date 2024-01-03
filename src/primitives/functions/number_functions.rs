@@ -1,4 +1,5 @@
 use pest::iterators::Pair;
+use serde::Serialize;
 
 use crate::{
     bail_wrong_number_of_arguments,
@@ -12,7 +13,7 @@ use crate::{
 
 use super::function_traits::FunctionCall;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct NumericRange {
     from: PreExp,
     to: PreExp,

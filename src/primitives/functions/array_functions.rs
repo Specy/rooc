@@ -1,4 +1,5 @@
 use pest::iterators::Pair;
+use serde::Serialize;
 
 use crate::{
     bail_wrong_number_of_arguments,
@@ -15,7 +16,7 @@ use crate::{
 
 use super::function_traits::FunctionCall;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EnumerateArray {
     array: PreExp,
 }
@@ -47,7 +48,7 @@ impl FunctionCall for EnumerateArray {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct LenOfIterableFn {
     of_iterable: PreExp,
 }

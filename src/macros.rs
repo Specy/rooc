@@ -147,4 +147,21 @@ macro_rules! enum_with_variants_to_string {
             }
         }
     };
+    ($vis:vis enum $name:ident derives[$($derive:tt)+] with_wasm { $($variant:ident),* $(,)? }) => {
+        #[derive($($derive)*, Serialize)]
+        #[wasm_bindgen]
+        $vis enum $name {
+            $($variant),*
+        }
+        impl $name {
+            pub fn kinds() -> Vec<$name> {
+                vec![$(Self::$variant),*]
+            }
+
+            pub fn kinds_to_string() -> Vec<String> {
+                Self::kinds().iter().map(|k| k.to_string()).collect()
+            }
+        }
+
+    };
 }

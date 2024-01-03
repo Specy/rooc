@@ -14,16 +14,20 @@ use crate::{
     utils::{InputSpan, Spanned},
     wrong_argument,
 };
-use crate::math::operators::UnOp;
-use crate::primitives::primitive_traits::ApplyOp;
+use wasm_bindgen::prelude::*;
 
 use super::{
     recursive_set_resolver::recursive_set_resolver,
-    transformer::{Exp, TransformerContext, TransformError, VariableType},
+    transformer::{Exp, TransformError, TransformerContext, VariableType},
 };
+use crate::math::operators::UnOp;
+use crate::primitives::primitive_traits::ApplyOp;
+use serde::ser::{SerializeStruct, Serializer};
+use serde::{de, Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
 
 enum_with_variants_to_string! {
-    pub enum BlockScopedFunctionKind derives[Debug] {
+    pub enum BlockScopedFunctionKind derives[Debug, Clone] with_wasm {
         Sum,
         Prod,
         Min,
@@ -58,7 +62,7 @@ impl FromStr for BlockScopedFunctionKind {
 }
 
 enum_with_variants_to_string! {
-    pub enum BlockFunctionKind derives[Debug] {
+    pub enum BlockFunctionKind derives[Debug, Clone] with_wasm {
         Min,
         Max,
         Avg,
@@ -79,7 +83,7 @@ impl FromStr for BlockFunctionKind {
 
 impl fmt::Display for BlockFunctionKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s =         match self {
+        let s = match self {
             Self::Min => "min".to_string(),
             Self::Max => "max".to_string(),
             Self::Avg => "avg".to_string(),
@@ -88,7 +92,7 @@ impl fmt::Display for BlockFunctionKind {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct BlockScopedFunction {
     kind: BlockScopedFunctionKind,
     iters: Vec<IterableSet>,
@@ -118,7 +122,7 @@ impl fmt::Display for BlockScopedFunction {
         )
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct BlockFunction {
     kind: BlockFunctionKind,
     exps: Vec<PreExp>,
@@ -143,19 +147,142 @@ impl fmt::Display for BlockFunction {
         )
     }
 }
-
 #[derive(Debug)]
 pub enum PreExp {
     Primitive(Spanned<Primitive>),
-    Mod(Spanned<Box<PreExp>>),
+    Mod(InputSpan, Box<PreExp>),
     BlockFunction(Spanned<BlockFunction>),
     Variable(Spanned<String>),
     CompoundVariable(Spanned<CompoundVariable>),
     ArrayAccess(Spanned<AddressableAccess>),
     BlockScopedFunction(Spanned<BlockScopedFunction>),
-    FunctionCall(Spanned<Box<dyn FunctionCall>>),
+    FunctionCall(InputSpan, Box<dyn FunctionCall>),
     BinaryOperation(Spanned<BinOp>, Box<PreExp>, Box<PreExp>),
     UnaryOperation(Spanned<UnOp>, Box<PreExp>),
+}
+impl Clone for PreExp {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Primitive(p) => Self::Primitive(p.clone()),
+            Self::Mod(span, exp) => Self::Mod(span.clone(), exp.clone()),
+            Self::BlockFunction(f) => Self::BlockFunction(f.clone()),
+            Self::Variable(name) => Self::Variable(name.clone()),
+            Self::CompoundVariable(c) => Self::CompoundVariable(c.clone()),
+            Self::ArrayAccess(array_access) => Self::ArrayAccess(array_access.clone()),
+            Self::BlockScopedFunction(f) => Self::BlockScopedFunction(f.clone()),
+            Self::FunctionCall(span, f) => {
+                Self::FunctionCall(span.clone(), dyn_clone::clone_box(f.as_ref()))
+            }
+            Self::BinaryOperation(op, lhs, rhs) => {
+                Self::BinaryOperation(op.clone(), lhs.clone(), rhs.clone())
+            }
+            Self::UnaryOperation(op, exp) => Self::UnaryOperation(op.clone(), exp.clone()),
+        }
+    }
+}
+
+impl Serialize for PreExp {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Self::Primitive(p) => {
+                let mut state = serializer.serialize_struct("Primitive", 3)?;
+                state.serialize_field("type", &"Primitive")?;
+                state.serialize_field("value", &p.get_span_value())?;
+                state.serialize_field("span", &p.get_span())?;
+                state.end()
+            }
+            Self::Mod(span, exp) => {
+                let mut state = serializer.serialize_struct("Mod", 3)?;
+                state.serialize_field("type", &"Mod")?;
+                state.serialize_field("value", &exp)?;
+                state.serialize_field("span", &span)?;
+                state.end()
+            }
+            Self::BlockFunction(f) => {
+                let mut state = serializer.serialize_struct("BlockFunction", 3)?;
+                state.serialize_field("type", &"BlockFunction")?;
+                state.serialize_field("value", &f.get_span_value())?;
+                state.serialize_field("span", &f.get_span())?;
+                state.end()
+            }
+            Self::Variable(name) => {
+                let mut state = serializer.serialize_struct("Variable", 3)?;
+                state.serialize_field("type", &"Variable")?;
+                state.serialize_field("value", &name.get_span_value())?;
+                state.serialize_field("span", &name.get_span())?;
+                state.end()
+            }
+            Self::CompoundVariable(c) => {
+                let mut state = serializer.serialize_struct("CompoundVariable", 3)?;
+                state.serialize_field("type", &"CompoundVariable")?;
+                state.serialize_field("value", &c.get_span_value())?;
+                state.serialize_field("span", &c.get_span())?;
+                state.end()
+            }
+            Self::ArrayAccess(array_access) => {
+                let mut state = serializer.serialize_struct("ArrayAccess", 3)?;
+                state.serialize_field("type", &"ArrayAccess")?;
+                state.serialize_field("value", &array_access.get_span_value())?;
+                state.serialize_field("span", &array_access.get_span())?;
+                state.end()
+            }
+            Self::BlockScopedFunction(f) => {
+                let mut state = serializer.serialize_struct("BlockScopedFunction", 3)?;
+                state.serialize_field("type", &"BlockScopedFunction")?;
+                state.serialize_field("value", &f.get_span_value())?;
+                state.serialize_field("span", &f.get_span())?;
+                state.end()
+            }
+            Self::FunctionCall(span, f) => {
+                let mut state = serializer.serialize_struct("FunctionCall", 3)?;
+                state.serialize_field("type", &"FunctionCall")?;
+                state.serialize_field("value", &f.to_string())?;
+                state.serialize_field("span", &span)?;
+                state.end()
+            }
+            Self::BinaryOperation(op, lhs, rhs) => {
+                let mut state = serializer.serialize_struct("BinaryOperation", 3)?;
+                state.serialize_field("type", &"BinaryOperation")?;
+                state.serialize_field(
+                    "value",
+                    &TempBinOp {
+                        op: **op,
+                        lhs: *lhs.clone(),
+                        rhs: *rhs.clone(),
+                    },
+                )?;
+                state.serialize_field("span", &op.get_span())?;
+                state.end()
+            }
+            Self::UnaryOperation(op, exp) => {
+                let mut state = serializer.serialize_struct("UnaryOperation", 3)?;
+                state.serialize_field("type", &"UnaryOperation")?;
+                state.serialize_field(
+                    "value",
+                    &TempUnOp {
+                        op: **op,
+                        exp: *exp.clone(),
+                    },
+                )?;
+                state.serialize_field("span", &op.get_span())?;
+                state.end()
+            }
+        }
+    }
+}
+#[derive(Serialize)]
+struct TempBinOp {
+    op: BinOp,
+    lhs: PreExp,
+    rhs: PreExp,
+}
+#[derive(Serialize)]
+struct TempUnOp {
+    op: UnOp,
+    exp: PreExp,
 }
 
 impl PreExp {
@@ -165,7 +292,7 @@ impl PreExp {
     pub fn get_span(&self) -> &InputSpan {
         match self {
             Self::Primitive(n) => n.get_span(),
-            Self::Mod(exp) => exp.get_span(),
+            Self::Mod(span, _) => span,
             Self::BlockFunction(f) => f.get_span(),
             Self::Variable(name) => name.get_span(),
             Self::CompoundVariable(c) => c.get_span(),
@@ -173,7 +300,7 @@ impl PreExp {
             Self::UnaryOperation(op, _) => op.get_span(),
             Self::ArrayAccess(array_access) => array_access.get_span(),
             Self::BlockScopedFunction(function) => function.get_span(),
-            Self::FunctionCall(function_call) => function_call.get_span(),
+            Self::FunctionCall(span, _) => span,
         }
     }
     pub fn into_exp(&self, context: &mut TransformerContext) -> Result<Exp, TransformError> {
@@ -197,10 +324,10 @@ impl PreExp {
                     Err(err.to_spanned_error(self.get_span()))
                 }
             },
-            Self::Mod(exp) => {
+            Self::Mod(span, exp) => {
                 let inner = exp
                     .into_exp(context)
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    .map_err(|e| e.to_spanned_error(span))?;
                 Ok(Exp::Mod(inner.to_box()))
             }
             Self::BlockFunction(f) => {
@@ -312,11 +439,11 @@ impl PreExp {
                     }
                 }
             }
-            Self::FunctionCall(function_call) => {
+            Self::FunctionCall(span, function_call) => {
                 //TODO improve this, what other types of functions can there be?
                 let value = function_call
                     .call(context)
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    .map_err(|e| e.to_spanned_error(span))?;
                 match value {
                     Primitive::Number(n) => Ok(Exp::Number(n)),
                     _ => {
@@ -346,8 +473,10 @@ impl PreExp {
                     None => Err(TransformError::MissingVariable(name)),
                 }
             }
-            PreExp::FunctionCall(f) => {
-                let value = f.call(context)?;
+            PreExp::FunctionCall(_, f) => {
+                let value = f
+                    .call(context)
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 Ok(value)
             }
             PreExp::ArrayAccess(a) => {
@@ -454,15 +583,10 @@ impl fmt::Display for PreExp {
             Self::ArrayAccess(a) => a.to_string(),
             Self::BlockFunction(f) => f.to_string(),
             Self::BlockScopedFunction(f) => f.to_string(),
-            Self::BinaryOperation(op, lhs, rhs) => format!(
-                "({} {} {})",
-                lhs,
-                **op,
-                rhs
-            ),
+            Self::BinaryOperation(op, lhs, rhs) => format!("({} {} {})", lhs, **op, rhs),
             Self::CompoundVariable(c) => c.to_string(),
-            Self::FunctionCall(f) => f.to_string(),
-            Self::Mod(exp) => format!("|{}|", **exp),
+            Self::FunctionCall(_, f) => f.to_string(),
+            Self::Mod(_, exp) => format!("|{}|", **exp),
             Self::Primitive(p) => p.to_string(),
             Self::UnaryOperation(op, exp) => format!("{}{}", **op, exp),
             Self::Variable(name) => name.to_string(),
@@ -470,7 +594,14 @@ impl fmt::Display for PreExp {
         f.write_str(&s)
     }
 }
-#[derive(Debug)]
+
+impl PreExp {
+    pub fn get_span_wasm(&self) -> InputSpan {
+        self.get_span().clone()
+    }
+}
+
+#[derive(Debug, Serialize, Clone)]
 pub struct IterableSet {
     pub var: VariableType,
     pub iterator: Spanned<PreExp>,
@@ -486,7 +617,7 @@ impl IterableSet {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct AddressableAccess {
     pub name: String,
     pub accesses: Vec<PreExp>,
@@ -507,7 +638,7 @@ impl fmt::Display for AddressableAccess {
         write!(f, "{}{}", self.name, rest)
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct CompoundVariable {
     pub name: String,
     pub indexes: Vec<String>,
@@ -522,7 +653,7 @@ impl fmt::Display for CompoundVariable {
         write!(f, "{}_{}", self.name, self.indexes.join("_"))
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct PreObjective {
     pub objective_type: OptimizationType,
     pub rhs: PreExp,
@@ -537,7 +668,7 @@ impl PreObjective {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct PreCondition {
     pub lhs: PreExp,
     pub condition_type: Comparison,

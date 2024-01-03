@@ -7,7 +7,8 @@ use crate::{
     parser::{parser::Rule, pre_parsed_problem::PreExp},
     utils::{CompilationError, InputSpan, ParseError, Spanned},
 };
-
+use serde::{Serialize, Deserialize};
+use wasm_bindgen::prelude::*;
 use super::other_parser::{
     parse_array_access, parse_block_function, parse_block_scoped_function, parse_compound_variable,
     parse_function_call, parse_primitive,
@@ -62,7 +63,7 @@ pub fn parse_exp_leaf(exp: Pair<Rule>) -> Result<PreExp, CompilationError> {
     match exp.as_rule() {
         Rule::function => {
             let fun = parse_function_call(&exp)?;
-            Ok(PreExp::FunctionCall(Spanned::new(fun, span)))
+            Ok(PreExp::FunctionCall(span, fun))
         }
         Rule::simple_variable => {
             let variable = exp.as_str().to_string();
@@ -83,7 +84,7 @@ pub fn parse_exp_leaf(exp: Pair<Rule>) -> Result<PreExp, CompilationError> {
         Rule::parenthesis => parse_exp(exp),
         Rule::modulo => {
             let exp = parse_exp(exp)?;
-            Ok(PreExp::Mod(Spanned::new(Box::new(exp), span)))
+            Ok(PreExp::Mod(span, Box::new(exp)))
         }
         Rule::implicit_mul => {
             let exps = exp.clone().into_inner().map(parse_exp_leaf).collect::<Result<Vec<_>, _>>()?;

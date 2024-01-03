@@ -1,5 +1,6 @@
 use core::fmt;
 use std::collections::HashMap;
+use wasm_bindgen::prelude::*;
 
 use crate::{
     primitives::primitive::Primitive,
@@ -14,6 +15,8 @@ use super::{
     pre_parsed_problem::{AddressableAccess, PreCondition, PreExp, PreObjective},
     recursive_set_resolver::recursive_set_resolver,
 };
+use serde::{Serialize, Deserialize};
+use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Clone)]
 pub enum Exp {
@@ -136,6 +139,7 @@ impl fmt::Display for Exp {
     }
 }
 #[derive(Debug)]
+#[wasm_bindgen]
 pub struct Objective {
     objective_type: OptimizationType,
     rhs: Exp,
@@ -188,6 +192,7 @@ impl fmt::Display for Condition {
     }
 }
 #[derive(Debug)]
+#[wasm_bindgen]
 pub struct Problem {
     objective: Objective,
     conditions: Vec<Condition>,
@@ -212,7 +217,7 @@ impl fmt::Display for Problem {
         write!(f, "{}\ns.t\n\t{}", self.objective, conditions)
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum TransformError {
     MissingVariable(String),
     AlreadyExistingVariable(String),
@@ -530,7 +535,7 @@ checks that the iterator has at least the same number of elements as the set, an
 
 pub type PrimitiveSet = Vec<Primitive>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum VariableType {
     Single(Spanned<String>),
     Tuple(Vec<Spanned<String>>),

@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod parser_tests {
-    use crate::parser::parser::RoocParser;
+    use crate::RoocParser;
+
 
     #[test]
     fn test_parser_problems() {

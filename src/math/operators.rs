@@ -2,9 +2,10 @@ use core::fmt;
 use std::str::FromStr;
 
 use crate::enum_with_variants_to_string;
-
+use serde::{Serialize, Deserialize};
+use wasm_bindgen::prelude::*;
 enum_with_variants_to_string! {
-    pub enum Operator derives[Debug, PartialEq, Clone, Copy]  {
+    pub enum Operator derives[Debug, PartialEq, Clone, Copy] with_wasm {
         Add,
         Sub,
         Mul,
@@ -42,7 +43,7 @@ impl fmt::Display for Operator {
 }
 
 enum_with_variants_to_string! {
-    pub enum BinOp derives[Debug, PartialEq, Clone, Copy] {
+    pub enum BinOp derives[Debug, PartialEq, Clone, Copy] with_wasm {
         Add,
         Sub,
         Mul,
@@ -102,7 +103,7 @@ impl FromStr for BinOp {
 }
 
 enum_with_variants_to_string! {
-    pub enum UnOp derives[Debug, PartialEq, Clone, Copy] {
+    pub enum UnOp derives[Debug, PartialEq, Clone, Copy] with_wasm {
         Neg,
     }
 }

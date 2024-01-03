@@ -2,11 +2,10 @@ use term_table::{row::Row, Table, table_cell::TableCell};
 
 use rooc::{
     math::math_enums::{Comparison, OptimizationType},
-    parser::parser::RoocParser,
     solvers::{
         linear_problem::{Constraint, LinearProblem},
         simplex::{IntoCanonicalTableau, Tableau},
-    },
+    }, RoocParser,
 };
 
 #[allow(unused)]
@@ -91,11 +90,21 @@ fn main() {
     }
 
     let source = "
-    min 1 + 20
+    min 1
     s.t.
-        10 * (5 - x + 3) <= 20
-    where
-        C = [1, 2, 3]
+        sum((u,c,v) in edges(G)){ (x_u + x_v)*c } <= 1
+        sum((first, second) in A){ first + second } <= 1
+        
+        where 
+            G = Graph {
+                A -> [B],
+                B
+            }
+            A = [
+                [1, 2],
+                [3, 4]
+            ]
+
     "
     .trim()
     .to_string();
