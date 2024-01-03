@@ -92,9 +92,7 @@ fn main() {
     let source = "
     min 1
     s.t.
-        sum((u,c,v) in edges(G)){ (x_u + x_v)*c } <= 1
-        sum((first, second) in A){ first + second } <= 1
-        
+        sum(i in 0..2000) { i } <= 1
         where 
             G = Graph {
                 A -> [B],

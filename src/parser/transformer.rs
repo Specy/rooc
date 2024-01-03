@@ -97,6 +97,22 @@ impl Exp {
     pub fn is_leaf(&self) -> bool {
         matches!(self, Exp::BinOp(_, _, _) | Exp::UnOp(_, _))
     }
+    
+    pub fn to_string_with_precedence(&self, last_precedence: u8) -> String {
+        match self {
+            Exp::BinOp(op,lhs , rhs) => {
+                let lhs = lhs.to_string_with_precedence(op.precedence());
+                let rhs = rhs.to_string_with_precedence(op.precedence());
+                let precedence = op.precedence();
+                if precedence < last_precedence {
+                    format!("({} {} {})", lhs, op, rhs)
+                } else {
+                    format!("{} {} {}", lhs, op, rhs)
+                }
+            }
+            _ => self.to_string()
+        }
+    }
 }
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -122,9 +138,9 @@ impl fmt::Display for Exp {
                 //TODO: add parenthesis when needed
                 format!(
                     "{} {} {}",
-                    lhs,
+                    lhs.to_string_with_precedence(operator.precedence()),
                     operator,
-                    rhs
+                    rhs.to_string_with_precedence(operator.precedence())
                 )
             }
             Exp::UnOp(op, exp) => {

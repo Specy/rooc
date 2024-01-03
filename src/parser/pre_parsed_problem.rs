@@ -304,7 +304,7 @@ impl PreExp {
         }
     }
     pub fn into_exp(&self, context: &mut TransformerContext) -> Result<Exp, TransformError> {
-        let exp = match self {
+        match self {
             Self::BinaryOperation(op, lhs, rhs) => {
                 let lhs = lhs
                     .into_exp(context)
@@ -455,8 +455,7 @@ impl PreExp {
                     }
                 }
             }
-        };
-        exp.map(|e: Exp| e.flatten())
+        }
     }
 
     pub fn as_primitive(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
@@ -576,6 +575,28 @@ impl PreExp {
             .map(|p| p.as_iterator().map(|v| v.to_owned()))
             .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
+
+    fn is_leaf(&self) -> bool {
+        match self {
+            Self::BinaryOperation(_, _, _) => false,
+            Self::UnaryOperation(_, _) => false,
+            _ => true,
+        }
+    }
+    fn to_string_with_precedence(&self, previous_precedence: u8) -> String {
+        match self {
+            Self::BinaryOperation(op, lhs, rhs) => {
+                let lhs = lhs.to_string_with_precedence(op.precedence());
+                let rhs = rhs.to_string_with_precedence(op.precedence());
+                if op.precedence() < previous_precedence {
+                    format!("({} {} {})", lhs, op.to_string(), rhs)
+                } else {
+                    format!("{} {} {}", lhs, op.to_string(), rhs)
+                }
+            }
+            _ => self.to_string(),
+        }
+    }
 }
 impl fmt::Display for PreExp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -583,12 +604,22 @@ impl fmt::Display for PreExp {
             Self::ArrayAccess(a) => a.to_string(),
             Self::BlockFunction(f) => f.to_string(),
             Self::BlockScopedFunction(f) => f.to_string(),
-            Self::BinaryOperation(op, lhs, rhs) => format!("({} {} {})", lhs, **op, rhs),
+            Self::BinaryOperation(op, lhs, rhs) => {
+                let rhs = rhs.to_string_with_precedence(op.precedence());
+                let lhs = lhs.to_string_with_precedence(op.precedence());
+                format!("{} {} {}", lhs, op.to_string(), rhs)
+            }
             Self::CompoundVariable(c) => c.to_string(),
             Self::FunctionCall(_, f) => f.to_string(),
             Self::Mod(_, exp) => format!("|{}|", **exp),
             Self::Primitive(p) => p.to_string(),
-            Self::UnaryOperation(op, exp) => format!("{}{}", **op, exp),
+            Self::UnaryOperation(op, exp) => {
+                if self.is_leaf() {
+                    format!("{}{}", **op, **exp)
+                } else {
+                    format!("{}({})", **op, **exp)
+                }
+            }
             Self::Variable(name) => name.to_string(),
         };
         f.write_str(&s)
