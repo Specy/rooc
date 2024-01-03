@@ -239,7 +239,7 @@ impl Serialize for PreExp {
             Self::FunctionCall(span, f) => {
                 let mut state = serializer.serialize_struct("FunctionCall", 3)?;
                 state.serialize_field("type", &"FunctionCall")?;
-                state.serialize_field("value", &f.to_string())?;
+                state.serialize_field("value", &f)?;
                 state.serialize_field("span", &span)?;
                 state.end()
             }

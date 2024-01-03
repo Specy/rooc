@@ -19,6 +19,7 @@ pest_derive = { version = "2.7.5", features = ["grammar-extras"] }
 egg = "0.9.5"
 lazy_static = "1.4.0"
 dyn-clone = "1.0.16"
+erased-serde = "0.4.2"
 
 [profile.release]
 opt-level = 3
