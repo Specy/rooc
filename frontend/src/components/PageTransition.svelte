@@ -35,7 +35,7 @@
 	<div class={`progress`}>
 		<div class={status}>
             <div 
-                style='height: 0.3rem; background-color: red'
+                style='height: 0.3rem; background-color: var(--accent)'
             >
             </div>
 		</div>

@@ -304,22 +304,13 @@ const darkOverride = [
 		"token": "markup.heading"
 	},
 	{
-		"foreground": "8673ff",
-		"token": "data-register",
-	}, {
-		"foreground": "c26ef2",
-		"token": "address-register",
-	}, {
-		"foreground": "f26e6e",
-		"token": "directive"
-	}, {
-		"foreground": "47d3a8",
-		"token": "number.immediate"
+		"foreground": "#d85712",
+		"background": "#d85712",
+		"token": "expansion.brackets"
+	},
+	{
+		"foreground": "#6a6a6a",
+		"background": "#6a6a6a",
+		"token": "identifier.ignore"
 	}
-	/*
-	,{
-		"token": "arithmetical-operation",
-		"foreground": "47d3a8"
-	}
-	*/
 ]

@@ -6,9 +6,13 @@
 	import { page } from '$app/stores';
 	import '../global.css';
 	import { onMount } from 'svelte';
-
+	import { Monaco } from '$lib/monaco';
 	onMount(() => {
 		themeStorage.load();
+		Monaco.load()
+		return () => {
+			Monaco.dispose()
+		}
 	});
 </script>
 

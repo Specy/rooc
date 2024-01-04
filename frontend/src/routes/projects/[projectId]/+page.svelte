@@ -26,6 +26,7 @@
 			bind:code={source}
 			highlightedLine={-1}
 		/>
+
 		<textarea value={compiled} />
 	</div>
 	<Button on:click={compile}>compile</Button>

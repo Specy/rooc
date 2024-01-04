@@ -1,8 +1,9 @@
 import { browser } from '$app/environment';
 import { generateTheme } from '$lib/theme/editorTheme';
+//@ts-expect-error - Monaco doesn't have typescript definitions
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import type monaco from 'monaco-editor'
-
+import {RoocLanguage} from './Rooc/RoocLanguage'
 export type MonacoType = typeof monaco
 
 class MonacoLoader {
@@ -20,10 +21,9 @@ class MonacoLoader {
 		this.loading = import('monaco-editor')
 		const monaco: MonacoType = await this.loading
 		monaco.editor.defineTheme('custom-theme', generateTheme())
-		monaco.languages.register({ id: 'm68k' })
+		monaco.languages.register({ id: 'rooc' })
 		this.monaco = monaco
 		this.registerLanguages()
-
 		self.MonacoEnvironment = {
 			getWorker: function () {
 				return new editorWorker()
@@ -42,8 +42,9 @@ class MonacoLoader {
 		this.dispose()
 		const { monaco } = this
 		if(!monaco) return
+		//@ts-expect-error - Language works
+		this.toDispose.push(monaco.languages.setMonarchTokensProvider('rooc', RoocLanguage))
         /*
-		this.toDispose.push(monaco.languages.setMonarchTokensProvider('m68k', M68KLanguage))
 		this.toDispose.push(monaco.languages.registerCompletionItemProvider('m68k', createM68KCompletition(monaco)))
 		this.toDispose.push(monaco.languages.registerHoverProvider('m68k', createM68kHoverProvider(monaco)))
 		this.toDispose.push(monaco.languages.registerDocumentFormattingEditProvider('m68k', createM68kFormatter(monaco)))
