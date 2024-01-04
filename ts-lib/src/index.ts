@@ -6,7 +6,7 @@ import {
     SerializedCompilationError,
     ParseError,
     InputSpan,
-} from './pkg'
+} from './pkg/rooc'
 import { Ok, Err, Result } from 'ts-results'
 export class RoocParser {
     instance: _RoocParser;
@@ -57,9 +57,9 @@ export class CompilationError {
     }
     message() {
         if (this.source) {
-            this.instance.to_string_from_source_wasm(this.source);
+            return this.instance.to_string_from_source_wasm(this.source);
         } else {
-            this.instance.to_error_string_wasm();
+            return this.instance.to_error_string_wasm();
         }
     }
 }
@@ -81,7 +81,7 @@ export class Problem {
 
 
 
-export {
+export type {
     SerializedAddressableAccess,
     SerializedBlockFunction,
     SerializedBlockScopedFunction,
