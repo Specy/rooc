@@ -6,7 +6,7 @@
 	import { page } from '$app/stores';
 	import '../global.css';
 	import { onMount } from 'svelte';
-	import { Monaco } from '$lib/monaco';
+	import { Monaco } from '$lib/Monaco';
 	onMount(() => {
 		themeStorage.load();
 		Monaco.load()

@@ -18,24 +18,31 @@
 	}
 </script>
 
-<Page padding="1rem" gap="1rem">
-	<div class="row wrapper">
+<Page padding="1rem" gap="1rem" style='height: 100vh'>
+	<div class="wrapper">
 		<Editor
 			style="flex: 1; height: 100%;"
 			language="rooc"
 			bind:code={source}
 			highlightedLine={-1}
 		/>
-
 		<textarea value={compiled} />
 	</div>
-	<Button on:click={compile}>compile</Button>
+	<div style="display: flex; justify-content: flex-end">
+		<Button on:click={compile}>Compile</Button>
+	</div>
 </Page>
 
 <style>
 	.wrapper {
+		display: flex;
 		gap: 1rem;
 		flex: 1;
+	}
+	@media (max-width: 768px) {
+		.wrapper {
+			flex-direction: column;
+		}
 	}
 	textarea {
 		background-color: var(--secondary);

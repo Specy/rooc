@@ -9,7 +9,7 @@
 </script>
 
 <main class="content" {style} in:fly|global={{ x: $navigationStore.direction === "back" ? 30 : -30, duration: 500 }}>
-	<div class="column" style="max-width: {cropped ? '60rem' : 'unset'}; width:100%;height: 100%; padding:{padding}; gap:{gap}{contentStyle} ">
+	<div class="column" style="max-width: {cropped ? '60rem' : 'unset'}; width:100%;height: 100%; padding:{padding}; gap:{gap}; {contentStyle} ">
 		<slot />
 	</div>
 </main>
