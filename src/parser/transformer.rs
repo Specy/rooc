@@ -2,20 +2,20 @@ use core::fmt;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
+use crate::math::math_enums::{Comparison, OptimizationType};
+use crate::math::operators::{BinOp, UnOp};
+use crate::primitives::primitive::PrimitiveKind;
 use crate::{
     primitives::primitive::Primitive,
     utils::{InputSpan, Spanned},
 };
-use crate::math::math_enums::{Comparison, OptimizationType};
-use crate::math::operators::{BinOp, UnOp};
-use crate::primitives::primitive::PrimitiveKind;
 
 use super::{
     parser::PreProblem,
     pre_parsed_problem::{AddressableAccess, PreCondition, PreExp, PreObjective},
     recursive_set_resolver::recursive_set_resolver,
 };
-use serde::{Serialize, Deserialize};
+use serde::{de::value, Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -97,10 +97,10 @@ impl Exp {
     pub fn is_leaf(&self) -> bool {
         matches!(self, Exp::BinOp(_, _, _) | Exp::UnOp(_, _))
     }
-    
+
     pub fn to_string_with_precedence(&self, last_precedence: u8) -> String {
         match self {
-            Exp::BinOp(op,lhs , rhs) => {
+            Exp::BinOp(op, lhs, rhs) => {
                 let lhs = lhs.to_string_with_precedence(op.precedence());
                 let rhs = rhs.to_string_with_precedence(op.precedence());
                 let precedence = op.precedence();
@@ -110,7 +110,7 @@ impl Exp {
                     format!("{} {} {}", lhs, op, rhs)
                 }
             }
-            _ => self.to_string()
+            _ => self.to_string(),
         }
     }
 }
@@ -171,12 +171,7 @@ impl Objective {
 }
 impl fmt::Display for Objective {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} {}",
-            self.objective_type,
-            self.rhs
-        )
+        write!(f, "{} {}", self.objective_type, self.rhs)
     }
 }
 
@@ -198,13 +193,7 @@ impl Condition {
 }
 impl fmt::Display for Condition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} {} {}",
-            self.lhs,
-            self.condition_type,
-            self.rhs
-        )
+        write!(f, "{} {} {}", self.lhs, self.condition_type, self.rhs)
     }
 }
 #[derive(Debug)]
@@ -233,13 +222,23 @@ impl fmt::Display for Problem {
         write!(f, "{}\ns.t\n    {}", self.objective, conditions)
     }
 }
+#[wasm_bindgen]
+impl Problem{
+    pub fn to_string_wasm(&self) -> String {
+        self.to_string()
+    }
+}
 #[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "value")]
 pub enum TransformError {
     MissingVariable(String),
     AlreadyExistingVariable(String),
     OutOfBounds(String),
     WrongArgument(String),
-    SpannedError(Spanned<Box<TransformError>>, Option<String>),
+    SpannedError {
+        spanned_error: Spanned<Box<TransformError>>,
+        value: Option<String>,
+    },
     Unspreadable(PrimitiveKind),
     OperatorError(String),
     Other(String),
@@ -256,7 +255,7 @@ impl fmt::Display for TransformError {
             TransformError::OperatorError(name) => format!("[Operator error] {}", name),
             TransformError::Other(name) => name.clone(),
             TransformError::Unspreadable(kind) => format!("{} is not spreadable", kind.to_string()),
-            TransformError::SpannedError(error, _) => error.to_string(),
+            TransformError::SpannedError { spanned_error: span, .. } => span.to_string(),
         };
         f.write_str(&s)
     }
@@ -281,25 +280,28 @@ impl TransformError {
         format!("{}\n{}", error, trace)
     }
     pub fn to_spanned_error(self, span: &InputSpan) -> TransformError {
-        TransformError::SpannedError(Spanned::new(Box::new(self), span.clone()), None)
+        TransformError::SpannedError{
+            spanned_error: Spanned::new(Box::new(self), span.clone()), 
+            value: None
+        }
     }
     pub fn get_trace(&self) -> Vec<(InputSpan, Option<String>)> {
         match self {
-            TransformError::SpannedError(e, s) => {
-                let mut trace = vec![(e.get_span().clone(), s.clone())];
-                let mut last_error = e;
-                while let TransformError::SpannedError(ref e, ref r) = **last_error.get_span_value()
+            TransformError::SpannedError { spanned_error: span, value}=> {
+                let mut trace = vec![(span.get_span().clone(), value.clone())];
+                let mut last_error = span;
+                while let TransformError::SpannedError{spanned_error: ref span, ref value} = **last_error.get_span_value()
                 {
-                    let span = e.get_span().clone();
+                    let current_span = span.get_span().clone();
                     //don't add if the last span is the same as the current one
                     if let Some((last_span, _)) = trace.last() {
-                        if last_span == &span {
-                            last_error = e;
+                        if last_span == &current_span {
+                            last_error = span;
                             continue;
                         }
                     }
-                    trace.push((span, r.clone()));
-                    last_error = e;
+                    trace.push((current_span, value.clone()));
+                    last_error = span;
                 }
                 trace.reverse();
                 trace

@@ -3,12 +3,11 @@ use std::{fmt::Debug, ops::Deref, ops::DerefMut};
 
 use pest::{iterators::Pair, Span};
 use serde::Serialize;
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 use crate::parser::parser::Rule;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[derive(Default, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
 #[wasm_bindgen]
 pub struct InputSpan {
     pub start_line: usize,
@@ -50,7 +49,6 @@ impl InputSpan {
         Ok(&text[start..end])
     }
 }
-
 
 #[derive(Clone, Serialize)]
 pub struct Spanned<T>
@@ -97,6 +95,7 @@ impl<T: Debug + Serialize> Deref for Spanned<T> {
 }
 
 #[wasm_bindgen]
+#[derive(Serialize)]
 pub struct CompilationError {
     kind: Box<ParseError>,
     span: Box<InputSpan>,
@@ -104,10 +103,10 @@ pub struct CompilationError {
 }
 impl CompilationError {
     pub fn new(kind: ParseError, span: InputSpan, text: String) -> Self {
-        Self { 
+        Self {
             kind: Box::new(kind),
             span: Box::new(span),
-            text
+            text,
         }
     }
     pub fn from_pair(kind: ParseError, pair: &Pair<Rule>, exclude_string: bool) -> Self {
@@ -142,7 +141,27 @@ impl std::fmt::Debug for CompilationError {
     }
 }
 
-#[derive(Debug)]
+#[wasm_bindgen]
+impl CompilationError {
+    pub fn to_error_string_wasm(&self) -> String {
+        self.to_error_string()
+    }
+    pub fn to_string_from_source_wasm(&self, source: &str) -> String {
+        self.to_string_from_source(source)
+    }
+    pub fn serialize_wasm(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self).unwrap()
+    }
+    pub fn get_span_wasm(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self.span).unwrap()
+    }
+    pub fn get_kind_wasm(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self.kind).unwrap()
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "type", content = "value")]
 pub enum ParseError {
     UnexpectedToken(String),
     MissingToken(String),

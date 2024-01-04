@@ -1,0 +1,22 @@
+{
+    "type": "module",
+    "name": "@specy/rooc",
+    "description": "A compiler for mathematical models",
+    "version": "0.0.1",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "typings": "dist/index.d.ts",
+    "repository": "https://github.com/Specy/rooc",
+    "scripts": {
+        "ci-build": "npm i -g wasm-pack && npm run build-all",
+        "build-all": "npm run build-wasm && npm run build-lib",
+        "build-wasm": "cd .. && cargo test && wasm-pack build --out-dir ts-lib/src/pkg --out-name rooc",
+        "build-lib": "node build.js"
+    },
+    "devDependencies": {
+        "typescript": "^5.2.2"
+    },
+    "dependencies": {
+        "ts-results": "^3.3.0"
+    }
+}

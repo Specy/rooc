@@ -107,13 +107,13 @@ fn main() {
     .trim()
     .to_string();
     let parser = RoocParser::new(source);
-    let parsed = parser.parse();
+    let parsed = parser.parse_and_transform();
     match parsed {
         Ok(parsed) => {
             println!("{}", parsed.to_string());
         }
         Err(e) => {
-            println!("{}", e.to_error_string());
+            println!("{}", e);
         }
     }
 }
