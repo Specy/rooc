@@ -9,6 +9,7 @@
 	export let highlightedLine: number
 	export let hasError = false
 	export let language: "rooc"
+	export let style = ''
 	export let editor: monaco.editor.IStandaloneCodeEditor | null = null
 	let mockEditor: HTMLDivElement | null
 	let monacoInstance: MonacoType | null
@@ -118,7 +119,7 @@
 	$: editor?.updateOptions({ readOnly: disabled })
 </script>
 
-<div bind:this={mockEditor} class="mock-editor">
+<div bind:this={mockEditor} class="mock-editor" {style}>
 	{#if !editor}
 		<h1 class="loading">Loading editor...</h1>
 	{/if}

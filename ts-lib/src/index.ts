@@ -6,7 +6,7 @@ import {
     SerializedCompilationError,
     ParseError,
     InputSpan,
-} from './pkg/rooc'
+} from './pkg/rooc.js'
 import { Ok, Err, Result } from 'ts-results'
 export class RoocParser {
     instance: _RoocParser;
@@ -76,9 +76,6 @@ export class Problem {
         return this.instance.to_string_wasm()
     }
 }
-
-
-
 
 
 export type {
