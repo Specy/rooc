@@ -18,7 +18,7 @@ use super::{
 use serde::{de::value, Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Exp {
     Number(f64),
     Variable(String),
@@ -28,7 +28,38 @@ pub enum Exp {
     BinOp(BinOp, Box<Exp>, Box<Exp>),
     UnOp(UnOp, Box<Exp>),
 }
-
+#[wasm_bindgen(typescript_custom_section)]
+pub const IExp: &'static str = r#"
+export type SerializedExp = {
+    type: "Number",
+    value: number
+} | {
+    type: "Variable",
+    value: string
+} | {
+    type: "Mod",
+    value: SerializedExp
+} | {
+    type: "Min",
+    value: SerializedExp[]
+} | {
+    type: "Max",
+    value: SerializedExp[]
+} | {
+    type: "BinOp",
+    value: {
+        op: BinOp,
+        lhs: SerializedExp,
+        rhs: SerializedExp
+    }
+} | {
+    type: "UnOp",
+    value: {
+        op: UnOp,
+        exp: SerializedExp
+    }
+}
+"#;
 impl Exp {
     pub fn make_binop(op: BinOp, lhs: Exp, rhs: Exp) -> Box<Self> {
         Exp::BinOp(op, lhs.to_box(), rhs.to_box()).to_box()
@@ -154,12 +185,19 @@ impl fmt::Display for Exp {
         f.write_str(&s)
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 #[wasm_bindgen]
 pub struct Objective {
     objective_type: OptimizationType,
     rhs: Exp,
 }
+#[wasm_bindgen(typescript_custom_section)]
+pub const IObjective: &'static str = r#"
+export type SerializedObjective = {
+    objective_type: OptimizationType,
+    rhs: SerializedExp
+}
+"#;
 
 impl Objective {
     pub fn new(objective_type: OptimizationType, rhs: Exp) -> Self {
@@ -175,12 +213,20 @@ impl fmt::Display for Objective {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Condition {
     lhs: Exp,
     condition_type: Comparison,
     rhs: Exp,
 }
+#[wasm_bindgen(typescript_custom_section)]
+pub const ICondition: &'static str = r#"
+export type SerializedCondition = {
+    lhs: SerializedExp,
+    condition_type: Comparison,
+    rhs: SerializedExp
+}
+"#;
 
 impl Condition {
     pub fn new(lhs: Exp, condition_type: Comparison, rhs: Exp) -> Self {
@@ -196,12 +242,19 @@ impl fmt::Display for Condition {
         write!(f, "{} {} {}", self.lhs, self.condition_type, self.rhs)
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 #[wasm_bindgen]
 pub struct Problem {
     objective: Objective,
     conditions: Vec<Condition>,
 }
+#[wasm_bindgen(typescript_custom_section)]
+pub const IProblem: &'static str = r#"
+export type SerializedProblem = {
+    objective: Objective,
+    conditions: SerializedCondition[]
+}
+"#;
 
 impl Problem {
     pub fn new(objective: Objective, conditions: Vec<Condition>) -> Self {
@@ -227,6 +280,9 @@ impl Problem{
     pub fn to_string_wasm(&self) -> String {
         self.to_string()
     }
+    pub fn serialize_wasm(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self).unwrap()
+    }
 }
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "value")]
@@ -243,6 +299,37 @@ pub enum TransformError {
     OperatorError(String),
     Other(String),
 }
+#[wasm_bindgen(typescript_custom_section)]
+pub const ITransformError: &'static str = r#"
+export type TransformError = {
+    type: "MissingVariable",
+    value: string
+} | {
+    type: "AlreadyExistingVariable",
+    value: string
+} | {
+    type: "OutOfBounds",
+    value: string
+} | {
+    type: "WrongArgument",
+    value: string
+} | {
+    type: "SpannedError",
+    value: {
+        spanned_error: SerializedSpanned<TransformError>,
+        value: string
+    }
+} | {
+    type: "Unspreadable",
+    value: string
+} | {
+    type: "OperatorError",
+    value: string
+} | {
+    type: "Other",
+    value: string
+}
+"#;
 impl fmt::Display for TransformError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
@@ -529,7 +616,7 @@ impl TransformerContext {
 
 pub fn transform_parsed_problem(pre_problem: &PreProblem) -> Result<Problem, TransformError> {
     let constants = pre_problem
-        .constants
+        .get_constants()
         .iter()
         .map(|c| (c.name.clone(), c.value.clone()))
         .collect::<Vec<_>>();
@@ -554,10 +641,21 @@ checks that the iterator has at least the same number of elements as the set, an
 pub type PrimitiveSet = Vec<Primitive>;
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "value")]
 pub enum VariableType {
     Single(Spanned<String>),
     Tuple(Vec<Spanned<String>>),
 }
+#[wasm_bindgen(typescript_custom_section)]
+pub const IVariableType: &'static str = r#"
+export type SerializedVariableType = {
+    type: "Single",
+    value: SerializedSpanned<string>
+} | {
+    type: "Tuple",
+    value: SerializedSpanned<string>[]
+}
+"#;
 
 impl VariableType {
     pub fn to_string(&self) -> String {
@@ -611,9 +709,9 @@ pub fn transform_problem(
     problem: &PreProblem,
     context: &mut TransformerContext,
 ) -> Result<Problem, TransformError> {
-    let objective = transform_objective(&problem.objective, context)?;
+    let objective = transform_objective(problem.get_objective(), context)?;
     let mut conditions: Vec<Condition> = Vec::new();
-    for condition in problem.conditions.iter() {
+    for condition in problem.get_conditions().iter() {
         let transformed = transform_condition_with_iteration(condition, context)?;
         for condition in transformed {
             conditions.push(condition);

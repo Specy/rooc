@@ -2,6 +2,7 @@ use core::fmt;
 use std::collections::HashMap;
 
 use serde::Serialize;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     math::operators::{BinOp, UnOp},
@@ -19,6 +20,14 @@ pub struct GraphEdge {
     pub to: String,
     pub weight: Option<f64>,
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IGraphEdge: &'static str = r#"
+export type SerializedGraphEdge = {
+    from: string,
+    to: string,
+    weight?: number
+}
+"#;
 impl GraphEdge {
     pub fn new(from: String, to: String, weight: Option<f64>) -> Self {
         Self { from, to, weight }
@@ -38,6 +47,13 @@ pub struct GraphNode {
     name: String,
     edges: HashMap<String, GraphEdge>,
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IGraphNode: &'static str = r#"
+export type SerializedGraphNode = {
+    name: string,
+    edges: { [key: string]: SerializedGraphEdge }
+}
+"#;
 impl GraphNode {
     pub fn new(name: String, edges: Vec<GraphEdge>) -> Self {
         let edges = edges
@@ -71,6 +87,12 @@ impl fmt::Display for GraphNode {
 pub struct Graph {
     vertices: Vec<GraphNode>,
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IGraph: &'static str = r#"
+export type SerializedGraph = {
+    vertices: SerializedGraphNode[]
+}
+"#;
 impl Graph {
     pub fn new(vertices: Vec<GraphNode>) -> Self {
         Self { vertices }

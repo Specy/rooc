@@ -98,6 +98,14 @@ pub struct BlockScopedFunction {
     iters: Vec<IterableSet>,
     exp: Box<PreExp>,
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IBlockScopedFunction: &'static str = r#"
+export type SerializedBlockScopedFunction = {
+    kind: BlockScopedFunctionKind,
+    iters: SerializedIterableSet[],
+    exp: SerializedPreExp,
+}
+"#;
 impl BlockScopedFunction {
     pub fn new(kind: BlockScopedFunctionKind, iters: Vec<IterableSet>, exp: Box<PreExp>) -> Self {
         Self { kind, iters, exp }
@@ -127,6 +135,13 @@ pub struct BlockFunction {
     kind: BlockFunctionKind,
     exps: Vec<PreExp>,
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IBlockFunction: &'static str = r#"
+export type SerializedBlockFunction = {
+    kind: BlockFunctionKind,
+    exps: SerializedPreExp[],
+}
+"#;
 impl BlockFunction {
     pub fn new(kind: BlockFunctionKind, exps: Vec<PreExp>) -> Self {
         Self { kind, exps }
@@ -148,6 +163,7 @@ impl fmt::Display for BlockFunction {
     }
 }
 #[derive(Debug)]
+
 pub enum PreExp {
     Primitive(Spanned<Primitive>),
     Mod(InputSpan, Box<PreExp>),
@@ -160,6 +176,34 @@ pub enum PreExp {
     BinaryOperation(Spanned<BinOp>, Box<PreExp>, Box<PreExp>),
     UnaryOperation(Spanned<UnOp>, Box<PreExp>),
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IPreExp: &'static str = r#"
+export type SerializedFunctionCall = {
+    //TODO
+
+}
+export type SerializedPreExp = {span: InputSpan} & (
+    {type: "Primitive", value: SerializedPrimitive} |
+    {type: "Mod", value: SerializedPreExp} |
+    {type: "BlockFunction", value: SerializedBlockFunction} |
+    {type: "Variable", value: string} |
+    {type: "CompoundVariable", value: SerializedCompoundVariable} |
+    {type: "ArrayAccess", value: SerializedAddressableAccess} |
+    {type: "BlockScopedFunction", value: SerializedBlockScopedFunction} |
+    {type: "FunctionCall", value: SerializedFunctionCall} |
+    {type: "BinaryOperation", value: {
+        op: BinOp,
+        lhs: SerializedPreExp,
+        rhs: SerializedPreExp,
+    }} |
+    {type: "UnaryOperation", value: {
+        op: UnOp,
+        exp: SerializedPreExp,
+    }}
+)
+"#;
+
+
 impl Clone for PreExp {
     fn clone(&self) -> Self {
         match self {
@@ -279,6 +323,7 @@ struct TempBinOp {
     lhs: PreExp,
     rhs: PreExp,
 }
+
 #[derive(Serialize)]
 struct TempUnOp {
     op: UnOp,
@@ -638,6 +683,15 @@ pub struct IterableSet {
     pub iterator: Spanned<PreExp>,
     pub span: InputSpan,
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IIterableSet: &'static str = r#"
+export type SerializedIterableSet = {
+    var: SerializedVariableType,
+    iterator: SerializedSpanned<SerializedPreExp>,
+    span: InputSpan,
+}
+"#;
+
 impl IterableSet {
     pub fn new(var: VariableType, iterator: Spanned<PreExp>, span: InputSpan) -> Self {
         Self {
@@ -658,6 +712,13 @@ pub struct AddressableAccess {
     pub name: String,
     pub accesses: Vec<PreExp>,
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IAddressableAccess: &'static str = r#"
+export type SerializedAddressableAccess = {
+    name: string,
+    accesses: SerializedPreExp[],
+}
+"#;
 impl AddressableAccess {
     pub fn new(name: String, accesses: Vec<PreExp>) -> Self {
         Self { name, accesses }
@@ -679,6 +740,13 @@ pub struct CompoundVariable {
     pub name: String,
     pub indexes: Vec<String>,
 }
+#[wasm_bindgen(typescript_custom_section)]
+const ICompoundVariable: &'static str = r#"
+export type SerializedCompoundVariable = {
+    name: string,
+    indexes: string[],
+}
+"#;
 impl CompoundVariable {
     pub fn new(name: String, indexes: Vec<String>) -> Self {
         Self { name, indexes }
@@ -694,6 +762,14 @@ pub struct PreObjective {
     pub objective_type: OptimizationType,
     pub rhs: PreExp,
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IPreObjective: &'static str = r#"
+export type SerializedPreObjective = {
+    objective_type: OptimizationType,
+    rhs: SerializedPreExp,
+}
+"#;
+
 
 impl PreObjective {
     pub fn new(objective_type: OptimizationType, rhs: PreExp) -> Self {
@@ -717,6 +793,16 @@ pub struct PreCondition {
     pub iteration: Vec<IterableSet>,
     pub span: InputSpan,
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IPreCondition: &'static str = r#"
+export type SerializedPreCondition = {
+    lhs: SerializedPreExp,
+    condition_type: Comparison,
+    rhs: SerializedPreExp,
+    iteration: SerializedVariableType[],
+    span: InputSpan,
+}
+"#;
 
 impl PreCondition {
     pub fn new(

@@ -76,6 +76,13 @@ impl<T: Debug + Serialize> Spanned<T> {
         self.span.get_span_text(text)
     }
 }
+#[wasm_bindgen(typescript_custom_section)]
+pub const ISpanned: &'static str = r#"
+export type SerializedSpanned<T> = {
+    value: T,
+    span: InputSpan
+}
+"#;
 
 impl<T: Debug + Serialize> DerefMut for Spanned<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
@@ -101,6 +108,14 @@ pub struct CompilationError {
     span: Box<InputSpan>,
     text: String,
 }
+#[wasm_bindgen(typescript_custom_section)]
+pub const ICompilationError: &'static str = r#"
+export type SerializedCompilationError = {
+    kind: ParseError,
+    span: InputSpan,
+    text: string
+}
+"#;
 impl CompilationError {
     pub fn new(kind: ParseError, span: InputSpan, text: String) -> Self {
         Self {
@@ -172,6 +187,27 @@ pub enum ParseError {
         name: String,
     },
 }
+#[wasm_bindgen(typescript_custom_section)]
+pub const IParseError: &'static str = r#"
+export type ParseError = {
+    type: "UnexpectedToken",
+    value: string
+} | {
+    type: "MissingToken",
+    value: string
+} | {
+    type: "SemanticError",
+    value: string
+} | {
+    type: "WrongNumberOfArguments",
+    value: {
+        got: number,
+        expected: string[],
+        name: string
+    }
+}
+"#;
+
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {

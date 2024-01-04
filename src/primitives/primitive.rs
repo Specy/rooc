@@ -1,6 +1,7 @@
 use core::fmt;
 
 use serde::Serialize;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     bail_wrong_argument, match_or_bail, parser::transformer::TransformError, wrong_argument,
@@ -13,6 +14,7 @@ use super::{
 };
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "value")]
 pub enum Primitive {
     Number(f64),
     String(String),
@@ -25,6 +27,19 @@ pub enum Primitive {
     Boolean(bool),
     Undefined,
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IPrimitive: &'static str = r#"
+export type SerializedPrimitive = 
+    | { kind: 'Number', value: number }
+    | { kind: 'String', value: string }
+    | { kind: 'Iterable', value: SerializedIterable }
+    | { kind: 'Graph', value: SerializedGraph }
+    | { kind: 'GraphEdge', value: SerializedGraphEdge }
+    | { kind: 'GraphNode', value: SerializedGraphNode }
+    | { kind: 'Tuple', value: SerializedTuple }
+    | { kind: 'Boolean', value: boolean }
+    | { kind: 'Undefined' }
+"#;
 
 #[derive(Debug, Clone, Serialize)]
 pub enum PrimitiveKind {

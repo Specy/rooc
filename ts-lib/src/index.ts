@@ -2,6 +2,10 @@ import {
     RoocParser as _RoocParser,
     Problem as _Problem,
     CompilationError as _CompilationError,
+    SerializedProblem,
+    SerializedCompilationError,
+    ParseError,
+    InputSpan,
 } from './pkg'
 import { Ok, Err, Result } from 'ts-results'
 export class RoocParser {
@@ -42,13 +46,13 @@ export class CompilationError {
         this.instance = instance;
         this.source = source;
     }
-    getSpan() {
+    getSpan(): InputSpan {
         return this.instance.get_span_wasm();
     }
-    getErrorKind() {
+    getErrorKind(): ParseError{
         return this.instance.get_kind_wasm();
     }
-    serialize() {
+    serialize(): SerializedCompilationError {
         return this.instance.serialize_wasm();
     }
     message() {
@@ -65,5 +69,41 @@ export class Problem {
     constructor(instance: _Problem) {
         this.instance = instance;
     }
-    
+    serialize(): SerializedProblem {
+        return this.instance.serialize_wasm()
+    }
+    stringify(): string {
+        return this.instance.to_string_wasm()
+    }
 }
+
+
+
+
+
+export {
+    SerializedAddressableAccess,
+    SerializedBlockFunction,
+    SerializedBlockScopedFunction,
+    SerializedCompilationError,
+    SerializedCompoundVariable,
+    SerializedFunctionCall,
+    SerializedCondition,
+    SerializedConstant,
+    SerializedExp,
+    SerializedGraph,
+    SerializedGraphEdge,
+    SerializedGraphNode,
+    SerializedIterable,
+    SerializedIterableSet,
+    SerializedObjective,
+    SerializedPreExp,
+    SerializedPreCondition,
+    SerializedPreObjective,
+    SerializedPreProblem,
+    SerializedProblem,
+    SerializedPrimitive,
+    SerializedSpanned,
+    SerializedTuple,
+    SerializedVariableType,
+} from './pkg/rooc'

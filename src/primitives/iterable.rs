@@ -1,6 +1,7 @@
 use core::fmt;
 
 use serde::Serialize;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     check_bounds,
@@ -16,6 +17,7 @@ use super::{
 };
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "value")]
 pub enum IterableKind {
     Numbers(Vec<f64>),
     Strings(Vec<String>),
@@ -26,6 +28,18 @@ pub enum IterableKind {
     Booleans(Vec<bool>),
     Iterable(Vec<IterableKind>),
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IIterableKind: &'static str = r#"
+export type SerializedIterable = 
+    | { kind: 'Numbers', value: number[] }
+    | { kind: 'Strings', value: string[] }
+    | { kind: 'Edges', value: SerializedGraphEdge[] }
+    | { kind: 'Nodes', value: SerializedGraphNode[] }
+    | { kind: 'Graphs', value: SerializedGraph[] }
+    | { kind: 'Tuple', value: SerializedTuple[] }
+    | { kind: 'Booleans', value: boolean[] }
+    | { kind: 'Iterable', value: SerializedIterable[] }
+"#;
 impl IterableKind {
     pub fn get_argument_name(&self) -> &'static str {
         match self {

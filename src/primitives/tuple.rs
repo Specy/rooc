@@ -1,6 +1,7 @@
 use core::fmt;
 
 use serde::Serialize;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     math::operators::{BinOp, UnOp},
@@ -14,6 +15,10 @@ use super::{
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Tuple(pub Vec<Primitive>);
+#[wasm_bindgen(typescript_custom_section)]
+const ITuple: &'static str = r#"
+export type SerializedTuple = SerializedPrimitive[]
+"#;
 impl Tuple {
     pub fn new(v: Vec<Primitive>) -> Self {
         Self(v)

@@ -19,12 +19,21 @@ use wasm_bindgen::prelude::*;
 #[grammar = "parser/grammar.pest"]
 struct PLParser;
 
+#[wasm_bindgen]
 #[derive(Debug, Serialize)]
 pub struct PreProblem {
-    pub objective: PreObjective,
-    pub conditions: Vec<PreCondition>,
-    pub constants: Vec<Constant>,
+    objective: PreObjective,
+    conditions: Vec<PreCondition>,
+    constants: Vec<Constant>,
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IPreProblem: &'static str = r#"
+export type SerializedPreProblem = {
+    objective: SerializedPreObjective,
+    conditions: SerializedPreCondition[],
+    constants: SerializedConstant[]
+}
+"#;
 
 impl PreProblem {
     pub fn new(
@@ -38,10 +47,31 @@ impl PreProblem {
             constants,
         }
     }
+    pub fn get_objective(&self) -> &PreObjective {
+        &self.objective
+    }
+    pub fn get_conditions(&self) -> &Vec<PreCondition> {
+        &self.conditions
+    }
+    pub fn get_constants(&self) -> &Vec<Constant> {
+        &self.constants
+    }
     pub fn transform(self) -> Result<Problem, TransformError> {
         transform_parsed_problem(&self)
     }
 }
+
+#[wasm_bindgen]
+impl PreProblem {
+    pub fn transform_wasm(self) -> Result<Problem, JsValue> {
+        self.transform()
+            .map_err(|e| serde_wasm_bindgen::to_value(&e).unwrap())
+    }
+    pub fn serialize_wasm(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self).unwrap()
+    }
+}
+
 impl fmt::Display for PreProblem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = self.objective.to_string();
