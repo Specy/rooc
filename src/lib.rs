@@ -14,6 +14,7 @@ use parser::{
     parser::{parse_problem_source, PreProblem},
     transformer::{transform_parsed_problem, Problem},
 };
+use utils::CompilationError;
 use wasm_bindgen::prelude::*;
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -28,11 +29,17 @@ impl RoocParser {
     pub fn new(source: String) -> Self {
         Self { source }
     }
-    pub fn parse(&self) -> Result<PreProblem, String> {
+    pub fn parse(&self) -> Result<PreProblem, CompilationError> {
         parse_problem_source(&self.source)
     }
-    pub fn parse_and_transform(&self) -> Result<Problem, String> {
+    pub fn format(&self) -> Result<String, CompilationError> {
         let parsed = self.parse()?;
+        Ok(parsed.to_string())
+    }
+    pub fn parse_and_transform(&self) -> Result<Problem, String> {
+        let parsed = self
+            .parse()
+            .map_err(|e| e.to_string_from_source(&self.source))?;
         let transformed = transform_parsed_problem(&parsed);
         match transformed {
             Ok(transformed) => Ok(transformed),
@@ -50,6 +57,9 @@ impl RoocParser {
     }
     pub fn verify_wasm(&self) -> Result<(), String> {
         self.parse_and_transform_wasm().map(|_| ())
+    }
+    pub fn format_wasm(&self) -> Result<String, CompilationError> {
+        self.format()
     }
     pub fn parse_and_transform_wasm(&self) -> Result<Problem, String> {
         self.parse_and_transform()

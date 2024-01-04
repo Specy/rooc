@@ -92,7 +92,7 @@ fn main() {
     let source = "
     min 1
     s.t.
-        sum(i in 0..2000) { i } <= 1
+        sum(i in 0..10) { i } <= 1 for j in 0..4
         where 
             G = Graph {
                 A -> [B],
@@ -107,13 +107,13 @@ fn main() {
     .trim()
     .to_string();
     let parser = RoocParser::new(source);
-    let parsed = parser.parse_and_transform();
+    let parsed = parser.parse();
     match parsed {
         Ok(parsed) => {
-            println!("{}", parsed);
+            println!("{}", parsed.to_string());
         }
         Err(e) => {
-            println!("{}", e);
+            println!("{}", e.to_error_string());
         }
     }
 }

@@ -229,8 +229,8 @@ impl fmt::Display for Problem {
             .iter()
             .map(|condition| condition.to_string())
             .collect::<Vec<_>>()
-            .join("\n\t");
-        write!(f, "{}\ns.t\n\t{}", self.objective, conditions)
+            .join("\n    ");
+        write!(f, "{}\ns.t\n    {}", self.objective, conditions)
     }
 }
 #[derive(Debug, Clone, Serialize)]
@@ -555,6 +555,22 @@ pub type PrimitiveSet = Vec<Primitive>;
 pub enum VariableType {
     Single(Spanned<String>),
     Tuple(Vec<Spanned<String>>),
+}
+
+impl VariableType {
+    pub fn to_string(&self) -> String {
+        match self {
+            VariableType::Single(name) => name.to_string(),
+            VariableType::Tuple(names) => format!(
+                "({})",
+                names
+                    .iter()
+                    .map(|name| name.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+        }
+    }
 }
 
 pub fn transform_condition(

@@ -108,6 +108,7 @@ impl Primitive {
     }
 }
 
+
 impl fmt::Display for Primitive {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
@@ -124,10 +125,10 @@ impl fmt::Display for Primitive {
                 IterableKind::Iterable(v) => {
                     let result = v
                         .iter()
-                        .map(|i| i.to_string())
+                        .map(|i| i.to_string_depth(1))
                         .collect::<Vec<_>>()
-                        .join(", ");
-                    format!("[{}]", result)
+                        .join(",\n");
+                    format!("[\n{}\n]", result)
                 }
             },
             Primitive::Graph(g) => g.to_string(),

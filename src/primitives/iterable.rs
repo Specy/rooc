@@ -127,16 +127,14 @@ impl IterableKind {
                         } else {
                             return Err(TransformError::OutOfBounds(format!(
                                 "cannot access index {} of {}",
-                                i,
-                                self
+                                i, self
                             )));
                         }
                     }
                     _ => {
                         return Err(TransformError::OutOfBounds(format!(
                             "cannot access index {} of {}",
-                            i,
-                            self
+                            i, self
                         )));
                     }
                 }
@@ -144,9 +142,22 @@ impl IterableKind {
         }
         Err(TransformError::OutOfBounds(format!(
             "cannot access index {} of {}",
-            indexes[0],
-            self
+            indexes[0], self
         )))
+    }
+
+    pub fn to_string_depth(&self, depth: usize) -> String {
+        match self {
+            IterableKind::Iterable(v) => {
+                let s = v
+                    .iter()
+                    .map(|e| e.to_string_depth(depth + 1))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("{}[\n{}\n]", "    ".repeat(depth), s)
+            }
+            _ => format!("{}{}", "    ".repeat(depth), self.to_string()),
+        }
     }
 }
 impl fmt::Display for IterableKind {
@@ -208,9 +219,9 @@ impl fmt::Display for IterableKind {
             }
             IterableKind::Iterable(v) => {
                 format!(
-                    "[{}]",
+                    "[\n{}\n]",
                     v.iter()
-                        .map(|e| e.to_string())
+                        .map(|e| e.to_string_depth(0))
                         .collect::<Vec<_>>()
                         .join(", ")
                 )

@@ -61,7 +61,10 @@ impl fmt::Display for GraphNode {
             .map(|edge| edge.to_string())
             .collect::<Vec<_>>()
             .join(", ");
-        write!(f, "{}: {{{}}}", self.name, edges)
+        if edges.is_empty() {
+            return f.write_str(&self.name);
+        }
+        write!(f, "{}: {{ {} }}", self.name, edges)
     }
 }
 #[derive(Debug, Clone, Serialize)]
@@ -120,10 +123,13 @@ impl fmt::Display for Graph {
         let nodes = self
             .vertices
             .iter()
-            .map(|node| node.to_string())
+            .map(|node| format!("    {}", node.to_string()))
             .collect::<Vec<_>>()
             .join("\n");
-        write!(f, "[{}]", nodes)
+        if nodes.is_empty() {
+            return write!(f, "Graph {{ }}");
+        }
+        write!(f, "Graph {{\n{}\n}}", nodes)
     }
 }
 

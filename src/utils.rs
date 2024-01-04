@@ -96,6 +96,7 @@ impl<T: Debug + Serialize> Deref for Spanned<T> {
     }
 }
 
+#[wasm_bindgen]
 pub struct CompilationError {
     kind: Box<ParseError>,
     span: Box<InputSpan>,

@@ -111,11 +111,11 @@ impl fmt::Display for BlockScopedFunction {
         let name = self.kind.to_string();
         write!(
             f,
-            "{}({}){{{}}}",
+            "{}({}){{ {} }}",
             name,
             self.iters
                 .iter()
-                .map(|i| i.iterator.to_string())
+                .map(|i| i.to_string())
                 .collect::<Vec<String>>()
                 .join(", "),
             self.exp
@@ -137,7 +137,7 @@ impl fmt::Display for BlockFunction {
         let name = self.kind.to_string();
         write!(
             f,
-            "{}{{{}}}",
+            "{}{{ {} }}",
             name,
             self.exps
                 .iter()
@@ -647,6 +647,11 @@ impl IterableSet {
         }
     }
 }
+impl fmt::Display for IterableSet {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} in {}", self.var.to_string(), self.iterator.to_string())
+    }
+}
 
 #[derive(Debug, Serialize, Clone)]
 pub struct AddressableAccess {
@@ -698,6 +703,11 @@ impl PreObjective {
         }
     }
 }
+impl fmt::Display for PreObjective {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {}", self.objective_type, self.rhs)
+    }
+}
 
 #[derive(Debug, Serialize)]
 pub struct PreCondition {
@@ -723,5 +733,26 @@ impl PreCondition {
             iteration,
             span,
         }
+    }
+}
+impl fmt::Display for PreCondition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "{} {} {}",
+            self.lhs, self.condition_type, self.rhs
+        ));
+        if !self.iteration.is_empty() {
+            s.push_str(" for ");
+            s.push_str(
+                &self
+                    .iteration
+                    .iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", "),
+            );
+        }
+        f.write_str(&s)
     }
 }
