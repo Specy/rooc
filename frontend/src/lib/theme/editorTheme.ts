@@ -1,18 +1,16 @@
 import { currentTheme } from "$stores/themeStore"
 import { TinyColor } from "@ctrl/tinycolor"
 import type monaco from "monaco-editor"
-export function generateTheme(): monaco.editor.IStandaloneThemeData{
-	const base = currentTheme.getColor("primary")
-	const isDark = new TinyColor(base).isDark()
+export function generateTheme(): monaco.editor.IStandaloneThemeData {
 	return {
-		"base": isDark? "vs-dark" : "vs",
+		"base": "vs-dark",
 		"inherit": true,
-		"rules": isDark ? darkOverride : whiteOverride,
+		"rules": darkOverride,
 		"colors": {
 			"editor.foreground": currentTheme.getColorText("primary"), //CDCDCD
 			"editor.background": currentTheme.getColor('primary').toHexString(),
 			"editor.selectionBackground": currentTheme.layer("tertiary", 2).toHexString(),
-			"editor.lineHighlightBackground": currentTheme.layer('primary',5).toHexString(),
+			"editor.lineHighlightBackground": currentTheme.layer('primary', 5).toHexString(),
 			"editorCursor.foreground": currentTheme.getColor('accent').toHexString(),
 			"editorWhitespace.foreground": new TinyColor(currentTheme.getColorText("primary")).toHexString() + "2A",
 			"editorWidget.background": currentTheme.getColor("tertiary").toHexString(),
@@ -23,44 +21,11 @@ export function generateTheme(): monaco.editor.IStandaloneThemeData{
 }
 
 const common = [{
-		"fontStyle": 'underline',
-		"token": 'label'
-	}
+	"fontStyle": 'underline',
+	"token": 'label'
+}
 ]
 
-const whiteOverride = [
-	...common,
-	{
-		"foreground": "506696",
-		"fontStyle": "italic",
-		"token": "comment"
-	},
-	{
-		"foreground": "ff628c",
-		"token": "constant"
-	},
-	{
-		"foreground": "ffdd00",
-		"token": "entity"
-	},
-	{
-		"foreground": "473fd8",
-		"token": "keyword"
-	},
-	{
-		"foreground": "037280",
-		"token": "data-register",
-	}, {
-		"foreground": "9909eb",
-		"token": "address-register",
-	}, {
-		"foreground": "9f3b3b",
-		"token": "directive"
-	}, {
-		"foreground": "006d4c",
-		"token": "number.immediate"
-	}, 
-]
 
 const darkOverride = [
 	...common,
@@ -81,7 +46,7 @@ const darkOverride = [
 		"token": "entity"
 	},
 	{
-		"foreground": "ff9d00",
+		"foreground": "ff6087",
 		"token": "keyword"
 	},
 	{
@@ -304,13 +269,33 @@ const darkOverride = [
 		"token": "markup.heading"
 	},
 	{
-		"foreground": "#d85712",
-		"background": "#d85712",
+		"foreground": "#ff6186",
+		"background": "#ff6186",
 		"token": "expansion.brackets"
+	},
+	{
+		"foreground": "#b9b9b9",
+		"background": "#b9b9b9",
+		"token": "identifier"
 	},
 	{
 		"foreground": "#6a6a6a",
 		"background": "#6a6a6a",
 		"token": "identifier.ignore"
+	},
+	{
+		"foreground": "#dc8455",
+		"background": "#dc8455",
+		"token": "identifier.class"
+	},
+	{
+		"foreground": "#d9b33f",
+		"background": "#d9b33f",
+		"token": "string"
+	},
+	{
+		"foreground": "#69ac91",
+		"background": "#69ac91",
+		"token": "number"
 	}
 ]

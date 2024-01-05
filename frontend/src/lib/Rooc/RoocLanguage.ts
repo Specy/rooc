@@ -122,52 +122,73 @@ no_par = @{ "_" }
 
 
 export const RoocLanguage = {
-    defaultToken: 'invalid',
-    ignoreCase: true,
-    tokenPostfix: '.rooc',
-    keywords: ["for", "min", "max", "where", "true", "false", "in", "s.t."],
-    operators: ["+", "-", "/", "*", "!", "&", "|", "=", "<=", "=>"],
-    symbols: /[=><!~?:&|+\-*\/\^%]+/,
-    escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
-    digits: /\d+(_+\d+)*/,
-    tokenizer: {
-        root: [
-            // whitespace
-            [/[ \t\r\n]+/, ''],
-            // Comments
-            [/[a-z$][\w$]*/, {
-                "cases": {
-                    "@keywords": "keyword",
-                    "@default": "identifier"
-                }
-            }],
-            [/_/, "identifier.ignore"],
-            // regular expressions
-            // delimiters
-            [/[{}]/, "expansion.brackets"],
-            [/[()\[\]]/, '@brackets'],
-            [/[<>](?!@symbols)/, '@brackets'],
-            [/@symbols/, {
-                cases: {
-                    '@operators': 'delimiter',
-                    '@default': ''
-                }
-            }],
-            // numbers
-            [/(@digits)/, 'number'],
-            [/(@digits)[eE]([\-+]?(@digits))?/, 'number.float'],
-            [/(@digits)\.(@digits)([eE][\-+]?(@digits))?/, 'number.float'],
-            // delimiter: after number because of .\d floats
-            [/[;,.]/, 'delimiter'],
-            // strings:
-            [/"([^"\\]|\\.)*$/, 'string.invalid'],  // non-teminated string
-            [/"/, 'string', '@string_double'],
-        ],
-        string_double: [
-            [/[^\\"]+/, 'string'],
-            [/@escapes/, 'string.escape'],
-            [/\\./, 'string.escape.invalid'],
-            [/"/, 'string', '@pop']
-        ],
-    }
-};
+	defaultToken: 'invalid',
+	ignoreCase: true,
+	tokenPostfix: '.rooc',
+	keywords: ["for", "min", "max", "true", "false", "in", "s.t."],
+	operators: ["+", "-", "/", "*", "!", "&", "|", "=", "<=", "=>"],
+	symbols: /[=><!~?:&|+\-*\/\^%]+/,
+	escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
+	digits: /\d+(_+\d+)*/,
+	tokenizer: {
+		root: [
+			[/where/, 'keyword', '@where_declaration'],
+			{ include: '@common' },
+		],
+		digits_matcher: [
+			[/(@digits)[eE]([\-+]?(@digits))?[fFdD]?/, 'number.float'],
+			[/(@digits)\.(@digits)([eE][\-+]?(@digits))?[fFdD]?/, 'number.float'],
+			[/(@digits)[fFdD]/, 'number.float'],
+			[/(@digits)[lL]?/, 'number'],
+		],
+		common: [
+			[/[ \t\r\n]+/, ''],
+      //TODO not sure why i need to do this
+      [/s\.t\./, 'keyword'],
+			[/[a-z$][\w$]*/, {
+				"cases": {
+					"@keywords": "keyword",
+					"@default": "identifier"
+				}
+			}],
+			[/_/, "identifier.ignore"],
+			// regular expressions
+			// delimiters
+			[/[{}]/, "expansion.brackets"],
+			[/[()\[\]]/, '@brackets'],
+			[/[<>](?!@symbols)/, '@brackets'],
+			[/@symbols/, {
+				cases: {
+					'@operators': 'delimiter',
+					'@default': ''
+				}
+			}],
+			// numbers
+			{ include: "digits_matcher" },
+			// delimiter: after number because of .\d floats
+			[/[;,.]/, 'delimiter'],
+			// strings:
+			[/"([^"\\]|\\.)*$/, 'string.invalid'],  // non-teminated string
+			[/"/, 'string', '@string_double'],
+		],
+		string_double: [
+			[/[^\\"]+/, 'string'],
+			[/@escapes/, 'string.escape'],
+			[/\\./, 'string.escape.invalid'],
+			[/"/, 'string', '@pop']
+		],
+		where_declaration: [
+			[/Graph/, 'identifier.class', '@graph_declaration'],
+			{ include: '@common' }
+		],
+		graph_declaration: [
+			[/[{]/, '@brackets'],
+			[/[:,]/, 'delimiter'],
+			[/->/, 'delimiter'],
+			[/[a-z$][\w$]*/, 'identifier'],
+			{ include: "digits_matcher" },
+			[/[[\]]/, '@brackets'],
+			[/[}]/, '@brackets', '@pop'],
+		],
+	}
+}

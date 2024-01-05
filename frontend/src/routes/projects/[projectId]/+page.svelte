@@ -4,7 +4,7 @@
 	import Page from '$cmp/layout/Page.svelte';
 	import { RoocParser } from '@specy/rooc';
 	import type { CompilationError, TransformError } from '@specy/rooc/';
-	let source = '';
+	let source = ``;
 	let compiled = '';
 
 	function compile() {
@@ -15,7 +15,6 @@
 		}
 		const transform = compile.val.transform();
 		if (!transform.ok) {
-			console.log(transform.val);
 			return (compiled = (transform.val as TransformError).message());
 		}
 		compiled = transform.val.stringify();
