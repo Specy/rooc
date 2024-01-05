@@ -7,6 +7,7 @@ use super::{
 
 /* --------- ApplyOp --------- */
 impl ApplyOp for f64 {
+    type TargetType = PrimitiveKind;
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
@@ -27,14 +28,17 @@ impl ApplyOp for f64 {
     fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
         match op {
             UnOp::Neg => Ok(Primitive::Number(-self)),
-            _ => Err(OperatorError::unsupported_un_operation(
-                op,
-                PrimitiveKind::Number,
-            )),
         }
+    }
+    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+        matches!(to, PrimitiveKind::Number)
+    }
+    fn can_apply_unary_op(op: UnOp) -> bool {
+        matches!(op, UnOp::Neg)
     }
 }
 impl ApplyOp for String {
+    type TargetType = PrimitiveKind;
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
@@ -59,8 +63,15 @@ impl ApplyOp for String {
             PrimitiveKind::String,
         ))
     }
+    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+        matches!(to, PrimitiveKind::String)
+    }
+    fn can_apply_unary_op(op: UnOp) -> bool {
+        false
+    }
 }
 impl ApplyOp for bool {
+    type TargetType = PrimitiveKind;
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: BinOp, _to: &Primitive) -> Result<Primitive, OperatorError> {
@@ -74,6 +85,12 @@ impl ApplyOp for bool {
             op,
             PrimitiveKind::Boolean,
         ))
+    }
+    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+        false
+    }
+    fn can_apply_unary_op(op: UnOp) -> bool {
+        false
     }
 }
 

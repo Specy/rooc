@@ -156,6 +156,7 @@ impl fmt::Display for Graph {
 }
 
 impl ApplyOp for GraphNode {
+    type TargetType = PrimitiveKind;
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: BinOp, _to: &Primitive) -> Result<Primitive, OperatorError> {
@@ -169,9 +170,16 @@ impl ApplyOp for GraphNode {
             op,
             PrimitiveKind::GraphNode,
         ))
+    }
+    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+        false
+    }
+    fn can_apply_unary_op(op: UnOp) -> bool {
+        false
     }
 }
 impl ApplyOp for GraphEdge {
+    type TargetType = PrimitiveKind;
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: BinOp, _to: &Primitive) -> Result<Primitive, OperatorError> {
@@ -185,9 +193,16 @@ impl ApplyOp for GraphEdge {
             op,
             PrimitiveKind::GraphEdge,
         ))
+    }
+    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+        false
+    }
+    fn can_apply_unary_op(op: UnOp) -> bool {
+        false
     }
 }
 impl ApplyOp for Graph {
+    type TargetType = PrimitiveKind;
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: BinOp, _to: &Primitive) -> Result<Primitive, OperatorError> {
@@ -201,6 +216,12 @@ impl ApplyOp for Graph {
             op,
             PrimitiveKind::Graph,
         ))
+    }
+    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+        false
+    }
+    fn can_apply_unary_op(op: UnOp) -> bool {
+        false
     }
 }
 

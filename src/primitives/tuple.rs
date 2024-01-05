@@ -41,6 +41,15 @@ impl Tuple {
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
+    pub fn get_type(&self) -> PrimitiveKind {
+        PrimitiveKind::Tuple(
+            self.0
+                .iter()
+                .map(|p| p.get_type())
+                .collect::<Vec<_>>()
+                .into(),
+        )
+    }
 }
 impl fmt::Display for Tuple {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -56,19 +65,26 @@ impl fmt::Display for Tuple {
     }
 }
 impl ApplyOp for Tuple {
+    type TargetType = PrimitiveKind;
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: BinOp, _to: &Primitive) -> Result<Primitive, OperatorError> {
         Err(OperatorError::unsupported_bin_operation(
             op,
-            PrimitiveKind::Tuple,
+            self.get_type()
         ))
     }
     fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
         Err(OperatorError::unsupported_un_operation(
             op,
-            PrimitiveKind::Tuple,
+            self.get_type()
         ))
+    }
+    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+        false
+    }
+    fn can_apply_unary_op(op: UnOp) -> bool {
+        false
     }
 }
 

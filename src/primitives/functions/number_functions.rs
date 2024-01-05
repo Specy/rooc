@@ -5,9 +5,13 @@ use crate::{
     bail_wrong_number_of_arguments,
     parser::{
         parser::Rule,
-        pre_parsed_problem::PreExp, transformer::{TransformerContext, TransformError},
+        pre_parsed_problem::PreExp,
+        transformer::{TransformError, TransformerContext, TypeCheckerContext},
     },
-    primitives::{iterable::IterableKind, primitive::Primitive},
+    primitives::{
+        iterable::IterableKind,
+        primitive::{Primitive, PrimitiveKind},
+    },
     utils::{CompilationError, InputSpan, ParseError, Spanned},
 };
 
@@ -59,5 +63,34 @@ impl FunctionCall for NumericRange {
     }
     fn to_string(&self) -> String {
         format!("{}..{}", self.from, self.to)
+    }
+    fn get_parameters_types(&self) -> Vec<PrimitiveKind> {
+        vec![PrimitiveKind::Number; 2]
+    }
+    fn get_return_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
+        PrimitiveKind::Iterable(Box::new(PrimitiveKind::Number))
+    }
+    fn type_check(&self, context: &TypeCheckerContext) -> Result<(), TransformError> {
+        if !matches!(self.from.get_type(context), PrimitiveKind::Number) {
+            Err(TransformError::from_wrong_type(
+                PrimitiveKind::Number,
+                self.from.get_type(context),
+                self.from.get_span().clone(),
+            ))
+        } else if !matches!(self.to.get_type(context), PrimitiveKind::Number) {
+            Err(TransformError::from_wrong_type(
+                PrimitiveKind::Number,
+                self.to.get_type(context),
+                self.to.get_span().clone(),
+            ))
+        } else if !matches!(self.to_inclusive.get_type(context), PrimitiveKind::Boolean) {
+            Err(TransformError::from_wrong_type(
+                PrimitiveKind::Boolean,
+                self.to_inclusive.get_type(context),
+                self.to_inclusive.get_span().clone(),
+            ))
+        } else {
+            Ok(())
+        }
     }
 }

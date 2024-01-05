@@ -1,5 +1,5 @@
 use core::fmt;
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 use crate::{
     bail_wrong_argument_spanned, enum_with_variants_to_string, match_or_bail_spanned,
@@ -9,7 +9,7 @@ use crate::{
         functions::function_traits::FunctionCall,
         graph::{Graph, GraphEdge, GraphNode},
         iterable::IterableKind,
-        primitive::Primitive,
+        primitive::{Primitive, PrimitiveKind},
     },
     utils::{InputSpan, Spanned},
     wrong_argument,
@@ -18,7 +18,9 @@ use wasm_bindgen::prelude::*;
 
 use super::{
     recursive_set_resolver::recursive_set_resolver,
-    transformer::{Exp, TransformError, TransformerContext, VariableType},
+    transformer::{
+        Exp, Frame, TransformError, TransformerContext, TypeCheckerContext, VariableType,
+    },
 };
 use crate::math::operators::UnOp;
 use crate::primitives::primitive_traits::ApplyOp;
@@ -203,7 +205,6 @@ export type SerializedPreExp = {span: InputSpan} & (
 )
 "#;
 
-
 impl Clone for PreExp {
     fn clone(&self) -> Self {
         match self {
@@ -331,6 +332,130 @@ struct TempUnOp {
 }
 
 impl PreExp {
+    pub fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
+        match self {
+            Self::FunctionCall(span, fun) => fun
+                .type_check(context)
+                .map_err(|e| e.to_spanned_error(span)),
+            Self::BinaryOperation(op, lhs, rhs) => {
+                lhs.type_check(context)
+                    .map_err(|e| e.to_spanned_error(lhs.get_span()))?;
+                rhs.type_check(context)
+                    .map_err(|e| e.to_spanned_error(rhs.get_span()))?;
+                let lhs_type = lhs.get_type(context);
+                let rhs_type = rhs.get_type(context);
+                if !lhs_type.can_apply_binary_op(**op, rhs_type.clone()) {
+                    let err = TransformError::OperatorError(format!(
+                        "Cannot apply binary operator \"{}\" to \"{}\" and \"{}\"",
+                        op.to_string(),
+                        lhs_type.to_string(),
+                        rhs_type.to_string()
+                    ));
+                    return Err(err.to_spanned_error(op.get_span()));
+                }
+                Ok(())
+            }
+            Self::UnaryOperation(op, exp) => {
+                exp.type_check(context)
+                    .map_err(|e| e.to_spanned_error(exp.get_span()))?;
+                let exp_type = exp.get_type(context);
+                if !exp_type.can_apply_unary_op(**op) {
+                    let err = TransformError::OperatorError(format!(
+                        "Cannot apply unary operator \"{}\" to \"{}\"",
+                        op.to_string(),
+                        exp_type.to_string()
+                    ));
+                    return Err(err.to_spanned_error(op.get_span()));
+                }
+                Ok(())
+            }
+            Self::Primitive(_) => Ok(()),
+            Self::Mod(_, exp) => {
+                exp.type_check(context)
+                    .map_err(|e| e.to_spanned_error(exp.get_span()))?;
+                let exp_type = exp.get_type(context);
+                if exp_type != PrimitiveKind::Number {
+                    let err = TransformError::WrongArgument(format!(
+                        "Expected \"Number\", got \"{}\"",
+                        exp_type.to_string()
+                    ));
+                    return Err(err.to_spanned_error(self.get_span()));
+                }
+                Ok(())
+            }
+            Self::Variable(name) => Ok(()),
+            Self::CompoundVariable(c) => context.check_compound_variable(&c.indexes),
+            Self::BlockFunction(f) => {
+                for exp in &f.exps {
+                    exp.type_check(context)
+                        .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    let exp_type = exp.get_type(context);
+                    if exp_type != PrimitiveKind::Number {
+                        let err = TransformError::WrongArgument(format!(
+                            "Expected \"Number\", got \"{}\"",
+                            exp_type.to_string()
+                        ));
+                        return Err(err.to_spanned_error(self.get_span()));
+                    }
+                }
+                Ok(())
+            }
+            Self::BlockScopedFunction(f) => {
+                for iter in &f.iters {
+                    iter.iterator
+                        .type_check(context)
+                        .map_err(|e| e.to_spanned_error(iter.iterator.get_span()))?;
+                    let types = iter
+                        .get_variable_types(context)
+                        .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    let map: HashMap<String, PrimitiveKind> = HashMap::from_iter(types);
+                    let frame = Frame::from_map(map);
+                    context.add_frame(frame);
+                }
+                let res = f.exp.type_check(context);
+                for _ in &f.iters {
+                    context
+                        .pop_scope()
+                        .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                }
+                if let Err(e) = res {
+                    return Err(e.to_spanned_error(self.get_span()));
+                }
+                let exp_type = f.exp.get_type(context);
+                if exp_type != PrimitiveKind::Number {
+                    let err = TransformError::WrongArgument(format!(
+                        "Expected \"Number\", got \"{}\"",
+                        exp_type.to_string()
+                    ));
+                    return Err(err.to_spanned_error(self.get_span()));
+                }
+                Ok(())
+            }
+            Self::ArrayAccess(array_access) => context
+                .get_addressable_value(array_access)
+                .map(|_| ())
+                .map_err(|e| e.to_spanned_error(self.get_span())),
+        }
+    }
+    pub fn get_type(&self, context: &TypeCheckerContext) -> PrimitiveKind {
+        match self {
+            Self::Primitive(p) => p.get_span_value().get_type(),
+            Self::FunctionCall(_, fun) => fun.get_return_type(context),
+            Self::Variable(name) => context
+                .get_value(name)
+                .map(|e| e.clone())
+                .unwrap_or(PrimitiveKind::Number),
+            Self::BinaryOperation(_, lhs, _) => lhs.get_type(context),
+            Self::UnaryOperation(_, exp) => exp.get_type(context),
+            Self::Mod(_, exp) => exp.get_type(context),
+            Self::ArrayAccess(a) => context
+                .get_addressable_value(a)
+                .unwrap_or(PrimitiveKind::Undefined),
+            Self::BlockFunction(f) => PrimitiveKind::Number, //TODO check if this is true always
+            Self::BlockScopedFunction(_) => PrimitiveKind::Number, //TODO check if this is true always
+            Self::CompoundVariable(_) => PrimitiveKind::Number, //TODO check if this is true always
+        }
+    }
     pub fn to_boxed(self) -> Box<PreExp> {
         Box::new(self)
     }
@@ -700,10 +825,70 @@ impl IterableSet {
             span,
         }
     }
+    pub fn get_variable_types(
+        &self,
+        context: &TypeCheckerContext,
+    ) -> Result<Vec<(String, PrimitiveKind)>, TransformError> {
+        let iter_type = self.iterator.get_type(context);
+
+        let iter_type = match iter_type {
+            PrimitiveKind::Iterable(kind) => *kind,
+            _ => {
+                return Err(TransformError::WrongArgument(format!(
+                    "Value of type \"{}\" is not iterable",
+                    iter_type.to_string()
+                ))
+                .to_spanned_error(&self.span));
+            }
+        };
+        match &self.var {
+            VariableType::Single(name) => Ok(vec![(name.get_span_value().clone(), iter_type)]),
+            VariableType::Tuple(vars) => {
+                match &iter_type {
+                    PrimitiveKind::Tuple(types) => {
+                        if vars.len() > types.len() {
+                            let err = TransformError::WrongArgument(format!(
+                                "Trying to spread tuple \"{}\" variables into {} variables",
+                                iter_type.to_string(),
+                                vars.len()
+                            ))
+                            .to_spanned_error(&self.span);
+                            Err(err)
+                        } else {
+                            Ok(vars
+                                .iter()
+                                .zip(types.iter())
+                                .map(|(v, t)| (v.get_span_value().clone(), t.clone()))
+                                .collect::<Vec<_>>())
+                        }
+                    }
+                    PrimitiveKind::Iterable(kind) => {
+                        Ok(vars
+                            .iter()
+                            .map(|v| (v.get_span_value().clone(), *kind.clone()))
+                            .collect::<Vec<_>>()) //we don't know at compile time how many variables there are, so we assume all of them have the same type
+                    }
+                    _ => {
+                        let err = TransformError::WrongArgument(format!(
+                            "Value of type \"{}\" is not spreadable",
+                            iter_type.to_string()
+                        ))
+                        .to_spanned_error(&self.span);
+                        Err(err)
+                    }
+                }
+            }
+        }
+    }
 }
 impl fmt::Display for IterableSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} in {}", self.var.to_string(), self.iterator.to_string())
+        write!(
+            f,
+            "{} in {}",
+            self.var.to_string(),
+            self.iterator.to_string()
+        )
     }
 }
 
@@ -770,13 +955,15 @@ export type SerializedPreObjective = {
 }
 "#;
 
-
 impl PreObjective {
     pub fn new(objective_type: OptimizationType, rhs: PreExp) -> Self {
         Self {
             objective_type,
             rhs,
         }
+    }
+    pub fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
+        self.rhs.type_check(context)
     }
 }
 impl fmt::Display for PreObjective {
@@ -819,6 +1006,42 @@ impl PreCondition {
             iteration,
             span,
         }
+    }
+    pub fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
+        for iter in &self.iteration {
+            iter.iterator
+                .type_check(context)
+                .map_err(|e| e.to_spanned_error(iter.iterator.get_span()))?;
+            let types = iter.get_variable_types(context)?;
+            let map: HashMap<String, PrimitiveKind> = HashMap::from_iter(types);
+            let frame = Frame::from_map(map);
+            context.add_frame(frame);
+        }
+        match (self.lhs.type_check(context), self.rhs.type_check(context)) {
+            (Ok(()), Ok(())) => (),
+            (Err(e), _) | (_, Err(e)) => {
+                for _ in &self.iteration {
+                    context.pop_scope()?;
+                }
+                return Err(e);
+            }
+        }
+        let lhs_type = self.lhs.get_type(context);
+        let rhs_type = self.rhs.get_type(context);
+        for _ in &self.iteration {
+            context.pop_scope()?;
+        }
+        if lhs_type != PrimitiveKind::Number || rhs_type != PrimitiveKind::Number {
+            let err = TransformError::WrongArgument(format!(
+                "Expected comparison of \"Number\", got \"{}\" {} \"{}\"",
+                lhs_type.to_string(),
+                self.condition_type,
+                rhs_type.to_string()
+            ))
+            .to_spanned_error(&self.span);
+            return Err(err);
+        }
+        Ok(())
     }
 }
 impl fmt::Display for PreCondition {

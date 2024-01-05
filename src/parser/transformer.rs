@@ -4,6 +4,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::math::math_enums::{Comparison, OptimizationType};
 use crate::math::operators::{BinOp, UnOp};
+use crate::primitives::consts::Constant;
+use crate::primitives::functions::function_traits::FunctionCall;
 use crate::primitives::primitive::PrimitiveKind;
 use crate::{
     primitives::primitive::Primitive,
@@ -276,7 +278,7 @@ impl fmt::Display for Problem {
     }
 }
 #[wasm_bindgen]
-impl Problem{
+impl Problem {
     pub fn to_string_wasm(&self) -> String {
         self.to_string()
     }
@@ -342,7 +344,10 @@ impl fmt::Display for TransformError {
             TransformError::OperatorError(name) => format!("[Operator error] {}", name),
             TransformError::Other(name) => name.clone(),
             TransformError::Unspreadable(kind) => format!("{} is not spreadable", kind.to_string()),
-            TransformError::SpannedError { spanned_error: span, .. } => span.to_string(),
+            TransformError::SpannedError {
+                spanned_error: span,
+                ..
+            } => span.to_string(),
         };
         f.write_str(&s)
     }
@@ -366,18 +371,31 @@ impl TransformError {
             .join("\n");
         format!("{}\n{}", error, trace)
     }
+    pub fn from_wrong_type(expected: PrimitiveKind, got: PrimitiveKind, span: InputSpan) -> Self {
+        TransformError::WrongArgument(format!(
+            "Expected argument of type \"{}\", got \"{}\"",
+            expected.to_string(),
+            got.to_string()
+        )).to_spanned_error(&span)
+    }
     pub fn to_spanned_error(self, span: &InputSpan) -> TransformError {
-        TransformError::SpannedError{
-            spanned_error: Spanned::new(Box::new(self), span.clone()), 
-            value: None
+        TransformError::SpannedError {
+            spanned_error: Spanned::new(Box::new(self), span.clone()),
+            value: None,
         }
     }
     pub fn get_trace(&self) -> Vec<(InputSpan, Option<String>)> {
         match self {
-            TransformError::SpannedError { spanned_error: span, value}=> {
+            TransformError::SpannedError {
+                spanned_error: span,
+                value,
+            } => {
                 let mut trace = vec![(span.get_span().clone(), value.clone())];
                 let mut last_error = span;
-                while let TransformError::SpannedError{spanned_error: ref span, ref value} = **last_error.get_span_value()
+                while let TransformError::SpannedError {
+                    spanned_error: ref span,
+                    ref value,
+                } = **last_error.get_span_value()
                 {
                     let current_span = span.get_span().clone();
                     //don't add if the last span is the same as the current one
@@ -421,32 +439,32 @@ impl TransformError {
 }
 
 #[derive(Debug)]
-pub struct Frame {
-    pub variables: HashMap<String, Primitive>,
+pub struct Frame<T> {
+    pub variables: HashMap<String, T>,
 }
-impl Frame {
+impl<T> Frame<T> {
     pub fn new() -> Self {
         Self {
             variables: HashMap::new(),
         }
     }
-    pub fn from_primitives(constants: HashMap<String, Primitive>) -> Self {
+    pub fn from_map(constants: HashMap<String, T>) -> Self {
         Self {
             variables: constants,
         }
     }
 
-    pub fn get_value(&self, name: &str) -> Option<&Primitive> {
+    pub fn get_value(&self, name: &str) -> Option<&T> {
         self.variables.get(name)
     }
-    pub fn declare_variable(&mut self, name: &str, value: Primitive) -> Result<(), TransformError> {
+    pub fn declare_variable(&mut self, name: &str, value: T) -> Result<(), TransformError> {
         if self.has_variable(name) {
             return Err(TransformError::AlreadyExistingVariable(name.to_string()));
         }
         self.variables.insert(name.to_string(), value);
         Ok(())
     }
-    pub fn update_variable(&mut self, name: &str, value: Primitive) -> Result<(), TransformError> {
+    pub fn update_variable(&mut self, name: &str, value: T) -> Result<(), TransformError> {
         if !self.has_variable(name) {
             return Err(TransformError::MissingVariable(name.to_string()));
         }
@@ -456,7 +474,7 @@ impl Frame {
     pub fn has_variable(&self, name: &str) -> bool {
         self.variables.contains_key(name)
     }
-    pub fn drop_variable(&mut self, name: &str) -> Result<Primitive, TransformError> {
+    pub fn drop_variable(&mut self, name: &str) -> Result<T, TransformError> {
         if !self.variables.contains_key(name) {
             return Err(TransformError::MissingVariable(name.to_string()));
         }
@@ -464,21 +482,144 @@ impl Frame {
         Ok(value)
     }
 }
-impl Default for Frame {
+impl<T> Default for Frame<T> {
     fn default() -> Self {
         Self::new()
     }
 }
-#[derive(Debug)]
-pub struct TransformerContext {
-    frames: Vec<Frame>,
+
+pub struct TypeCheckerContext {
+    frames: Vec<Frame<PrimitiveKind>>,
 }
-impl TransformerContext {
-    pub fn new(primitives: HashMap<String, Primitive>) -> Self {
-        let frame = Frame::from_primitives(primitives);
+impl TypeCheckerContext {
+    pub fn new(primitives: HashMap<String, PrimitiveKind>) -> Self {
+        let frame = Frame::from_map(primitives);
         Self {
             frames: vec![frame],
         }
+    }
+    pub fn new_from_constants(constants: &Vec<Constant>) -> Self {
+        let primitives = constants
+            .into_iter()
+            .map(|c| (c.name.clone(), c.value.get_type()))
+            .collect::<HashMap<_, _>>();
+        Self::new(primitives)
+    }
+    pub fn add_scope(&mut self) {
+        let frame = Frame::new();
+        self.frames.push(frame);
+    
+    }
+    pub fn add_frame(&mut self, frame: Frame<PrimitiveKind>) {
+        self.frames.push(frame);
+    }
+    pub fn pop_scope(&mut self) -> Result<Frame<PrimitiveKind>, TransformError> {
+        if self.frames.len() <= 1 {
+            return Err(TransformError::Other("Missing frame to pop".to_string()));
+        }
+        Ok(self.frames.pop().unwrap())
+    }
+    pub fn get_value(&self, name: &str) -> Option<&PrimitiveKind> {
+        for frame in self.frames.iter().rev() {
+            match frame.get_value(name) {
+                Some(value) => return Some(value),
+                None => continue,
+            }
+        }
+        None
+    }
+    pub fn check_compound_variable(
+        &self,
+        compound_name: &[String],
+    ) -> Result<(), TransformError> {
+        for name in compound_name {
+            let value = self.get_value(name);
+            if value.is_none() {
+                return Err(TransformError::MissingVariable(name.to_string()));
+            }
+            let value = value.unwrap();
+            match value {
+                PrimitiveKind::Number |
+                PrimitiveKind::String | 
+                PrimitiveKind::GraphNode => {}
+                _ => {
+                    return Err(TransformError::WrongArgument(format!(
+                        "Expected value of type \"Number\", \"String\", \"GraphNode\" for variable flattening, got \"{}\", check the definition of \"{}\"",
+                        value.to_string(),
+                        name
+                    )))
+                }
+            }
+        }
+        Ok(())
+    }
+    pub fn declare_variable(
+        &mut self,
+        name: &str,
+        value: PrimitiveKind,
+        strict: bool,
+    ) -> Result<(), TransformError> {
+        if strict && self.get_value(name).is_some() {
+            return Err(TransformError::AlreadyExistingVariable(name.to_string()));
+        }
+        let frame = self.frames.last_mut().unwrap();
+        frame.declare_variable(name, value)
+    }
+    pub fn get_addressable_value(
+        &self,
+        addressable_access: &AddressableAccess,
+    ) -> Result<PrimitiveKind, TransformError> {
+        //TODO add support for object access like G["a"] or g.a
+        match self.get_value(&addressable_access.name) {
+            Some(v) => {
+                let len = addressable_access.accesses.len();
+                for access in addressable_access.accesses.iter(){
+                    if !matches!(access.get_type(self), PrimitiveKind::Number) {
+                        return Err(TransformError::WrongArgument(format!(
+                            "Expected value of type \"Number\" to index array, got \"{}\", check the definition of \"{}\"",
+                            access.get_type(self).to_string(),
+                            access.to_string()
+                        )))
+                    }
+                }       
+                let mut depth = 0;
+                let mut last_value = v;
+                while let PrimitiveKind::Iterable(iterable) = last_value {
+                    depth += 1;
+                    last_value = iterable
+                }         
+                if depth > len {
+                    return Err(TransformError::OutOfBounds(format!(
+                        "Indexing {} with {} indexes, but it only has {} dimensions",
+                        addressable_access.name, len, depth
+                    )));
+                }
+                Ok(last_value.clone())
+            }
+            None => Err(TransformError::MissingVariable(
+                addressable_access.name.to_string(),
+            )),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct TransformerContext {
+    frames: Vec<Frame<Primitive>>,
+}
+impl TransformerContext {
+    pub fn new(primitives: HashMap<String, Primitive>) -> Self {
+        let frame = Frame::from_map(primitives);
+        Self {
+            frames: vec![frame],
+        }
+    }
+    pub fn new_from_constants(constants: Vec<Constant>) -> Self {
+        let primitives = constants
+            .into_iter()
+            .map(|c| (c.name, c.value))
+            .collect::<HashMap<_, _>>();
+        Self::new(primitives)
     }
 
     pub fn flatten_variable_name(
@@ -493,7 +634,7 @@ impl TransformerContext {
                     Primitive::String(value) => Ok(value.clone()),
                     Primitive::GraphNode(v) => Ok(v.get_name().clone()),
                     _ => Err(TransformError::WrongArgument(format!(
-                        "Expected a number or string for variable flattening, got {}, check the definition of {}",
+                        "Expected value of type \"Number\", \"String\", \"GraphNode\" for variable flattening, got \"{}\", check the definition of \"{}\"",
                         value.get_type_string(),
                         name
                     ))),
@@ -504,10 +645,10 @@ impl TransformerContext {
         Ok(flattened.join("_"))
     }
 
-    pub fn add_populated_scope(&mut self, frame: Frame) {
+    pub fn add_populated_scope(&mut self, frame: Frame<Primitive>) {
         self.frames.push(frame);
     }
-    pub fn replace_last_frame(&mut self, frame: Frame) {
+    pub fn replace_last_frame(&mut self, frame: Frame<Primitive>) {
         self.frames.pop();
         self.frames.push(frame);
     }
@@ -515,7 +656,7 @@ impl TransformerContext {
         let frame = Frame::new();
         self.frames.push(frame);
     }
-    pub fn pop_scope(&mut self) -> Result<Frame, TransformError> {
+    pub fn pop_scope(&mut self) -> Result<Frame<Primitive>, TransformError> {
         if self.frames.len() <= 1 {
             return Err(TransformError::Other("Missing frame to pop".to_string()));
         }
@@ -621,15 +762,9 @@ impl TransformerContext {
     }
 }
 
-pub fn transform_parsed_problem(pre_problem: &PreProblem) -> Result<Problem, TransformError> {
-    let constants = pre_problem
-        .get_constants()
-        .iter()
-        .map(|c| (c.name.clone(), c.value.clone()))
-        .collect::<Vec<_>>();
-    let constants = HashMap::from_iter(constants);
-    let mut context = TransformerContext::new(constants);
-    transform_problem(pre_problem, &mut context)
+pub fn transform_parsed_problem(pre_problem: PreProblem) -> Result<Problem, TransformError> {
+    let mut context = TransformerContext::new_from_constants(pre_problem.get_constants().clone());
+    transform_problem(&pre_problem, &mut context)
 }
 
 /*

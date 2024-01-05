@@ -4,12 +4,16 @@ use pest::iterators::Pair;
 use serde::Serialize;
 
 use crate::{
-    bail_wrong_number_of_arguments,
+    bail_wrong_argument_spanned, bail_wrong_number_of_arguments,
     parser::{
         parser::Rule,
-        pre_parsed_problem::PreExp, transformer::{TransformerContext, TransformError},
+        pre_parsed_problem::PreExp,
+        transformer::{TransformError, TransformerContext, TypeCheckerContext},
     },
-    primitives::{iterable::IterableKind, primitive::Primitive},
+    primitives::{
+        iterable::IterableKind,
+        primitive::{Primitive, PrimitiveKind},
+    },
     utils::{CompilationError, ParseError},
 };
 
@@ -21,15 +25,12 @@ pub struct EdgesOfGraphFn {
 }
 
 impl FunctionCall for EdgesOfGraphFn {
-    fn from_parameters(
-        mut pars: Vec<PreExp>,
-        rule: &Pair<Rule>,
-    ) -> Result<Self, CompilationError> {
+    fn from_parameters(mut pars: Vec<PreExp>, rule: &Pair<Rule>) -> Result<Self, CompilationError> {
         match pars.len() {
             1 => Ok(Self {
                 of_graph: pars.remove(0),
             }),
-            n => bail_wrong_number_of_arguments!(n, rule,"edges" , ["Graph"]),
+            n => bail_wrong_number_of_arguments!(n, rule, "edges", ["Graph"]),
         }
     }
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
@@ -40,6 +41,23 @@ impl FunctionCall for EdgesOfGraphFn {
     fn to_string(&self) -> String {
         format!("edges({})", self.of_graph)
     }
+    fn get_return_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
+        PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphEdge))
+    }
+    fn type_check(&self, context: &TypeCheckerContext) -> Result<(), TransformError> {
+        if !matches!(self.of_graph.get_type(context), PrimitiveKind::Graph) {
+            Err(TransformError::from_wrong_type(
+                PrimitiveKind::Graph,
+                self.of_graph.get_type(context),
+                self.of_graph.get_span().clone(),
+            ))
+        } else {
+            Ok(())
+        }
+    }
+    fn get_parameters_types(&self) -> Vec<PrimitiveKind> {
+        vec![PrimitiveKind::Graph]
+    }
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -47,10 +65,7 @@ pub struct NodesOfGraphFn {
     of_graph: PreExp,
 }
 impl FunctionCall for NodesOfGraphFn {
-    fn from_parameters(
-        mut pars: Vec<PreExp>,
-        rule: &Pair<Rule>,
-    ) -> Result<Self, CompilationError> {
+    fn from_parameters(mut pars: Vec<PreExp>, rule: &Pair<Rule>) -> Result<Self, CompilationError> {
         match pars.len() {
             1 => Ok(Self {
                 of_graph: pars.remove(0),
@@ -66,6 +81,24 @@ impl FunctionCall for NodesOfGraphFn {
     fn to_string(&self) -> String {
         format!("nodes({})", self.of_graph)
     }
+    fn get_return_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
+        PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphNode))
+    }
+    fn type_check(&self, context: &TypeCheckerContext) -> Result<(), TransformError> {
+        if !matches!(self.of_graph.get_type(context), PrimitiveKind::Graph) {
+            Err(TransformError::from_wrong_type(
+                PrimitiveKind::Graph,
+                self.of_graph.get_type(context),
+                self.of_graph.get_span().clone(),
+            ))
+        } else {
+            Ok(())
+        }
+    }
+    fn get_parameters_types(&self) -> Vec<PrimitiveKind> {
+        vec![PrimitiveKind::Graph]
+    }
+
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -74,15 +107,12 @@ pub struct NeighbourOfNodeFn {
 }
 
 impl FunctionCall for NeighbourOfNodeFn {
-    fn from_parameters(
-        mut pars: Vec<PreExp>,
-        rule: &Pair<Rule>,
-    ) -> Result<Self, CompilationError> {
+    fn from_parameters(mut pars: Vec<PreExp>, rule: &Pair<Rule>) -> Result<Self, CompilationError> {
         match pars.len() {
             1 => Ok(Self {
                 of_node: pars.remove(0),
             }),
-            n => bail_wrong_number_of_arguments!(n, rule,"neighs_edges", ["Node"]),
+            n => bail_wrong_number_of_arguments!(n, rule, "neighs_edges", ["Node"]),
         }
     }
 
@@ -90,9 +120,26 @@ impl FunctionCall for NeighbourOfNodeFn {
         let node = self.of_node.as_node(context)?;
         Ok(Primitive::Iterable(IterableKind::Edges(node.to_edges())))
     }
-    
+
     fn to_string(&self) -> String {
         format!("neighs_edges({})", self.of_node)
+    }
+    fn get_parameters_types(&self) -> Vec<PrimitiveKind> {
+        vec![PrimitiveKind::GraphNode]
+    }
+    fn get_return_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
+        PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphEdge))
+    }
+    fn type_check(&self, context: &TypeCheckerContext) -> Result<(), TransformError> {
+        if !matches!(self.of_node.get_type(context), PrimitiveKind::GraphNode) {
+            Err(TransformError::from_wrong_type(
+                PrimitiveKind::GraphNode,
+                self.of_node.get_type(context),
+                self.of_node.get_span().clone(),
+            ))
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -102,10 +149,7 @@ pub struct NeighboursOfNodeInGraphFn {
     in_graph: PreExp,
 }
 impl FunctionCall for NeighboursOfNodeInGraphFn {
-    fn from_parameters(
-        mut pars: Vec<PreExp>,
-        rule: &Pair<Rule>,
-    ) -> Result<Self, CompilationError> {
+    fn from_parameters(mut pars: Vec<PreExp>, rule: &Pair<Rule>) -> Result<Self, CompilationError> {
         match pars.len() {
             2 => Ok(Self {
                 of_node: pars.remove(0),
@@ -121,10 +165,29 @@ impl FunctionCall for NeighboursOfNodeInGraphFn {
         Ok(Primitive::Iterable(IterableKind::Edges(neighbours)))
     }
     fn to_string(&self) -> String {
-        format!(
-            "neigh_edges_of({},{})",
-            self.of_node,
-            self.in_graph
-        )
+        format!("neigh_edges_of({},{})", self.of_node, self.in_graph)
+    }
+    fn get_parameters_types(&self) -> Vec<PrimitiveKind> {
+        vec![PrimitiveKind::GraphNode, PrimitiveKind::Graph]
+    }
+    fn get_return_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
+        PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphEdge))
+    }
+    fn type_check(&self, context: &TypeCheckerContext) -> Result<(), TransformError> {
+        if !matches!(self.of_node.get_type(context), PrimitiveKind::GraphNode) {
+            Err(TransformError::from_wrong_type(
+                PrimitiveKind::GraphNode,
+                self.of_node.get_type(context),
+                self.of_node.get_span().clone(),
+            ))
+        } else if !matches!(self.in_graph.get_type(context), PrimitiveKind::Graph) {
+            Err(TransformError::from_wrong_type(
+                PrimitiveKind::Graph,
+                self.in_graph.get_type(context),
+                self.in_graph.get_span().clone(),
+            ))
+        } else {
+            Ok(())
+        }
     }
 }

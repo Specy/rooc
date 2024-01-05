@@ -42,7 +42,7 @@ macro_rules! bail_wrong_argument {
 }
 #[macro_export]
 macro_rules! bail_wrong_argument_spanned {
-    ($expected_type: literal, $current_arg:expr, $evauluated_in:expr) => {
+    ($expected_type: expr, $current_arg:expr, $evauluated_in:expr) => {
         Err(wrong_argument!(
             $expected_type,
             $current_arg,

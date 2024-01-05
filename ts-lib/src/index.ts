@@ -19,14 +19,6 @@ export class RoocParser {
         this.instance = _RoocParser.new_wasm(source);
         this.source = source;
     }
-    verify(): Result<null, string> {
-        try {
-            this.instance.verify_wasm();
-            Ok(null)
-        } catch (e) {
-            return Err(e)
-        }
-    }
     format(): Result<string, CompilationError> {
         try {
             return Ok(this.instance.format_wasm())
@@ -92,9 +84,9 @@ export class PreProblem {
             return Err(new TransformError(e, this.source))
         }
     }
-    verify(): Result<null, TransformError> {
+    typeCheck(): Result<null, TransformError> {
         try {
-            this.instance.verify_wasm()
+            this.instance.type_check_wasm()
             return Ok(null)
         } catch (e) {
             return Err(new TransformError(e, this.source))

@@ -4,7 +4,11 @@ use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
-    bail_wrong_argument, match_or_bail, parser::transformer::TransformError, wrong_argument,
+    bail_wrong_argument, match_or_bail,
+    math::operators::{BinOp, UnOp},
+    parser::transformer::TransformError,
+    primitives::primitive_traits::ApplyOp,
+    wrong_argument,
 };
 
 use super::{
@@ -41,43 +45,79 @@ export type SerializedPrimitive =
     | { kind: 'Undefined' }
 "#;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub enum PrimitiveKind {
     Number,
     String,
-    Iterable,
+    Iterable(Box<PrimitiveKind>),
     Graph,
     GraphEdge,
     GraphNode,
-    Tuple,
+    Tuple(Vec<PrimitiveKind>),
     Boolean,
     Undefined,
+    Any,
 }
 impl PrimitiveKind {
     pub fn from_primitive(p: &Primitive) -> Self {
         match p {
             Primitive::Number(_) => PrimitiveKind::Number,
             Primitive::String(_) => PrimitiveKind::String,
-            Primitive::Iterable(_) => PrimitiveKind::Iterable,
+            Primitive::Iterable(p) => PrimitiveKind::Iterable(Box::new(p.get_type())),
             Primitive::Graph(_) => PrimitiveKind::Graph,
             Primitive::GraphEdge(_) => PrimitiveKind::GraphEdge,
             Primitive::GraphNode(_) => PrimitiveKind::GraphNode,
-            Primitive::Tuple(_) => PrimitiveKind::Tuple,
+            Primitive::Tuple(t) => t.get_type(),
             Primitive::Boolean(_) => PrimitiveKind::Boolean,
             Primitive::Undefined => PrimitiveKind::Undefined,
         }
     }
-    pub fn to_string(&self) -> &'static str {
+    pub fn can_apply_binary_op(&self, op: BinOp, to: PrimitiveKind) -> bool {
         match self {
-            PrimitiveKind::Number => "Number",
-            PrimitiveKind::String => "String",
-            PrimitiveKind::Iterable => "Iterable",
-            PrimitiveKind::Graph => "Graph",
-            PrimitiveKind::GraphEdge => "GraphEdge",
-            PrimitiveKind::GraphNode => "GraphNode",
-            PrimitiveKind::Tuple => "Tuple",
-            PrimitiveKind::Boolean => "Boolean",
-            PrimitiveKind::Undefined => "Undefined",
+            PrimitiveKind::Any => false,
+            PrimitiveKind::Undefined => false,
+            PrimitiveKind::Number => f64::can_apply_binary_op(op, to),
+            PrimitiveKind::Boolean => bool::can_apply_binary_op(op, to),
+            PrimitiveKind::Graph => Graph::can_apply_binary_op(op, to),
+            PrimitiveKind::GraphEdge => GraphEdge::can_apply_binary_op(op, to),
+            PrimitiveKind::GraphNode => GraphNode::can_apply_binary_op(op, to),
+            PrimitiveKind::Tuple(_) => Tuple::can_apply_binary_op(op, to),
+            PrimitiveKind::Iterable(_) => IterableKind::can_apply_binary_op(op, to),
+            PrimitiveKind::String => String::can_apply_binary_op(op, to),
+        }
+    }
+    pub fn can_apply_unary_op(&self, op: UnOp) -> bool {
+        match self {
+            PrimitiveKind::Any => false,
+            PrimitiveKind::Undefined => false,
+            PrimitiveKind::Number => f64::can_apply_unary_op(op),
+            PrimitiveKind::Boolean => bool::can_apply_unary_op(op),
+            PrimitiveKind::Graph => Graph::can_apply_unary_op(op),
+            PrimitiveKind::GraphEdge => GraphEdge::can_apply_unary_op(op),
+            PrimitiveKind::GraphNode => GraphNode::can_apply_unary_op(op),
+            PrimitiveKind::Tuple(_) => Tuple::can_apply_unary_op(op),
+            PrimitiveKind::Iterable(_) => IterableKind::can_apply_unary_op(op),
+            PrimitiveKind::String => String::can_apply_unary_op(op),
+        }
+    }
+    pub fn to_string(&self) -> String {
+        match self {
+            PrimitiveKind::Number => "Number".to_string(),
+            PrimitiveKind::String => "String".to_string(),
+            PrimitiveKind::Iterable(i) => format!("{}[]", i.to_string()),
+            PrimitiveKind::Graph => "Graph".to_string(),
+            PrimitiveKind::GraphEdge => "GraphEdge".to_string(),
+            PrimitiveKind::GraphNode => "GraphNode".to_string(),
+            PrimitiveKind::Tuple(t) => format!(
+                "({})",
+                t.iter()
+                    .map(|t| t.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            PrimitiveKind::Boolean => "Boolean".to_string(),
+            PrimitiveKind::Undefined => "Undefined".to_string(),
+            PrimitiveKind::Any => "Any".to_string(),
         }
     }
 }
@@ -86,7 +126,7 @@ impl Primitive {
     pub fn get_type(&self) -> PrimitiveKind {
         PrimitiveKind::from_primitive(self)
     }
-    pub fn get_type_string(&self) -> &'static str {
+    pub fn get_type_string(&self) -> String {
         self.get_type().to_string()
     }
     pub fn as_number(&self) -> Result<f64, TransformError> {
@@ -122,7 +162,6 @@ impl Primitive {
         match_or_bail!("Tuple", Primitive::Tuple(t) => Ok(t.get_primitives()) ; (self, self))
     }
 }
-
 
 impl fmt::Display for Primitive {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

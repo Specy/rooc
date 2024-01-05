@@ -11,6 +11,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
     }
     let first_kind = first.unwrap().get_type();
     match first_kind {
+        PrimitiveKind::Any => Ok(Primitive::Iterable(IterableKind::Numbers(vec![]))), //can never happen
         PrimitiveKind::Boolean => {
             let values = values
                 .into_iter()
@@ -31,7 +32,8 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     Primitive::Number(n) => Ok(n),
                     _ => Err(format!(
                         "Expected Number, got \"{}\"",
-                        v.get_type_string()
+                        v.get_type_string(),
+                    
                     )),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
@@ -76,7 +78,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Primitive::Iterable(IterableKind::Nodes(values)))
         }
-        PrimitiveKind::Tuple => {
+        PrimitiveKind::Tuple(_) => {
             let values = values
                 .into_iter()
                 .map(|v| match v {
@@ -89,7 +91,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Primitive::Iterable(IterableKind::Tuple(values)))
         }
-        PrimitiveKind::Iterable => {
+        PrimitiveKind::Iterable(_) => {
             let values = values
                 .into_iter()
                 .map(|v| match v {

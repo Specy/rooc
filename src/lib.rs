@@ -40,7 +40,7 @@ impl RoocParser {
         let parsed = self
             .parse()
             .map_err(|e| e.to_string_from_source(&self.source))?;
-        let transformed = transform_parsed_problem(&parsed);
+        let transformed = transform_parsed_problem(parsed);
         match transformed {
             Ok(transformed) => Ok(transformed),
             Err(e) => Err(e
@@ -54,9 +54,6 @@ impl RoocParser {
 impl RoocParser {
     pub fn new_wasm(source: String) -> Self {
         Self::new(source)
-    }
-    pub fn verify_wasm(&self) -> Result<(), String> {
-        self.parse_and_transform_wasm().map(|_| ())
     }
     pub fn format_wasm(&self) -> Result<String, CompilationError> {
         self.format()

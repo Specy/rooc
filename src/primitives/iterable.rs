@@ -53,6 +53,26 @@ impl IterableKind {
             IterableKind::Iterable(_) => "iterable",
         }
     }
+    pub fn get_type(&self) -> PrimitiveKind {
+        match self {
+            IterableKind::Numbers(_) => PrimitiveKind::Number,
+            IterableKind::Strings(_) => PrimitiveKind::String,
+            IterableKind::Edges(_) => PrimitiveKind::GraphEdge,
+            IterableKind::Nodes(_) => PrimitiveKind::GraphNode,
+            IterableKind::Tuple(t) => t
+                .get(0)
+                .map(|e| e.get_type())
+                .unwrap_or(PrimitiveKind::Undefined),
+            IterableKind::Booleans(_) => PrimitiveKind::Boolean,
+            IterableKind::Graphs(_) => PrimitiveKind::Graph,
+            IterableKind::Iterable(i) => PrimitiveKind::Iterable(
+                i.get(0)
+                    .map(|e| e.get_type())
+                    .unwrap_or(PrimitiveKind::Undefined)
+                    .into(),
+            ),
+        }
+    }
     pub fn len(&self) -> usize {
         match self {
             IterableKind::Numbers(v) => v.len(),
@@ -264,19 +284,26 @@ impl fmt::Display for IterableKind {
 }
 
 impl ApplyOp for IterableKind {
+    type TargetType = PrimitiveKind;
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: BinOp, _to: &Primitive) -> Result<Primitive, OperatorError> {
         Err(OperatorError::unsupported_bin_operation(
             op,
-            PrimitiveKind::Iterable,
+            _to.get_type(),
         ))
     }
     fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
         Err(OperatorError::unsupported_un_operation(
             op,
-            PrimitiveKind::Iterable,
+            self.get_type()
         ))
+    }
+    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+        false
+    }
+    fn can_apply_unary_op(op: UnOp) -> bool {
+        false
     }
 }
 impl Spreadable for IterableKind {

@@ -12,7 +12,9 @@ use super::pre_parsed_problem::{PreCondition, PreObjective};
 use super::rules_parser::other_parser::{
     parse_condition_list, parse_consts_declaration, parse_objective,
 };
-use super::transformer::{transform_parsed_problem, Problem, TransformError};
+use super::transformer::{
+    transform_parsed_problem, Problem, TransformError, TransformerContext, TypeCheckerContext,
+};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 #[derive(Parser)]
@@ -57,7 +59,15 @@ impl PreProblem {
         &self.constants
     }
     pub fn transform(self) -> Result<Problem, TransformError> {
-        transform_parsed_problem(&self)
+        transform_parsed_problem(self)
+    }
+    pub fn type_check(&self) -> Result<(), TransformError> {
+        let mut context = TypeCheckerContext::new_from_constants(&self.constants);
+        self.objective.type_check(&mut context)?;
+        for cond in &self.conditions {
+            cond.type_check(&mut context)?;
+        }
+        Ok(())
     }
 }
 
@@ -91,6 +101,7 @@ impl TransformErrorWrapper {
     pub fn serialize_wasm(&self) -> JsValue {
         serde_wasm_bindgen::to_value(&self.error).unwrap()
     }
+
 }
 
 #[wasm_bindgen]
@@ -105,8 +116,8 @@ impl PreProblem {
     pub fn format_wasm(&self) -> String {
         self.to_string()
     }
-    pub fn verify_wasm(self) -> Result<(), TransformErrorWrapper> {
-        self.transform()
+    pub fn type_check_wasm(self) -> Result<(), TransformErrorWrapper> {
+        self.type_check()
             .map(|_| ())
             .map_err(|e| TransformErrorWrapper { error: e })
     }

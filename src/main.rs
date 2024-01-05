@@ -92,28 +92,25 @@ fn main() {
     let source = "
     min 1
     s.t.
-        sum(i in 0..10) { i } <= 1 for j in 0..4
+        sum(i in 0..5) { i } <= 1 for j in enumerate(A)
         where 
             G = Graph {
                 A -> [B],
                 B
             }
-            A = [
-                [1, 2],
-                [3, 4]
-            ]
+            A = [1,2]
 
     "
     .trim()
     .to_string();
     let parser = RoocParser::new(source);
-    let parsed = parser.parse_and_transform();
+    let parsed = parser.parse();
     match parsed {
         Ok(parsed) => {
-            println!("{}", parsed.to_string());
+            println!("{:?}", parsed.type_check());
         }
         Err(e) => {
-            println!("{}", e);
+            println!("{}", e.to_error_string());
         }
     }
 }
