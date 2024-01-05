@@ -20,7 +20,7 @@ use wasm_bindgen::prelude::*;
 struct PLParser;
 
 #[wasm_bindgen]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct PreProblem {
     objective: PreObjective,
     conditions: Vec<PreCondition>,
@@ -62,13 +62,53 @@ impl PreProblem {
 }
 
 #[wasm_bindgen]
+pub struct TransformErrorWrapper {
+    error: TransformError,
+}
+
+#[wasm_bindgen]
+impl TransformErrorWrapper {
+    pub fn get_trace(&self) -> JsValue {
+        let a = self
+            .error
+            .get_trace()
+            .into_iter()
+            .map(|(e, _)| e)
+            .collect::<Vec<_>>();
+        serde_wasm_bindgen::to_value(&a).unwrap()
+    }
+    pub fn get_origin_span(&self) -> Option<InputSpan> {
+        self.error.get_origin_span()
+    }
+    pub fn get_traced_error(&self) -> String {
+        self.error.get_traced_error()
+    }
+    pub fn get_error_from_source(&self, source: &str) -> Result<String, String> {
+        self.error
+            .get_trace_from_source(source)
+            .map_err(|_| format!("Error not found in source"))
+    }
+    pub fn serialize_wasm(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self.error).unwrap()
+    }
+}
+
+#[wasm_bindgen]
 impl PreProblem {
-    pub fn transform_wasm(self) -> Result<Problem, JsValue> {
+    pub fn transform_wasm(self) -> Result<Problem, TransformErrorWrapper> {
         self.transform()
-            .map_err(|e| serde_wasm_bindgen::to_value(&e).unwrap())
+            .map_err(|e| TransformErrorWrapper { error: e })
     }
     pub fn serialize_wasm(&self) -> JsValue {
         serde_wasm_bindgen::to_value(&self).unwrap()
+    }
+    pub fn format_wasm(&self) -> String {
+        self.to_string()
+    }
+    pub fn verify_wasm(self) -> Result<(), TransformErrorWrapper> {
+        self.transform()
+            .map(|_| ())
+            .map_err(|e| TransformErrorWrapper { error: e })
     }
 }
 

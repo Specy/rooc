@@ -3,22 +3,26 @@
 	import Button from '$cmp/inputs/Button.svelte';
 	import Page from '$cmp/layout/Page.svelte';
 	import { RoocParser } from '@specy/rooc';
-	import type { CompilationError } from '@specy/rooc/';
+	import type { CompilationError, TransformError } from '@specy/rooc/';
 	let source = '';
 	let compiled = '';
 
 	function compile() {
 		const parser = new RoocParser(source);
-		const transform = parser.compile();
-		if (transform.ok) {
-			compiled = transform.val.stringify();
-		} else {
-			compiled = (transform.val as CompilationError).message();
+		const compile = parser.compile();
+		if (!compile.ok) {
+			return (compiled = (compile.val as CompilationError).message());
 		}
+		const transform = compile.val.transform();
+		if (!transform.ok) {
+			console.log(transform.val);
+			return (compiled = (transform.val as TransformError).message());
+		}
+		compiled = transform.val.stringify();
 	}
 </script>
 
-<Page padding="1rem" gap="1rem" style='height: 100vh'>
+<Page padding="1rem" gap="1rem" style="height: 100vh">
 	<div class="wrapper">
 		<Editor
 			style="flex: 1; height: 100%;"
@@ -26,7 +30,17 @@
 			bind:code={source}
 			highlightedLine={-1}
 		/>
-		<textarea value={compiled} />
+		<Editor
+			style="flex: 1; height: 100%;"
+			language="rooc"
+			bind:code={compiled}
+			config={{
+				readOnly: true,
+				lineNumbers: 'off'
+			}}
+			disabled
+			highlightedLine={-1}
+		/>
 	</div>
 	<div style="display: flex; justify-content: flex-end">
 		<Button on:click={compile}>Compile</Button>

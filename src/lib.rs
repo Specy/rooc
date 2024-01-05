@@ -61,6 +61,9 @@ impl RoocParser {
     pub fn format_wasm(&self) -> Result<String, CompilationError> {
         self.format()
     }
+    pub fn parse_wasm(&self) -> Result<PreProblem, CompilationError> {
+        self.parse()
+    }
     pub fn parse_and_transform_wasm(&self) -> Result<Problem, String> {
         self.parse_and_transform()
     }

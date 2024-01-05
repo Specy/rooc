@@ -1,31 +1,31 @@
 <script lang="ts">
-	import { createEventDispatcher, onDestroy, onMount } from 'svelte'
-	import type monaco from 'monaco-editor'
-	import { Monaco } from '$lib/Monaco'
-	import type { MonacoType } from '$lib/Monaco'
-	import { generateTheme } from '$lib/theme/editorTheme'
-	export let disabled = false
-	export let code: string
-	export let highlightedLine: number
-	export let hasError = false
-	export let language: "rooc"
-	export let style = ''
-	export let editor: monaco.editor.IStandaloneCodeEditor | null = null
-	let mockEditor: HTMLDivElement | null
-	let monacoInstance: MonacoType | null
-	let decorations = []
-	let hoveredGliphen: number | null
-	const toDispose = []
+	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
+	import type monaco from 'monaco-editor';
+	import { Monaco } from '$lib/Monaco';
+	import type { MonacoType } from '$lib/Monaco';
+	import { generateTheme } from '$lib/theme/editorTheme';
+	export let disabled = false;
+	export let code: string;
+	export let highlightedLine: number;
+	export let hasError = false;
+	export let language: 'rooc';
+	export let style = '';
+	export let editor: monaco.editor.IStandaloneCodeEditor | null = null;
+	export let config: monaco.editor.IStandaloneEditorConstructionOptions = {};
+	let mockEditor: HTMLDivElement | null;
+	let monacoInstance: MonacoType | null;
+	let decorations = [];
+	const toDispose = [];
 	const dispatcher = createEventDispatcher<{
-		change: string
-		breakpointPress: number
-	}>()
-	let el: HTMLDivElement
+		change: string;
+		breakpointPress: number;
+	}>();
+	let el: HTMLDivElement;
 
 	onMount(async () => {
-		monacoInstance = await Monaco.get()
-		if (!el) return console.log('Wrapper element not valid', el)
-		Monaco.registerLanguages()
+		monacoInstance = await Monaco.get();
+		if (!el) return console.log('Wrapper element not valid', el);
+		Monaco.registerLanguages();
 		editor = monacoInstance.editor.create(el, {
 			value: code,
 			language: language.toLowerCase(),
@@ -35,63 +35,44 @@
 				vertical: 'auto',
 				horizontal: 'auto'
 			},
-			glyphMargin: true,
+			glyphMargin: false,
 			cursorBlinking: 'phase',
 			fontSize: 16,
 			smoothScrolling: true,
-			cursorSmoothCaretAnimation: "on"
-		})
-
+			cursorSmoothCaretAnimation: 'on',
+			...config
+		});
 		const observer = new ResizeObserver(() => {
-			if (!mockEditor) return
-			const bounds = mockEditor.getBoundingClientRect()
+			if (!mockEditor) return;
+			const bounds = mockEditor.getBoundingClientRect();
 			editor.layout({
 				width: bounds.width,
 				height: bounds.height
-			})
-		})
-		Monaco.setCustomTheme(generateTheme())
-		observer.observe(mockEditor)
-
-		toDispose.push(
-			editor.onMouseDown((e) => {
-				if (e.target.type === monacoInstance.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) {
-					dispatcher('breakpointPress', e.target.position.lineNumber)
-				}
-			}),
-			editor.onMouseLeave(() => {
-				hoveredGliphen = null
-			}),
-			editor.onMouseMove((e) => {
-				if (e.target.type === monacoInstance.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) {
-					hoveredGliphen = e.target.position.lineNumber
-				} else {
-					hoveredGliphen = null
-				}
-			})
-		)
-		toDispose.push(() => observer.disconnect())
+			});
+		});
+		Monaco.setCustomTheme(generateTheme());
+		observer.observe(mockEditor);
+		toDispose.push(() => observer.disconnect());
 		toDispose.push(
 			editor.getModel().onDidChangeContent(() => {
-				code = editor.getValue()
-				dispatcher('change', code)
+				code = editor.getValue();
+				dispatcher('change', code);
 			})
-		)
-	})
+		);
+	});
 	$: {
 		if (editor && code !== editor.getValue()) {
-			console.log("overridden editor code")
-			editor.setValue(code)
+			console.log('overridden editor code');
+			editor.setValue(code);
 		}
 	}
 	onDestroy(() => {
 		toDispose.forEach((d) => {
-			if (typeof d === 'function') return d()
-			d.dispose()
-		})
-		Monaco?.dispose()
-		editor?.dispose()
-	})
+			if (typeof d === 'function') return d();
+			d.dispose();
+		});
+		editor?.dispose();
+	});
 	$: {
 		if (editor) {
 			decorations = editor.deltaDecorations(decorations, [
@@ -105,34 +86,33 @@
 									isWholeLine: true
 								}
 							}
-					  ]
-					: []),
-			])
+						]
+					: [])
+			]);
 		}
 	}
 
 	$: {
 		if (editor && highlightedLine > 0) {
-			editor.revealLineInCenter(highlightedLine)
+			editor.revealLineInCenter(highlightedLine);
 		}
 	}
-	$: editor?.updateOptions({ readOnly: disabled })
+	$: editor?.updateOptions({ readOnly: disabled });
 </script>
 
 <div bind:this={mockEditor} class="mock-editor" {style}>
 	{#if !editor}
 		<h1 class="loading">Loading editor...</h1>
 	{/if}
+	<div bind:this={el} class="editor" />
 </div>
-
-<div bind:this={el} class="editor" />
 
 <style lang="scss">
 	:global(.selected-line) {
 		background-color: var(--accent);
 		color: var(--accent-text);
 	}
-	:global(.overflow-guard, .monaco-editor){
+	:global(.overflow-guard, .monaco-editor) {
 		border-radius: 0.4rem;
 	}
 	:global(.error-line) {
@@ -176,6 +156,7 @@
 
 	.mock-editor {
 		display: flex;
+		position: relative;
 		flex: 1;
 	}
 
@@ -202,8 +183,8 @@
 
 	.loading {
 		display: flex;
-		width: calc(100% - 0.4rem);
-		height: calc(100% - 0.4rem);
+		width: 100%;
+		height: 100%;
 		justify-content: center;
 		align-items: center;
 		background-color: var(--secondary);

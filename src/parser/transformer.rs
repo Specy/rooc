@@ -272,7 +272,7 @@ impl fmt::Display for Problem {
             .map(|condition| condition.to_string())
             .collect::<Vec<_>>()
             .join("\n    ");
-        write!(f, "{}\ns.t\n    {}", self.objective, conditions)
+        write!(f, "{}\ns.t.\n    {}", self.objective, conditions)
     }
 }
 #[wasm_bindgen]
@@ -301,7 +301,7 @@ pub enum TransformError {
 }
 #[wasm_bindgen(typescript_custom_section)]
 pub const ITransformError: &'static str = r#"
-export type TransformError = {
+export type SerializedTransformError = {
     type: "MissingVariable",
     value: string
 } | {
@@ -316,8 +316,8 @@ export type TransformError = {
 } | {
     type: "SpannedError",
     value: {
-        spanned_error: SerializedSpanned<TransformError>,
-        value: string
+        spanned_error: SerializedSpanned<SerializedTransformError>,
+        value?: string
     }
 } | {
     type: "Unspreadable",
@@ -394,6 +394,13 @@ impl TransformError {
                 trace
             }
             _ => Vec::new(),
+        }
+    }
+    pub fn get_origin_span(&self) -> Option<InputSpan> {
+        let trace = self.get_trace();
+        match trace.first() {
+            Some((span, _)) => Some(span.clone()),
+            None => None,
         }
     }
     pub fn get_trace_from_source(&self, source: &str) -> Result<String, ()> {

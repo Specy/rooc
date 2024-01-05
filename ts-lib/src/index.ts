@@ -6,6 +6,10 @@ import {
     SerializedCompilationError,
     ParseError,
     InputSpan,
+    PreProblem as _PreProblem,
+    SerializedPreProblem,
+    TransformErrorWrapper as _TransformErrorWrapper,
+    SerializedTransformError,
 } from './pkg/rooc.js'
 import { Ok, Err, Result } from 'ts-results'
 export class RoocParser {
@@ -30,12 +34,20 @@ export class RoocParser {
             return Err(new CompilationError(e, this.source))
         }
     }
-    compile(): Result<Problem, CompilationError> {
+    compile(): Result<PreProblem, CompilationError> {
         try {
-            return Ok(new Problem(this.instance.parse_and_transform_wasm()))
+            return Ok(new PreProblem(this.instance.parse_wasm(), this.source))
         } catch (e) {
             return Err(new CompilationError(e, this.source))
         }
+    }
+    compileAndTransform(): Result<Problem, string> {
+        try {
+            return Ok(new Problem(this.instance.parse_and_transform_wasm()))
+        } catch (e) {
+            return Err(e)
+        }
+
     }
 }
 
@@ -49,7 +61,7 @@ export class CompilationError {
     getSpan(): InputSpan {
         return this.instance.get_span_wasm();
     }
-    getErrorKind(): ParseError{
+    getErrorKind(): ParseError {
         return this.instance.get_kind_wasm();
     }
     serialize(): SerializedCompilationError {
@@ -61,6 +73,66 @@ export class CompilationError {
         } else {
             return this.instance.to_error_string_wasm();
         }
+    }
+}
+export class PreProblem {
+    instance: _PreProblem
+    source: string
+    constructor(instance: _PreProblem, source: string) {
+        this.instance = instance;
+        this.source = source;
+    }
+    serialize(): SerializedPreProblem {
+        return this.instance.serialize_wasm()
+    }
+    transform(): Result<Problem, TransformError> {
+        try {
+            return Ok(new Problem(this.instance.transform_wasm()))
+        } catch (e) {
+            return Err(new TransformError(e, this.source))
+        }
+    }
+    verify(): Result<null, TransformError> {
+        try {
+            this.instance.verify_wasm()
+            return Ok(null)
+        } catch (e) {
+            return Err(new TransformError(e, this.source))
+        }
+    }
+    format(): string {
+        return this.instance.format_wasm()
+    }
+}
+
+export class TransformError {
+    instance: _TransformErrorWrapper
+    source?: string
+    constructor(instance: _TransformErrorWrapper, source?: string) {
+        this.instance = instance;
+        this.source = source;
+    }
+    serialize(): SerializedTransformError {
+        return this.instance.serialize_wasm()
+    }
+    getMessageFromSource(source: string): string {
+        return this.instance.get_error_from_source(source)
+    }
+    getTracedError(): string {
+        return this.instance.get_traced_error()
+    }
+    getOriginSpan(): InputSpan | undefined {
+        return this.instance.get_origin_span()
+    }
+    message() {
+        if (this.source) {
+            return this.instance.get_error_from_source(this.source);
+        } else {
+            return this.instance.get_traced_error();
+        }
+    }
+    getTrace(): InputSpan[] {
+        return this.instance.get_trace();
     }
 }
 
@@ -103,4 +175,5 @@ export type {
     SerializedSpanned,
     SerializedTuple,
     SerializedVariableType,
+    SerializedTransformError
 } from './pkg/rooc'

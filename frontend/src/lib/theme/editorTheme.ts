@@ -2,19 +2,19 @@ import { currentTheme } from "$stores/themeStore"
 import { TinyColor } from "@ctrl/tinycolor"
 import type monaco from "monaco-editor"
 export function generateTheme(): monaco.editor.IStandaloneThemeData{
-	const base = currentTheme.getColor("secondary")
+	const base = currentTheme.getColor("primary")
 	const isDark = new TinyColor(base).isDark()
 	return {
 		"base": isDark? "vs-dark" : "vs",
 		"inherit": true,
 		"rules": isDark ? darkOverride : whiteOverride,
 		"colors": {
-			"editor.foreground": currentTheme.getColorText("secondary"), //CDCDCD
-			"editor.background": currentTheme.getColor('secondary').toHexString(),
+			"editor.foreground": currentTheme.getColorText("primary"), //CDCDCD
+			"editor.background": currentTheme.getColor('primary').toHexString(),
 			"editor.selectionBackground": currentTheme.layer("tertiary", 2).toHexString(),
-			"editor.lineHighlightBackground": currentTheme.layer('secondary',5).toHexString(),
+			"editor.lineHighlightBackground": currentTheme.layer('primary',5).toHexString(),
 			"editorCursor.foreground": currentTheme.getColor('accent').toHexString(),
-			"editorWhitespace.foreground": new TinyColor(currentTheme.getColorText("secondary")).toHexString() + "2A",
+			"editorWhitespace.foreground": new TinyColor(currentTheme.getColorText("primary")).toHexString() + "2A",
 			"editorWidget.background": currentTheme.getColor("tertiary").toHexString(),
 			'editorSuggestWidget.selectedBackground': currentTheme.getColor("accent2").darken(5).toHexString(),
 			"input.background": currentTheme.layer("tertiary", 10).toHexString(),

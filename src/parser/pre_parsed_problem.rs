@@ -757,7 +757,7 @@ impl fmt::Display for CompoundVariable {
         write!(f, "{}_{}", self.name, self.indexes.join("_"))
     }
 }
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct PreObjective {
     pub objective_type: OptimizationType,
     pub rhs: PreExp,
@@ -785,7 +785,7 @@ impl fmt::Display for PreObjective {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct PreCondition {
     pub lhs: PreExp,
     pub condition_type: Comparison,

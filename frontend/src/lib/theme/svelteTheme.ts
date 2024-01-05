@@ -64,7 +64,7 @@ export function createColorStore(name: string, color: string, cssProp: string, t
             hex: obj.hex
         }
     }
-    
+
     return {
         subscribe,
         setColor,
@@ -78,27 +78,28 @@ export interface ColorStore extends Readable<ColorData> {
     layer: (layer: number) => TinyColor
 }
 
+export type NamesOfTheme<T extends SerializedTheme> = T extends SerializedTheme<infer K> ? K : never
 
-export type SerializedTheme = {
+export type ComputedThemeLayers<T extends string, K extends number> = T | `${T}-${K}`
+
+export type SerializedTheme<T extends string = string> = {
     meta: {
         version: number
         id: string
         name: string
     }
-    colors: {
-        [key: string]: SerializedColorStore
-    }
+    colors: Record<T, SerializedColorStore>
 }
-export type Theme = {
+export type Theme<T extends string = string> = {
     meta: {
         version: number
         id: string
         name: string
     }
-    colors: Map<string, ColorStore>
+    colors: Map<T, ColorStore>
 }
 
-export function createThemeStore<T extends SerializedTheme>(baseTheme: T) {
+export function createThemeStore<T extends SerializedTheme<string>>(baseTheme: T) {
 
     const { subscribe, set: _set, update } = writable<Theme>({
         meta: { ...baseTheme.meta },
@@ -128,16 +129,45 @@ export function createThemeStore<T extends SerializedTheme>(baseTheme: T) {
     }
     function getColor(key: ThemeKey<T>): TinyColor | undefined {
         const store = getColorStore(key)
-        if(!store) return undefined
+        if (!store) return undefined
         return get(store).color
     }
     function getColorText(key: ThemeKey<T>): string | undefined {
         const store = getColorStore(key)
-        if(!store) return undefined
+        if (!store) return undefined
         return get(store).text
     }
     function toArray(): SerializedColorStore[] {
         return Array.from(get({ subscribe }).colors.values()).map(c => c.serialize())
+    }
+    function toCssObject<K extends number>(layers: K[]): Record<ComputedThemeLayers<NamesOfTheme<T>, K>, string> {
+        const colors = toArray();
+        // Creates the different layers for each color
+        const colorLayers = colors.flatMap(color =>
+            layers.map(l => ({
+                name: `${color.name}-${l}`,
+                hex: layer(color.name, l).toHexString(),
+                cssProp: `${color.cssProp}-${l}`,
+                text: layer(color.name, l).isDark() ? textColor.dark : textColor.light
+            } satisfies SerializedColorStore)
+            )
+        );
+        const allColors = [...colors, ...colorLayers];
+        // Merges all the colors and variables into a single object and creates the different variations of the colors
+        const colorsEntries = allColors.flatMap(color => {
+            const rgb = new TinyColor(color.hex).toRgb();
+            const rgbArr = [rgb.r, rgb.g, rgb.b];
+            return [
+                [`--${color.cssProp}`, color.hex],
+                [`--${color.cssProp}-text`, color.text],
+                [`--${color.cssProp}-rgb`, rgbArr.join(",")]
+            ];
+        });
+        return Object.fromEntries(colorsEntries);
+    }
+    function toCss<K extends number>(layers: K[]): string {
+        const css = toCssObject(layers);
+        return Object.entries(css).map(([k, v]) => `${k}: ${v};`).join("\n");
     }
     function loadFrom(serializedTheme: SerializedTheme) {
         const _theme = cloneDeep(serializedTheme) as SerializedTheme
@@ -162,7 +192,9 @@ export function createThemeStore<T extends SerializedTheme>(baseTheme: T) {
         getColorText,
         layer,
         loadFrom,
-        toArray
+        toArray,
+        toCss,
+        toCssObject
     }
 }
 
@@ -190,7 +222,7 @@ export interface ThemePersistence {
 
 
 
-export function createThemeStorage<T extends SerializedTheme>(_persistence: ThemePersistence, baseTheme: T, ...rest: T[]){
+export function createThemeStorage<T extends SerializedTheme>(_persistence: ThemePersistence, baseTheme: T, ...rest: T[]) {
     let persistence = _persistence
     const currentThemeRef = createThemeStore(baseTheme)
     const { subscribe, set: _set, update } = writable<ThemeStorageState<T>>({
@@ -298,10 +330,15 @@ export class LocalStorageThemePersistence implements ThemePersistence {
 }
 
 
-export function createDerivedThemeColors<T extends SerializedTheme>(theme: ThemeStore<T>){
+export function createDerivedThemeColors<T extends SerializedTheme>(theme: ThemeStore<T>) {
     return derived(theme, () => {
         return theme.toArray()
     }) as Readable<SerializedColorStore[]>
 }
 
+export function createDerivedTheme<T extends SerializedTheme, K extends number >(theme: ThemeStore<T>, layers: K[]) {
+    return derived(theme, () => {
+        return theme.toCss(layers)
+    }) 
+}
 

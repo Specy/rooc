@@ -1,35 +1,18 @@
 <script lang="ts">
-	import { createDerivedThemeColors } from "$lib/theme/svelteTheme"
-	import { TinyColor } from "@ctrl/tinycolor"
+	import { createDerivedTheme } from "$lib/theme/svelteTheme"
 	export let style = ""
 	export let theme: any //i have no idea how to type this
-	let colors = createDerivedThemeColors(theme)
+	let themeCss = createDerivedTheme(theme, [5, 10, 15])
 
-	function toRgb(color: string) {
-		return (new TinyColor(color)
-			.toRgbString()
-			.match(/(\s*\d+\s*),(\s*\d+\s*),(\s*\d+\s*)/) ?? [])[0]
-	}
+
 </script>
+
 
 <div
 	style={`
 	display: flex; 
 	flex-direction: column;
-
-    ${$colors
-			.map(({ cssProp, hex, text }) => {
-				const rgb = toRgb(hex)
-				const rgbText = toRgb(text ?? "#FFFFFF")
-				return `
-				--${cssProp}: ${hex};
-				--${cssProp}-text: ${text};
-				--RGB-${cssProp}: ${rgb};
-				--RGB-${cssProp}-text: ${rgbText};
-				`
-			})
-
-			.join("\n")}
+    ${$themeCss}
     ${style}
 `}
 >

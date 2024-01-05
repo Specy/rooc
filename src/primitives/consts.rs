@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use super::primitive::Primitive;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Constant {
     pub name: String,
     pub value: Primitive,

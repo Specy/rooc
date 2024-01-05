@@ -7,6 +7,7 @@
 	import '../global.css';
 	import { onMount } from 'svelte';
 	import { Monaco } from '$lib/Monaco';
+	import NoiseOverlay from '$cmp/layout/NoiseOverlay.svelte';
 	onMount(() => {
 		themeStorage.load();
 		Monaco.load()
@@ -24,4 +25,5 @@
 		<PageTransition refresh={$page.url.pathname} />
 		<slot />
 	</ErrorLogger>
+	<NoiseOverlay opacity={0.1} />
 </ThemeProvider>

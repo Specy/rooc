@@ -35,9 +35,9 @@ The "language" supports formal definitions of problems, with the ability to call
   - [ ] Branch & Bound method to solve integer problems
   - [ ] Other integer solution algorithms
 - [ ] UI
-  - [ ] List of modifications from the start of the problem to the end of the solution
-  - [ ] Compilation to WASM
+  - [x] Compilation to WASM
   - [ ] Website to show the different steps of solving the problem
+  - [ ] List of modifications from the start of the problem to the end of the solution
 
 
 # Example
@@ -63,7 +63,7 @@ where
 It is compiled down to:
 ```lua
 min x_A + x_B + x_C + x_D + x_E + x_F + x_G + x_H + x_I + x_J
-s.t
+s.t.
         x_A + x_B + x_D + x_C + x_F + x_E >= 1
         x_B + x_D + x_E + x_J + x_C + x_A >= 1
         x_C + x_B + x_D + x_I + x_A + x_E >= 1

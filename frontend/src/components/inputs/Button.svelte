@@ -1,12 +1,11 @@
 <script lang="ts">
-	export let disabled = false
-	export let color = 'var(--accent-text)'
-	export let style = ''
-	export let bg = 'var(--accent)'	
-	export let hasIcon = false
-	export let cssVar = 'unset'
-	export let active = false
-	export let title = ""
+	import type { ColorName } from '$src/stores/themeStore';
+	export let disabled = false;
+	export let style = '';
+	export let hasIcon = false;
+	export let color: ColorName = 'primary';
+	export let active = false;
+	export let title = '';
 </script>
 
 <button
@@ -14,7 +13,13 @@
 	class="btn"
 	class:hasIcon
 	{title}
-	style={`--btn-color:var(--${cssVar},${bg}); --btn-text:var(--${cssVar}-text,${color});${style}; `}
+	style="
+	--btn-color:var(--{color}); 
+	--btn-text:var(--{color}-text); 
+	--border-color: var(--{color}-10);
+	--btn-color-hover: var(--{color}-10);
+	{style};
+	"
 	{disabled}
 	on:click
 	class:active
@@ -25,35 +30,35 @@
 <style lang="scss">
 	.btn {
 		padding: 0.5rem 1rem;
-		border-radius: 0.4rem;
-		color: var(--btn-text, --accent-text);
-		background-color: var(--btn-color, --accent);
+		border-radius: 0.3rem;
+		color: var(--btn-text);
+		background-color: var(--btn-color);
+		border: dashed 0.1rem var(--border-color);
 		text-align: center;
 		display: flex;
 		transition: all 0.3s;
 		font-size: 1rem;
 		align-items: center;
 		justify-content: center;
-		border: none;
 		width: fit-content;
 		user-select: none;
 		font-family: Rubik;
 		position: relative;
 		cursor: pointer;
 	}
-	.active{
+	.active {
 		background-color: var(--accent);
 		color: var(--accent-text);
 	}
 	.btn:hover {
-		filter:brightness(1.2)
+		background-color: var(--btn-color-hover);
 	}
 	.btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
 	}
 	.btn:disabled:hover {
-		filter: none !important;
+		background-color: var(--btn-color) !important;
 	}
 	.hasIcon {
 		display: flex;
