@@ -332,6 +332,7 @@ struct TempUnOp {
 }
 
 impl PreExp {
+    //TODO improve spans
     pub fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         match self {
             Self::FunctionCall(span, fun) => fun
@@ -379,23 +380,25 @@ impl PreExp {
                         "Expected \"Number\", got \"{}\"",
                         exp_type.to_string()
                     ));
-                    return Err(err.to_spanned_error(self.get_span()));
+                    return Err(err.to_spanned_error(exp.get_span()));
                 }
                 Ok(())
             }
             Self::Variable(name) => Ok(()),
-            Self::CompoundVariable(c) => context.check_compound_variable(&c.indexes),
+            Self::CompoundVariable(c) => context
+                .check_compound_variable(&c.indexes)
+                .map_err(|e| e.to_spanned_error(c.get_span())),
             Self::BlockFunction(f) => {
                 for exp in &f.exps {
                     exp.type_check(context)
-                        .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                        .map_err(|e| e.to_spanned_error(f.get_span()))?;
                     let exp_type = exp.get_type(context);
                     if exp_type != PrimitiveKind::Number {
                         let err = TransformError::WrongArgument(format!(
                             "Expected \"Number\", got \"{}\"",
                             exp_type.to_string()
                         ));
-                        return Err(err.to_spanned_error(self.get_span()));
+                        return Err(err.to_spanned_error(f.get_span()));
                     }
                 }
                 Ok(())
@@ -404,10 +407,10 @@ impl PreExp {
                 for iter in &f.iters {
                     iter.iterator
                         .type_check(context)
-                        .map_err(|e| e.to_spanned_error(iter.iterator.get_span()))?;
+                        .map_err(|e| e.to_spanned_error(f.get_span()))?;
                     let types = iter
                         .get_variable_types(context)
-                        .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                        .map_err(|e| e.to_spanned_error(f.get_span()))?;
                     let map: HashMap<String, PrimitiveKind> = HashMap::from_iter(types);
                     let frame = Frame::from_map(map);
                     context.add_frame(frame);
@@ -416,10 +419,10 @@ impl PreExp {
                 for _ in &f.iters {
                     context
                         .pop_scope()
-                        .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                        .map_err(|e| e.to_spanned_error(f.get_span()))?;
                 }
                 if let Err(e) = res {
-                    return Err(e.to_spanned_error(self.get_span()));
+                    return Err(e.to_spanned_error(f.get_span()));
                 }
                 let exp_type = f.exp.get_type(context);
                 if exp_type != PrimitiveKind::Number {
@@ -427,14 +430,14 @@ impl PreExp {
                         "Expected \"Number\", got \"{}\"",
                         exp_type.to_string()
                     ));
-                    return Err(err.to_spanned_error(self.get_span()));
+                    return Err(err.to_spanned_error(f.get_span()));
                 }
                 Ok(())
             }
             Self::ArrayAccess(array_access) => context
                 .get_addressable_value(array_access)
                 .map(|_| ())
-                .map_err(|e| e.to_spanned_error(self.get_span())),
+                .map_err(|e| e.to_spanned_error(array_access.get_span())),
         }
     }
     pub fn get_type(&self, context: &TypeCheckerContext) -> PrimitiveKind {

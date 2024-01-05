@@ -6,8 +6,9 @@
 	import type { CompilationError, TransformError } from '@specy/rooc/';
 	let source = ``;
 	let compiled = '';
-
+	let lastCompilation = '';
 	function compile() {
+		lastCompilation = '';
 		const parser = new RoocParser(source);
 		const compile = parser.compile();
 		if (!compile.ok) {
@@ -18,6 +19,22 @@
 			return (compiled = (transform.val as TransformError).message());
 		}
 		compiled = transform.val.stringify();
+		lastCompilation = compiled;
+	}
+	function typeCheck() {
+		const parser = new RoocParser(source);
+		const compile = parser.compile();
+		if (!compile.ok) {
+			return (compiled = (compile.val as CompilationError).message());
+		}
+		const transform = compile.val.typeCheck();
+		if (!transform.ok) {
+			return (compiled = (transform.val as TransformError).message());
+		}
+		compiled = lastCompilation;
+	}
+	$: if (source) {
+		typeCheck();
 	}
 </script>
 
