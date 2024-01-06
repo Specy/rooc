@@ -39,6 +39,32 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Primitive::Iterable(IterableKind::Numbers(values)))
         }
+        PrimitiveKind::Integer => {
+            let values = values
+                .into_iter()
+                .map(|v| match v {
+                    Primitive::Integer(i) => Ok(i),
+                    _ => Err(format!(
+                        "Expected Integer but got {}",
+                        v.get_type_string()
+                    )),
+                })
+                .collect::<Result<Vec<_>, String>>()?;
+            Ok(Primitive::Iterable(IterableKind::Integers(values)))
+        }
+        PrimitiveKind::PositiveInteger => {
+            let values = values
+                .into_iter()
+                .map(|v| match v {
+                    Primitive::PositiveInteger(i) => Ok(i),
+                    _ => Err(format!(
+                        "Expected PositiveInteger but got {}",
+                        v.get_type_string()
+                    )),
+                })
+                .collect::<Result<Vec<_>, String>>()?;
+            Ok(Primitive::Iterable(IterableKind::PositiveIntegers(values)))
+        }
         PrimitiveKind::String => {
             let values = values
                 .into_iter()

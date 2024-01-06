@@ -20,6 +20,8 @@ use super::{
 #[serde(tag = "type", content = "value")]
 pub enum IterableKind {
     Numbers(Vec<f64>),
+    Integers(Vec<i64>),
+    PositiveIntegers(Vec<u64>),
     Strings(Vec<String>),
     Edges(Vec<GraphEdge>),
     Nodes(Vec<GraphNode>),
@@ -32,6 +34,8 @@ pub enum IterableKind {
 const IIterableKind: &'static str = r#"
 export type SerializedIterable = 
     | { kind: 'Numbers', value: number[] }
+    | { kind: 'Integers', value: number[] }
+    | { kind: 'PositiveIntegers', value: number[] }
     | { kind: 'Strings', value: string[] }
     | { kind: 'Edges', value: SerializedGraphEdge[] }
     | { kind: 'Nodes', value: SerializedGraphNode[] }
@@ -41,24 +45,14 @@ export type SerializedIterable =
     | { kind: 'Iterable', value: SerializedIterable[] }
 "#;
 impl IterableKind {
-    pub fn get_argument_name(&self) -> &'static str {
-        match self {
-            IterableKind::Numbers(_) => "number",
-            IterableKind::Strings(_) => "string",
-            IterableKind::Edges(_) => "edge",
-            IterableKind::Nodes(_) => "node",
-            IterableKind::Tuple(_) => "tuple",
-            IterableKind::Booleans(_) => "boolean",
-            IterableKind::Graphs(_) => "graph",
-            IterableKind::Iterable(_) => "iterable",
-        }
-    }
     pub fn get_type(&self) -> PrimitiveKind {
         PrimitiveKind::Iterable(Box::new(self.get_inner_type()))
     }
     pub fn get_inner_type(&self) -> PrimitiveKind {
         match self {
             IterableKind::Numbers(_) => PrimitiveKind::Number,
+            IterableKind::Integers(_) => PrimitiveKind::Integer,
+            IterableKind::PositiveIntegers(_) => PrimitiveKind::PositiveInteger,
             IterableKind::Strings(_) => PrimitiveKind::String,
             IterableKind::Edges(_) => PrimitiveKind::GraphEdge,
             IterableKind::Nodes(_) => PrimitiveKind::GraphNode,
@@ -79,6 +73,8 @@ impl IterableKind {
     pub fn len(&self) -> usize {
         match self {
             IterableKind::Numbers(v) => v.len(),
+            IterableKind::Integers(v) => v.len(),
+            IterableKind::PositiveIntegers(v) => v.len(),
             IterableKind::Strings(v) => v.len(),
             IterableKind::Edges(v) => v.len(),
             IterableKind::Nodes(v) => v.len(),
@@ -89,20 +85,15 @@ impl IterableKind {
         }
     }
     pub fn is_empty(&self) -> bool {
-        match self {
-            IterableKind::Numbers(v) => v.is_empty(),
-            IterableKind::Strings(v) => v.is_empty(),
-            IterableKind::Edges(v) => v.is_empty(),
-            IterableKind::Nodes(v) => v.is_empty(),
-            IterableKind::Tuple(v) => v.is_empty(),
-            IterableKind::Iterable(v) => v.is_empty(),
-            IterableKind::Booleans(v) => v.is_empty(),
-            IterableKind::Graphs(v) => v.is_empty(),
-        }
+        self.len() == 0
     }
     pub fn to_primitives(self) -> Vec<Primitive> {
         match self {
             IterableKind::Numbers(v) => v.iter().map(|n| Primitive::Number(*n)).collect(),
+            IterableKind::Integers(v) => v.iter().map(|n| Primitive::Integer(*n)).collect(),
+            IterableKind::PositiveIntegers(v) => {
+                v.iter().map(|n| Primitive::PositiveInteger(*n)).collect()
+            }
             IterableKind::Strings(v) => v
                 .into_iter()
                 .map(|s| Primitive::String((*s).to_string()))
@@ -136,6 +127,12 @@ impl IterableKind {
                         check_bounds!(i, v, self, Primitive::Boolean(v[i]))
                     }
                     IterableKind::Numbers(v) => check_bounds!(i, v, self, Primitive::Number(v[i])),
+                    IterableKind::Integers(v) => {
+                        check_bounds!(i, v, self, Primitive::Integer(v[i]))
+                    }
+                    IterableKind::PositiveIntegers(v) => {
+                        check_bounds!(i, v, self, Primitive::PositiveInteger(v[i]))
+                    }
                     IterableKind::Strings(v) => {
                         check_bounds!(i, v, self, Primitive::String(v[i].to_string()))
                     }
@@ -199,6 +196,7 @@ impl IterableKind {
 }
 impl fmt::Display for IterableKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        //TODO should i turn this into a self.to_primitive_set()  and then iterate and stringify?
         let s = match self {
             IterableKind::Edges(v) => {
                 format!(
@@ -218,7 +216,26 @@ impl fmt::Display for IterableKind {
                         .join(", ")
                 )
             }
+
             IterableKind::Numbers(v) => {
+                format!(
+                    "[{}]",
+                    v.iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+            IterableKind::Integers(v) => {
+                format!(
+                    "[{}]",
+                    v.iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+            IterableKind::PositiveIntegers(v) => {
                 format!(
                     "[{}]",
                     v.iter()
@@ -291,15 +308,12 @@ impl ApplyOp for IterableKind {
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: BinOp, _to: &Primitive) -> Result<Primitive, OperatorError> {
-        Err(OperatorError::unsupported_bin_operation(
-            op,
-            _to.get_type(),
-        ))
+        Err(OperatorError::unsupported_bin_operation(op, _to.get_type()))
     }
     fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
         Err(OperatorError::unsupported_un_operation(
             op,
-            self.get_inner_type()
+            self.get_inner_type(),
         ))
     }
     fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {

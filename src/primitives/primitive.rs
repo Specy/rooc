@@ -21,6 +21,8 @@ use super::{
 #[serde(tag = "type", content = "value")]
 pub enum Primitive {
     Number(f64),
+    Integer(i64),
+    PositiveInteger(u64),
     String(String),
     //TODO instead of making these, make a recursive IterableKind
     Iterable(IterableKind),
@@ -35,6 +37,8 @@ pub enum Primitive {
 const IPrimitive: &'static str = r#"
 export type SerializedPrimitive = 
     | { kind: 'Number', value: number }
+    | { kind: 'Integer', value: number }
+    | { kind: 'PositiveInteger', value: number }
     | { kind: 'String', value: string }
     | { kind: 'Iterable', value: SerializedIterable }
     | { kind: 'Graph', value: SerializedGraph }
@@ -48,8 +52,8 @@ export type SerializedPrimitive =
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub enum PrimitiveKind {
     Number,
-    //Integer,
-    //PositiveInteger,
+    Integer,
+    PositiveInteger,
     String,
     Iterable(Box<PrimitiveKind>),
     Graph,
@@ -64,6 +68,8 @@ pub enum PrimitiveKind {
 const IPrimitiveKind: &'static str = r#"
 export type SerializedPrimitiveKind = 
     | { kind: 'Number' }
+    | { kind: 'Integer' }
+    | { kind: 'PositiveInteger' }
     | { kind: 'String' }
     | { kind: 'Iterable', value: SerializedPrimitiveKind[] }
     | { kind: 'Graph' }
@@ -78,6 +84,8 @@ impl PrimitiveKind {
     pub fn from_primitive(p: &Primitive) -> Self {
         match p {
             Primitive::Number(_) => PrimitiveKind::Number,
+            Primitive::Integer(_) => PrimitiveKind::Integer,
+            Primitive::PositiveInteger(_) => PrimitiveKind::PositiveInteger,
             Primitive::String(_) => PrimitiveKind::String,
             Primitive::Iterable(p) => p.get_type(),
             Primitive::Graph(_) => PrimitiveKind::Graph,
@@ -88,10 +96,20 @@ impl PrimitiveKind {
             Primitive::Undefined => PrimitiveKind::Undefined,
         }
     }
+    pub fn is_numeric(&self) -> bool {
+        match self {
+            PrimitiveKind::Number => true,
+            PrimitiveKind::Integer => true,
+            PrimitiveKind::PositiveInteger => true,
+            _ => false,
+        }
+    }
     pub fn can_apply_binary_op(&self, op: BinOp, to: PrimitiveKind) -> bool {
         match self {
             PrimitiveKind::Any => false,
             PrimitiveKind::Undefined => false,
+            PrimitiveKind::Integer => i64::can_apply_binary_op(op, to),
+            PrimitiveKind::PositiveInteger => u64::can_apply_binary_op(op, to),
             PrimitiveKind::Number => f64::can_apply_binary_op(op, to),
             PrimitiveKind::Boolean => bool::can_apply_binary_op(op, to),
             PrimitiveKind::Graph => Graph::can_apply_binary_op(op, to),
@@ -106,6 +124,8 @@ impl PrimitiveKind {
         match self {
             PrimitiveKind::Any => false,
             PrimitiveKind::Undefined => false,
+            PrimitiveKind::Integer => i64::can_apply_unary_op(op),
+            PrimitiveKind::PositiveInteger => u64::can_apply_unary_op(op),
             PrimitiveKind::Number => f64::can_apply_unary_op(op),
             PrimitiveKind::Boolean => bool::can_apply_unary_op(op),
             PrimitiveKind::Graph => Graph::can_apply_unary_op(op),
@@ -120,6 +140,8 @@ impl PrimitiveKind {
         match self {
             PrimitiveKind::Number => "Number".to_string(),
             PrimitiveKind::String => "String".to_string(),
+            PrimitiveKind::Integer => "Integer".to_string(),
+            PrimitiveKind::PositiveInteger => "PositiveInteger".to_string(),
             PrimitiveKind::Iterable(i) => format!("{}[]", i.to_string()),
             PrimitiveKind::Graph => "Graph".to_string(),
             PrimitiveKind::GraphEdge => "GraphEdge".to_string(),
@@ -150,27 +172,62 @@ impl Primitive {
             Primitive::Number(n) => Ok(*n) 
             ; (self))
     }
+    pub fn as_number_cast(&self) -> Result<f64, TransformError> {
+        match self {
+            Primitive::Number(n) => Ok(*n),
+            Primitive::Integer(n) => Ok(*n as f64),
+            Primitive::PositiveInteger(n) => Ok(*n as f64),
+            _ => bail_wrong_argument!(PrimitiveKind::Number, self),
+        }
+    }
     pub fn as_integer(&self) -> Result<i64, TransformError> {
-        let n = self.as_number()?;
-        if n.fract() != 0.0 {
-            Err(TransformError::Other(format!(
-                "Expected integer, got {}",
-                self
-            )))
-        } else {
-            Ok(n as i64)
+        match_or_bail!(PrimitiveKind::Integer, 
+            Primitive::Integer(n) => Ok(*n) 
+            ; (self))
+    }
+    pub fn as_integer_cast(&self) -> Result<i64, TransformError> {
+        match self {
+            Primitive::Integer(n) => Ok(*n),
+            Primitive::PositiveInteger(n) => Ok(*n as i64),
+            Primitive::Number(n) => {
+                if n.fract() != 0.0 {
+                    Err(wrong_argument!(PrimitiveKind::Integer, self))
+                } else {
+                    Ok(*n as i64)
+                }
+            }
+            _ => bail_wrong_argument!(PrimitiveKind::Integer, self),
         }
     }
     pub fn as_usize(&self) -> Result<usize, TransformError> {
-        let n = self.as_integer()?;
-        if n < 0 {
-            Err(TransformError::Other(format!(
-                "Expected positive integer, got {}",
-                self
-            )))
-        } else {
-            Ok(n as usize)
+        match_or_bail!(PrimitiveKind::PositiveInteger, 
+            Primitive::PositiveInteger(n) => Ok(*n as usize) 
+            ; (self))
+    }
+    pub fn as_usize_cast(&self) -> Result<usize, TransformError> {
+        match self {
+            Primitive::PositiveInteger(n) => Ok(*n as usize),
+            Primitive::Integer(n) => {
+                if *n < 0 {
+                    Err(wrong_argument!(PrimitiveKind::PositiveInteger, self))
+                } else {
+                    Ok(*n as usize)
+                }
+            }
+            Primitive::Number(n) => {
+                if n.fract() != 0.0 || *n < 0.0 {
+                    Err(wrong_argument!(PrimitiveKind::PositiveInteger, self))
+                } else {
+                    Ok(*n as usize)
+                }
+            }
+            _ => bail_wrong_argument!(PrimitiveKind::PositiveInteger, self),
         }
+    }
+    pub fn as_positive_integer(&self) -> Result<u64, TransformError> {
+        match_or_bail!(PrimitiveKind::PositiveInteger, 
+            Primitive::PositiveInteger(n) => Ok(*n) 
+            ; (self))
     }
     pub fn as_graph(&self) -> Result<&Graph, TransformError> {
         match_or_bail!(PrimitiveKind::Graph,
@@ -214,8 +271,12 @@ impl fmt::Display for Primitive {
         let s = match self {
             Primitive::Number(n) => n.to_string(),
             Primitive::String(s) => s.to_string(),
+            Primitive::Integer(n) => n.to_string(),
+            Primitive::PositiveInteger(n) => n.to_string(),
             Primitive::Iterable(i) => match i {
                 IterableKind::Numbers(v) => format!("{:?}", v),
+                IterableKind::Integers(v) => format!("{:?}", v),
+                IterableKind::PositiveIntegers(v) => format!("{:?}", v),
                 IterableKind::Strings(v) => format!("{:?}", v),
                 IterableKind::Edges(v) => format!("{:?}", v),
                 IterableKind::Nodes(v) => format!("{:?}", v),

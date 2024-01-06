@@ -100,7 +100,7 @@ compound_variable = @{ simple_variable ~ ("_" ~ LETTER+)+ }
 // maybe i should do ("_" ~ LETTER+)+
 number    = @{ '0'..'9'+ ~ ("." ~ '0'..'9'+)? }
 signed_number = @{ "-"? ~ number}
-keyword = { "for" | "min" | "max" | "where" | "true" | "false" | "in" | "s.t."}
+keyword = { "for" | "min" | "max" | "where" | "true" | "false" | "in" | "s.t." | "as" | "define" }
 binary_op = _{ mul | add | sub | div }
 mul = { "*" }
 add = { "+" }

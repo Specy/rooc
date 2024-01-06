@@ -662,6 +662,8 @@ impl TransformerContext {
                         got: value.get_type(),
                         one_of: vec![
                             PrimitiveKind::Number,
+                            PrimitiveKind::Integer,
+                            PrimitiveKind::PositiveInteger,
                             PrimitiveKind::String,
                             PrimitiveKind::GraphNode,
                         ],
@@ -762,12 +764,6 @@ impl TransformerContext {
         Ok(name)
     }
 
-    pub fn get_numerical_constant(&self, name: &str) -> Result<f64, TransformError> {
-        match self.get_value(name) {
-            Some(v) => v.as_number(),
-            None => Err(TransformError::MissingVariable(name.to_string())),
-        }
-    }
     pub fn get_addressable_value(
         &self,
         addressable_access: &AddressableAccess,
@@ -778,7 +774,7 @@ impl TransformerContext {
                 let accesses = addressable_access
                     .accesses
                     .iter()
-                    .map(|access| access.as_usize(self))
+                    .map(|access| access.as_usize_cast(self))
                     .collect::<Result<Vec<_>, TransformError>>()?;
                 let value = a.as_iterator()?.read(accesses)?;
                 Ok(value)

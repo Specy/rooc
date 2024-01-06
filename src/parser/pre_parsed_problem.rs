@@ -431,7 +431,7 @@ impl TypeCheckable for PreExp {
                 exp.type_check(context)
                     .map_err(|e| e.to_spanned_error(exp.get_span()))?;
                 let exp_type = exp.get_type(context);
-                if exp_type != PrimitiveKind::Number {
+                if exp_type.is_numeric() {
                     return Err(TransformError::from_wrong_type(
                         exp_type,
                         PrimitiveKind::Number,
@@ -449,7 +449,7 @@ impl TypeCheckable for PreExp {
                     exp.type_check(context)
                         .map_err(|e| e.to_spanned_error(f.get_span()))?;
                     let exp_type = exp.get_type(context);
-                    if exp_type != PrimitiveKind::Number {
+                    if exp_type.is_numeric() {
                         return Err(TransformError::from_wrong_type(
                             PrimitiveKind::Number,
                             exp_type,
@@ -481,7 +481,7 @@ impl TypeCheckable for PreExp {
                     return Err(e.to_spanned_error(f.get_span()));
                 }
                 let exp_type = f.exp.get_type(context);
-                if exp_type != PrimitiveKind::Number {
+                if exp_type.is_numeric() {
                     let err = TransformError::from_wrong_type(
                         PrimitiveKind::Number,
                         exp_type,
@@ -507,7 +507,7 @@ impl WithType for PreExp {
             Self::Variable(name) => context
                 .get_value(name)
                 .map(|e| e.clone())
-                .unwrap_or(PrimitiveKind::Number), //TODO add assignments for 
+                .unwrap_or(PrimitiveKind::Number), //TODO add assignments for
             Self::BinaryOperation(_, lhs, _) => lhs.get_type(context),
             Self::UnaryOperation(_, exp) => exp.get_type(context),
             Self::Mod(_, exp) => exp.get_type(context),
@@ -745,25 +745,43 @@ impl PreExp {
     }
     //TODO make this a macro
     pub fn as_number(&self, context: &TransformerContext) -> Result<f64, TransformError> {
-        self
-            .as_primitive(context)
-            .map(|p| p.as_number().map(|v| v.to_owned()))
+        self.as_primitive(context)
+            .map(|p| p.as_number())
             .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
-    pub fn as_string(&self, context: &TransformerContext) -> Result<String, TransformError> {
+    pub fn as_number_cast(&self, context: &TransformerContext) -> Result<f64, TransformError> {
         self.as_primitive(context)
-            .map(|p| p.as_string().map(|v| v.to_owned()))
+            .map(|p| p.as_number_cast())
             .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
     pub fn as_integer(&self, context: &TransformerContext) -> Result<i64, TransformError> {
-        self
-            .as_primitive(context)
-            .map(|p: Primitive| p.as_integer().map(|v| v.to_owned()))
+        self.as_primitive(context)
+            .map(|p| p.as_integer())
+            .map_err(|e| e.to_spanned_error(self.get_span()))?
+    }
+    pub fn as_integer_cast(&self, context: &TransformerContext) -> Result<i64, TransformError> {
+        self.as_primitive(context)
+            .map(|p| p.as_integer_cast())
+            .map_err(|e| e.to_spanned_error(self.get_span()))?
+    }
+    pub fn as_positive_integer(&self, context: &TransformerContext) -> Result<u64, TransformError> {
+        self.as_primitive(context)
+            .map(|p| p.as_positive_integer())
             .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
     pub fn as_usize(&self, context: &TransformerContext) -> Result<usize, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_usize().map(|v| v.to_owned()))
+            .map_err(|e| e.to_spanned_error(self.get_span()))?
+    }
+    pub fn as_usize_cast(&self, context: &TransformerContext) -> Result<usize, TransformError> {
+        self.as_primitive(context)
+            .map(|p| p.as_usize_cast().map(|v| v.to_owned()))
+            .map_err(|e| e.to_spanned_error(self.get_span()))?
+    }
+    pub fn as_string(&self, context: &TransformerContext) -> Result<String, TransformError> {
+        self.as_primitive(context)
+            .map(|p| p.as_string().map(|v| v.to_owned()))
             .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
     pub fn as_boolean(&self, context: &TransformerContext) -> Result<bool, TransformError> {
@@ -1132,7 +1150,7 @@ impl TypeCheckable for PreCondition {
         for _ in &self.iteration {
             context.pop_scope()?;
         }
-        if lhs_type != PrimitiveKind::Number || rhs_type != PrimitiveKind::Number {
+        if lhs_type.is_numeric() || rhs_type.is_numeric() {
             let err = TransformError::Other(format!(
                 "Expected comparison of \"Number\", got \"{}\" {} \"{}\"",
                 lhs_type.to_string(),

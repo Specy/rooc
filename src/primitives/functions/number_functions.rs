@@ -49,15 +49,15 @@ impl TypeCheckable for NumericRange {
                 let from_type = from.get_type(context);
                 let to_type = to.get_type(context);
                 let to_inclusive_type = to_inclusive.get_type(context);
-                if !matches!(from_type, PrimitiveKind::Number) {
+                if !matches!(from_type, PrimitiveKind::Integer | PrimitiveKind::PositiveInteger) {
                     Err(TransformError::from_wrong_type(
-                        PrimitiveKind::Number,
+                        PrimitiveKind::Integer,
                         from_type,
                         from.get_span().clone(),
                     ))
-                } else if !matches!(to_type, PrimitiveKind::Number) {
+                } else if !matches!(to_type, PrimitiveKind::Integer | PrimitiveKind::PositiveInteger) {
                     Err(TransformError::from_wrong_type(
-                        PrimitiveKind::Number,
+                        PrimitiveKind::Integer,
                         to_type,
                         to.get_span().clone(),
                     ))
@@ -82,8 +82,19 @@ impl TypeCheckable for NumericRange {
     }
 }
 impl WithType for NumericRange {
-    fn get_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
-        PrimitiveKind::Iterable(Box::new(PrimitiveKind::Number))
+    fn get_type(&self, context: &TypeCheckerContext) -> PrimitiveKind {
+        match self.args[..] {
+            [ref from, ref to] => {
+                let from_type = from.get_type(context);
+                let to_type = to.get_type(context);
+                //if we know that the numbers are positive, we can return a positive integer range
+                if matches!(from_type, PrimitiveKind::PositiveInteger) && matches!(to_type, PrimitiveKind::PositiveInteger) {
+                    return PrimitiveKind::Iterable(Box::new(PrimitiveKind::PositiveInteger));
+                }
+            }
+            _ => {}
+        }
+        PrimitiveKind::Iterable(Box::new(PrimitiveKind::Integer))
     }
 }
 impl FunctionCall for NumericRange {
@@ -102,12 +113,22 @@ impl FunctionCall for NumericRange {
                 let from = from.as_integer(context)?;
                 let to = to.as_integer(context)?;
                 let to_inclusive = to_inclusive.as_boolean(context)?;
+                if from >= 0 && to >=0 {
+                    let from = from as usize;
+                    let to = to as usize;
+                    let range = if to_inclusive {
+                        (from..=to).map(|i| i as u64).collect()
+                    } else {
+                        (from..to).map(|i| i as u64).collect()
+                    };
+                    return Ok(Primitive::Iterable(IterableKind::PositiveIntegers(range)));
+                }
                 let range = if to_inclusive {
-                    (from..=to).map(|i| i as f64).collect()
+                    (from..=to).map(|i| i as i64).collect()
                 } else {
-                    (from..to).map(|i| i as f64).collect()
+                    (from..to).map(|i| i as i64).collect()
                 };
-                Ok(Primitive::Iterable(IterableKind::Numbers(range)))
+                Ok(Primitive::Iterable(IterableKind::Integers(range)))
             }
             _ => bail_wrong_number_of_arguments!(self),
         }
@@ -137,6 +158,6 @@ impl FunctionCall for NumericRange {
         "range".to_string()
     }
     fn get_type_signature(&self) -> Vec<PrimitiveKind> {
-        vec![PrimitiveKind::Number; 2]
+        vec![PrimitiveKind::Integer; 2]
     }
 }

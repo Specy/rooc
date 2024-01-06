@@ -99,6 +99,8 @@ impl ApplyOp for Primitive {
             Primitive::Graph(g) => g.apply_binary_op(op, to),
             Primitive::Iterable(i) => i.apply_binary_op(op, to),
             Primitive::Number(i) => i.apply_binary_op(op, to),
+            Primitive::Integer(i) => i.apply_binary_op(op, to),
+            Primitive::PositiveInteger(i) => i.apply_binary_op(op, to),
             Primitive::Undefined => Err(OperatorError::UndefinedUse),
         }
     }
@@ -118,6 +120,8 @@ impl ApplyOp for Primitive {
             Primitive::Graph(g) => g.apply_unary_op(op),
             Primitive::Iterable(i) => i.apply_unary_op(op),
             Primitive::Number(i) => i.apply_unary_op(op),
+            Primitive::Integer(i) => i.apply_unary_op(op),
+            Primitive::PositiveInteger(i) => i.apply_unary_op(op),
             Primitive::Undefined => Err(OperatorError::UndefinedUse),
         }
     }
@@ -134,6 +138,8 @@ impl Spreadable for Primitive {
             Primitive::Graph(g) => g.to_primitive_set(),
             Primitive::Iterable(i) => i.to_primitive_set(),
             Primitive::Number(i) => i.to_primitive_set(),
+            Primitive::Integer(i) => i.to_primitive_set(),
+            Primitive::PositiveInteger(i) => i.to_primitive_set(),
             Primitive::Undefined => Err(TransformError::Unspreadable(PrimitiveKind::Undefined)),
         }
     }

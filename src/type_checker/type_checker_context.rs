@@ -128,12 +128,18 @@ impl TypeCheckerContext {
             }
             let value = value.unwrap();
             match value {
-                PrimitiveKind::Number | PrimitiveKind::String | PrimitiveKind::GraphNode => {}
+                PrimitiveKind::Number
+                | PrimitiveKind::Integer
+                | PrimitiveKind::PositiveInteger
+                | PrimitiveKind::String
+                | PrimitiveKind::GraphNode => {}
                 _ => {
                     return Err(TransformError::WrongExpectedArgument {
                         got: value.clone(),
                         one_of: vec![
                             PrimitiveKind::Number,
+                            PrimitiveKind::Integer,
+                            PrimitiveKind::PositiveInteger,
                             PrimitiveKind::String,
                             PrimitiveKind::GraphNode,
                         ],
@@ -164,7 +170,10 @@ impl TypeCheckerContext {
             Some(v) => {
                 let len = addressable_access.accesses.len();
                 for access in addressable_access.accesses.iter() {
-                    if !matches!(access.get_type(self), PrimitiveKind::Number) {
+                    if !matches!(
+                        access.get_type(self),
+                        PrimitiveKind::Integer | PrimitiveKind::PositiveInteger
+                    ) {
                         return Err(TransformError::Other(format!(
                             "Expected value of type \"Number\" to index array, got \"{}\", check the definition of \"{}\"",
                             access.get_type(self).to_string(),

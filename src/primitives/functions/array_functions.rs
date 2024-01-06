@@ -63,7 +63,7 @@ impl WithType for EnumerateArray {
         };
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::Tuple(vec![
             arg_type,
-            PrimitiveKind::Number,
+            PrimitiveKind::PositiveInteger,
         ])))
     }
 }
@@ -145,7 +145,7 @@ impl TypeCheckable for LenOfIterableFn {
 }
 impl WithType for LenOfIterableFn {
     fn get_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
-        PrimitiveKind::Number
+        PrimitiveKind::PositiveInteger
     }
 }
 

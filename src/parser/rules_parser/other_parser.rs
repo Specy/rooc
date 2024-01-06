@@ -104,7 +104,18 @@ pub fn parse_primitive(const_value: &Pair<Rule>) -> Result<Primitive, Compilatio
                 None => err_unexpected_token!("Expected constant value but got: {}", const_value),
             }
         }
-        Rule::number => Ok(Primitive::Number(parse_number(const_value)?)),
+        Rule::number => {
+            let num = parse_number(const_value)?;
+            if num.fract() == 0.0 {
+                if num >= 0.0 {
+                    Ok(Primitive::PositiveInteger(num as u64))
+                } else {
+                    Ok(Primitive::Integer(num as i64))
+                }
+            } else {
+                Ok(Primitive::Number(num))
+            }
+        }
         Rule::boolean => match const_value.as_str() {
             "true" => Ok(Primitive::Boolean(true)),
             "false" => Ok(Primitive::Boolean(false)),
@@ -415,10 +426,7 @@ pub fn parse_function(
             parsed_pars,
             &pars,
         ))),
-        "range" => Ok(Box::new(NumericRange::from_parameters(
-            parsed_pars,
-            &pars,
-        ))),
+        "range" => Ok(Box::new(NumericRange::from_parameters(parsed_pars, &pars))),
         str => Err(CompilationError::from_pair(
             ParseError::SemanticError(format!("Unknown function {}", str)),
             name,
@@ -519,7 +527,8 @@ pub fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreExp, CompilationError>
                                 }
                             };
                             let span = InputSpan::from_pair(iterator);
-                            let function = NumericRange::new(from?, to?, to_inclusive, iterator.as_span());
+                            let function =
+                                NumericRange::new(from?, to?, to_inclusive, iterator.as_span());
                             Ok(PreExp::FunctionCall(span, Box::new(function)))
                         }
 
