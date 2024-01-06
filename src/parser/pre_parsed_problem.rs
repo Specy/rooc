@@ -11,6 +11,7 @@ use crate::{
         iterable::IterableKind,
         primitive::{Primitive, PrimitiveKind},
     },
+    type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::{InputSpan, Spanned},
     wrong_argument,
 };
@@ -18,9 +19,7 @@ use wasm_bindgen::prelude::*;
 
 use super::{
     recursive_set_resolver::recursive_set_resolver,
-    transformer::{
-        Exp, Frame, TransformError, TransformerContext, TypeCheckerContext, VariableType,
-    },
+    transformer::{Exp, Frame, TransformError, TransformerContext, VariableType},
 };
 use crate::math::operators::UnOp;
 use crate::primitives::primitive_traits::ApplyOp;
@@ -330,10 +329,69 @@ struct TempUnOp {
     op: UnOp,
     exp: PreExp,
 }
-
-impl PreExp {
+impl TypeCheckable for PreExp {
+    fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
+        match self {
+            Self::FunctionCall(span, fun) => {
+                fun.populate_token_type_map(context);
+                context.add_token_type(
+                    fun.get_type(context),
+                    span.clone(),
+                    None, //Some(fun.get_function_name()) should i add this?
+                )
+            }
+            Self::Mod(_, exp) => {
+                exp.populate_token_type_map(context);
+            }
+            Self::Primitive(p) => {
+                context.add_token_type(p.get_span_value().get_type(), p.get_span().clone(), None)
+            }
+            Self::Variable(name) => match context.get_value(name) {
+                Some(value) => context.add_token_type(
+                    value.clone(),
+                    name.get_span().clone(),
+                    Some(name.get_span_value().clone()),
+                ),
+                None => context.add_token_type(
+                    PrimitiveKind::Number,
+                    name.get_span().clone(),
+                    Some(name.get_span_value().clone()),
+                ),
+            },
+            Self::CompoundVariable(c) => context.add_token_type(
+                PrimitiveKind::Number,
+                c.get_span().clone(),
+                Some(c.to_string()),
+            ),
+            Self::BinaryOperation(_, lhs, rhs) => {
+                lhs.populate_token_type_map(context);
+                rhs.populate_token_type_map(context);
+            }
+            Self::UnaryOperation(_, exp) => {
+                exp.populate_token_type_map(context);
+            }
+            Self::ArrayAccess(array_access) => context.add_token_type(
+                context
+                    .get_addressable_value(&array_access)
+                    .unwrap_or(PrimitiveKind::Undefined),
+                array_access.get_span().clone(),
+                Some(array_access.to_string()),
+            ),
+            Self::BlockFunction(f) => {
+                for exp in &f.exps {
+                    exp.populate_token_type_map(context);
+                }
+            }
+            Self::BlockScopedFunction(f) => {
+                for iter in &f.iters {
+                    iter.populate_token_type_map(context);
+                }
+                f.exp.populate_token_type_map(context);
+            }
+        }
+    }
     //TODO improve spans
-    pub fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
+    fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         match self {
             Self::FunctionCall(span, fun) => fun
                 .type_check(context)
@@ -440,10 +498,13 @@ impl PreExp {
                 .map_err(|e| e.to_spanned_error(array_access.get_span())),
         }
     }
-    pub fn get_type(&self, context: &TypeCheckerContext) -> PrimitiveKind {
+}
+
+impl WithType for PreExp {
+    fn get_type(&self, context: &TypeCheckerContext) -> PrimitiveKind {
         match self {
             Self::Primitive(p) => p.get_span_value().get_type(),
-            Self::FunctionCall(_, fun) => fun.get_return_type(context),
+            Self::FunctionCall(_, fun) => fun.get_type(context),
             Self::Variable(name) => context
                 .get_value(name)
                 .map(|e| e.clone())
@@ -459,6 +520,9 @@ impl PreExp {
             Self::CompoundVariable(_) => PrimitiveKind::Number, //TODO check if this is true always
         }
     }
+}
+
+impl PreExp {
     pub fn to_boxed(self) -> Box<PreExp> {
         Box::new(self)
     }
@@ -828,6 +892,50 @@ impl IterableSet {
             span,
         }
     }
+    pub fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
+        let iter_type = self.iterator.get_type(context);
+
+        let iter_type = match iter_type {
+            PrimitiveKind::Iterable(kind) => *kind,
+            _ => PrimitiveKind::Undefined, //should this be undefined or any?
+        };
+        match &self.var {
+            VariableType::Single(name) => context.add_token_type(
+                iter_type,
+                self.span.clone(),
+                Some(name.get_span_value().clone()),
+            ),
+            VariableType::Tuple(vars) => match &iter_type {
+                PrimitiveKind::Tuple(types) => {
+                    for (i, v) in vars.iter().enumerate() {
+                        context.add_token_type(
+                            types.get(i).unwrap_or(&PrimitiveKind::Undefined).clone(),
+                            self.span.clone(),
+                            Some(v.get_span_value().clone()),
+                        )
+                    }
+                }
+                PrimitiveKind::Iterable(kind) => {
+                    for v in vars {
+                        context.add_token_type(
+                            *kind.clone(),
+                            self.span.clone(),
+                            Some(v.get_span_value().clone()),
+                        )
+                    }
+                }
+                _ => {
+                    for v in vars {
+                        context.add_token_type(
+                            PrimitiveKind::Undefined,
+                            self.span.clone(),
+                            Some(v.get_span_value().clone()),
+                        )
+                    }
+                }
+            },
+        }
+    }
     pub fn get_variable_types(
         &self,
         context: &TypeCheckerContext,
@@ -957,6 +1065,14 @@ export type SerializedPreObjective = {
     rhs: SerializedPreExp,
 }
 "#;
+impl TypeCheckable for PreObjective {
+    fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
+        self.rhs.type_check(context)
+    }
+    fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
+        self.rhs.populate_token_type_map(context)
+    }
+}
 
 impl PreObjective {
     pub fn new(objective_type: OptimizationType, rhs: PreExp) -> Self {
@@ -964,9 +1080,6 @@ impl PreObjective {
             objective_type,
             rhs,
         }
-    }
-    pub fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
-        self.rhs.type_check(context)
     }
 }
 impl fmt::Display for PreObjective {
@@ -1010,7 +1123,10 @@ impl PreCondition {
             span,
         }
     }
-    pub fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
+}
+
+impl TypeCheckable for PreCondition {
+    fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         for iter in &self.iteration {
             iter.iterator
                 .type_check(context)
@@ -1046,7 +1162,19 @@ impl PreCondition {
         }
         Ok(())
     }
+    fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
+        for iter in &self.iteration {
+            context.add_frame(Frame::default());
+            iter.populate_token_type_map(context);
+        }
+        self.lhs.populate_token_type_map(context);
+        self.rhs.populate_token_type_map(context);
+        for _ in &self.iteration {
+            let _ = context.pop_scope();
+        }
+    }
 }
+
 impl fmt::Display for PreCondition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = String::new();

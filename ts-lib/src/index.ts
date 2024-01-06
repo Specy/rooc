@@ -10,6 +10,7 @@ import {
     SerializedPreProblem,
     TransformErrorWrapper as _TransformErrorWrapper,
     SerializedTransformError,
+    SerializedTypedToken,
 } from './pkg/rooc.js'
 import { Ok, Err, Result } from 'ts-results'
 export class RoocParser {
@@ -91,6 +92,9 @@ export class PreProblem {
         } catch (e) {
             return Err(new TransformError(e, this.source))
         }
+    }
+    createTypeMap(): Record<number, SerializedTypedToken> {
+        return this.instance.create_token_type_map_wasm()
     }
     format(): string {
         return this.instance.format_wasm()

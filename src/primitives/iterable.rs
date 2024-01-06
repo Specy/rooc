@@ -54,6 +54,9 @@ impl IterableKind {
         }
     }
     pub fn get_type(&self) -> PrimitiveKind {
+        PrimitiveKind::Iterable(Box::new(self.get_inner_type()))
+    }
+    pub fn get_inner_type(&self) -> PrimitiveKind {
         match self {
             IterableKind::Numbers(_) => PrimitiveKind::Number,
             IterableKind::Strings(_) => PrimitiveKind::String,
@@ -67,7 +70,7 @@ impl IterableKind {
             IterableKind::Graphs(_) => PrimitiveKind::Graph,
             IterableKind::Iterable(i) => PrimitiveKind::Iterable(
                 i.get(0)
-                    .map(|e| e.get_type())
+                    .map(|e| e.get_inner_type())
                     .unwrap_or(PrimitiveKind::Undefined)
                     .into(),
             ),
@@ -296,7 +299,7 @@ impl ApplyOp for IterableKind {
     fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
         Err(OperatorError::unsupported_un_operation(
             op,
-            self.get_type()
+            self.get_inner_type()
         ))
     }
     fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {

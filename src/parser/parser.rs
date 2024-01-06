@@ -1,4 +1,5 @@
 use core::fmt;
+use std::collections::HashMap;
 use std::fmt::Debug;
 
 use pest::iterators::Pair;
@@ -6,6 +7,7 @@ use pest::Parser;
 
 use crate::bail_missing_token;
 use crate::primitives::consts::Constant;
+use crate::type_checker::type_checker_context::{TypeCheckerContext, TypeCheckable, TypedToken};
 use crate::utils::{CompilationError, InputSpan, ParseError};
 
 use super::pre_parsed_problem::{PreCondition, PreObjective};
@@ -13,7 +15,7 @@ use super::rules_parser::other_parser::{
     parse_condition_list, parse_consts_declaration, parse_objective,
 };
 use super::transformer::{
-    transform_parsed_problem, Problem, TransformError, TransformerContext, TypeCheckerContext,
+    transform_parsed_problem, Problem, TransformError, TransformerContext,
 };
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -61,13 +63,52 @@ impl PreProblem {
     pub fn transform(self) -> Result<Problem, TransformError> {
         transform_parsed_problem(self)
     }
-    pub fn type_check(&self) -> Result<(), TransformError> {
+    pub fn create_type_checker(&self) -> Result<(), TransformError> {
         let mut context = TypeCheckerContext::new_from_constants(&self.constants);
-        self.objective.type_check(&mut context)?;
+        self.type_check(&mut context)
+    }
+    pub fn create_token_type_map(&self) -> HashMap<usize, TypedToken> {
+        let mut context = TypeCheckerContext::new_from_constants(&self.constants);
+        self.populate_token_type_map(&mut context);
+        context.into_token_map()
+    }
+}
+
+impl TypeCheckable for PreProblem {
+    fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
+        self.objective.type_check(context)?;
         for cond in &self.conditions {
-            cond.type_check(&mut context)?;
+            cond.type_check(context)?;
         }
         Ok(())
+    }
+    fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
+        self.objective.populate_token_type_map(context);
+        for cond in &self.conditions {
+            cond.populate_token_type_map(context);
+        }
+    }
+}
+
+#[wasm_bindgen]
+impl PreProblem {
+    pub fn transform_wasm(self) -> Result<Problem, TransformErrorWrapper> {
+        self.transform()
+            .map_err(|e| TransformErrorWrapper { error: e })
+    }
+    pub fn serialize_wasm(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self).unwrap()
+    }
+    pub fn format_wasm(&self) -> String {
+        self.to_string()
+    }
+    pub fn type_check_wasm(self) -> Result<(), TransformErrorWrapper> {
+        self.create_type_checker()
+            .map(|_| ())
+            .map_err(|e| TransformErrorWrapper { error: e })
+    }
+    pub fn create_token_type_map_wasm(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self.create_token_type_map()).unwrap()
     }
 }
 
@@ -101,27 +142,9 @@ impl TransformErrorWrapper {
     pub fn serialize_wasm(&self) -> JsValue {
         serde_wasm_bindgen::to_value(&self.error).unwrap()
     }
-
 }
 
-#[wasm_bindgen]
-impl PreProblem {
-    pub fn transform_wasm(self) -> Result<Problem, TransformErrorWrapper> {
-        self.transform()
-            .map_err(|e| TransformErrorWrapper { error: e })
-    }
-    pub fn serialize_wasm(&self) -> JsValue {
-        serde_wasm_bindgen::to_value(&self).unwrap()
-    }
-    pub fn format_wasm(&self) -> String {
-        self.to_string()
-    }
-    pub fn type_check_wasm(self) -> Result<(), TransformErrorWrapper> {
-        self.type_check()
-            .map(|_| ())
-            .map_err(|e| TransformErrorWrapper { error: e })
-    }
-}
+
 
 impl fmt::Display for PreProblem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

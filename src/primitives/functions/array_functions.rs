@@ -6,14 +6,16 @@ use crate::{
     parser::{
         parser::Rule,
         pre_parsed_problem::PreExp,
-        transformer::{TransformError, TransformerContext, TypeCheckerContext},
+        transformer::{TransformError, TransformerContext},
     },
     primitives::{
         iterable::IterableKind,
         primitive::{Primitive, PrimitiveKind},
         tuple::Tuple,
     },
+    type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::{CompilationError, ParseError},
+    wrong_argument,
 };
 
 use super::function_traits::FunctionCall;
@@ -21,6 +23,36 @@ use super::function_traits::FunctionCall;
 #[derive(Debug, Serialize, Clone)]
 pub struct EnumerateArray {
     iterable: PreExp,
+}
+
+impl TypeCheckable for EnumerateArray {
+    fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
+        let arg_type = self.iterable.get_type(context);
+        if !matches!(arg_type, PrimitiveKind::Iterable(_)) {
+            return Err(TransformError::from_wrong_type(
+                PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
+                arg_type,
+                self.iterable.get_span().clone(),
+            ));
+        }
+        Ok(())
+    }
+    fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
+        self.iterable.populate_token_type_map(context);
+    }
+}
+impl WithType for EnumerateArray {
+    fn get_type(&self, context: &TypeCheckerContext) -> PrimitiveKind {
+        let arg_type = self.iterable.get_type(context);
+        let arg_type = match arg_type {
+            PrimitiveKind::Iterable(t) => *t,
+            _ => PrimitiveKind::Undefined,
+        };
+        PrimitiveKind::Iterable(Box::new(PrimitiveKind::Tuple(vec![
+            arg_type,
+            PrimitiveKind::Number,
+        ])))
+    }
 }
 
 impl FunctionCall for EnumerateArray {
@@ -45,32 +77,14 @@ impl FunctionCall for EnumerateArray {
         Ok(Primitive::Iterable(IterableKind::Tuple(result)))
     }
     fn to_string(&self) -> String {
-        format!("enumerate({})", self.iterable)
+        format!("{}({})", self.get_function_name(), self.iterable)
     }
-    fn type_check(&self, context: &TypeCheckerContext) -> Result<(), TransformError> {
-        let arg_type = self.iterable.get_type(context);
-        if !matches!(arg_type, PrimitiveKind::Iterable(_)) {
-            return Err(TransformError::from_wrong_type(
-                PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
-                arg_type,
-                self.iterable.get_span().clone(),
-            ));
-        }
-        Ok(())
+    fn get_function_name(&self) -> String {
+        "enumerate".to_string()
     }
+
     fn get_parameters_types(&self) -> Vec<PrimitiveKind> {
         vec![PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any))]
-    }
-    fn get_return_type(&self, context: &TypeCheckerContext) -> PrimitiveKind {
-        let arg_type = self.iterable.get_type(context);
-        let arg_type = match arg_type {
-            PrimitiveKind::Iterable(t) => *t,
-            _ => PrimitiveKind::Undefined
-        };
-        PrimitiveKind::Iterable(Box::new(PrimitiveKind::Tuple(vec![
-            arg_type,
-            PrimitiveKind::Number,
-        ])))
     }
 }
 
@@ -78,17 +92,8 @@ impl FunctionCall for EnumerateArray {
 pub struct LenOfIterableFn {
     of_iterable: PreExp,
 }
-impl FunctionCall for LenOfIterableFn {
-    fn from_parameters(mut pars: Vec<PreExp>, rule: &Pair<Rule>) -> Result<Self, CompilationError> {
-        match pars.len() {
-            1 => Ok(Self {
-                of_iterable: pars.remove(0),
-            }),
-            n => bail_wrong_number_of_arguments!(n, rule, "len", ["Iterable"]),
-        }
-    }
-
-    fn type_check(&self, context: &TypeCheckerContext) -> Result<(), TransformError> {
+impl TypeCheckable for LenOfIterableFn {
+    fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         let arg_type = self.of_iterable.get_type(context);
         if !matches!(arg_type, PrimitiveKind::Iterable(_)) {
             return Err(TransformError::from_wrong_type(
@@ -99,6 +104,26 @@ impl FunctionCall for LenOfIterableFn {
         }
         Ok(())
     }
+    fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
+        self.of_iterable.populate_token_type_map(context);
+    }
+}
+impl WithType for LenOfIterableFn {
+    fn get_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
+        PrimitiveKind::Number
+    }
+}
+
+impl FunctionCall for LenOfIterableFn {
+    fn from_parameters(mut pars: Vec<PreExp>, rule: &Pair<Rule>) -> Result<Self, CompilationError> {
+        match pars.len() {
+            1 => Ok(Self {
+                of_iterable: pars.remove(0),
+            }),
+            n => bail_wrong_number_of_arguments!(n, rule, "len", ["Iterable"]),
+        }
+    }
+
     fn get_parameters_types(&self) -> Vec<PrimitiveKind> {
         vec![PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any))]
     }
@@ -107,9 +132,9 @@ impl FunctionCall for LenOfIterableFn {
         Ok(Primitive::Number(value.len() as f64))
     }
     fn to_string(&self) -> String {
-        format!("len({})", self.of_iterable)
+        format!("{}({})", self.get_function_name(), self.of_iterable)
     }
-    fn get_return_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
-        PrimitiveKind::Number
+    fn get_function_name(&self) -> String {
+        "len".to_string()
     }
 }

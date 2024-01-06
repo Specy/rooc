@@ -2,13 +2,12 @@ use std::vec;
 
 use pest::iterators::{Pair, Pairs};
 
-use crate::{bail_missing_token, err_unexpected_token};
 use crate::math::math_enums::{Comparison, OptimizationType};
 use crate::parser::iterable_utils::flatten_primitive_array_values;
 use crate::parser::parser::Rule;
 use crate::parser::pre_parsed_problem::{
-    AddressableAccess, BlockFunction, BlockFunctionKind, BlockScopedFunction, BlockScopedFunctionKind,
-    CompoundVariable, IterableSet, PreCondition, PreExp, PreObjective,
+    AddressableAccess, BlockFunction, BlockFunctionKind, BlockScopedFunction,
+    BlockScopedFunctionKind, CompoundVariable, IterableSet, PreCondition, PreExp, PreObjective,
 };
 use crate::parser::transformer::VariableType;
 use crate::primitives::consts::Constant;
@@ -21,9 +20,10 @@ use crate::primitives::functions::number_functions::NumericRange;
 use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
 use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
+use crate::{bail_missing_token, err_unexpected_token};
 
 use super::exp_parser::parse_exp;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {
     match objective.as_rule() {
@@ -78,7 +78,7 @@ pub fn parse_const_declaration(
             let pairs = const_declaration.clone().into_inner();
             let name = pairs
                 .find_first_tagged("name")
-                .map(|n| n.as_str().to_string());
+                .map(|n| Spanned::new(n.as_str().to_string(), InputSpan::from_span(n.as_span())));
             let value = pairs
                 .find_first_tagged("value")
                 .map(|v| parse_primitive(&v));
@@ -539,7 +539,9 @@ pub fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreExp, CompilationError>
     }
 }
 
-pub fn parse_array_access(array_access: &Pair<Rule>) -> Result<AddressableAccess, CompilationError> {
+pub fn parse_array_access(
+    array_access: &Pair<Rule>,
+) -> Result<AddressableAccess, CompilationError> {
     match array_access.as_rule() {
         Rule::array_access => {
             let inner = array_access.clone().into_inner();

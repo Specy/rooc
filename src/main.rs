@@ -107,7 +107,7 @@ fn main() {
     let parsed = parser.parse();
     match parsed {
         Ok(parsed) => {
-            println!("{:?}", parsed.type_check());
+            println!("{:?}", parsed.create_type_checker());
         }
         Err(e) => {
             println!("{}", e.to_error_string());

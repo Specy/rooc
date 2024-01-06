@@ -9,6 +9,7 @@ pub mod primitives;
 pub mod solvers;
 pub mod transformers;
 pub mod utils;
+pub mod type_checker;
 
 use parser::{
     parser::{parse_problem_source, PreProblem},
@@ -47,6 +48,9 @@ impl RoocParser {
                 .get_trace_from_source(&self.source)
                 .unwrap_or(e.get_traced_error())),
         }
+    }
+    pub fn hover_provider(&self, line: usize, column: usize, offset: usize)  {
+
     }
 }
 

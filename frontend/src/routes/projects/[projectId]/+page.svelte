@@ -3,10 +3,20 @@
 	import Button from '$cmp/inputs/Button.svelte';
 	import Page from '$cmp/layout/Page.svelte';
 	import { RoocParser } from '@specy/rooc';
-	import type { CompilationError, TransformError } from '@specy/rooc/';
+	import type { CompilationError, TransformError } from '@specy/rooc';
+	import { Monaco } from '$src/lib/Monaco';
+	import { onMount } from 'svelte';
 	let source = ``;
 	let compiled = '';
 	let lastCompilation = '';
+
+	onMount(() => {
+		Monaco.load()
+		return () => {
+			Monaco.dispose()
+		}
+	})
+
 	function compile() {
 		lastCompilation = '';
 		const parser = new RoocParser(source);

@@ -6,12 +6,13 @@ use crate::{
     parser::{
         parser::Rule,
         pre_parsed_problem::PreExp,
-        transformer::{TransformError, TransformerContext, TypeCheckerContext},
+        transformer::{TransformError, TransformerContext},
     },
     primitives::{
         iterable::IterableKind,
         primitive::{Primitive, PrimitiveKind},
     },
+       wrong_argument, type_checker::type_checker_context::{TypeCheckable, WithType, TypeCheckerContext},
     utils::{CompilationError, InputSpan, ParseError, Spanned},
 };
 
@@ -36,6 +37,41 @@ impl NumericRange {
     }
 }
 
+impl TypeCheckable for NumericRange {
+    fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
+        if !matches!(self.from.get_type(context), PrimitiveKind::Number) {
+            Err(TransformError::from_wrong_type(
+                PrimitiveKind::Number,
+                self.from.get_type(context),
+                self.from.get_span().clone(),
+            ))
+        } else if !matches!(self.to.get_type(context), PrimitiveKind::Number) {
+            Err(TransformError::from_wrong_type(
+                PrimitiveKind::Number,
+                self.to.get_type(context),
+                self.to.get_span().clone(),
+            ))
+        } else if !matches!(self.to_inclusive.get_type(context), PrimitiveKind::Boolean) {
+            Err(TransformError::from_wrong_type(
+                PrimitiveKind::Boolean,
+                self.to_inclusive.get_type(context),
+                self.to_inclusive.get_span().clone(),
+            ))
+        } else {
+            Ok(())
+        }
+    }
+    fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
+        self.from.populate_token_type_map(context);
+        self.to.populate_token_type_map(context);
+        self.to_inclusive.populate_token_type_map(context);
+    }
+}
+impl WithType for NumericRange {
+    fn get_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
+        PrimitiveKind::Iterable(Box::new(PrimitiveKind::Number))
+    }
+}
 impl FunctionCall for NumericRange {
     fn from_parameters(
         mut pars: Vec<PreExp>,
@@ -64,33 +100,10 @@ impl FunctionCall for NumericRange {
     fn to_string(&self) -> String {
         format!("{}..{}", self.from, self.to)
     }
+    fn get_function_name(&self) -> String {
+        "range".to_string()
+    }
     fn get_parameters_types(&self) -> Vec<PrimitiveKind> {
         vec![PrimitiveKind::Number; 2]
-    }
-    fn get_return_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
-        PrimitiveKind::Iterable(Box::new(PrimitiveKind::Number))
-    }
-    fn type_check(&self, context: &TypeCheckerContext) -> Result<(), TransformError> {
-        if !matches!(self.from.get_type(context), PrimitiveKind::Number) {
-            Err(TransformError::from_wrong_type(
-                PrimitiveKind::Number,
-                self.from.get_type(context),
-                self.from.get_span().clone(),
-            ))
-        } else if !matches!(self.to.get_type(context), PrimitiveKind::Number) {
-            Err(TransformError::from_wrong_type(
-                PrimitiveKind::Number,
-                self.to.get_type(context),
-                self.to.get_span().clone(),
-            ))
-        } else if !matches!(self.to_inclusive.get_type(context), PrimitiveKind::Boolean) {
-            Err(TransformError::from_wrong_type(
-                PrimitiveKind::Boolean,
-                self.to_inclusive.get_type(context),
-                self.to_inclusive.get_span().clone(),
-            ))
-        } else {
-            Ok(())
-        }
     }
 }

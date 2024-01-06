@@ -58,12 +58,26 @@ pub enum PrimitiveKind {
     Undefined,
     Any,
 }
+#[wasm_bindgen(typescript_custom_section)]
+const IPrimitiveKind: &'static str = r#"
+export type SerializedPrimitiveKind = 
+    | { kind: 'Number' }
+    | { kind: 'String' }
+    | { kind: 'Iterable', value: SerializedPrimitiveKind[] }
+    | { kind: 'Graph' }
+    | { kind: 'GraphEdge' }
+    | { kind: 'GraphNode' }
+    | { kind: 'Tuple', value: SerializedPrimitiveKind[] }
+    | { kind: 'Boolean' }
+    | { kind: 'Undefined' }
+    | { kind: 'Any' }
+"#;
 impl PrimitiveKind {
     pub fn from_primitive(p: &Primitive) -> Self {
         match p {
             Primitive::Number(_) => PrimitiveKind::Number,
             Primitive::String(_) => PrimitiveKind::String,
-            Primitive::Iterable(p) => PrimitiveKind::Iterable(Box::new(p.get_type())),
+            Primitive::Iterable(p) => p.get_type(),
             Primitive::Graph(_) => PrimitiveKind::Graph,
             Primitive::GraphEdge(_) => PrimitiveKind::GraphEdge,
             Primitive::GraphNode(_) => PrimitiveKind::GraphNode,
