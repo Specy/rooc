@@ -552,7 +552,16 @@ impl TransformError {
             None => None,
         }
     }
-    pub fn get_trace_from_source(&self, source: &str) -> Result<String, ()> {
+    pub fn get_base_error(&self) -> &TransformError {
+        match self {
+            TransformError::SpannedError {
+                spanned_error: span,
+                ..
+            } => span.get_base_error(),
+            _ => self,
+        }
+    }
+    pub fn get_trace_from_source(&self, source: &str) -> Result<String, String> {
         let trace = self.get_trace();
         let trace = trace
             .into_iter()
@@ -563,7 +572,7 @@ impl TransformError {
                     span.start_line, span.start_column, text,
                 ))
             })
-            .collect::<Result<Vec<_>, ()>>()?;
+            .collect::<Result<Vec<_>, String>>()?;
         let join = trace.join("\n\t");
         Ok(format!("{}\n\t{}", self, join))
     }

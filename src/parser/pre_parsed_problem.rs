@@ -353,13 +353,13 @@ impl TypeCheckable for PreExp {
                     Some(name.get_span_value().clone()),
                 ),
                 None => context.add_token_type(
-                    PrimitiveKind::Number,
+                    PrimitiveKind::Number, //TODO we assume undeclared variables are numbers, make this configurable with assignments
                     name.get_span().clone(),
                     Some(name.get_span_value().clone()),
                 ),
             },
             Self::CompoundVariable(c) => context.add_token_type(
-                PrimitiveKind::Number,
+                PrimitiveKind::Number, //every compound variable must be a number
                 c.get_span().clone(),
                 Some(c.to_string()),
             ),
@@ -507,7 +507,7 @@ impl WithType for PreExp {
             Self::Variable(name) => context
                 .get_value(name)
                 .map(|e| e.clone())
-                .unwrap_or(PrimitiveKind::Number),
+                .unwrap_or(PrimitiveKind::Number), //TODO add assignments for 
             Self::BinaryOperation(_, lhs, _) => lhs.get_type(context),
             Self::UnaryOperation(_, exp) => exp.get_type(context),
             Self::Mod(_, exp) => exp.get_type(context),

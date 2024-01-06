@@ -40,13 +40,19 @@ impl InputSpan {
         }
     }
 
-    pub fn get_span_text<'a>(&self, text: &'a str) -> Result<&'a str, ()> {
+    pub fn get_span_text<'a>(&self, text: &'a str) -> Result<&'a str, String> {
         let start = self.start;
         let end = start + self.len;
-        if start >= text.len() || end >= text.len() {
-            return Err(());
+        if start > text.len() || end > text.len() {
+            return Err(format!(
+                "Span out of bounds: {}..{} (text len: {})",
+                start,
+                end,
+                text.len()
+            ));
         }
         Ok(&text[start..end])
+        
     }
 }
 
@@ -72,7 +78,7 @@ impl<T: Debug + Serialize> Spanned<T> {
     pub fn into_span_value(self) -> T {
         self.value
     }
-    pub fn get_span_text<'a>(&self, text: &'a str) -> Result<&'a str, ()> {
+    pub fn get_span_text<'a>(&self, text: &'a str) -> Result<&'a str, String> {
         self.span.get_span_text(text)
     }
 }

@@ -7,16 +7,14 @@ use pest::Parser;
 
 use crate::bail_missing_token;
 use crate::primitives::consts::Constant;
-use crate::type_checker::type_checker_context::{TypeCheckerContext, TypeCheckable, TypedToken};
+use crate::type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, TypedToken};
 use crate::utils::{CompilationError, InputSpan, ParseError};
 
 use super::pre_parsed_problem::{PreCondition, PreObjective};
 use super::rules_parser::other_parser::{
     parse_condition_list, parse_consts_declaration, parse_objective,
 };
-use super::transformer::{
-    transform_parsed_problem, Problem, TransformError, TransformerContext,
-};
+use super::transformer::{transform_parsed_problem, Problem, TransformError, TransformerContext};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 #[derive(Parser)]
@@ -131,20 +129,19 @@ impl TransformErrorWrapper {
     pub fn get_origin_span(&self) -> Option<InputSpan> {
         self.error.get_origin_span()
     }
+    pub fn get_base_error(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self.error.get_base_error()).unwrap()
+    }
     pub fn get_traced_error(&self) -> String {
         self.error.get_traced_error()
     }
     pub fn get_error_from_source(&self, source: &str) -> Result<String, String> {
-        self.error
-            .get_trace_from_source(source)
-            .map_err(|_| format!("Error not found in source"))
+        self.error.get_trace_from_source(source)
     }
     pub fn serialize_wasm(&self) -> JsValue {
         serde_wasm_bindgen::to_value(&self.error).unwrap()
     }
 }
-
-
 
 impl fmt::Display for PreProblem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -169,7 +166,6 @@ impl fmt::Display for PreProblem {
 }
 
 pub fn parse_problem_source(source: &str) -> Result<PreProblem, CompilationError> {
-    let source = source.trim();
     let problem = PLParser::parse(Rule::problem, source);
     match problem {
         Ok(mut problem) => {

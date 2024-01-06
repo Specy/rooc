@@ -92,22 +92,14 @@ fn main() {
     let source = "
     min 1
     s.t.
-        sum(i in 0..5) { i } <= 1 for j in enumerate(A)
-        where 
-            G = Graph {
-                A -> [B],
-                B
-            }
-            A = [1,2]
-
+        1 <= enumerate(l)
     "
-    .trim()
     .to_string();
-    let parser = RoocParser::new(source);
+    let parser = RoocParser::new(source.clone());
     let parsed = parser.parse();
     match parsed {
         Ok(parsed) => {
-            println!("{:?}", parsed.create_type_checker());
+            println!("{:?}", parsed.create_type_checker().map_err(|e| e.get_trace_from_source(&source)));
         }
         Err(e) => {
             println!("{}", e.to_error_string());

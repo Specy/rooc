@@ -48,6 +48,8 @@ export type SerializedPrimitive =
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub enum PrimitiveKind {
     Number,
+    //Integer,
+    //PositiveInteger,
     String,
     Iterable(Box<PrimitiveKind>),
     Graph,

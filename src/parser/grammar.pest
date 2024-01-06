@@ -1,11 +1,11 @@
 problem = {
-    SOI ~
+    SOI ~ nl* ~
     #objective = objective ~ nl+ ~
     ^"s.t." ~ nl+ ~
     #conditions = condition_list ~
     (nl+ ~
     ^"where" ~ nl+ ~
-    #where = consts_declaration)? ~
+    #where = consts_declaration)? ~ nl* ~
      EOI
 }
 // required problem body

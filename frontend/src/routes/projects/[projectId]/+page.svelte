@@ -11,11 +11,11 @@
 	let lastCompilation = '';
 
 	onMount(() => {
-		Monaco.load()
+		Monaco.load();
 		return () => {
-			Monaco.dispose()
-		}
-	})
+			Monaco.dispose();
+		};
+	});
 
 	function compile() {
 		lastCompilation = '';
@@ -32,16 +32,21 @@
 		lastCompilation = compiled;
 	}
 	function typeCheck() {
-		const parser = new RoocParser(source);
-		const compile = parser.compile();
-		if (!compile.ok) {
-			return (compiled = (compile.val as CompilationError).message());
+		try {
+			const parser = new RoocParser(source);
+			const compile = parser.compile();
+			if (!compile.ok) {
+				return (compiled = (compile.val as CompilationError).message());
+			}
+			const transform = compile.val.typeCheck();
+			if (!transform.ok) {
+				return (compiled = transform.val.message());
+			}
+			compiled = lastCompilation;
+		} catch (e) {
+			console.error(e);
+			compiled = `Error:\n	${e}`
 		}
-		const transform = compile.val.typeCheck();
-		if (!transform.ok) {
-			return (compiled = (transform.val as TransformError).message());
-		}
-		compiled = lastCompilation;
 	}
 	$: if (source) {
 		typeCheck();

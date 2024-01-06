@@ -120,12 +120,33 @@ export class TransformError {
     getOriginSpan(): InputSpan | undefined {
         return this.instance.get_origin_span()
     }
+    getBaseError(): SerializedTransformError {
+        return this.instance.get_base_error()
+    }
     message() {
-        if (this.source) {
-            return this.instance.get_error_from_source(this.source);
-        } else {
-            return this.instance.get_traced_error();
+        try {
+            if (this.source) {
+                try {
+                    return this.instance.get_error_from_source(this.source);
+                } catch (e) {
+                    console.error(`Error while getting error from source`, e, this.source, this.getOriginSpan())
+                    return this.instance.get_traced_error()
+                }
+            } else {
+                return this.instance.get_traced_error();
+            }
+        } catch (e) {
+            console.error(e)
         }
+        try {
+            const span = this.getOriginSpan()
+            if (span) {
+                return `Error at line ${span.start_line}:${span.start_column}`
+            }
+        } catch (e) {
+            console.error(e)
+        }
+        return `Unknown error`
     }
     getTrace(): InputSpan[] {
         return this.instance.get_trace();
