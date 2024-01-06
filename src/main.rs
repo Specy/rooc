@@ -91,18 +91,24 @@ fn main() {
 
     let source = "
     min 1
-    s.t.
-        1 <= enumerate(l)
+s.t.
+    10 <= sum(i in enumerate(nodes(G))){ i } 
+where
+    G = Graph {
+        A -> [ B ],
+        B
+    }
+
     "
     .to_string();
     let parser = RoocParser::new(source.clone());
-    let parsed = parser.parse();
+    let parsed = parser.type_check();
     match parsed {
         Ok(parsed) => {
-            println!("{:?}", parsed.create_type_checker().map_err(|e| e.get_trace_from_source(&source)));
+            println!("{:?}", parsed);
         }
         Err(e) => {
-            println!("{}", e.to_error_string());
+            println!("{}", e);
         }
     }
 }

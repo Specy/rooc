@@ -104,17 +104,8 @@ pub fn parse_primitive(const_value: &Pair<Rule>) -> Result<Primitive, Compilatio
                 None => err_unexpected_token!("Expected constant value but got: {}", const_value),
             }
         }
-        Rule::number => {
-            let num = parse_number(const_value)?;
-            if num.fract() == 0.0 {
-                if num >= 0.0 {
-                    Ok(Primitive::PositiveInteger(num as u64))
-                } else {
-                    Ok(Primitive::Integer(num as i64))
-                }
-            } else {
-                Ok(Primitive::Number(num))
-            }
+        Rule::float | Rule::integer => {
+            parse_number(const_value)
         }
         Rule::boolean => match const_value.as_str() {
             "true" => Ok(Primitive::Boolean(true)),
@@ -244,10 +235,14 @@ pub fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, Compilati
     }
 }
 
-pub fn parse_number(number: &Pair<Rule>) -> Result<f64, CompilationError> {
+pub fn parse_number(number: &Pair<Rule>) -> Result<Primitive, CompilationError> {
     match number.as_rule() {
-        Rule::number => match number.as_str().parse::<f64>() {
-            Ok(number) => Ok(number),
+        Rule::float => match number.as_str().parse::<f64>() {
+            Ok(number) => Ok(Primitive::Number(number)),
+            Err(_) => err_unexpected_token!("found {}, expected number", number),
+        },
+        Rule::integer => match number.as_str().parse::<i64>() {
+            Ok(number) => Ok(Primitive::Integer(number)),
             Err(_) => err_unexpected_token!("found {}, expected number", number),
         },
         _ => err_unexpected_token!("Expected number but got: {}", number),

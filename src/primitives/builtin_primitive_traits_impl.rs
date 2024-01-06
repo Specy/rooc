@@ -93,6 +93,12 @@ impl ApplyOp for f64 {
                 BinOp::Mul => Ok(Primitive::Number(*self * (*n as f64))),
                 BinOp::Div => Ok(Primitive::Number(*self / (*n as f64))),
             },
+            Primitive::Boolean(n) => match op {
+                BinOp::Add => Ok(Primitive::Number(*self + (*n as i8 as f64))),
+                BinOp::Sub => Ok(Primitive::Number(*self - (*n as i8 as f64))),
+                BinOp::Mul => Ok(Primitive::Number(*self * (*n as i8 as f64))),
+                BinOp::Div => Ok(Primitive::Number(*self / (*n as i8 as f64))),
+            },
             _ => Err(OperatorError::incompatible_type(
                 op,
                 PrimitiveKind::Number,
@@ -106,7 +112,7 @@ impl ApplyOp for f64 {
         }
     }
     fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
-        matches!(to, PrimitiveKind::Number | PrimitiveKind::Integer | PrimitiveKind::PositiveInteger)
+        matches!(to, PrimitiveKind::Number | PrimitiveKind::Integer | PrimitiveKind::PositiveInteger | PrimitiveKind::Boolean)
     }
     fn can_apply_unary_op(op: UnOp) -> bool {
         matches!(op, UnOp::Neg)
@@ -124,7 +130,7 @@ impl ApplyOp for i64 {
                 BinOp::Add => Ok(Primitive::Integer(self + n)),
                 BinOp::Sub => Ok(Primitive::Integer(self - n)),
                 BinOp::Mul => Ok(Primitive::Integer(self * n)),
-                BinOp::Div => Ok(Primitive::Integer(self / n)),
+                BinOp::Div => Ok(Primitive::Number((*self as f64) / (*n as f64))),
             },
             Primitive::Number(n) => match op {
                 BinOp::Add => Ok(Primitive::Number((*self as f64) + n)),
@@ -133,10 +139,16 @@ impl ApplyOp for i64 {
                 BinOp::Div => Ok(Primitive::Number((*self as f64) / n)),
             },
             Primitive::PositiveInteger(n) => match op {
-                BinOp::Add => Ok(Primitive::PositiveInteger((*self as u64) + n)),
-                BinOp::Sub => Ok(Primitive::PositiveInteger((*self as u64) - n)),
-                BinOp::Mul => Ok(Primitive::PositiveInteger((*self as u64) * n)),
-                BinOp::Div => Ok(Primitive::PositiveInteger((*self as u64) / n)),
+                BinOp::Add => Ok(Primitive::Integer(*self + (*n as i64))),
+                BinOp::Sub => Ok(Primitive::Integer(*self - (*n as i64))),
+                BinOp::Mul => Ok(Primitive::Integer(*self * (*n as i64))),
+                BinOp::Div => Ok(Primitive::Number((*self as f64) / (*n as f64))),
+            },
+            Primitive::Boolean(n) => match op {
+                BinOp::Add => Ok(Primitive::Integer(*self + (*n as i64))),
+                BinOp::Sub => Ok(Primitive::Integer(*self - (*n as i64))),
+                BinOp::Mul => Ok(Primitive::Integer(*self)),
+                BinOp::Div => Ok(Primitive::Integer(*self)),
             },
             _ => Err(OperatorError::incompatible_type(
                 op,
@@ -151,7 +163,8 @@ impl ApplyOp for i64 {
         }
     }
     fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
-        matches!(to, PrimitiveKind::Integer | PrimitiveKind::Number | PrimitiveKind::PositiveInteger)
+        matches!(to, PrimitiveKind::Number | PrimitiveKind::Integer | PrimitiveKind::PositiveInteger | PrimitiveKind::Boolean)
+
     }
     fn can_apply_unary_op(op: UnOp) -> bool {
         matches!(op, UnOp::Neg)
@@ -166,21 +179,27 @@ impl ApplyOp for u64 {
             
             Primitive::PositiveInteger(n) => match op {
                 BinOp::Add => Ok(Primitive::PositiveInteger(self + n)),
-                BinOp::Sub => Ok(Primitive::PositiveInteger(self - n)),
+                BinOp::Sub => Ok(Primitive::Integer((*self as i64) - (*n as i64))),
                 BinOp::Mul => Ok(Primitive::PositiveInteger(self * n)),
-                BinOp::Div => Ok(Primitive::PositiveInteger(self / n)),
+                BinOp::Div => Ok(Primitive::Number((*self as f64) / (*n as f64))),
             },
             Primitive::Integer(n) => match op {
                 BinOp::Add => Ok(Primitive::Integer((*self as i64) + n)),
                 BinOp::Sub => Ok(Primitive::Integer((*self as i64) - n)),
                 BinOp::Mul => Ok(Primitive::Integer((*self as i64) * n)),
-                BinOp::Div => Ok(Primitive::Integer((*self as i64) / n)),
+                BinOp::Div => Ok(Primitive::Number((*self as f64) / (*n as f64))),
             },
             Primitive::Number(n) => match op {
                 BinOp::Add => Ok(Primitive::Number((*self as f64) + n)),
                 BinOp::Sub => Ok(Primitive::Number((*self as f64) - n)),
                 BinOp::Mul => Ok(Primitive::Number((*self as f64) * n)),
                 BinOp::Div => Ok(Primitive::Number((*self as f64) / n)),
+            },
+            Primitive::Boolean(n) => match op {
+                BinOp::Add => Ok(Primitive::PositiveInteger(*self + (*n as u64))),
+                BinOp::Sub => Ok(Primitive::Integer((*self as i64) - (*n as i64))),
+                BinOp::Mul => Ok(Primitive::PositiveInteger(*self)),
+                BinOp::Div => Ok(Primitive::PositiveInteger(*self)),
             },
             _ => Err(OperatorError::incompatible_type(
                 op,
@@ -190,16 +209,16 @@ impl ApplyOp for u64 {
         }
     }
     fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
-        Err(OperatorError::unsupported_un_operation(
-            op,
-            PrimitiveKind::PositiveInteger,
-        ))
+        match op {
+            UnOp::Neg => Ok(Primitive::Integer(-(*self as i64))),
+        }
     }
     fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
-        matches!(to, PrimitiveKind::PositiveInteger | PrimitiveKind::Integer | PrimitiveKind::Number)
+        matches!(to, PrimitiveKind::Number | PrimitiveKind::Integer | PrimitiveKind::PositiveInteger | PrimitiveKind::Boolean)
+
     }
     fn can_apply_unary_op(op: UnOp) -> bool {
-        false
+        matches!(op, UnOp::Neg)
     }
 }
 

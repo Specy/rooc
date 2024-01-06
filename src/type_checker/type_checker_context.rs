@@ -168,30 +168,26 @@ impl TypeCheckerContext {
         //TODO add support for object access like G["a"] or g.a
         match self.get_value(&addressable_access.name) {
             Some(v) => {
-                let len = addressable_access.accesses.len();
+                let mut last_value = v;
                 for access in addressable_access.accesses.iter() {
-                    if !matches!(
-                        access.get_type(self),
-                        PrimitiveKind::Integer | PrimitiveKind::PositiveInteger
-                    ) {
+                    if !access.get_type(self).is_numeric() {
+                        //TODO this is a relaxed check, the runtime will check for the exact type
                         return Err(TransformError::Other(format!(
                             "Expected value of type \"Number\" to index array, got \"{}\", check the definition of \"{}\"",
                             access.get_type(self).to_string(),
                             access.to_string()
                         )));
                     }
-                }
-                let mut depth = 0;
-                let mut last_value = v;
-                while let PrimitiveKind::Iterable(iterable) = last_value {
-                    depth += 1;
-                    last_value = iterable
-                }
-                if depth > len {
-                    return Err(TransformError::OutOfBounds(format!(
-                        "Indexing {} with {} indexes, but it only has {} dimensions",
-                        addressable_access.name, len, depth
-                    )));
+                    match last_value {
+                        PrimitiveKind::Iterable(i) => {
+                            last_value = i
+                        }
+                        _ => return Err(TransformError::Other(format!(
+                            "Expected value of type \"Iterable\" to index array, got \"{}\", check the definition of \"{}\"",
+                            last_value.to_string(),
+                            access.to_string()
+                        )).to_spanned_error(access.get_span()))
+                    }
                 }
                 Ok(last_value.clone())
             }

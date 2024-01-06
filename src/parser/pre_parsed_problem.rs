@@ -393,9 +393,14 @@ impl TypeCheckable for PreExp {
     //TODO improve spans
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         match self {
-            Self::FunctionCall(span, fun) => fun
-                .type_check(context)
-                .map_err(|e| e.to_spanned_error(span)),
+            Self::FunctionCall(span, fun) => {
+                for arg in fun.get_parameters() {
+                    arg.type_check(context)
+                        .map_err(|e| e.to_spanned_error(span))?;
+                }
+                fun.type_check(context)
+                    .map_err(|e| e.to_spanned_error(span))
+            }
             Self::BinaryOperation(op, lhs, rhs) => {
                 lhs.type_check(context)?;
                 rhs.type_check(context)?;
@@ -431,7 +436,7 @@ impl TypeCheckable for PreExp {
                 exp.type_check(context)
                     .map_err(|e| e.to_spanned_error(exp.get_span()))?;
                 let exp_type = exp.get_type(context);
-                if exp_type.is_numeric() {
+                if !exp_type.is_numeric() {
                     return Err(TransformError::from_wrong_type(
                         exp_type,
                         PrimitiveKind::Number,
@@ -449,7 +454,7 @@ impl TypeCheckable for PreExp {
                     exp.type_check(context)
                         .map_err(|e| e.to_spanned_error(f.get_span()))?;
                     let exp_type = exp.get_type(context);
-                    if exp_type.is_numeric() {
+                    if !exp_type.is_numeric() {
                         return Err(TransformError::from_wrong_type(
                             PrimitiveKind::Number,
                             exp_type,
@@ -472,6 +477,7 @@ impl TypeCheckable for PreExp {
                     context.add_frame(frame);
                 }
                 let res = f.exp.type_check(context);
+                let exp_type = f.exp.get_type(context);
                 for _ in &f.iters {
                     context
                         .pop_scope()
@@ -480,8 +486,7 @@ impl TypeCheckable for PreExp {
                 if let Err(e) = res {
                     return Err(e.to_spanned_error(f.get_span()));
                 }
-                let exp_type = f.exp.get_type(context);
-                if exp_type.is_numeric() {
+                if !exp_type.is_numeric() {
                     let err = TransformError::from_wrong_type(
                         PrimitiveKind::Number,
                         exp_type,
@@ -550,13 +555,9 @@ impl PreExp {
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 Ok(Exp::BinOp(**op, lhs.to_box(), rhs.to_box()))
             }
-            Self::Primitive(n) => match **n {
-                Primitive::Number(n) => Ok(Exp::Number(n)),
-                _ => Err(TransformError::from_wrong_type(
-                    PrimitiveKind::Number,
-                    n.get_type(),
-                    n.get_span().clone(),
-                )),
+            Self::Primitive(n) => match n.as_number_cast() {
+                Ok(n) => Ok(Exp::Number(n)),
+                Err(e) => Err(e.to_spanned_error(self.get_span())),
             },
             Self::Mod(span, exp) => {
                 let inner = exp
@@ -596,13 +597,9 @@ impl PreExp {
                 Ok(Exp::UnOp(**op, inner.to_box()))
             }
             Self::Variable(name) => {
-                let value = context.get_value(name).map(|v| match v {
-                    Primitive::Number(n) => Ok(Exp::Number(*n)),
-                    _ => Err(TransformError::from_wrong_type(
-                        PrimitiveKind::Number,
-                        v.get_type(),
-                        name.get_span().clone(),
-                    )),
+                let value = context.get_value(name).map(|v| match v.as_number_cast() {
+                    Ok(n) => Ok(Exp::Number(n)),
+                    Err(e) => Err(e.to_spanned_error(self.get_span())),
                 });
                 match value {
                     Some(value) => Ok(value?),
@@ -619,13 +616,9 @@ impl PreExp {
                 let value = context
                     .get_addressable_value(array_access)
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
-                match value {
-                    Primitive::Number(n) => Ok(Exp::Number(n)),
-                    _ => Err(TransformError::from_wrong_type(
-                        PrimitiveKind::Number,
-                        value.get_type(),
-                        self.get_span().clone(),
-                    )),
+                match value.as_number_cast() {
+                    Ok(n) => Ok(Exp::Number(n)),
+                    Err(e) => Err(e.to_spanned_error(self.get_span())),
                 }
             }
             Self::BlockScopedFunction(f) => {
@@ -674,13 +667,9 @@ impl PreExp {
                 let value = function_call
                     .call(context)
                     .map_err(|e| e.to_spanned_error(span))?;
-                match value {
-                    Primitive::Number(n) => Ok(Exp::Number(n)),
-                    _ => Err(TransformError::from_wrong_type(
-                        PrimitiveKind::Number,
-                        value.get_type(),
-                        span.clone(),
-                    )),
+                match value.as_number_cast() {
+                    Ok(n) => Ok(Exp::Number(n)),
+                    Err(e) => Err(e.to_spanned_error(self.get_span())),
                 }
             }
         }
@@ -957,8 +946,15 @@ impl IterableSet {
             VariableType::Single(name) => Ok(vec![(name.get_span_value().clone(), iter_type)]),
             VariableType::Tuple(vars) => {
                 match &iter_type {
-                    PrimitiveKind::Tuple(types) => {
-                        if vars.len() > types.len() {
+                    PrimitiveKind::Iterable(kind) => {
+                        Ok(vars
+                            .iter()
+                            .map(|v| (v.get_span_value().clone(), *kind.clone()))
+                            .collect::<Vec<_>>()) //we don't know at compile time how many variables there are, so we assume all of them exist
+                    }
+                    _ => {
+                        let spreads_into = iter_type.can_spread_into()?;
+                        if vars.len() > spreads_into.len() {
                             let err = TransformError::SpreadError {
                                 to_spread: iter_type,
                                 in_variables: vars
@@ -971,21 +967,10 @@ impl IterableSet {
                         } else {
                             Ok(vars
                                 .iter()
-                                .zip(types.iter())
+                                .zip(spreads_into.iter())
                                 .map(|(v, t)| (v.get_span_value().clone(), t.clone()))
                                 .collect::<Vec<_>>())
                         }
-                    }
-                    PrimitiveKind::Iterable(kind) => {
-                        Ok(vars
-                            .iter()
-                            .map(|v| (v.get_span_value().clone(), *kind.clone()))
-                            .collect::<Vec<_>>()) //we don't know at compile time how many variables there are, so we assume all of them have the same type
-                    }
-                    _ => {
-                        let err =
-                            TransformError::Unspreadable(iter_type).to_spanned_error(&self.span);
-                        Err(err)
                     }
                 }
             }
@@ -1150,7 +1135,7 @@ impl TypeCheckable for PreCondition {
         for _ in &self.iteration {
             context.pop_scope()?;
         }
-        if lhs_type.is_numeric() || rhs_type.is_numeric() {
+        if !lhs_type.is_numeric() || !rhs_type.is_numeric() {
             let err = TransformError::Other(format!(
                 "Expected comparison of \"Number\", got \"{}\" {} \"{}\"",
                 lhs_type.to_string(),

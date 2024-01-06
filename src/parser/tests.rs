@@ -2,7 +2,6 @@
 mod parser_tests {
     use crate::RoocParser;
 
-
     #[test]
     fn test_parser_problems() {
         let input = "
@@ -26,6 +25,9 @@ where
         RoocParser::new(input.to_string())
             .parse_and_transform()
             .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to type check problem");
     }
     #[test]
     fn test_parser_variants1() {
@@ -37,6 +39,9 @@ where
         RoocParser::new(input.to_string())
             .parse_and_transform()
             .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to type check problem");
     }
     #[test]
     fn test_parser_variants2() {
@@ -59,6 +64,9 @@ where
         RoocParser::new(input.to_string())
             .parse_and_transform()
             .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to type check problem");
     }
 
     #[test]
@@ -73,6 +81,9 @@ where
         RoocParser::new(input.to_string())
             .parse_and_transform()
             .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to type check problem");
     }
 
     #[test]
@@ -93,6 +104,9 @@ where
         RoocParser::new(input.to_string())
             .parse_and_transform()
             .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to type check problem");
     }
     #[test]
     fn test_prefix_operators() {
@@ -107,6 +121,9 @@ where
         RoocParser::new(input.to_string())
             .parse_and_transform()
             .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to type check problem");
     }
     #[test]
     fn test_implicit_multiplication() {
@@ -132,6 +149,9 @@ where
         RoocParser::new(input.to_string())
             .parse_and_transform()
             .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to type check problem");
     }
     #[test]
     #[should_panic]
@@ -198,6 +218,9 @@ where
         RoocParser::new(input.to_string())
             .parse_and_transform()
             .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to type check problem");
     }
 
     #[test]
@@ -221,5 +244,8 @@ where
         RoocParser::new(input.to_string())
             .parse_and_transform()
             .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to type check problem");
     }
 }

@@ -49,13 +49,13 @@ impl TypeCheckable for NumericRange {
                 let from_type = from.get_type(context);
                 let to_type = to.get_type(context);
                 let to_inclusive_type = to_inclusive.get_type(context);
-                if !matches!(from_type, PrimitiveKind::Integer | PrimitiveKind::PositiveInteger) {
+                if !from_type.is_numeric() { //TODO relaxed type checking for numeric ranges
                     Err(TransformError::from_wrong_type(
                         PrimitiveKind::Integer,
                         from_type,
                         from.get_span().clone(),
                     ))
-                } else if !matches!(to_type, PrimitiveKind::Integer | PrimitiveKind::PositiveInteger) {
+                } else if !to_type.is_numeric() {
                     Err(TransformError::from_wrong_type(
                         PrimitiveKind::Integer,
                         to_type,
@@ -110,8 +110,8 @@ impl FunctionCall for NumericRange {
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
         match self.args[..] {
             [ref from,ref  to, ref to_inclusive] => {
-                let from = from.as_integer(context)?;
-                let to = to.as_integer(context)?;
+                let from = from.as_integer_cast(context)?;
+                let to = to.as_integer_cast(context)?;
                 let to_inclusive = to_inclusive.as_boolean(context)?;
                 if from >= 0 && to >=0 {
                     let from = from as usize;
@@ -158,6 +158,6 @@ impl FunctionCall for NumericRange {
         "range".to_string()
     }
     fn get_type_signature(&self) -> Vec<PrimitiveKind> {
-        vec![PrimitiveKind::Integer; 2]
+        vec![PrimitiveKind::Integer, PrimitiveKind::Integer, PrimitiveKind::Boolean]
     }
 }

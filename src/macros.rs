@@ -12,8 +12,8 @@ macro_rules! err_unexpected_token {
 macro_rules! wrong_argument {
     ($expected_type: expr, $current_arg:expr) => {
         TransformError::WrongArgument{
-            got: $expected_type,
-            expected: $current_arg.get_type(),
+            expected: $expected_type,
+            got: $current_arg.get_type(),
         }
     };
 }

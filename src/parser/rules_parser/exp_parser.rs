@@ -76,7 +76,7 @@ pub fn parse_exp_leaf(exp: Pair<Rule>) -> Result<PreExp, CompilationError> {
         Rule::block_function => parse_block_function(&exp),
         Rule::block_scoped_function => parse_block_scoped_function(&exp),
         //also adding number since the implicit multiplication rule uses it without being part of the primitive
-        Rule::primitive | Rule::number => {
+        Rule::primitive | Rule::float | Rule::integer => {
             let prim = parse_primitive(&exp)?;
             let spanned = Spanned::new(prim, span);
             Ok(PreExp::Primitive(spanned))

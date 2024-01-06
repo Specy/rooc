@@ -80,7 +80,7 @@ impl fmt::Display for GraphNode {
         if edges.is_empty() {
             return f.write_str(&self.name);
         }
-        write!(f, "{}: {{ {} }}", self.name, edges)
+        write!(f, "{} -> [ {} ]", self.name, edges)
     }
 }
 #[derive(Debug, Clone, Serialize)]

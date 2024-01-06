@@ -101,9 +101,24 @@ impl PrimitiveKind {
             PrimitiveKind::Number => true,
             PrimitiveKind::Integer => true,
             PrimitiveKind::PositiveInteger => true,
+            PrimitiveKind::Boolean => true, 
             _ => false,
         }
     }
+    pub fn can_spread_into(&self) -> Result<Vec<PrimitiveKind>, TransformError> {
+        match self {
+            PrimitiveKind::Tuple(t) => Ok(t.clone()),
+            PrimitiveKind::GraphEdge => Ok(vec![
+                PrimitiveKind::String,
+                PrimitiveKind::Number,
+                PrimitiveKind::String,
+            ]),
+            _ => Err(TransformError::Unspreadable(self.clone()))
+        }
+    }
+
+
+
     pub fn can_apply_binary_op(&self, op: BinOp, to: PrimitiveKind) -> bool {
         match self {
             PrimitiveKind::Any => false,
@@ -177,6 +192,7 @@ impl Primitive {
             Primitive::Number(n) => Ok(*n),
             Primitive::Integer(n) => Ok(*n as f64),
             Primitive::PositiveInteger(n) => Ok(*n as f64),
+            Primitive::Boolean(b) => Ok(*b as u8 as f64),
             _ => bail_wrong_argument!(PrimitiveKind::Number, self),
         }
     }
@@ -189,6 +205,7 @@ impl Primitive {
         match self {
             Primitive::Integer(n) => Ok(*n),
             Primitive::PositiveInteger(n) => Ok(*n as i64),
+            Primitive::Boolean(b) => Ok(*b as u8 as i64),
             Primitive::Number(n) => {
                 if n.fract() != 0.0 {
                     Err(wrong_argument!(PrimitiveKind::Integer, self))
@@ -214,6 +231,7 @@ impl Primitive {
                     Ok(*n as usize)
                 }
             }
+            Primitive::Boolean(b) => Ok(*b as u8 as usize),
             Primitive::Number(n) => {
                 if n.fract() != 0.0 || *n < 0.0 {
                     Err(wrong_argument!(PrimitiveKind::PositiveInteger, self))

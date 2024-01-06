@@ -98,7 +98,9 @@ comparison     = @{ "<=" | ">=" | "=" }
 simple_variable   = @{ LETTER+ ~ (NUMBER)* }
 compound_variable = @{ simple_variable ~ ("_" ~ LETTER+)+ }
 // maybe i should do ("_" ~ LETTER+)+
-number    = @{ '0'..'9'+ ~ ("." ~ '0'..'9'+)? }
+number    = _{ float | integer }
+integer = @{ '0'..'9'+ }
+float    = @{ '0'..'9'+ ~ ("." ~ '0'..'9'+)? }
 signed_number = @{ "-"? ~ number}
 keyword = { "for" | "min" | "max" | "where" | "true" | "false" | "in" | "s.t." | "as" | "define" }
 binary_op = _{ mul | add | sub | div }

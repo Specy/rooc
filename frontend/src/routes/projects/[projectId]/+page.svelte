@@ -6,12 +6,28 @@
 	import type { CompilationError, TransformError } from '@specy/rooc';
 	import { Monaco } from '$src/lib/Monaco';
 	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	let source = ``;
 	let compiled = '';
 	let lastCompilation = '';
 
 	onMount(() => {
 		Monaco.load();
+		const saved = localStorage.getItem('rooc_source');
+		source =
+			saved ||
+			`
+		min sum(u in nodes(G)) { x_u }
+s.t. 
+    x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1    for v in nodes(G)
+where
+    G = Graph {
+		A -> [B, C, D],
+		B -> [A, C],
+		C -> [A, B, D],
+		D -> [A]
+    }
+		`.trim();
 		return () => {
 			Monaco.dispose();
 		};
@@ -32,6 +48,9 @@
 		lastCompilation = compiled;
 	}
 	function typeCheck() {
+		if (browser) {
+			localStorage.setItem('rooc_source', source);
+		}
 		try {
 			const parser = new RoocParser(source);
 			const compile = parser.compile();
@@ -45,7 +64,7 @@
 			compiled = lastCompilation;
 		} catch (e) {
 			console.error(e);
-			compiled = `Error:\n	${e}`
+			compiled = `Error:\n	${e}`;
 		}
 	}
 	$: if (source) {

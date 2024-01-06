@@ -489,7 +489,7 @@ impl TransformError {
                 } else {
                     "".to_string()
                 };
-                format!("\tat {}:{}{}", span.start_line, span.start_column, origin)
+                format!("\tat {}:{}\"{}\"", span.start_line, span.start_column, origin)
             })
             .collect::<Vec<_>>()
             .join("\n");
@@ -568,7 +568,7 @@ impl TransformError {
             .map(|(span, _)| {
                 let text = span.get_span_text(source)?;
                 Ok(format!(
-                    "at {}:{} {}",
+                    "at {}:{} \"{}\"",
                     span.start_line, span.start_column, text,
                 ))
             })
@@ -656,6 +656,9 @@ impl TransformerContext {
             .map(|name| match self.get_value(name) {
                 Some(value) => match value {
                     Primitive::Number(value) => Ok(value.to_string()),
+                    Primitive::Integer(value) => Ok(value.to_string()),
+                    Primitive::PositiveInteger(value) => Ok(value.to_string()),
+                    Primitive::Boolean(value) => Ok(if *value { "T" } else { "F" }.to_string()),
                     Primitive::String(value) => Ok(value.clone()),
                     Primitive::GraphNode(v) => Ok(v.get_name().clone()),
                     _ => Err(TransformError::WrongExpectedArgument {

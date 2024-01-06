@@ -17,6 +17,8 @@ use parser::{
 };
 use utils::CompilationError;
 use wasm_bindgen::prelude::*;
+
+use crate::type_checker::type_checker_context::TypeCheckable;
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -44,6 +46,17 @@ impl RoocParser {
         let transformed = transform_parsed_problem(parsed);
         match transformed {
             Ok(transformed) => Ok(transformed),
+            Err(e) => Err(e
+                .get_trace_from_source(&self.source)
+                .unwrap_or(e.get_traced_error())),
+        }
+    }
+    pub fn type_check(&self) -> Result<(), String> {
+        let parsed = self
+            .parse()
+            .map_err(|e| e.to_string_from_source(&self.source))?;
+        match parsed.create_type_checker() {
+            Ok(_) => Ok(()),
             Err(e) => Err(e
                 .get_trace_from_source(&self.source)
                 .unwrap_or(e.get_traced_error())),
