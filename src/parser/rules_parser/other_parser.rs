@@ -394,27 +394,31 @@ pub fn parse_function(
         "edges" => Ok(Box::new(EdgesOfGraphFn::from_parameters(
             parsed_pars,
             &pars,
-        )?)),
+        ))),
         "len" => Ok(Box::new(LenOfIterableFn::from_parameters(
             parsed_pars,
             &pars,
-        )?)),
+        ))),
         "nodes" => Ok(Box::new(NodesOfGraphFn::from_parameters(
             parsed_pars,
             &pars,
-        )?)),
+        ))),
         "neigh_edges" => Ok(Box::new(NeighbourOfNodeFn::from_parameters(
             parsed_pars,
             &pars,
-        )?)),
+        ))),
         "neigh_edges_of" => Ok(Box::new(NeighboursOfNodeInGraphFn::from_parameters(
             parsed_pars,
             &pars,
-        )?)),
+        ))),
         "enumerate" => Ok(Box::new(EnumerateArray::from_parameters(
             parsed_pars,
             &pars,
-        )?)),
+        ))),
+        "range" => Ok(Box::new(NumericRange::from_parameters(
+            parsed_pars,
+            &pars,
+        ))),
         str => Err(CompilationError::from_pair(
             ParseError::SemanticError(format!("Unknown function {}", str)),
             name,
@@ -515,7 +519,7 @@ pub fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreExp, CompilationError>
                                 }
                             };
                             let span = InputSpan::from_pair(iterator);
-                            let function = NumericRange::new(from?, to?, to_inclusive);
+                            let function = NumericRange::new(from?, to?, to_inclusive, iterator.as_span());
                             Ok(PreExp::FunctionCall(span, Box::new(function)))
                         }
 

@@ -144,36 +144,66 @@ impl Primitive {
         self.get_type().to_string()
     }
     pub fn as_number(&self) -> Result<f64, TransformError> {
-        match_or_bail!("Number", Primitive::Number(n) => Ok(*n) ; (self, self))
+        match_or_bail!(PrimitiveKind::Number, 
+            Primitive::Number(n) => Ok(*n) 
+            ; (self))
     }
     pub fn as_integer(&self) -> Result<i64, TransformError> {
         let n = self.as_number()?;
         if n.fract() != 0.0 {
-            bail_wrong_argument!("Integer", self)
+            Err(TransformError::Other(format!(
+                "Expected integer, got {}",
+                self
+            )))
         } else {
             Ok(n as i64)
         }
     }
     pub fn as_usize(&self) -> Result<usize, TransformError> {
-        let n = self.as_number()?;
-        if n.fract() != 0.0 {
-            bail_wrong_argument!("Integer", self)
-        } else if n < 0.0 {
-            bail_wrong_argument!("Positive integer", self)
+        let n = self.as_integer()?;
+        if n < 0 {
+            Err(TransformError::Other(format!(
+                "Expected positive integer, got {}",
+                self
+            )))
         } else {
             Ok(n as usize)
         }
     }
     pub fn as_graph(&self) -> Result<&Graph, TransformError> {
-        match_or_bail!("Graph", 
+        match_or_bail!(PrimitiveKind::Graph,
             Primitive::Graph(g) => Ok(g)
-          ; (self, self))
+          ; (self))
+    }
+    pub fn as_graph_edge(&self) -> Result<&GraphEdge, TransformError> {
+        match_or_bail!(PrimitiveKind::GraphEdge,
+            Primitive::GraphEdge(e) => Ok(e)
+          ; (self))
+    }
+    pub fn as_graph_node(&self) -> Result<&GraphNode, TransformError> {
+        match_or_bail!(PrimitiveKind::GraphNode,
+            Primitive::GraphNode(n) => Ok(n)
+          ; (self))
+    }
+    pub fn as_boolean(&self) -> Result<bool, TransformError> {
+        match_or_bail!(PrimitiveKind::Boolean,
+            Primitive::Boolean(b) => Ok(*b)
+          ; (self))
+    }
+    pub fn as_string(&self) -> Result<&String, TransformError> {
+        match_or_bail!(PrimitiveKind::String,
+            Primitive::String(s) => Ok(s)
+          ; (self))
     }
     pub fn as_iterator(&self) -> Result<&IterableKind, TransformError> {
-        match_or_bail!("Iterable", Primitive::Iterable(i) => Ok(i) ; (self, self))
+        match_or_bail!(PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
+            Primitive::Iterable(i) => Ok(i)
+          ; (self))
     }
     pub fn as_tuple(&self) -> Result<&Vec<Primitive>, TransformError> {
-        match_or_bail!("Tuple", Primitive::Tuple(t) => Ok(t.get_primitives()) ; (self, self))
+        match_or_bail!(PrimitiveKind::Tuple(vec![]),
+            Primitive::Tuple(t) => Ok(t.get_primitives())
+          ; (self)) 
     }
 }
 

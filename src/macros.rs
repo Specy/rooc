@@ -10,72 +10,78 @@ macro_rules! err_unexpected_token {
 }
 #[macro_export]
 macro_rules! wrong_argument {
-    ($expected_type: literal, $current_arg:expr, $evauluated_in:expr) => {
-        TransformError::WrongArgument(format!(
-            "Expected argument of type \"{}\", got \"{}\" evaluating \"{}\"",
-            $expected_type,
-            $current_arg.get_type_string(),
-            $evauluated_in.to_string()
-        ))
-    };
-    ($expected_type: literal, $evauluated_in:expr) => {
-        TransformError::WrongArgument(format!(
-            "Expected argument of type {}, got \"{}\"",
-            $expected_type,
-            $evauluated_in.to_string()
-        ))
+    ($expected_type: expr, $current_arg:expr) => {
+        TransformError::WrongArgument{
+            got: $expected_type,
+            expected: $current_arg.get_type(),
+        }
     };
 }
 
 #[macro_export]
-macro_rules! bail_wrong_argument {
-    ($expected_type: literal, $current_arg:expr, $evauluated_in:expr) => {
-        Err(wrong_argument!(
-            $expected_type,
-            $current_arg,
-            $evauluated_in
-        ))
-    };
-    ($expected_type: literal, $evauluated_in:expr) => {
-        Err(wrong_argument!($expected_type, $evauluated_in))
+macro_rules! bail_incorrect_type_signature_of_fn {
+    ($self:expr, $context:expr) => {
+        bail_incorrect_type_signature!(
+            $self.get_type_signature(),
+            $self
+                .get_parameters()
+                .iter()
+                .map(|a| a.get_type($context))
+                .collect::<Vec<_>>(),
+            $self.get_span()
+        )
     };
 }
+
 #[macro_export]
-macro_rules! bail_wrong_argument_spanned {
-    ($expected_type: expr, $current_arg:expr, $evauluated_in:expr) => {
+macro_rules! bail_incorrect_type_signature {
+    ($expected:expr, $current:expr, $span:expr) => {
+        Err((TransformError::WrongFunctionSignature {
+            signature: $expected,
+            got: $current,
+        })
+        .to_spanned_error($span))
+    };
+    ($expected:expr, $current:expr) => {
+        Err(TransformError::WrongFunctionSignature {
+            signature: $expected,
+            got: $current,
+        })
+    };
+}
+
+#[macro_export]
+macro_rules! bail_wrong_number_of_arguments {
+    ($function:expr) => {
+        Err(TransformError::WrongNumberOfArguments {
+            signature: $function.get_type_signature(),
+            args: $function.get_parameters().clone()
+        })
+    }
+}
+
+#[macro_export]
+macro_rules! bail_wrong_argument {
+    ($expected_type: expr, $current_arg:expr) => {
         Err(wrong_argument!(
             $expected_type,
-            $current_arg,
-            $evauluated_in
-        ).to_spanned_error($evauluated_in.get_span()))
-    };
-    ($expected_type: literal, $evauluated_in:expr) => {
-        Err(wrong_argument!($expected_type, $evauluated_in).to_spanned_error($evauluated_in.get_span()))
+            $current_arg
+        ))
     };
 }
 
 #[macro_export]
 macro_rules! match_or_bail {
-    ($expected:expr, $($enum:ident:: $variant:ident($($var:pat),+) => $expr:expr),+ ; ($value:expr, $self:expr)) => {
+    ($expected:expr, $($enum:ident:: $variant:ident($($var:pat),+) => $expr:expr),+ ; ($value:expr)) => {
         match $value {
             $(
                 $enum::$variant($($var),+) => $expr,
             )+
-            _ => bail_wrong_argument!($expected, $value, $self),
+            _ => bail_wrong_argument!($expected, $value),
         }
     };
 }
-#[macro_export]
-macro_rules! match_or_bail_spanned {
-    ($expected:expr, $($enum:ident:: $variant:ident($($var:pat),+) => $expr:expr),+ ; ($value:expr, $self:expr)) => {
-        match $value {
-            $(
-                $enum::$variant($($var),+) => $expr,
-            )+
-            _ => Err(wrong_argument!($expected, $value, $self).to_spanned_error($self.get_span())),
-        }
-    };
-}
+
 
 #[macro_export]
 macro_rules! bail_missing_token {
@@ -94,21 +100,6 @@ macro_rules! bail_semantic_error {
         Err(CompilationError::from_pair(
             ParseError::SemanticError(format!($s)),
             &$arg,
-            true,
-        ))
-    };
-}
-
-#[macro_export]
-macro_rules! bail_wrong_number_of_arguments {
-    ($n:expr, $expected:ident, $name:expr, [$($arg:literal),+]) => {
-        Err(CompilationError::from_pair(
-            ParseError::WrongNumberOfArguments{
-                got: $n, 
-                expected: vec![$($arg.to_string()),+],
-                name: $name.to_string()
-            },
-            &$expected,
             true,
         ))
     };

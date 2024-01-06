@@ -3,8 +3,14 @@ use std::collections::HashMap;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::{parser::{transformer::{ TransformError, Frame}, pre_parsed_problem::AddressableAccess}, primitives::{primitive::PrimitiveKind, consts::Constant}, utils::InputSpan};
-
+use crate::{
+    parser::{
+        pre_parsed_problem::AddressableAccess,
+        transformer::{Frame, TransformError},
+    },
+    primitives::{consts::Constant, primitive::PrimitiveKind},
+    utils::InputSpan,
+};
 
 pub trait TypeCheckable {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError>;
@@ -25,7 +31,7 @@ pub struct TypedToken {
 #[wasm_bindgen(typescript_custom_section)]
 const ITypedToken: &'static str = r#"
 export type SerializedTypedToken = {
-    span: SerializedInputSpan,
+    span: InputSpan,
     value: SerializedPrimitiveKind,
     identifier?: string
 }
@@ -41,14 +47,15 @@ impl TypedToken {
     }
 }
 
-
 pub struct TypeCheckerContext {
     frames: Vec<Frame<PrimitiveKind>>,
-    token_map: HashMap<usize, TypedToken>
-
+    token_map: HashMap<usize, TypedToken>,
 }
 impl TypeCheckerContext {
-    pub fn new(primitives: HashMap<String, PrimitiveKind>, token_map: HashMap<usize, TypedToken>) -> Self {
+    pub fn new(
+        primitives: HashMap<String, PrimitiveKind>,
+        token_map: HashMap<usize, TypedToken>,
+    ) -> Self {
         let frame = Frame::from_map(primitives);
         Self {
             frames: vec![frame],
@@ -62,7 +69,16 @@ impl TypeCheckerContext {
             .collect::<HashMap<_, _>>();
         let token_map = constants
             .into_iter()
-            .map(|c| (c.name.get_span().start, TypedToken::new(c.name.get_span().clone(), c.value.get_type(), Some(c.name.get_span_value().clone()))))
+            .map(|c| {
+                (
+                    c.name.get_span().start,
+                    TypedToken::new(
+                        c.name.get_span().clone(),
+                        c.value.get_type(),
+                        Some(c.name.get_span_value().clone()),
+                    ),
+                )
+            })
             .collect::<HashMap<_, _>>();
         Self::new(primitives, token_map)
     }
@@ -72,16 +88,19 @@ impl TypeCheckerContext {
     pub fn add_scope(&mut self) {
         let frame = Frame::new();
         self.frames.push(frame);
-    
     }
-    pub fn add_token_type(&mut self, value: PrimitiveKind, span: InputSpan, identifier: Option<String>) {
+    pub fn add_token_type(
+        &mut self,
+        value: PrimitiveKind,
+        span: InputSpan,
+        identifier: Option<String>,
+    ) {
         let start = span.start;
         if let Some(val) = &identifier {
             let _ = self.declare_variable(&val, value.clone(), false);
         }
         let token = TypedToken::new(span, value, identifier);
         self.token_map.insert(start, token);
-        
     }
     pub fn add_frame(&mut self, frame: Frame<PrimitiveKind>) {
         self.frames.push(frame);
@@ -101,10 +120,7 @@ impl TypeCheckerContext {
         }
         None
     }
-    pub fn check_compound_variable(
-        &self,
-        compound_name: &[String],
-    ) -> Result<(), TransformError> {
+    pub fn check_compound_variable(&self, compound_name: &[String]) -> Result<(), TransformError> {
         for name in compound_name {
             let value = self.get_value(name);
             if value.is_none() {
@@ -112,15 +128,16 @@ impl TypeCheckerContext {
             }
             let value = value.unwrap();
             match value {
-                PrimitiveKind::Number |
-                PrimitiveKind::String | 
-                PrimitiveKind::GraphNode => {}
+                PrimitiveKind::Number | PrimitiveKind::String | PrimitiveKind::GraphNode => {}
                 _ => {
-                    return Err(TransformError::WrongArgument(format!(
-                        "Expected value of type \"Number\", \"String\", \"GraphNode\" for variable flattening, got \"{}\", check the definition of \"{}\"",
-                        value.to_string(),
-                        name
-                    )))
+                    return Err(TransformError::WrongExpectedArgument {
+                        got: value.clone(),
+                        one_of: vec![
+                            PrimitiveKind::Number,
+                            PrimitiveKind::String,
+                            PrimitiveKind::GraphNode,
+                        ],
+                    })
                 }
             }
         }
@@ -146,21 +163,21 @@ impl TypeCheckerContext {
         match self.get_value(&addressable_access.name) {
             Some(v) => {
                 let len = addressable_access.accesses.len();
-                for access in addressable_access.accesses.iter(){
+                for access in addressable_access.accesses.iter() {
                     if !matches!(access.get_type(self), PrimitiveKind::Number) {
-                        return Err(TransformError::WrongArgument(format!(
+                        return Err(TransformError::Other(format!(
                             "Expected value of type \"Number\" to index array, got \"{}\", check the definition of \"{}\"",
                             access.get_type(self).to_string(),
                             access.to_string()
-                        )))
+                        )));
                     }
-                }       
+                }
                 let mut depth = 0;
                 let mut last_value = v;
                 while let PrimitiveKind::Iterable(iterable) = last_value {
                     depth += 1;
                     last_value = iterable
-                }         
+                }
                 if depth > len {
                     return Err(TransformError::OutOfBounds(format!(
                         "Indexing {} with {} indexes, but it only has {} dimensions",

@@ -1,4 +1,4 @@
-use pest::iterators::Pair;
+use pest::{iterators::Pair, Span};
 use serde::Serialize;
 
 use crate::{
@@ -12,59 +12,73 @@ use crate::{
         iterable::IterableKind,
         primitive::{Primitive, PrimitiveKind},
     },
-       wrong_argument, type_checker::type_checker_context::{TypeCheckable, WithType, TypeCheckerContext},
+    type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::{CompilationError, InputSpan, ParseError, Spanned},
+    wrong_argument, bail_incorrect_type_signature, bail_incorrect_type_signature_of_fn,
 };
 
 use super::function_traits::FunctionCall;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct NumericRange {
-    from: PreExp,
-    to: PreExp,
-    to_inclusive: PreExp,
+    args: Vec<PreExp>,
+    span: InputSpan,
+    known_inclusive: Option<bool>,
 }
 impl NumericRange {
-    pub fn new(from: PreExp, to: PreExp, to_inclusive: bool) -> Self {
+    pub fn new(from: PreExp, to: PreExp, to_inclusive: bool, span: Span) -> Self {
         Self {
-            from,
-            to,
-            to_inclusive: PreExp::Primitive(Spanned::new(
-                Primitive::Boolean(to_inclusive),
-                InputSpan::default(),
-            )),
+            args: vec![
+                from,
+                to,
+                PreExp::Primitive(Spanned::new(
+                    Primitive::Boolean(to_inclusive),
+                    InputSpan::default(),
+                )),
+            ],
+            known_inclusive: Some(to_inclusive),
+            span: InputSpan::from_span(span),
         }
     }
 }
 
 impl TypeCheckable for NumericRange {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
-        if !matches!(self.from.get_type(context), PrimitiveKind::Number) {
-            Err(TransformError::from_wrong_type(
-                PrimitiveKind::Number,
-                self.from.get_type(context),
-                self.from.get_span().clone(),
-            ))
-        } else if !matches!(self.to.get_type(context), PrimitiveKind::Number) {
-            Err(TransformError::from_wrong_type(
-                PrimitiveKind::Number,
-                self.to.get_type(context),
-                self.to.get_span().clone(),
-            ))
-        } else if !matches!(self.to_inclusive.get_type(context), PrimitiveKind::Boolean) {
-            Err(TransformError::from_wrong_type(
-                PrimitiveKind::Boolean,
-                self.to_inclusive.get_type(context),
-                self.to_inclusive.get_span().clone(),
-            ))
-        } else {
-            Ok(())
+        match self.args[..]{
+            [ref from, ref to, ref to_inclusive] => {
+                let from_type = from.get_type(context);
+                let to_type = to.get_type(context);
+                let to_inclusive_type = to_inclusive.get_type(context);
+                if !matches!(from_type, PrimitiveKind::Number) {
+                    Err(TransformError::from_wrong_type(
+                        PrimitiveKind::Number,
+                        from_type,
+                        from.get_span().clone(),
+                    ))
+                } else if !matches!(to_type, PrimitiveKind::Number) {
+                    Err(TransformError::from_wrong_type(
+                        PrimitiveKind::Number,
+                        to_type,
+                        to.get_span().clone(),
+                    ))
+                } else if !matches!(to_inclusive_type, PrimitiveKind::Boolean) {
+                    Err(TransformError::from_wrong_type(
+                        PrimitiveKind::Boolean,
+                        to_inclusive_type,
+                        to_inclusive.get_span().clone(),
+                    ))
+                } else {
+                    Ok(())
+                }
+            }
+            _ => bail_incorrect_type_signature_of_fn!(self, context)
         }
     }
     fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
-        self.from.populate_token_type_map(context);
-        self.to.populate_token_type_map(context);
-        self.to_inclusive.populate_token_type_map(context);
+        self.args
+        .iter()
+        .for_each(|arg| arg.populate_token_type_map(context));
+
     }
 }
 impl WithType for NumericRange {
@@ -73,37 +87,56 @@ impl WithType for NumericRange {
     }
 }
 impl FunctionCall for NumericRange {
-    fn from_parameters(
-        mut pars: Vec<PreExp>,
-        origin_rule: &Pair<Rule>,
-    ) -> Result<Self, CompilationError> {
-        match pars.len() {
-            3 => Ok(Self {
-                from: pars.remove(0),
-                to: pars.remove(0),
-                to_inclusive: pars.remove(0),
-            }),
-            n => bail_wrong_number_of_arguments!(n, origin_rule, "", ["Number", "Number"]),
-        }
+    fn from_parameters(args: Vec<PreExp>, rule: &Pair<Rule>) -> Self {
+        Self { args, span: InputSpan::from_pair(rule), known_inclusive: None }
+    }
+    fn get_parameters(&self) -> &Vec<PreExp> {
+        &self.args
+    }
+    fn get_span(&self) -> &InputSpan {
+        &self.span
     }
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
-        let from = self.from.as_integer(context)?;
-        let to = self.to.as_integer(context)?;
-        let to_inclusive = self.to_inclusive.as_boolean(context)?;
-        let range = if to_inclusive {
-            (from..=to).map(|i| i as f64).collect()
-        } else {
-            (from..to).map(|i| i as f64).collect()
-        };
-        Ok(Primitive::Iterable(IterableKind::Numbers(range)))
+        match self.args[..] {
+            [ref from,ref  to, ref to_inclusive] => {
+                let from = from.as_integer(context)?;
+                let to = to.as_integer(context)?;
+                let to_inclusive = to_inclusive.as_boolean(context)?;
+                let range = if to_inclusive {
+                    (from..=to).map(|i| i as f64).collect()
+                } else {
+                    (from..to).map(|i| i as f64).collect()
+                };
+                Ok(Primitive::Iterable(IterableKind::Numbers(range)))
+            }
+            _ => bail_wrong_number_of_arguments!(self),
+        }
+        
     }
     fn to_string(&self) -> String {
-        format!("{}..{}", self.from, self.to)
+        match self.args[..] {
+            [ref from, ref to, _] => {
+                if let Some(inclusive) = self.known_inclusive {
+                    let range = if inclusive { "..=" } else { ".." };
+                    return format!("{}{}{}", from.to_string(), range, to.to_string());
+                }
+            } 
+            _ => {}
+        }
+        format!(
+            "{}({})",
+            self.get_function_name(),
+            self.args
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
     }
     fn get_function_name(&self) -> String {
         "range".to_string()
     }
-    fn get_parameters_types(&self) -> Vec<PrimitiveKind> {
+    fn get_type_signature(&self) -> Vec<PrimitiveKind> {
         vec![PrimitiveKind::Number; 2]
     }
 }

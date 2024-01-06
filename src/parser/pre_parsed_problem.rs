@@ -2,7 +2,7 @@ use core::fmt;
 use std::{collections::HashMap, str::FromStr};
 
 use crate::{
-    bail_wrong_argument_spanned, enum_with_variants_to_string, match_or_bail_spanned,
+    enum_with_variants_to_string,
     math::math_enums::{Comparison, OptimizationType},
     math::operators::BinOp,
     primitives::{
@@ -397,36 +397,34 @@ impl TypeCheckable for PreExp {
                 .type_check(context)
                 .map_err(|e| e.to_spanned_error(span)),
             Self::BinaryOperation(op, lhs, rhs) => {
-                lhs.type_check(context)
-                    .map_err(|e| e.to_spanned_error(lhs.get_span()))?;
-                rhs.type_check(context)
-                    .map_err(|e| e.to_spanned_error(rhs.get_span()))?;
+                lhs.type_check(context)?;
+                rhs.type_check(context)?;
                 let lhs_type = lhs.get_type(context);
                 let rhs_type = rhs.get_type(context);
                 if !lhs_type.can_apply_binary_op(**op, rhs_type.clone()) {
-                    let err = TransformError::OperatorError(format!(
-                        "Cannot apply binary operator \"{}\" to \"{}\" and \"{}\"",
-                        op.to_string(),
-                        lhs_type.to_string(),
-                        rhs_type.to_string()
-                    ));
-                    return Err(err.to_spanned_error(op.get_span()));
+                    Err(TransformError::from_wrong_binop(
+                        **op,
+                        lhs_type,
+                        rhs_type,
+                        op.get_span().clone(),
+                    ))
+                } else {
+                    Ok(())
                 }
-                Ok(())
             }
             Self::UnaryOperation(op, exp) => {
                 exp.type_check(context)
                     .map_err(|e| e.to_spanned_error(exp.get_span()))?;
                 let exp_type = exp.get_type(context);
                 if !exp_type.can_apply_unary_op(**op) {
-                    let err = TransformError::OperatorError(format!(
-                        "Cannot apply unary operator \"{}\" to \"{}\"",
-                        op.to_string(),
-                        exp_type.to_string()
-                    ));
-                    return Err(err.to_spanned_error(op.get_span()));
+                    Err(TransformError::from_wrong_unop(
+                        **op,
+                        exp_type,
+                        op.get_span().clone(),
+                    ))
+                } else {
+                    Ok(())
                 }
-                Ok(())
             }
             Self::Primitive(_) => Ok(()),
             Self::Mod(_, exp) => {
@@ -434,11 +432,11 @@ impl TypeCheckable for PreExp {
                     .map_err(|e| e.to_spanned_error(exp.get_span()))?;
                 let exp_type = exp.get_type(context);
                 if exp_type != PrimitiveKind::Number {
-                    let err = TransformError::WrongArgument(format!(
-                        "Expected \"Number\", got \"{}\"",
-                        exp_type.to_string()
+                    return Err(TransformError::from_wrong_type(
+                        exp_type,
+                        PrimitiveKind::Number,
+                        exp.get_span().clone(),
                     ));
-                    return Err(err.to_spanned_error(exp.get_span()));
                 }
                 Ok(())
             }
@@ -452,11 +450,11 @@ impl TypeCheckable for PreExp {
                         .map_err(|e| e.to_spanned_error(f.get_span()))?;
                     let exp_type = exp.get_type(context);
                     if exp_type != PrimitiveKind::Number {
-                        let err = TransformError::WrongArgument(format!(
-                            "Expected \"Number\", got \"{}\"",
-                            exp_type.to_string()
+                        return Err(TransformError::from_wrong_type(
+                            PrimitiveKind::Number,
+                            exp_type,
+                            f.get_span().clone(),
                         ));
-                        return Err(err.to_spanned_error(f.get_span()));
                     }
                 }
                 Ok(())
@@ -484,11 +482,12 @@ impl TypeCheckable for PreExp {
                 }
                 let exp_type = f.exp.get_type(context);
                 if exp_type != PrimitiveKind::Number {
-                    let err = TransformError::WrongArgument(format!(
-                        "Expected \"Number\", got \"{}\"",
-                        exp_type.to_string()
-                    ));
-                    return Err(err.to_spanned_error(f.get_span()));
+                    let err = TransformError::from_wrong_type(
+                        PrimitiveKind::Number,
+                        exp_type,
+                        f.get_span().clone(),
+                    );
+                    return Err(err);
                 }
                 Ok(())
             }
@@ -553,13 +552,11 @@ impl PreExp {
             }
             Self::Primitive(n) => match **n {
                 Primitive::Number(n) => Ok(Exp::Number(n)),
-                _ => {
-                    let err = TransformError::WrongArgument(format!(
-                        "Expected \"Number\", got \"{}\"",
-                        n.get_type_string()
-                    ));
-                    Err(err.to_spanned_error(self.get_span()))
-                }
+                _ => Err(TransformError::from_wrong_type(
+                    PrimitiveKind::Number,
+                    n.get_type(),
+                    n.get_span().clone(),
+                )),
             },
             Self::Mod(span, exp) => {
                 let inner = exp
@@ -601,13 +598,11 @@ impl PreExp {
             Self::Variable(name) => {
                 let value = context.get_value(name).map(|v| match v {
                     Primitive::Number(n) => Ok(Exp::Number(*n)),
-                    _ => {
-                        let err = TransformError::WrongArgument(format!(
-                            "Type \"{}\" cannot be used as a value for a variable, expected \"Number\"",
-                            v.get_type_string()
-                        ));
-                        Err(err.to_spanned_error(self.get_span()))
-                    }
+                    _ => Err(TransformError::from_wrong_type(
+                        PrimitiveKind::Number,
+                        v.get_type(),
+                        name.get_span().clone(),
+                    )),
                 });
                 match value {
                     Some(value) => Ok(value?),
@@ -626,13 +621,11 @@ impl PreExp {
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 match value {
                     Primitive::Number(n) => Ok(Exp::Number(n)),
-                    _ => {
-                        let err = TransformError::WrongArgument(format!(
-                            "Expected \"Number\", got \"{}\"",
-                            value.get_type_string()
-                        ));
-                        Err(err.to_spanned_error(self.get_span()))
-                    }
+                    _ => Err(TransformError::from_wrong_type(
+                        PrimitiveKind::Number,
+                        value.get_type(),
+                        self.get_span().clone(),
+                    )),
                 }
             }
             Self::BlockScopedFunction(f) => {
@@ -683,13 +676,11 @@ impl PreExp {
                     .map_err(|e| e.to_spanned_error(span))?;
                 match value {
                     Primitive::Number(n) => Ok(Exp::Number(n)),
-                    _ => {
-                        let err = TransformError::WrongArgument(format!(
-                            "Expected \"Number\", got \"{}\"",
-                            value.get_type_string()
-                        ));
-                        Err(err.to_spanned_error(self.get_span()))
-                    }
+                    _ => Err(TransformError::from_wrong_type(
+                        PrimitiveKind::Number,
+                        value.get_type(),
+                        span.clone(),
+                    )),
                 }
             }
         }
@@ -723,10 +714,11 @@ impl PreExp {
                 let value = v.as_primitive(context)?;
                 match value.apply_unary_op(**op) {
                     Ok(value) => Ok(value),
-                    Err(e) => {
-                        let err = TransformError::OperatorError(e.to_string());
-                        Err(err.to_spanned_error(self.get_span()))
-                    }
+                    Err(e) => Err(TransformError::from_wrong_unop(
+                        **op,
+                        value.get_type(),
+                        op.get_span().clone(),
+                    )),
                 }
             }
             PreExp::BinaryOperation(op, lhs, rhs) => {
@@ -734,57 +726,50 @@ impl PreExp {
                 let rhs = rhs.as_primitive(context)?;
                 match lhs.apply_binary_op(**op, &rhs) {
                     Ok(value) => Ok(value),
-                    Err(e) => {
-                        let err = TransformError::OperatorError(e.to_string());
-                        Err(err.to_spanned_error(self.get_span()))
-                    }
+                    Err(e) => Err(TransformError::from_wrong_binop(
+                        **op,
+                        lhs.get_type(),
+                        rhs.get_type(),
+                        op.get_span().clone(),
+                    )),
                 }
             }
-            _ => Err(TransformError::WrongArgument(
-                "Expected \"Primitive\"".to_string(),
-            )),
+            PreExp::Mod(_, _) | PreExp::BlockFunction(_) | PreExp::BlockScopedFunction(_) => {
+                //TODO is this correct?
+                Err(TransformError::WrongArgument {
+                    got: PrimitiveKind::Undefined,
+                    expected: PrimitiveKind::Any,
+                })
+            }
         }
     }
     //TODO make this a macro
     pub fn as_number(&self, context: &TransformerContext) -> Result<f64, TransformError> {
-        let value = self
+        self
             .as_primitive(context)
-            .map_err(|e| e.to_spanned_error(self.get_span()))?;
-        match_or_bail_spanned!("Number", Primitive::Number(n) => Ok(n) ; (value, self))
+            .map(|p| p.as_number().map(|v| v.to_owned()))
+            .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
     pub fn as_string(&self, context: &TransformerContext) -> Result<String, TransformError> {
-        let value = self
-            .as_primitive(context)
-            .map_err(|e| e.to_spanned_error(self.get_span()))?;
-        match_or_bail_spanned!("String", Primitive::String(s) => Ok(s) ; (value, self))
+        self.as_primitive(context)
+            .map(|p| p.as_string().map(|v| v.to_owned()))
+            .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
     pub fn as_integer(&self, context: &TransformerContext) -> Result<i64, TransformError> {
-        let n = self
-            .as_number(context)
-            .map_err(|e| e.to_spanned_error(self.get_span()))?;
-        if n.fract() != 0.0 {
-            bail_wrong_argument_spanned!("Integer", self)
-        } else {
-            Ok(n as i64)
-        }
+        self
+            .as_primitive(context)
+            .map(|p: Primitive| p.as_integer().map(|v| v.to_owned()))
+            .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
     pub fn as_usize(&self, context: &TransformerContext) -> Result<usize, TransformError> {
-        let n = self
-            .as_number(context)
-            .map_err(|e| e.to_spanned_error(self.get_span()))?;
-        if n.fract() != 0.0 {
-            bail_wrong_argument_spanned!("Integer", self)
-        } else if n < 0.0 {
-            bail_wrong_argument_spanned!("Positive integer", self)
-        } else {
-            Ok(n as usize)
-        }
+        self.as_primitive(context)
+            .map(|p| p.as_usize().map(|v| v.to_owned()))
+            .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
     pub fn as_boolean(&self, context: &TransformerContext) -> Result<bool, TransformError> {
-        let value = self
-            .as_primitive(context)
-            .map_err(|e| e.to_spanned_error(self.get_span()))?;
-        match_or_bail_spanned!("Boolean", Primitive::Boolean(b) => Ok(b) ; (value, self))
+        self.as_primitive(context)
+            .map(|p| p.as_boolean())
+            .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
     pub fn as_graph(&self, context: &TransformerContext) -> Result<Graph, TransformError> {
         self.as_primitive(context)
@@ -792,16 +777,14 @@ impl PreExp {
             .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
     pub fn as_node(&self, context: &TransformerContext) -> Result<GraphNode, TransformError> {
-        let node = self
-            .as_primitive(context)
-            .map_err(|e| e.to_spanned_error(self.get_span()))?;
-        match_or_bail_spanned!("GraphNode", Primitive::GraphNode(n) => Ok(n) ; (node, self))
+        self.as_primitive(context)
+            .map(|p| p.as_graph_node().map(|v| v.to_owned()))
+            .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
     pub fn as_edge(&self, context: &TransformerContext) -> Result<GraphEdge, TransformError> {
-        let edge = self
-            .as_primitive(context)
-            .map_err(|e| e.to_spanned_error(self.get_span()))?;
-        match_or_bail_spanned!("GraphEdge", Primitive::GraphEdge(e) => Ok(e) ; (edge, self))
+        self.as_primitive(context)
+            .map(|p| p.as_graph_edge().map(|v| v.to_owned()))
+            .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
 
     pub fn as_iterator(
@@ -945,11 +928,11 @@ impl IterableSet {
         let iter_type = match iter_type {
             PrimitiveKind::Iterable(kind) => *kind,
             _ => {
-                return Err(TransformError::WrongArgument(format!(
-                    "Value of type \"{}\" is not iterable",
-                    iter_type.to_string()
+                return Err(TransformError::from_wrong_type(
+                    PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
+                    iter_type,
+                    self.span.clone(),
                 ))
-                .to_spanned_error(&self.span));
             }
         };
         match &self.var {
@@ -958,11 +941,13 @@ impl IterableSet {
                 match &iter_type {
                     PrimitiveKind::Tuple(types) => {
                         if vars.len() > types.len() {
-                            let err = TransformError::WrongArgument(format!(
-                                "Trying to spread tuple \"{}\" variables into {} variables",
-                                iter_type.to_string(),
-                                vars.len()
-                            ))
+                            let err = TransformError::SpreadError {
+                                to_spread: iter_type,
+                                in_variables: vars
+                                    .iter()
+                                    .map(|v| v.get_span_value().clone())
+                                    .collect::<Vec<_>>(),
+                            }
                             .to_spanned_error(&self.span);
                             Err(err)
                         } else {
@@ -980,11 +965,8 @@ impl IterableSet {
                             .collect::<Vec<_>>()) //we don't know at compile time how many variables there are, so we assume all of them have the same type
                     }
                     _ => {
-                        let err = TransformError::WrongArgument(format!(
-                            "Value of type \"{}\" is not spreadable",
-                            iter_type.to_string()
-                        ))
-                        .to_spanned_error(&self.span);
+                        let err =
+                            TransformError::Unspreadable(iter_type).to_spanned_error(&self.span);
                         Err(err)
                     }
                 }
@@ -1151,7 +1133,7 @@ impl TypeCheckable for PreCondition {
             context.pop_scope()?;
         }
         if lhs_type != PrimitiveKind::Number || rhs_type != PrimitiveKind::Number {
-            let err = TransformError::WrongArgument(format!(
+            let err = TransformError::Other(format!(
                 "Expected comparison of \"Number\", got \"{}\" {} \"{}\"",
                 lhs_type.to_string(),
                 self.condition_type,

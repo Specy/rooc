@@ -63,7 +63,7 @@ pub fn apply_tuple(
     spreadable: Vec<Primitive>,
 ) -> Result<(), TransformError> {
     if tuple.len() > spreadable.len() {
-        return Err(TransformError::WrongArgument(format!(
+        return Err(TransformError::Other(format!(
             "Cannot destructure tuple of length {} in {} elements",
             spreadable.len(),
             tuple.len()

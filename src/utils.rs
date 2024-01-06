@@ -181,11 +181,6 @@ pub enum ParseError {
     UnexpectedToken(String),
     MissingToken(String),
     SemanticError(String),
-    WrongNumberOfArguments {
-        got: usize,
-        expected: Vec<String>,
-        name: String,
-    },
 }
 #[wasm_bindgen(typescript_custom_section)]
 pub const IParseError: &'static str = r#"
@@ -214,22 +209,6 @@ impl fmt::Display for ParseError {
             Self::UnexpectedToken(s) => format!("[Unexpected token] {}", s),
             Self::MissingToken(s) => format!("[Missing token] {}", s),
             Self::SemanticError(s) => format!("[Semantic error] {}", s),
-            Self::WrongNumberOfArguments {
-                got,
-                expected,
-                name,
-            } => format!(
-                "[Wrong number of arguments] got {}, expected {}, for \"function {}({})\"",
-                got,
-                expected.len(),
-                name,
-                expected
-                    .iter()
-                    .enumerate()
-                    .map(|(i, s)| format!("p{}: {}", i, s))
-                    .collect::<Vec<String>>()
-                    .join(", ")
-            ),
         };
         f.write_str(&s)
     }
