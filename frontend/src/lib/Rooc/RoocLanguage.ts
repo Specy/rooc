@@ -102,7 +102,7 @@ function getFormattedType(type: SerializedPrimitiveKind) {
 	if (type.type === 'Tuple') {
 		console.log(type)
 		return `(${type.value.map(getFormattedType).join(', ')})`
-	} else if (type.type === "Iterable"){
+	} else if (type.type === "Iterable") {
 		return `${getFormattedType(type.value)}[]`
 	} else {
 		return type.type
@@ -136,14 +136,14 @@ export function createRoocHoverProvider() {
 				return {
 					range,
 					contents: [
-						{ value: getFormattedType(item.value) }
+						{ value: `\`\`\`typescript\n${word?.word ?? "Unknown"}: ${getFormattedType(item.value)}\n\`\`\`` }
 					]
 				}
 			} else {
 				return {
 					range,
 					contents: [
-						{ value:  keywords[word?.word ?? ''] ?? 'No type found' }
+						{ value: keywords[word?.word ?? ''] ?? 'No type found' }
 					]
 				}
 			}
