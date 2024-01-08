@@ -8,9 +8,12 @@
 	import { onMount } from 'svelte';
 
 	import NoiseOverlay from '$cmp/layout/NoiseOverlay.svelte';
+	import { projectStore } from '$src/stores/projectStore';
+	import PromptProvider from '$cmp/PromptProvider.svelte';
+	import { toast } from '$src/stores/toastStore';
 	onMount(() => {
 		themeStorage.load();
-		
+		projectStore.syncProjectsWithStore();
 	});
 </script>
 
@@ -19,8 +22,10 @@
 	style="color: var(--primary-text); flex: 1; background-color: var(--background);"
 >
 	<ErrorLogger>
-		<PageTransition refresh={$page.url.pathname} />
-		<slot />
+		<PromptProvider>
+			<PageTransition refresh={$page.url.pathname} />
+			<slot />
+		</PromptProvider>
 	</ErrorLogger>
 	<NoiseOverlay opacity={0.1} />
 </ThemeProvider>

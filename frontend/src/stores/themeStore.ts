@@ -18,12 +18,12 @@ const baseDarkTheme = {
             cssProp: 'primary',
         },
         secondary: {
-            hex: '#2b2d45',
+            hex: '#2a2b3e',
             name: 'secondary',
             cssProp: 'secondary'
         },
         tertiary: {
-            hex: '#2d3950',
+            hex: '#2b2d45',
             name: 'tertiary',
             cssProp: 'tertiary'
         },
@@ -39,7 +39,7 @@ const baseDarkTheme = {
             cssProp: 'accent2'
         },
         shadow: {
-            hex: '#454559',
+            hex: '#2d2d3b',
             name: 'shadow',
             cssProp: 'shadow'
         },

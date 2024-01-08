@@ -476,7 +476,7 @@ pub fn parse_variable_type(tuple: &Pair<Rule>) -> Result<VariableType, Compilati
             let inner = tuple.clone().into_inner();
             let inner = inner
                 .map(|i| {
-                    let span = InputSpan::from_pair(tuple);
+                    let span = InputSpan::from_pair(&i);
                     match i.as_rule() {
                         Rule::simple_variable | Rule::no_par => {
                             Ok(Spanned::new(i.as_str().to_string(), span))

@@ -57,29 +57,6 @@ input:disabled {
 	flex-direction: column;
 }
 
-.column {
-	display: flex;
-	flex-direction: column;
-}
-
-.row {
-	display: flex;
-}
-
-.align-center {
-	align-items: center;
-}
-
-.justify-center {
-	justify-items: center;
-}
-.space-between {
-	justify-content: space-between;
-}
-.flex-center {
-	align-items: center;
-	justify-content: center;
-}
 
 ::-webkit-scrollbar {
 	width: 0.3rem;
@@ -99,3 +76,35 @@ input:disabled {
 ::-webkit-scrollbar-thumb:hover {
 	background: #555;
 }
+
+
+
+
+
+
+.flex, .row, .col{
+	display: flex;
+}
+
+.col {
+	display: flex;
+	flex-direction: column;
+}
+
+
+.align-center {
+	align-items: center;
+}
+
+.justify-center {
+	justify-items: center;
+}
+.space-between {
+	justify-content: space-between;
+}
+.flex-center {
+	align-items: center;
+	justify-content: center;
+}
+
+

@@ -93,7 +93,7 @@ export class PreProblem {
             return Err(new TransformError(e, this.source))
         }
     }
-    createTypeMap(): Record<number, SerializedTypedToken> {
+    createTypeMap(): Map<number, SerializedTypedToken> {
         return this.instance.create_token_type_map_wasm()
     }
     format(): string {

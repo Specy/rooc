@@ -3,7 +3,9 @@
 	export let disabled = false;
 	export let style = '';
 	export let hasIcon = false;
-	export let color: ColorName = 'primary';
+	export let color: ColorName = 'secondary';
+	export let hoverColor: ColorName | undefined = undefined;
+	export let border: ColorName | undefined = undefined;
 	export let active = false;
 	export let title = '';
 </script>
@@ -16,8 +18,8 @@
 	style="
 	--btn-color:var(--{color}); 
 	--btn-text:var(--{color}-text); 
-	--border-color: var(--{color}-10);
-	--btn-color-hover: var(--{color}-10);
+	--btn-color-hover:var(--{hoverColor ?? `${color}-10`});
+	--border-color: var(--{border}-10);
 	{style};
 	"
 	{disabled}
@@ -64,6 +66,6 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 0.35rem 0.8rem;
+		padding: 0.35rem 0.6rem;
 	}
 </style>

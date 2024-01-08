@@ -1,5 +1,5 @@
 <script>
-    export let size = 1.2
+    export let size = 1
     export let style = ''
 </script>
 

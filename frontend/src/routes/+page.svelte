@@ -4,9 +4,9 @@
 </script>
 
 <Page padding="1rem" gap="1rem" contentStyle="justify-content:center; align-items:center">
-	<a href="/projects/1" style="width: 100%; gap: 1rem;" class="container">
+	<a href="/projects" style="width: 100%; gap: 1rem;" class="container">
 		<img class="logo" alt="rooc logo" src="logo.png" />
-		<Button style="width: 100%">Go to the Rooc editor</Button>
+		<Button style="width: 100%">Go to your projects</Button>
 	</a>
 </Page>
 

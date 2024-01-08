@@ -1,6 +1,8 @@
 import { RoocParser } from '@specy/rooc'
 import type monaco from 'monaco-editor'
 import type { MonacoType } from '../Monaco'
+import { Position, Range } from 'monaco-editor'
+import type { SerializedPrimitiveKind } from '@specy/rooc/dist/pkg/rooc'
 
 
 
@@ -96,10 +98,55 @@ export function createRoocFormatter() {
 	}
 }
 
-export function createHoverProvider() {
+function getFormattedType(type: SerializedPrimitiveKind) {
+	if (type.type === 'Tuple') {
+		console.log(type)
+		return `(${type.value.map(getFormattedType).join(', ')})`
+	} else if (type.type === "Iterable"){
+		return `${getFormattedType(type.value)}[]`
+	} else {
+		return type.type
+	}
+}
+
+const keywords = {
+	'min': 'Minimize the objective function',
+	'max': 'Maximize the objective function',
+	's.t.': 'Below here, define all the constraints of the problem',
+	'where': 'Below here, define all the constants of the problem',
+	'for': 'Iterate over one or more ranges to expand the constraint in multiple constraints',
+	'in': 'Iterate over a range',
+
+}
+
+export function createRoocHoverProvider() {
 	return {
 		provideHover: (model: monaco.editor.ITextModel, position: monaco.Position) => {
 			const text = model.getValue()
+			const word = model.getWordAtPosition(position)
+			const pos = new Position(position.lineNumber, word?.startColumn ?? position.column)
+			const offset = model.getOffsetAt(pos)
+			const parser = new RoocParser(text)
+			const parsed = parser.compile()
+			if (!parsed.ok) return
+			const items = parsed.val.createTypeMap()
+			const item = items.get?.(offset)
+			const range = new Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + (word!.word.length ?? 0))
+			if (item) {
+				return {
+					range,
+					contents: [
+						{ value: getFormattedType(item.value) }
+					]
+				}
+			} else {
+				return {
+					range,
+					contents: [
+						{ value:  keywords[word?.word ?? ''] ?? 'No type found' }
+					]
+				}
+			}
 		}
 	}
 }

@@ -50,6 +50,7 @@ export type SerializedPrimitive =
 "#;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(tag = "type", content = "value")]
 pub enum PrimitiveKind {
     Number,
     Integer,
@@ -67,18 +68,18 @@ pub enum PrimitiveKind {
 #[wasm_bindgen(typescript_custom_section)]
 const IPrimitiveKind: &'static str = r#"
 export type SerializedPrimitiveKind = 
-    | { kind: 'Number' }
-    | { kind: 'Integer' }
-    | { kind: 'PositiveInteger' }
-    | { kind: 'String' }
-    | { kind: 'Iterable', value: SerializedPrimitiveKind[] }
-    | { kind: 'Graph' }
-    | { kind: 'GraphEdge' }
-    | { kind: 'GraphNode' }
-    | { kind: 'Tuple', value: SerializedPrimitiveKind[] }
-    | { kind: 'Boolean' }
-    | { kind: 'Undefined' }
-    | { kind: 'Any' }
+    | { type: 'Number' }
+    | { type: 'Integer' }
+    | { type: 'PositiveInteger' }
+    | { type: 'String' }
+    | { type: 'Iterable', value: SerializedPrimitiveKind }
+    | { type: 'Graph' }
+    | { type: 'GraphEdge' }
+    | { type: 'GraphNode' }
+    | { type: 'Tuple', value: SerializedPrimitiveKind[] }
+    | { type: 'Boolean' }
+    | { type: 'Undefined' }
+    | { type: 'Any' }
 "#;
 impl PrimitiveKind {
     pub fn from_primitive(p: &Primitive) -> Self {

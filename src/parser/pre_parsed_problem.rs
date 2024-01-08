@@ -120,7 +120,7 @@ impl fmt::Display for BlockScopedFunction {
         let name = self.kind.to_string();
         write!(
             f,
-            "{}({}){{ {} }}",
+            "{}({}) {{ {} }}",
             name,
             self.iters
                 .iter()
@@ -153,7 +153,7 @@ impl fmt::Display for BlockFunction {
         let name = self.kind.to_string();
         write!(
             f,
-            "{}{{ {} }}",
+            "{} {{ {} }}",
             name,
             self.exps
                 .iter()
@@ -813,12 +813,20 @@ impl PreExp {
     fn to_string_with_precedence(&self, previous_precedence: u8) -> String {
         match self {
             Self::BinaryOperation(op, lhs, rhs) => {
-                let lhs = lhs.to_string_with_precedence(op.precedence());
-                let rhs = rhs.to_string_with_precedence(op.precedence());
+                //TODO add implied multiplication like 2x 2(x + y) etc...
+                /*
+                    implicit_mul = { 
+                        (number | parenthesis | modulo){2,} ~ variable? |
+                        (number | parenthesis | modulo) ~ variable
+                    }
+                 */
+                let lhs_str = lhs.to_string_with_precedence(op.precedence());
+                let rhs_str = rhs.to_string_with_precedence(op.precedence());
+
                 if op.precedence() < previous_precedence {
-                    format!("({} {} {})", lhs, op.to_string(), rhs)
+                    format!("({} {} {})", lhs_str, op.to_string(), rhs_str)
                 } else {
-                    format!("{} {} {}", lhs, op.to_string(), rhs)
+                    format!("{} {} {}", lhs_str, op.to_string(), rhs_str)
                 }
             }
             _ => self.to_string(),
@@ -883,8 +891,8 @@ impl IterableSet {
         }
     }
     pub fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
+        self.iterator.populate_token_type_map(context);
         let iter_type = self.iterator.get_type(context);
-
         let iter_type = match iter_type {
             PrimitiveKind::Iterable(kind) => *kind,
             _ => PrimitiveKind::Undefined, //should this be undefined or any?
@@ -896,29 +904,21 @@ impl IterableSet {
                 Some(name.get_span_value().clone()),
             ),
             VariableType::Tuple(vars) => match &iter_type {
-                PrimitiveKind::Tuple(types) => {
-                    for (i, v) in vars.iter().enumerate() {
-                        context.add_token_type(
-                            types.get(i).unwrap_or(&PrimitiveKind::Undefined).clone(),
-                            self.span.clone(),
-                            Some(v.get_span_value().clone()),
-                        )
-                    }
-                }
                 PrimitiveKind::Iterable(kind) => {
                     for v in vars {
                         context.add_token_type(
                             *kind.clone(),
-                            self.span.clone(),
+                            v.get_span().clone(),
                             Some(v.get_span_value().clone()),
                         )
                     }
                 }
                 _ => {
-                    for v in vars {
+                    let types = iter_type.can_spread_into().unwrap_or(Vec::new());
+                    for (i, v) in vars.iter().enumerate() {
                         context.add_token_type(
-                            PrimitiveKind::Undefined,
-                            self.span.clone(),
+                            types.get(i).unwrap_or(&PrimitiveKind::Undefined).clone(),
+                            v.get_span().clone(),
                             Some(v.get_span_value().clone()),
                         )
                     }

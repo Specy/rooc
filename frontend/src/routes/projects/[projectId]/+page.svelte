@@ -2,99 +2,73 @@
 	import Editor from '$cmp/editor/Editor.svelte';
 	import Button from '$cmp/inputs/Button.svelte';
 	import Page from '$cmp/layout/Page.svelte';
-	import { RoocParser } from '@specy/rooc';
-	import type { CompilationError, TransformError } from '@specy/rooc';
 	import { Monaco } from '$src/lib/Monaco';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
-	let source = ``;
-	let compiled = '';
-	let lastCompilation = '';
-
+	import { projectStore, type Project } from '$src/stores/projectStore';
+	import { page } from '$app/stores';
+	import { createCompilerStore } from './projectStore';
+	import Floppy from '~icons/fa/save';
+	import Row from '$cmp/layout/Row.svelte';
+	import ButtonLink from '$cmp/inputs/ButtonLink.svelte';
+	import { toast } from '$src/stores/toastStore';
+	let project: Project;
+	let store: ReturnType<typeof createCompilerStore>;
 	onMount(() => {
 		Monaco.load();
-		const saved = localStorage.getItem('rooc_source');
-		source =
-			saved ||
-			`
-		min sum(u in nodes(G)) { x_u }
-s.t. 
-    x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1    for v in nodes(G)
-where
-    G = Graph {
-		A -> [B, C, D],
-		B -> [A, C],
-		C -> [A, B, D],
-		D -> [A]
-    }
-		`.trim();
+		loadProject();
 		return () => {
 			Monaco.dispose();
 		};
 	});
 
+	async function loadProject() {
+		project = await projectStore.getProject($page.params.projectId);
+		if (!project) {
+			toast.error('Project not found', 10000);
+			return;
+		}
+		store = createCompilerStore(project);
+	}
+	async function save() {
+		await store?.save();
+		toast.logPill('Saved');
+	}
 	function compile() {
-		lastCompilation = '';
-		const parser = new RoocParser(source);
-		const compile = parser.compile();
-		if (!compile.ok) {
-			return (compiled = (compile.val as CompilationError).message());
-		}
-		const transform = compile.val.transform();
-		if (!transform.ok) {
-			return (compiled = (transform.val as TransformError).message());
-		}
-		compiled = transform.val.stringify();
-		lastCompilation = compiled;
-	}
-	function typeCheck() {
-		if (browser) {
-			localStorage.setItem('rooc_source', source);
-		}
-		try {
-			const parser = new RoocParser(source);
-			const compile = parser.compile();
-			if (!compile.ok) {
-				return (compiled = (compile.val as CompilationError).message());
-			}
-			const transform = compile.val.typeCheck();
-			if (!transform.ok) {
-				return (compiled = transform.val.message());
-			}
-			compiled = lastCompilation;
-		} catch (e) {
-			console.error(e);
-			compiled = `Error:\n	${e}`;
-		}
-	}
-	$: if (source) {
-		typeCheck();
+		store?.compile();
 	}
 </script>
 
-<Page padding="1rem" gap="1rem" style="height: 100vh">
+<Page style="height: 100vh">
+	<Row justify="between" padding="0.5rem" gap="0.5rem">
+		<ButtonLink href="/projects">Projects</ButtonLink>
+		<Button on:click={save} hasIcon>
+			<Floppy />
+		</Button>
+	</Row>
 	<div class="wrapper">
-		<Editor
-			style="flex: 1; height: 100%;"
-			language="rooc"
-			bind:code={source}
-			highlightedLine={-1}
-		/>
-		<Editor
-			style="flex: 1; height: 100%;"
-			language="rooc"
-			bind:code={compiled}
-			config={{
-				readOnly: true,
-				lineNumbers: 'off'
-			}}
-			disabled
-			highlightedLine={-1}
-		/>
+		{#if store}
+			<Editor
+				style="flex: 1; height: 100%;"
+				language="rooc"
+				bind:code={$store.source}
+				highlightedLine={-1}
+			/>
+			<Editor
+				style="flex: 1; height: 100%;"
+				language="rooc"
+				code={$store.compilationError ?? $store.compiled ?? ''}
+				config={{
+					readOnly: true,
+					lineNumbers: 'off'
+				}}
+				disabled
+				highlightedLine={-1}
+			/>
+		{/if}
 	</div>
-	<div style="display: flex; justify-content: flex-end">
-		<Button on:click={compile}>Compile</Button>
-	</div>
+	<Row justify="end" gap="0.5rem" padding="0.5rem">
+		<Button on:click={compile} border="secondary" color="primary">Compile</Button>
+	</Row>
 </Page>
 
 <style>
@@ -102,6 +76,7 @@ where
 		display: flex;
 		gap: 1rem;
 		flex: 1;
+		padding: 0 0.5rem;
 	}
 	@media (max-width: 768px) {
 		.wrapper {
