@@ -243,7 +243,7 @@ impl FunctionCall for NeighbourOfNodeFn {
         )
     }
     fn get_function_name(&self) -> String {
-        "neighs_edges".to_string()
+        "neigh_edges".to_string()
     }
     fn get_type_signature(&self) -> Vec<PrimitiveKind> {
         vec![PrimitiveKind::GraphNode]

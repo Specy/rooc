@@ -147,7 +147,7 @@ impl fmt::Display for Graph {
             .iter()
             .map(|node| format!("    {}", node.to_string()))
             .collect::<Vec<_>>()
-            .join("\n");
+            .join(",\n");
         if nodes.is_empty() {
             return write!(f, "Graph {{ }}");
         }
