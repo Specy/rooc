@@ -240,7 +240,7 @@ function makeRoocCompletionToken(entry: PossibleCompletionToken) {
 		return {
 			label: entry.name,
 			kind: languages.CompletionItemKind.Function,
-			insertText: `${entry.name}(${pars})aa`,
+			insertText: `${entry.name}(${pars})`,
 			insertTextRules: languages.CompletionItemInsertTextRule.InsertAsSnippet,
 			detail: `[Function] ${entry.name}(${entry.parameters.map(v => `${v.name}: ${getFormattedType(v.value)}`).join(", ")})`
 		}
