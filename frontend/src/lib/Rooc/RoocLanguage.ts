@@ -130,7 +130,7 @@ function stringifyRuntimeEntry(entry: PossibleCompletionToken) {
 		]
 	} else if (entry.type === "RuntimeFunction") {
 		return [
-			{ value: `\`\`\`typescript\n${entry.name}(${entry.parameters.map(v => `${v.name}: ${ getFormattedType(v.value)}`).join(", ")})\n\`\`\`` },
+			{ value: `\`\`\`typescript\n${entry.name}(${entry.parameters.map(v => `${v.name}: ${getFormattedType(v.value)}`).join(", ")})\n\`\`\`` },
 		]
 	}
 	return []
@@ -146,12 +146,10 @@ export function createRoocHoverProvider() {
 			const exactMatch = findExact(word?.word ?? '')
 			const range = new Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + (word?.word.length ?? 0))
 
+			const contents = []
 			if (exactMatch) {
 				const match = stringifyRuntimeEntry(exactMatch)
-				return {
-					range,
-					contents: match
-				}
+				contents.push(...match)
 			}
 			const parser = new RoocParser(text)
 			const parsed = parser.compile()
@@ -159,19 +157,13 @@ export function createRoocHoverProvider() {
 			const items = parsed.val.createTypeMap()
 			const item = items.get?.(offset)
 			if (item) {
-				return {
-					range,
-					contents: [
-						{ value: `\`\`\`typescript\n${word?.word ?? "Unknown"}: ${getFormattedType(item.value)}\n\`\`\`` }
-					]
-				}
+				contents.push({ value: `\`\`\`typescript\n${word?.word ?? "Unknown"}: ${getFormattedType(item.value)}\n\`\`\`` })
 			} else {
-				return {
-					range,
-					contents: [
-						{ value: keywords[word?.word ?? ''] ?? 'No type found' }
-					]
-				}
+				contents.push({ value: keywords[word?.word ?? ''] ?? 'No type found' })
+			}
+			return {
+				range,
+				contents
 			}
 		}
 	}
@@ -244,12 +236,13 @@ function makeRoocCompletionToken(entry: PossibleCompletionToken) {
 			detail: `[BlockFunction] ${entry.name}: ${entry.description}`,
 		}
 	} else if (entry.type === "RuntimeFunction") {
+		const pars = ",".repeat(entry.parameters.length - 1)
 		return {
 			label: entry.name,
 			kind: languages.CompletionItemKind.Function,
-			insertText: `${entry.name}(${entry.parameters.map(v => " ").join(", ")})`,
+			insertText: `${entry.name}(${pars})aa`,
 			insertTextRules: languages.CompletionItemInsertTextRule.InsertAsSnippet,
-			detail: `[Function] ${entry.name}(${entry.parameters.map(v => `${v.name}: ${ getFormattedType(v.value)}`).join(", ")})`
+			detail: `[Function] ${entry.name}(${entry.parameters.map(v => `${v.name}: ${getFormattedType(v.value)}`).join(", ")})`
 		}
 	}
 	return undefined
@@ -260,8 +253,7 @@ export function createRoocCompletion() {
 	return {
 		provideCompletionItems: (model: editor.ITextModel, position: Position) => {
 			const word = model.getWordUntilPosition(position)
-			const elements = []
-			elements.push(...findCompletion(word.word).map(makeRoocCompletionToken).filter(e => !!e))
+			const elements = findCompletion(word.word).map(makeRoocCompletionToken).filter(e => !!e)
 			return {
 				suggestions: elements
 			}
