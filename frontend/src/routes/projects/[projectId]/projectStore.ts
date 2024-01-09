@@ -18,6 +18,7 @@ export function createCompilerStore(project: Project) {
     function compile(override?: string) {
         update(s => {
             s.source = override ?? s.source;
+            s.compilationError = undefined
             const parser = new RoocParser(s.source);
             const compile = parser.compile();
             if (!compile.ok) {
