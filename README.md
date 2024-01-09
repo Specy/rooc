@@ -37,11 +37,11 @@ The "language" supports formal definitions of problems, with the ability to call
 - [ ] UI
   - [x] Compilation to WASM
   - [ ] Create and manage your models
-  - [ ] LSP
+  - [x] LSP
     - [x] Syntax errors
     - [x] Hover types
     - [x] Type errors
-    - [ ] Code completion
+    - [x] Code completion
   - [ ] Language documentation 
   - [ ] Website to show the different steps of solving the problem
   - [ ] List of modifications from the start of the problem to the end of the solution
