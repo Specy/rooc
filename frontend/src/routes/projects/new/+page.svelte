@@ -21,6 +21,11 @@
 		}
 	}
 </script>
+<svelte:head>
+	<title>New Project</title>
+	<meta name="description" content="Create a new Rooc project" />
+</svelte:head>
+
 
 <Page gap="2rem" cropped padding="2rem" mobilePadding="1rem">
 	<h1>Create new project</h1>

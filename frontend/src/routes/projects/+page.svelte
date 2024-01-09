@@ -26,6 +26,12 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Projects</title>
+	<meta name="description" content="Your Rooc projects" />
+</svelte:head>
+
+
 <Page cropped="50rem" padding="2rem" mobilePadding="1rem" gap="3rem">
 	<Row justify="between">
 		<h1>Projects</h1>

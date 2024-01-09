@@ -3,7 +3,7 @@ import { generateTheme } from '$lib/theme/editorTheme';
 //@ts-expect-error - Monaco doesn't have typescript definitions
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import type monaco from 'monaco-editor'
-import {RoocLanguage, createRoocFormatter, createRoocHoverProvider} from './Rooc/RoocLanguage'
+import {RoocLanguage, createRoocFormatter, createRoocHoverProvider, createRoocRuntimeDiagnostics} from './Rooc/RoocLanguage'
 export type MonacoType = typeof monaco
 
 class MonacoLoader {
@@ -49,6 +49,12 @@ class MonacoLoader {
         /*
 		this.toDispose.push(monaco.languages.registerCompletionItemProvider('m68k', createM68KCompletition(monaco)))
         */
+	}
+	registerRuntimePushers = (language: 'rooc', instance: monaco.editor.ITextModel) => {
+		if(language === 'rooc'){
+			const disposer = createRoocRuntimeDiagnostics(instance)
+			return () => disposer.dispose()
+		}
 	}
 	async get() {
 		if (this.monaco) return this.monaco

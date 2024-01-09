@@ -42,6 +42,7 @@
 			cursorSmoothCaretAnimation: 'on',
 			...config
 		});
+		const model = editor.getModel();
 		const observer = new ResizeObserver(() => {
 			if (!mockEditor) return;
 			const bounds = mockEditor.getBoundingClientRect();
@@ -53,12 +54,12 @@
 		Monaco.setCustomTheme(generateTheme());
 		observer.observe(mockEditor);
 		toDispose.push(() => observer.disconnect());
-		toDispose.push(
-			editor.getModel().onDidChangeContent(() => {
+		const disposer = 	model.onDidChangeContent(() => {
 				code = editor.getValue();
 				dispatcher('change', code);
 			})
-		);
+		toDispose.push(() => disposer.dispose());
+		toDispose.push(Monaco.registerRuntimePushers(language, model))
 	});
 	$: {
 		if (editor && code !== editor.getValue()) {

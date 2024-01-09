@@ -132,6 +132,9 @@ impl TransformErrorWrapper {
     pub fn get_base_error(&self) -> JsValue {
         serde_wasm_bindgen::to_value(&self.error.get_base_error()).unwrap()
     }
+    pub fn stringify_base_error(&self) -> String {
+        self.error.get_base_error().to_string()
+    }
     pub fn get_traced_error(&self) -> String {
         self.error.get_traced_error()
     }

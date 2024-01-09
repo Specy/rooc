@@ -38,6 +38,11 @@
 	}
 </script>
 
+<svelte:head>
+	<title>{project?.name ?? 'Project'} - Rooc</title>
+	<meta name="description" content="Edit your Rooc project" />
+</svelte:head>
+
 <Page style="height: 100vh">
 	<Row justify="between" padding="0.5rem" gap="0.5rem">
 		<ButtonLink href="/projects">Projects</ButtonLink>

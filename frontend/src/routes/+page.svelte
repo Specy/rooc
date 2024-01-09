@@ -3,6 +3,11 @@
 	import Page from '$cmp/layout/Page.svelte';
 </script>
 
+<svelte:head>
+	<title>Rooc</title>
+	<meta name="description" content="Rooc is a language to compile formal mathematical models" />
+</svelte:head>
+
 <Page padding="1rem" gap="1rem" contentStyle="justify-content:center; align-items:center">
 	<a href="/projects" style="width: 100%; gap: 1rem;" class="container">
 		<img class="logo" alt="rooc logo" src="logo.png" />

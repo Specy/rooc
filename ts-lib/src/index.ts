@@ -123,6 +123,9 @@ export class TransformError {
     getBaseError(): SerializedTransformError {
         return this.instance.get_base_error()
     }
+    stringifyBaseError(): string {
+        return this.instance.stringify_base_error()
+    }
     message() {
         try {
             if (this.source) {

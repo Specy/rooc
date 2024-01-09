@@ -69,7 +69,6 @@ export function createCompilerStore(project: Project) {
         save,
         set: (data: ProjectStoreData) => {
             set(data)
-            typeCheck(data.source)
         }
     }
 }

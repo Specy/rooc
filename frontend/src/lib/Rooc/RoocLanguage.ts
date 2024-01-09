@@ -1,7 +1,7 @@
-import { RoocParser } from '@specy/rooc'
-import type monaco from 'monaco-editor'
+import { CompilationError, RoocParser, TransformError } from '@specy/rooc'
+import {editor} from 'monaco-editor'
 import type { MonacoType } from '../Monaco'
-import { Position, Range } from 'monaco-editor'
+import { MarkerSeverity, Position, Range, languages, type IDisposable } from 'monaco-editor'
 import type { SerializedPrimitiveKind } from '@specy/rooc/dist/pkg/rooc'
 
 
@@ -100,7 +100,6 @@ export function createRoocFormatter() {
 
 function getFormattedType(type: SerializedPrimitiveKind) {
 	if (type.type === 'Tuple') {
-		console.log(type)
 		return `(${type.value.map(getFormattedType).join(', ')})`
 	} else if (type.type === "Iterable") {
 		return `${getFormattedType(type.value)}[]`
@@ -131,7 +130,7 @@ export function createRoocHoverProvider() {
 			if (!parsed.ok) return
 			const items = parsed.val.createTypeMap()
 			const item = items.get?.(offset)
-			const range = new Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + (word!.word.length ?? 0))
+			const range = new Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + (word?.word.length ?? 0))
 			if (item) {
 				return {
 					range,
@@ -150,6 +149,56 @@ export function createRoocHoverProvider() {
 		}
 	}
 }
+
+
+export function createRoocRuntimeDiagnostics(model: monaco.editor.ITextModel) {
+	const disposable: IDisposable[] = []
+	disposable.push(model.onDidChangeContent((e) => {
+		const text = model.getValue()
+		const parser = new RoocParser(text)
+		const parsed = parser.compile()
+		const markers = [] as monaco.editor.IMarkerData[]
+		if (!parsed.ok) {
+			const err = parsed.val as CompilationError
+			const span = err.getSpan()
+			const start = model.getPositionAt(span.start)
+			const end = model.getPositionAt(span.start + span.len)
+			const message = err.message()
+			markers.push({
+				startColumn: start.column,
+				endColumn: end.column,
+				startLineNumber: start.lineNumber,
+				endLineNumber: end.lineNumber,
+				message,
+				severity: MarkerSeverity.Error
+			})
+		} else {
+			const typeCheck = parsed.val.typeCheck()
+			if (!typeCheck.ok) {
+				const err = typeCheck.val
+				const span = err.getOriginSpan()
+				const start = model.getPositionAt(span.start)
+				const end = model.getPositionAt(span.start + span.len)
+				const message = err.stringifyBaseError()
+				markers.push({
+					startColumn: start.column,
+					endColumn: end.column,
+					startLineNumber: start.lineNumber,
+					endLineNumber: end.lineNumber,
+					message,
+					severity: MarkerSeverity.Error
+				})
+			}
+		}
+		editor.setModelMarkers(model, 'rooc', markers)
+	}))
+	return {
+		dispose() {
+			disposable.forEach(d => d.dispose())
+		}
+	}
+}
+
 
 export function createRoocCompletion(monaco: MonacoType) {
 	return {
