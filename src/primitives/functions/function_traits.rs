@@ -1,4 +1,5 @@
 use dyn_clone::DynClone;
+use wasm_bindgen::prelude::wasm_bindgen;
 use std::fmt::Debug;
 
 use crate::{
@@ -8,11 +9,11 @@ use crate::{
         transformer::{TransformError, TransformerContext},
     },
     primitives::primitive::{Primitive, PrimitiveKind},
-    utils::{CompilationError, InputSpan},    wrong_argument, type_checker::type_checker_context::{TypeCheckable, WithType},
+    utils::{CompilationError, InputSpan}, type_checker::type_checker_context::{TypeCheckable, WithType},
 };
 use erased_serde::serialize_trait_object;
 use pest::iterators::Pair;
-pub trait FunctionCall: Debug + DynClone + erased_serde::Serialize + WithType + TypeCheckable {
+pub trait FunctionCall: Debug + DynClone + erased_serde::Serialize + WithType + TypeCheckable + Send + Sync {
     fn from_parameters(
         args: Vec<PreExp>,
         origin_rule: &Pair<Rule>,
@@ -21,7 +22,7 @@ pub trait FunctionCall: Debug + DynClone + erased_serde::Serialize + WithType + 
         Self: Sized;
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError>;
 
-    fn get_type_signature(&self) -> Vec<PrimitiveKind>;
+    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)>;
 
     fn to_string(&self) -> String;
 
@@ -30,5 +31,9 @@ pub trait FunctionCall: Debug + DynClone + erased_serde::Serialize + WithType + 
     fn get_parameters(&self) -> &Vec<PreExp>;
     fn get_span(&self) -> &InputSpan;
 }
+
+
+
+
 
 serialize_trait_object!(FunctionCall);

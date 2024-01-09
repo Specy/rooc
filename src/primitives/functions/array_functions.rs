@@ -1,5 +1,6 @@
 use pest::iterators::Pair;
 use serde::Serialize;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     bail_incorrect_type_signature, bail_incorrect_type_signature_of_fn,
@@ -104,8 +105,11 @@ impl FunctionCall for EnumerateArray {
         "enumerate".to_string()
     }
 
-    fn get_type_signature(&self) -> Vec<PrimitiveKind> {
-        vec![PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any))]
+    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+        vec![(
+            "of_iterable".to_string(),
+            PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any))
+        )]
     }
     fn get_parameters(&self) -> &Vec<PreExp> {
         &self.args
@@ -114,6 +118,7 @@ impl FunctionCall for EnumerateArray {
         &self.span
     }
 }
+
 
 #[derive(Debug, Serialize, Clone)]
 pub struct LenOfIterableFn {
@@ -159,8 +164,11 @@ impl FunctionCall for LenOfIterableFn {
     fn get_span(&self) -> &InputSpan {
         &self.span
     }
-    fn get_type_signature(&self) -> Vec<PrimitiveKind> {
-        vec![PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any))]
+    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+        vec![(
+            "of_iterable".to_string(),
+            PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
+        )]
     }
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
         match self.args[..] {
@@ -169,7 +177,6 @@ impl FunctionCall for LenOfIterableFn {
                 Ok(Primitive::Number(value.len() as f64))
             }
             _ => bail_wrong_number_of_arguments!(self),
-
         }
     }
     fn to_string(&self) -> String {

@@ -2,6 +2,7 @@ use std::fmt::Debug;
 
 use pest::iterators::Pair;
 use serde::Serialize;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     bail_incorrect_type_signature, bail_incorrect_type_signature_of_fn,
@@ -90,13 +91,15 @@ impl FunctionCall for EdgesOfGraphFn {
     fn get_function_name(&self) -> String {
         "edges".to_string()
     }
-    fn get_type_signature(&self) -> Vec<PrimitiveKind> {
-        vec![PrimitiveKind::Graph]
+    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+        vec![("of_graph".to_string(), PrimitiveKind::Graph)]
     }
     fn get_parameters(&self) -> &Vec<PreExp> {
         &self.args
     }
 }
+#[wasm_bindgen(typescript_custom_section)]
+
 
 #[derive(Debug, Serialize, Clone)]
 pub struct NodesOfGraphFn {
@@ -150,7 +153,6 @@ impl FunctionCall for NodesOfGraphFn {
                 Ok(Primitive::Iterable(IterableKind::Nodes(nodes)))
             }
             _ => bail_wrong_number_of_arguments!(self),
-
         }
     }
     fn to_string(&self) -> String {
@@ -168,13 +170,14 @@ impl FunctionCall for NodesOfGraphFn {
         "nodes".to_string()
     }
 
-    fn get_type_signature(&self) -> Vec<PrimitiveKind> {
-        vec![PrimitiveKind::Graph]
+    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+        vec![("of_graph".to_string(), PrimitiveKind::Graph)]
     }
     fn get_parameters(&self) -> &Vec<PreExp> {
         &self.args
     }
 }
+
 
 #[derive(Debug, Serialize, Clone)]
 pub struct NeighbourOfNodeFn {
@@ -245,8 +248,10 @@ impl FunctionCall for NeighbourOfNodeFn {
     fn get_function_name(&self) -> String {
         "neigh_edges".to_string()
     }
-    fn get_type_signature(&self) -> Vec<PrimitiveKind> {
-        vec![PrimitiveKind::GraphNode]
+    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+        vec![
+            ("of_node".to_string(), PrimitiveKind::GraphNode),
+        ]
     }
     fn get_parameters(&self) -> &Vec<PreExp> {
         &self.args
@@ -270,7 +275,7 @@ impl TypeCheckable for NeighboursOfNodeInGraphFn {
             [ref of_node, ref in_graph] => {
                 if !matches!(of_node.get_type(context), PrimitiveKind::String) {
                     Err(TransformError::from_wrong_type(
-                        PrimitiveKind::GraphNode,
+                        PrimitiveKind::String,
                         of_node.get_type(context),
                         of_node.get_span().clone(),
                     ))
@@ -313,7 +318,6 @@ impl FunctionCall for NeighboursOfNodeInGraphFn {
                 Ok(Primitive::Iterable(IterableKind::Edges(neighbours)))
             }
             _ => bail_wrong_number_of_arguments!(self),
-
         }
     }
     fn to_string(&self) -> String {
@@ -327,8 +331,11 @@ impl FunctionCall for NeighboursOfNodeInGraphFn {
                 .join(", ")
         )
     }
-    fn get_type_signature(&self) -> Vec<PrimitiveKind> {
-        vec![PrimitiveKind::String, PrimitiveKind::Graph]
+    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+        vec![
+            ("of_node_name".to_string(), PrimitiveKind::String),
+            ("in_graph".to_string(), PrimitiveKind::Graph),
+        ]
     }
     fn get_function_name(&self) -> String {
         "neigh_edges_of".to_string()
@@ -337,3 +344,8 @@ impl FunctionCall for NeighboursOfNodeInGraphFn {
         &self.args
     }
 }
+
+#[wasm_bindgen(typescript_custom_section)]
+const FN_neigh_edges_of: &'static str = r#"
+
+"#;

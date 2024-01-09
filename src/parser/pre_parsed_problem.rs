@@ -179,10 +179,7 @@ pub enum PreExp {
 }
 #[wasm_bindgen(typescript_custom_section)]
 const IPreExp: &'static str = r#"
-export type SerializedFunctionCall = {
-    //TODO
-
-}
+export type SerializedFunctionCall = any //TODO
 export type SerializedPreExp = {span: InputSpan} & (
     {type: "Primitive", value: SerializedPrimitive} |
     {type: "Mod", value: SerializedPreExp} |
@@ -458,8 +455,8 @@ impl TypeCheckable for PreExp {
                         return Err(TransformError::from_wrong_type(
                             PrimitiveKind::Number,
                             exp_type,
-                            f.get_span().clone(),
-                        ));
+                            exp.get_span().clone(),
+                        ).to_spanned_error(f.get_span()));
                     }
                 }
                 Ok(())
@@ -490,8 +487,8 @@ impl TypeCheckable for PreExp {
                     let err = TransformError::from_wrong_type(
                         PrimitiveKind::Number,
                         exp_type,
-                        f.get_span().clone(),
-                    );
+                        f.exp.get_span().clone(),
+                    ).to_spanned_error(f.get_span());
                     return Err(err);
                 }
                 Ok(())

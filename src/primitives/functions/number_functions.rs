@@ -1,7 +1,9 @@
 use pest::{iterators::Pair, Span};
 use serde::Serialize;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
+    bail_incorrect_type_signature, bail_incorrect_type_signature_of_fn,
     bail_wrong_number_of_arguments,
     parser::{
         parser::Rule,
@@ -14,7 +16,7 @@ use crate::{
     },
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::{CompilationError, InputSpan, ParseError, Spanned},
-    wrong_argument, bail_incorrect_type_signature, bail_incorrect_type_signature_of_fn,
+    wrong_argument,
 };
 
 use super::function_traits::FunctionCall;
@@ -44,12 +46,13 @@ impl NumericRange {
 
 impl TypeCheckable for NumericRange {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
-        match self.args[..]{
+        match self.args[..] {
             [ref from, ref to, ref to_inclusive] => {
                 let from_type = from.get_type(context);
                 let to_type = to.get_type(context);
                 let to_inclusive_type = to_inclusive.get_type(context);
-                if !from_type.is_numeric() { //TODO relaxed type checking for numeric ranges
+                if !from_type.is_numeric() {
+                    //TODO relaxed type checking for numeric ranges
                     Err(TransformError::from_wrong_type(
                         PrimitiveKind::Integer,
                         from_type,
@@ -71,14 +74,13 @@ impl TypeCheckable for NumericRange {
                     Ok(())
                 }
             }
-            _ => bail_incorrect_type_signature_of_fn!(self, context)
+            _ => bail_incorrect_type_signature_of_fn!(self, context),
         }
     }
     fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
         self.args
-        .iter()
-        .for_each(|arg| arg.populate_token_type_map(context));
-
+            .iter()
+            .for_each(|arg| arg.populate_token_type_map(context));
     }
 }
 impl WithType for NumericRange {
@@ -88,7 +90,9 @@ impl WithType for NumericRange {
                 let from_type = from.get_type(context);
                 let to_type = to.get_type(context);
                 //if we know that the numbers are positive, we can return a positive integer range
-                if matches!(from_type, PrimitiveKind::PositiveInteger) && matches!(to_type, PrimitiveKind::PositiveInteger) {
+                if matches!(from_type, PrimitiveKind::PositiveInteger)
+                    && matches!(to_type, PrimitiveKind::PositiveInteger)
+                {
                     return PrimitiveKind::Iterable(Box::new(PrimitiveKind::PositiveInteger));
                 }
             }
@@ -99,7 +103,11 @@ impl WithType for NumericRange {
 }
 impl FunctionCall for NumericRange {
     fn from_parameters(args: Vec<PreExp>, rule: &Pair<Rule>) -> Self {
-        Self { args, span: InputSpan::from_pair(rule), known_inclusive: None }
+        Self {
+            args,
+            span: InputSpan::from_pair(rule),
+            known_inclusive: None,
+        }
     }
     fn get_parameters(&self) -> &Vec<PreExp> {
         &self.args
@@ -109,11 +117,11 @@ impl FunctionCall for NumericRange {
     }
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError> {
         match self.args[..] {
-            [ref from,ref  to, ref to_inclusive] => {
+            [ref from, ref to, ref to_inclusive] => {
                 let from = from.as_integer_cast(context)?;
                 let to = to.as_integer_cast(context)?;
                 let to_inclusive = to_inclusive.as_boolean(context)?;
-                if from >= 0 && to >=0 {
+                if from >= 0 && to >= 0 {
                     let from = from as usize;
                     let to = to as usize;
                     let range = if to_inclusive {
@@ -132,7 +140,6 @@ impl FunctionCall for NumericRange {
             }
             _ => bail_wrong_number_of_arguments!(self),
         }
-        
     }
     fn to_string(&self) -> String {
         match self.args[..] {
@@ -141,7 +148,7 @@ impl FunctionCall for NumericRange {
                     let range = if inclusive { "..=" } else { ".." };
                     return format!("{}{}{}", from.to_string(), range, to.to_string());
                 }
-            } 
+            }
             _ => {}
         }
         format!(
@@ -157,7 +164,11 @@ impl FunctionCall for NumericRange {
     fn get_function_name(&self) -> String {
         "range".to_string()
     }
-    fn get_type_signature(&self) -> Vec<PrimitiveKind> {
-        vec![PrimitiveKind::Integer, PrimitiveKind::Integer, PrimitiveKind::Boolean]
+    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+        vec![
+            ("from".to_string(), PrimitiveKind::Integer),
+            ("to".to_string(), PrimitiveKind::Integer),
+            ("to_inclusive".to_string(), PrimitiveKind::Boolean),
+        ]
     }
 }

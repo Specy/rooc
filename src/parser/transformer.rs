@@ -305,12 +305,12 @@ pub enum TransformError {
         value: Option<String>,
     },
     WrongFunctionSignature {
-        signature: Vec<PrimitiveKind>,
+        signature: Vec<(String, PrimitiveKind)>,
         got: Vec<PrimitiveKind>,
     },
     WrongNumberOfArguments {
+        signature: Vec<(String, PrimitiveKind)>,
         args: Vec<PreExp>,
-        signature: Vec<PrimitiveKind>,
     },
     BinOpError {
         operator: BinOp,
@@ -390,7 +390,7 @@ impl fmt::Display for TransformError {
                     "[WrongFunctionSignature] Wrong number of arguments, expected \"{}\", got \"{}\"",
                     signature
                         .iter()
-                        .map(|x| x.to_string())
+                        .map(|x| format!("{}: {}", x.0, x.1.to_string()))
                         .collect::<Vec<_>>()
                         .join(", "),
                     got.iter()
@@ -407,7 +407,7 @@ impl fmt::Display for TransformError {
                     "[WrongNumberOfArguments] Wrong number of arguments, expected signature \"{}\", got parameters \"{}\"",
                     signature
                         .iter()
-                        .map(|x| x.to_string())
+                        .map(|x| format!("{}: {}", x.0, x.1.to_string()))
                         .collect::<Vec<_>>()
                         .join(", "),
                     args

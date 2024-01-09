@@ -1,9 +1,8 @@
-import { CompilationError, RoocParser, TransformError } from '@specy/rooc'
-import {editor} from 'monaco-editor'
-import type { MonacoType } from '../Monaco'
-import { MarkerSeverity, Position, Range, languages, type IDisposable } from 'monaco-editor'
+import { CompilationError, RoocParser, type PossibleCompletionToken, findCompletion } from '@specy/rooc'
+import { editor, languages } from 'monaco-editor'
+import { MarkerSeverity, Position, Range, type IDisposable } from 'monaco-editor'
 import type { SerializedPrimitiveKind } from '@specy/rooc/dist/pkg/rooc'
-
+import { findExact } from '@specy/rooc/'
 
 
 export const RoocLanguage = {
@@ -82,7 +81,7 @@ export const RoocLanguage = {
 
 export function createRoocFormatter() {
 	return {
-		provideDocumentFormattingEdits: (model: monaco.editor.ITextModel) => {
+		provideDocumentFormattingEdits: (model: editor.ITextModel) => {
 			const text = model.getValue()
 			const parser = new RoocParser(text)
 			const result = parser.format()
@@ -118,19 +117,47 @@ const keywords = {
 
 }
 
+function stringifyRuntimeEntry(entry: PossibleCompletionToken) {
+	if (entry.type === "RuntimeBlockScopedFunction") {
+		return [
+			{ value: `${entry.name}(...) { }` },
+			{ value: `[BlockScopedFunction] ${entry.name}: ${entry.description}` },
+		]
+	} else if (entry.type === "RuntimeBlockFunction") {
+		return [
+			{ value: `${entry.name}{ }` },
+			{ value: `[BlockFunction] ${entry.name}: ${entry.description}` },
+		]
+	} else if (entry.type === "RuntimeFunction") {
+		return [
+			{ value: `\`\`\`typescript\n${entry.name}(${entry.parameters.map(v => `${v.name}: ${ getFormattedType(v.value)}`).join(", ")})\n\`\`\`` },
+		]
+	}
+	return []
+}
+
 export function createRoocHoverProvider() {
 	return {
-		provideHover: (model: monaco.editor.ITextModel, position: monaco.Position) => {
+		provideHover: (model: editor.ITextModel, position: Position) => {
 			const text = model.getValue()
 			const word = model.getWordAtPosition(position)
 			const pos = new Position(position.lineNumber, word?.startColumn ?? position.column)
 			const offset = model.getOffsetAt(pos)
+			const exactMatch = findExact(word?.word ?? '')
+			const range = new Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + (word?.word.length ?? 0))
+
+			if (exactMatch) {
+				const match = stringifyRuntimeEntry(exactMatch)
+				return {
+					range,
+					contents: match
+				}
+			}
 			const parser = new RoocParser(text)
 			const parsed = parser.compile()
 			if (!parsed.ok) return
 			const items = parsed.val.createTypeMap()
 			const item = items.get?.(offset)
-			const range = new Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + (word?.word.length ?? 0))
 			if (item) {
 				return {
 					range,
@@ -151,13 +178,13 @@ export function createRoocHoverProvider() {
 }
 
 
-export function createRoocRuntimeDiagnostics(model: monaco.editor.ITextModel) {
+export function createRoocRuntimeDiagnostics(model: editor.ITextModel) {
 	const disposable: IDisposable[] = []
-	disposable.push(model.onDidChangeContent((e) => {
+	disposable.push(model.onDidChangeContent(() => {
 		const text = model.getValue()
 		const parser = new RoocParser(text)
 		const parsed = parser.compile()
-		const markers = [] as monaco.editor.IMarkerData[]
+		const markers = [] as editor.IMarkerData[]
 		if (!parsed.ok) {
 			const err = parsed.val as CompilationError
 			const span = err.getSpan()
@@ -199,10 +226,45 @@ export function createRoocRuntimeDiagnostics(model: monaco.editor.ITextModel) {
 	}
 }
 
+function makeRoocCompletionToken(entry: PossibleCompletionToken) {
+	if (entry.type === "RuntimeBlockScopedFunction") {
+		return {
+			label: entry.name,
+			kind: languages.CompletionItemKind.Function,
+			insertText: `${entry.name}() { }`,
+			insertTextRules: languages.CompletionItemInsertTextRule.InsertAsSnippet,
+			detail: `[BlockScopedFunction] ${entry.name}: ${entry.description}`,
+		}
+	} else if (entry.type === "RuntimeBlockFunction") {
+		return {
+			label: entry.name,
+			kind: languages.CompletionItemKind.Function,
+			insertText: `${entry.name} { }`,
+			insertTextRules: languages.CompletionItemInsertTextRule.InsertAsSnippet,
+			detail: `[BlockFunction] ${entry.name}: ${entry.description}`,
+		}
+	} else if (entry.type === "RuntimeFunction") {
+		return {
+			label: entry.name,
+			kind: languages.CompletionItemKind.Function,
+			insertText: `${entry.name}(${entry.parameters.map(v => " ").join(", ")})`,
+			insertTextRules: languages.CompletionItemInsertTextRule.InsertAsSnippet,
+			detail: `[Function] ${entry.name}(${entry.parameters.map(v => `${v.name}: ${ getFormattedType(v.value)}`).join(", ")})`
+		}
+	}
+	return undefined
+}
 
-export function createRoocCompletion(monaco: MonacoType) {
+
+export function createRoocCompletion() {
 	return {
-		provideCompletionItems: (model: monaco.editor.ITextModel, position: monaco.Position) => {
+		provideCompletionItems: (model: editor.ITextModel, position: Position) => {
+			const word = model.getWordUntilPosition(position)
+			const elements = []
+			elements.push(...findCompletion(word.word).map(makeRoocCompletionToken).filter(e => !!e))
+			return {
+				suggestions: elements
+			}
 		}
 	}
 }

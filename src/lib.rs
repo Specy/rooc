@@ -10,6 +10,7 @@ pub mod solvers;
 pub mod transformers;
 pub mod utils;
 pub mod type_checker;
+pub mod runtime_builtin;
 
 use parser::{
     parser::{parse_problem_source, PreProblem},
