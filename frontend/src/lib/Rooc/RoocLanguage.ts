@@ -130,7 +130,7 @@ function stringifyRuntimeEntry(entry: PossibleCompletionToken) {
 		]
 	} else if (entry.type === "RuntimeFunction") {
 		return [
-			{ value: `\`\`\`typescript\n${entry.name}(${entry.parameters.map(v => `${v.name}: ${getFormattedType(v.value)}`).join(", ")})\n\`\`\`` },
+			{ value: `\`\`\`typescript\n${entry.name}(${entry.parameters.map(v => `${v.name}: ${getFormattedType(v.value)}`).join(", ")}):${getFormattedType(entry.returnType)}\n\`\`\`` },
 		]
 	}
 	return []
@@ -153,13 +153,14 @@ export function createRoocHoverProvider() {
 			}
 			const parser = new RoocParser(text)
 			const parsed = parser.compile()
-			if (!parsed.ok) return
-			const items = parsed.val.createTypeMap()
-			const item = items.get?.(offset)
-			if (item) {
-				contents.push({ value: `\`\`\`typescript\n${word?.word ?? "Unknown"}: ${getFormattedType(item.value)}\n\`\`\`` })
-			} else {
-				contents.push({ value: keywords[word?.word ?? ''] ?? 'No type found' })
+			if (parsed.ok) {
+				const items = parsed.val.createTypeMap()
+				const item = items.get?.(offset)
+				if (item) {
+					contents.push({ value: `\`\`\`typescript\n${word?.word ?? "Unknown"}: ${getFormattedType(item.value)}\n\`\`\`` })
+				} else {
+					contents.push({ value: keywords[word?.word ?? ''] ?? 'No type found' })
+				}
 			}
 			return {
 				range,
