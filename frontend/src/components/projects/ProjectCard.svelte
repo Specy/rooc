@@ -25,7 +25,7 @@
 
 <Card border="secondary" style="position:relative; min-height: 12rem; max-height: 20rem;" radius="0.4rem">
 	<pre class="blurred-underlay">{project.content}</pre>
-	<Column style="z-index: 2;">
+	<Column style="z-index: 2; flex: 1">
 		<Column padding="0.5rem; margin-bottom: 0.4rem;" style="flex:1;">
 			<div
 				class="title"
@@ -67,7 +67,8 @@
 <style lang="scss">
 	.blurred-underlay {
 		position: absolute;
-		margin: 1rem;
+		margin: 0 1rem;
+		padding-top: 1rem;
 		top: 0;
 		left: 0;
 		width: calc(100% - 2rem);

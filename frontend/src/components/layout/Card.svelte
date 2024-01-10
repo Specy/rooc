@@ -22,7 +22,7 @@
 	{padding}
 	{background}
 	style="
-	{border ? `${borderStyle} var(--${border})` : ''}; 
+	{border ? `border: ${borderStyle} var(--${border})` : ''}; 
 	border-radius: {radius};
 	{withShadow ? 'box-shadow: 0 0.1rem 0.5rem rgba(var(--shadow-rgb), 0.2);' : ''};
 	{style}"
