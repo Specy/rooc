@@ -331,7 +331,7 @@ impl TypeCheckable for PreExp {
         match self {
             Self::FunctionCall(span, fun) => {
                 fun.populate_token_type_map(context);
-                context.add_token_type(
+                context.add_token_type_or_undefined(
                     fun.get_type(context),
                     span.clone(),
                     None, //Some(fun.get_function_name()) should i add this?
@@ -340,22 +340,24 @@ impl TypeCheckable for PreExp {
             Self::Mod(_, exp) => {
                 exp.populate_token_type_map(context);
             }
-            Self::Primitive(p) => {
-                context.add_token_type(p.get_span_value().get_type(), p.get_span().clone(), None)
-            }
+            Self::Primitive(p) => context.add_token_type_or_undefined(
+                p.get_span_value().get_type(),
+                p.get_span().clone(),
+                None,
+            ),
             Self::Variable(name) => match context.get_value(name) {
-                Some(value) => context.add_token_type(
+                Some(value) => context.add_token_type_or_undefined(
                     value.clone(),
                     name.get_span().clone(),
                     Some(name.get_span_value().clone()),
                 ),
-                None => context.add_token_type(
+                None => context.add_token_type_or_undefined(
                     PrimitiveKind::Number, //TODO we assume undeclared variables are numbers, make this configurable with assignments
                     name.get_span().clone(),
                     Some(name.get_span_value().clone()),
                 ),
             },
-            Self::CompoundVariable(c) => context.add_token_type(
+            Self::CompoundVariable(c) => context.add_token_type_or_undefined(
                 PrimitiveKind::Number, //every compound variable must be a number
                 c.get_span().clone(),
                 Some(c.to_string()),
@@ -367,7 +369,7 @@ impl TypeCheckable for PreExp {
             Self::UnaryOperation(_, exp) => {
                 exp.populate_token_type_map(context);
             }
-            Self::ArrayAccess(array_access) => context.add_token_type(
+            Self::ArrayAccess(array_access) => context.add_token_type_or_undefined(
                 context
                     .get_addressable_value(&array_access)
                     .unwrap_or(PrimitiveKind::Undefined),
@@ -456,7 +458,8 @@ impl TypeCheckable for PreExp {
                             PrimitiveKind::Number,
                             exp_type,
                             exp.get_span().clone(),
-                        ).to_spanned_error(f.get_span()));
+                        )
+                        .to_spanned_error(f.get_span()));
                     }
                 }
                 Ok(())
@@ -466,12 +469,17 @@ impl TypeCheckable for PreExp {
                     iter.iterator
                         .type_check(context)
                         .map_err(|e| e.to_spanned_error(f.get_span()))?;
+                    context.add_scope();
                     let types = iter
                         .get_variable_types(context)
                         .map_err(|e| e.to_spanned_error(f.get_span()))?;
-                    let map: HashMap<String, PrimitiveKind> = HashMap::from_iter(types);
-                    let frame = Frame::from_map(map);
-                    context.add_frame(frame);
+                    for (name, t) in types {
+                        context.add_token_type(
+                            t,
+                            name.get_span().clone(),
+                            Some(name.get_span_value().clone()),
+                        )?;
+                    }
                 }
                 let res = f.exp.type_check(context);
                 let exp_type = f.exp.get_type(context);
@@ -488,7 +496,8 @@ impl TypeCheckable for PreExp {
                         PrimitiveKind::Number,
                         exp_type,
                         f.exp.get_span().clone(),
-                    ).to_spanned_error(f.get_span());
+                    )
+                    .to_spanned_error(f.get_span());
                     return Err(err);
                 }
                 Ok(())
@@ -677,13 +686,15 @@ impl PreExp {
             PreExp::Primitive(p) => Ok(p.get_span_value().clone()),
             PreExp::Variable(s) => match context.get_value(s) {
                 Some(value) => Ok(value.clone()),
-                None => Err(TransformError::MissingVariable(s.get_span_value().clone())),
+                None => Err(TransformError::UndeclaredVariable(
+                    s.get_span_value().clone(),
+                )),
             },
             PreExp::CompoundVariable(c) => {
                 let name = context.flatten_compound_variable(&c.name, &c.indexes)?;
                 match context.get_value(&name) {
                     Some(value) => Ok(value.clone()),
-                    None => Err(TransformError::MissingVariable(name)),
+                    None => Err(TransformError::UndeclaredVariable(name)),
                 }
             }
             PreExp::FunctionCall(_, f) => {
@@ -812,11 +823,11 @@ impl PreExp {
             Self::BinaryOperation(op, lhs, rhs) => {
                 //TODO add implied multiplication like 2x 2(x + y) etc...
                 /*
-                    implicit_mul = { 
-                        (number | parenthesis | modulo){2,} ~ variable? |
-                        (number | parenthesis | modulo) ~ variable
-                    }
-                 */
+                   implicit_mul = {
+                       (number | parenthesis | modulo){2,} ~ variable? |
+                       (number | parenthesis | modulo) ~ variable
+                   }
+                */
                 let lhs_str = lhs.to_string_with_precedence(op.precedence());
                 let rhs_str = rhs.to_string_with_precedence(op.precedence());
 
@@ -895,7 +906,7 @@ impl IterableSet {
             _ => PrimitiveKind::Undefined, //should this be undefined or any?
         };
         match &self.var {
-            VariableType::Single(name) => context.add_token_type(
+            VariableType::Single(name) => context.add_token_type_or_undefined(
                 iter_type,
                 self.span.clone(),
                 Some(name.get_span_value().clone()),
@@ -903,7 +914,7 @@ impl IterableSet {
             VariableType::Tuple(vars) => match &iter_type {
                 PrimitiveKind::Iterable(kind) => {
                     for v in vars {
-                        context.add_token_type(
+                        context.add_token_type_or_undefined(
                             *kind.clone(),
                             v.get_span().clone(),
                             Some(v.get_span_value().clone()),
@@ -913,7 +924,7 @@ impl IterableSet {
                 _ => {
                     let types = iter_type.can_spread_into().unwrap_or(Vec::new());
                     for (i, v) in vars.iter().enumerate() {
-                        context.add_token_type(
+                        context.add_token_type_or_undefined(
                             types.get(i).unwrap_or(&PrimitiveKind::Undefined).clone(),
                             v.get_span().clone(),
                             Some(v.get_span_value().clone()),
@@ -926,7 +937,7 @@ impl IterableSet {
     pub fn get_variable_types(
         &self,
         context: &TypeCheckerContext,
-    ) -> Result<Vec<(String, PrimitiveKind)>, TransformError> {
+    ) -> Result<Vec<(Spanned<String>, PrimitiveKind)>, TransformError> {
         let iter_type = self.iterator.get_type(context);
 
         let iter_type = match iter_type {
@@ -940,13 +951,13 @@ impl IterableSet {
             }
         };
         match &self.var {
-            VariableType::Single(name) => Ok(vec![(name.get_span_value().clone(), iter_type)]),
+            VariableType::Single(name) => Ok(vec![(name.clone(), iter_type)]),
             VariableType::Tuple(vars) => {
                 match &iter_type {
                     PrimitiveKind::Iterable(kind) => {
                         Ok(vars
                             .iter()
-                            .map(|v| (v.get_span_value().clone(), *kind.clone()))
+                            .map(|v| (v.clone(), *kind.clone()))
                             .collect::<Vec<_>>()) //we don't know at compile time how many variables there are, so we assume all of them exist
                     }
                     _ => {
@@ -965,7 +976,7 @@ impl IterableSet {
                             Ok(vars
                                 .iter()
                                 .zip(spreads_into.iter())
-                                .map(|(v, t)| (v.get_span_value().clone(), t.clone()))
+                                .map(|(v, t)| (v.clone(), t.clone()))
                                 .collect::<Vec<_>>())
                         }
                     }
@@ -1113,10 +1124,15 @@ impl TypeCheckable for PreCondition {
             iter.iterator
                 .type_check(context)
                 .map_err(|e| e.to_spanned_error(iter.iterator.get_span()))?;
+            context.add_scope();
             let types = iter.get_variable_types(context)?;
-            let map: HashMap<String, PrimitiveKind> = HashMap::from_iter(types);
-            let frame = Frame::from_map(map);
-            context.add_frame(frame);
+            for (name, t) in types {
+                context.add_token_type(
+                    t,
+                    name.get_span().clone(),
+                    Some(name.get_span_value().clone()),
+                )?;
+            }
         }
         match (self.lhs.type_check(context), self.rhs.type_check(context)) {
             (Ok(()), Ok(())) => (),
@@ -1146,7 +1162,7 @@ impl TypeCheckable for PreCondition {
     }
     fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
         for iter in &self.iteration {
-            context.add_frame(Frame::default());
+            context.add_scope();
             iter.populate_token_type_map(context);
         }
         self.lhs.populate_token_type_map(context);

@@ -7,6 +7,7 @@ use crate::math::operators::{BinOp, UnOp};
 use crate::primitives::consts::Constant;
 use crate::primitives::functions::function_traits::FunctionCall;
 use crate::primitives::primitive::PrimitiveKind;
+use crate::runtime_builtin::reserved_tokens::{TokenType, check_if_reserved_token};
 use crate::{
     primitives::primitive::Primitive,
     utils::{InputSpan, Spanned},
@@ -289,8 +290,8 @@ impl Problem {
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "value")]
 pub enum TransformError {
-    MissingVariable(String),
-    AlreadyExistingVariable(String),
+    UndeclaredVariable(String),
+    AlreadyDeclaredVariable(String),
     OutOfBounds(String),
     WrongArgument {
         got: PrimitiveKind,
@@ -326,15 +327,19 @@ pub enum TransformError {
         to_spread: PrimitiveKind,
         in_variables: Vec<String>,
     },
+    AlreadyDefined {
+        name: String, 
+        kind: TokenType
+    },
     Other(String),
 }
 #[wasm_bindgen(typescript_custom_section)]
 pub const ITransformError: &'static str = r#"
 export type SerializedTransformError = {
-    type: "MissingVariable",
+    type: "UndeclaredVariable",
     value: string
 } | {
-    type: "AlreadyExistingVariable",
+    type: "AlreadyDeclaredVariable",
     value: string
 } | {
     type: "OutOfBounds",
@@ -373,15 +378,39 @@ export type SerializedTransformError = {
         operator: UnOp,
         exp: SerializedPrimitiveKind
     }
+} | {
+    type: "WrongExpectedArgument",
+    value: {
+        got: SerializedPrimitiveKind,
+        one_of: SerializedPrimitiveKind[]
+    }
+} | {
+    type: "WrongFunctionSignature",
+    value: {
+        signature: SerializedPrimitiveKind[],
+        got: SerializedPrimitiveKind[]
+    }
+} | {
+    type: "SpreadError",
+    value: {
+        to_spread: SerializedPrimitiveKind,
+        in_variables: string[]
+    }
+} | {
+    type: "AlreadyDefined",
+    value: {
+        name: string,
+        kind: SerializedTokenType
+    }
 }
 "#;
 impl fmt::Display for TransformError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
-            TransformError::MissingVariable(name) => format!("[Missing variable] {}", name),
-            TransformError::AlreadyExistingVariable(name) => {
+            TransformError::UndeclaredVariable(name) => format!("[UndeclaredVariable] Variable \"{}\" was not declared", name),
+            TransformError::AlreadyDeclaredVariable(name) => {
                 format!(
-                    "[AlreadyExistingVariable] Variable {} was already declared",
+                    "[AlreadyDeclaredVariable] Variable {} was already declared",
                     name
                 )
             }
@@ -399,10 +428,7 @@ impl fmt::Display for TransformError {
                         .join(", ")
                 )
             }
-            TransformError::WrongNumberOfArguments {
-                args,
-                signature,
-            } => {
+            TransformError::WrongNumberOfArguments { args, signature } => {
                 format!(
                     "[WrongNumberOfArguments] Wrong number of arguments, expected signature \"{}\", got parameters \"{}\"",
                     signature
@@ -434,6 +460,12 @@ impl fmt::Display for TransformError {
                         .collect::<Vec<_>>()
                         .join(", "),
                     got.to_string()
+                )
+            }
+            TransformError::AlreadyDefined { name, kind } => {
+                format!(
+                    "[AlreadyDefined] name \"{}\" is already defined as a \"{}\"",
+                    name, kind
                 )
             }
             TransformError::SpreadError {
@@ -489,7 +521,10 @@ impl TransformError {
                 } else {
                     "".to_string()
                 };
-                format!("\tat {}:{}\"{}\"", span.start_line, span.start_column, origin)
+                format!(
+                    "\tat {}:{}\"{}\"",
+                    span.start_line, span.start_column, origin
+                )
             })
             .collect::<Vec<_>>()
             .join("\n");
@@ -599,14 +634,14 @@ impl<T> Frame<T> {
     }
     pub fn declare_variable(&mut self, name: &str, value: T) -> Result<(), TransformError> {
         if self.has_variable(name) {
-            return Err(TransformError::AlreadyExistingVariable(name.to_string()));
+            return Err(TransformError::AlreadyDeclaredVariable(name.to_string()));
         }
         self.variables.insert(name.to_string(), value);
         Ok(())
     }
     pub fn update_variable(&mut self, name: &str, value: T) -> Result<(), TransformError> {
         if !self.has_variable(name) {
-            return Err(TransformError::MissingVariable(name.to_string()));
+            return Err(TransformError::UndeclaredVariable(name.to_string()));
         }
         self.variables.insert(name.to_string(), value);
         Ok(())
@@ -616,7 +651,7 @@ impl<T> Frame<T> {
     }
     pub fn drop_variable(&mut self, name: &str) -> Result<T, TransformError> {
         if !self.variables.contains_key(name) {
-            return Err(TransformError::MissingVariable(name.to_string()));
+            return Err(TransformError::UndeclaredVariable(name.to_string()));
         }
         let value = self.variables.remove(name).unwrap();
         Ok(value)
@@ -632,6 +667,13 @@ impl<T> Default for Frame<T> {
 pub struct TransformerContext {
     frames: Vec<Frame<Primitive>>,
 }
+impl Default for TransformerContext {
+    fn default() -> Self {
+        let primitives = HashMap::new();
+        Self::new(primitives)
+    }
+}
+
 impl TransformerContext {
     pub fn new(primitives: HashMap<String, Primitive>) -> Self {
         let frame = Frame::from_map(primitives);
@@ -639,12 +681,14 @@ impl TransformerContext {
             frames: vec![frame],
         }
     }
-    pub fn new_from_constants(constants: Vec<Constant>) -> Self {
-        let primitives = constants
-            .into_iter()
-            .map(|c| (c.name.into_span_value(), c.value))
-            .collect::<HashMap<_, _>>();
-        Self::new(primitives)
+    pub fn new_from_constants(constants: Vec<Constant>) -> Result<Self, TransformError> {
+        let mut context = Self::default();
+        for constant in constants {
+            let value = constant.as_primitive(&context)?;
+            let name = constant.name.get_span_value();
+            context.declare_variable(name, value, true)?; //TODO should this be strict or allow for redeclaration?
+        }
+        Ok(context)
     }
 
     pub fn flatten_variable_name(
@@ -672,7 +716,7 @@ impl TransformerContext {
                         ],
                     }),
                 },
-                None => Err(TransformError::MissingVariable(name.to_string())),
+                None => Err(TransformError::UndeclaredVariable(name.to_string())),
             })
             .collect::<Result<Vec<_>, _>>()?;
         Ok(flattened.join("_"))
@@ -729,8 +773,9 @@ impl TransformerContext {
             return Ok(());
         }
         if strict && self.get_value(name).is_some() {
-            return Err(TransformError::AlreadyExistingVariable(name.to_string()));
+            return Err(TransformError::AlreadyDeclaredVariable(name.to_string()));
         }
+        check_if_reserved_token(name)?;
         let frame = self.frames.last_mut().unwrap();
         frame.declare_variable(name, value)
     }
@@ -743,7 +788,7 @@ impl TransformerContext {
                 return frame.update_variable(name, value);
             }
         }
-        Err(TransformError::MissingVariable(name.to_string()))
+        Err(TransformError::UndeclaredVariable(name.to_string()))
     }
     pub fn remove_variable(&mut self, name: &str) -> Result<Primitive, TransformError> {
         if name == "_" {
@@ -754,7 +799,7 @@ impl TransformerContext {
                 return frame.drop_variable(name);
             }
         }
-        Err(TransformError::MissingVariable(name.to_string()))
+        Err(TransformError::UndeclaredVariable(name.to_string()))
     }
 
     pub fn flatten_compound_variable(
@@ -782,7 +827,7 @@ impl TransformerContext {
                 let value = a.as_iterator()?.read(accesses)?;
                 Ok(value)
             }
-            None => Err(TransformError::MissingVariable(
+            None => Err(TransformError::UndeclaredVariable(
                 addressable_access.name.to_string(),
             )),
         }
@@ -790,7 +835,7 @@ impl TransformerContext {
 }
 
 pub fn transform_parsed_problem(pre_problem: PreProblem) -> Result<Problem, TransformError> {
-    let mut context = TransformerContext::new_from_constants(pre_problem.get_constants().clone());
+    let mut context = TransformerContext::new_from_constants(pre_problem.get_constants().clone())?;
     transform_problem(&pre_problem, &mut context)
 }
 

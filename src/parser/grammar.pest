@@ -26,7 +26,7 @@ consts_declaration = { (const_declaration ~ nl+)* ~ const_declaration }
 const_declaration  = {
   #name = simple_variable ~
   "=" ~
-  #value = primitive
+  #value = tagged_exp
 }
 
 // iterations

@@ -5,7 +5,7 @@ use rooc::{
     solvers::{
         linear_problem::{Constraint, LinearProblem},
         simplex::{IntoCanonicalTableau, Tableau},
-    }, RoocParser,
+    }, RoocParser, type_checker::type_checker_context::TypeCheckable,
 };
 
 #[allow(unused)]
@@ -92,19 +92,24 @@ fn main() {
     let source = "
     min 1
     s.t.
-        1 <= x_a
-    where 
-        a = \"hello\"
+        sum(len in a){ len } <= 1
+    where
+        a = [1]
     "
     .to_string();
     let parser = RoocParser::new(source.clone());
-    let parsed = parser.parse_and_transform();
+    let parsed = parser.parse();
     match parsed {
         Ok(parsed) => {
-            println!("{}", parsed.to_string());
+            match parsed.create_type_checker() {
+                Err(e) => {
+                    println!("{}", e.get_trace_from_source(source.as_str()).unwrap());
+                }
+                _ => {}
+            }
         }
         Err(e) => {
-            println!("{}", e);
+            println!("{}", e.to_string_from_source(source.as_str()));
         }
     }
 }

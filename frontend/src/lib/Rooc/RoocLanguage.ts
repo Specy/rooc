@@ -8,14 +8,13 @@ export const RoocLanguage = {
 	defaultToken: 'invalid',
 	ignoreCase: true,
 	tokenPostfix: '.rooc',
-	keywords: ["for", "min", "max", "true", "false", "in", "s.t."],
+	keywords: ["where","for", "min", "max", "true", "false", "in", "s.t."],
 	operators: ["+", "-", "/", "*", "!", "&", "|", "=", "<=", "=>"],
 	symbols: /[=><!~?:&|+\-*\/\^%]+/,
 	escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
 	digits: /\d+(_+\d+)*/,
 	tokenizer: {
 		root: [
-			[/where/, 'keyword', '@where_declaration'],
 			{ include: '@common' },
 		],
 		digits_matcher: [
@@ -28,6 +27,7 @@ export const RoocLanguage = {
 			[/[ \t\r\n]+/, ''],
 			//TODO not sure why i need to do this
 			[/s\.t\./, 'keyword'],
+			{ include: "declarations"},
 			[/[a-z$][\w$]*/, {
 				"cases": {
 					"@keywords": "keyword",
@@ -60,9 +60,8 @@ export const RoocLanguage = {
 			[/\\./, 'string.escape.invalid'],
 			[/"/, 'string', '@pop']
 		],
-		where_declaration: [
+		declarations: [
 			[/Graph/, 'identifier.class', '@graph_declaration'],
-			{ include: '@common' }
 		],
 		graph_declaration: [
 			[/[{]/, '@brackets'],

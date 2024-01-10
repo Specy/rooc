@@ -154,7 +154,6 @@ where
             .expect("Failed to type check problem");
     }
     #[test]
-    #[should_panic]
     fn test_parser_errors1() {
         let input = "
             min 1
@@ -165,11 +164,10 @@ where
             ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
-            .expect("Failed to detect invalid primitive type");
+            .expect_err("Failed to detect invalid primitive type");
     }
 
     #[test]
-    #[should_panic]
     fn test_parser_errors2() {
         let input = "
             min 1
@@ -180,11 +178,10 @@ where
             ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
-            .expect("Failed to detect invalid primitive type");
+            .expect_err("Failed to detect invalid primitive type");
     }
 
     #[test]
-    #[should_panic]
     fn test_parser_errors3() {
         let input = "
             min 1
@@ -195,7 +192,7 @@ where
             ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
-            .expect("Failed to detect invalid primitive type");
+            .expect_err("Failed to detect invalid primitive type");
     }
 
     #[test]
@@ -247,5 +244,81 @@ where
         RoocParser::new(input.to_string())
             .type_check()
             .expect("Failed to type check problem");
+    }
+
+    #[test]
+    fn test_const_decl_1() {
+        let input = "
+        min 1
+        s.t.
+            1 <= sum(i in n){ x_i * num}
+        where
+    
+            G = Graph {
+                A -> [B: 10, C],
+                B -> [A, C],
+                C -> [A, B]
+            }
+            n = nodes(G)
+            e = edges(G)
+            num = len(n) + 1
+            numSquared = num * num
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to type check problem");
+    }
+
+    #[test]
+    fn test_no_const_keywords_1(){
+        let input = "
+        min 1
+        s.t.
+            1 <= 1
+        where
+            nodes = [1]
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect_err("Failed to detect invalid primitive type");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect_err("Failed to detect invalid primitive type");
+    }
+    
+    #[test]
+    fn test_no_const_keywords_2(){
+        let input = "
+        min 1
+        s.t.
+            sum(len in a){ len } <= 1
+        where
+            a = [1]
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect_err("Failed to detect invalid primitive type");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect_err("Failed to detect invalid primitive type");
+    }
+    #[test]
+    fn test_no_const_keywords_3(){
+        let input = "
+        min 1
+        s.t.
+            1 <= 1 for len in a
+        where
+            a = [1]
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect_err("Failed to detect invalid primitive type");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect_err("Failed to detect invalid primitive type");
     }
 }

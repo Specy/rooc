@@ -9,6 +9,7 @@ use crate::{
         transformer::{Frame, TransformError},
     },
     primitives::{consts::Constant, primitive::PrimitiveKind},
+    runtime_builtin::reserved_tokens::check_if_reserved_token,
     utils::InputSpan,
 };
 
@@ -51,6 +52,13 @@ pub struct TypeCheckerContext {
     frames: Vec<Frame<PrimitiveKind>>,
     token_map: HashMap<usize, TypedToken>,
 }
+impl Default for TypeCheckerContext {
+    fn default() -> Self {
+        let primitives = HashMap::new();
+        let token_map = HashMap::new();
+        Self::new(primitives, token_map)
+    }
+}
 impl TypeCheckerContext {
     pub fn new(
         primitives: HashMap<String, PrimitiveKind>,
@@ -62,26 +70,7 @@ impl TypeCheckerContext {
             token_map,
         }
     }
-    pub fn new_from_constants(constants: &Vec<Constant>) -> Self {
-        let primitives = constants
-            .into_iter()
-            .map(|c| (c.name.get_span_value().clone(), c.value.get_type()))
-            .collect::<HashMap<_, _>>();
-        let token_map = constants
-            .into_iter()
-            .map(|c| {
-                (
-                    c.name.get_span().start,
-                    TypedToken::new(
-                        c.name.get_span().clone(),
-                        c.value.get_type(),
-                        Some(c.name.get_span_value().clone()),
-                    ),
-                )
-            })
-            .collect::<HashMap<_, _>>();
-        Self::new(primitives, token_map)
-    }
+
     pub fn into_token_map(self) -> HashMap<usize, TypedToken> {
         self.token_map
     }
@@ -94,16 +83,29 @@ impl TypeCheckerContext {
         value: PrimitiveKind,
         span: InputSpan,
         identifier: Option<String>,
-    ) {
+    ) -> Result<(), TransformError> {
         let start = span.start;
         if let Some(val) = &identifier {
-            let _ = self.declare_variable(&val, value.clone(), false);
+            self.declare_variable(&val, value.clone(), false)
+                .map_err(|e| e.to_spanned_error(&span))?;
         }
         let token = TypedToken::new(span, value, identifier);
         self.token_map.insert(start, token);
+        Ok(())
     }
-    pub fn add_frame(&mut self, frame: Frame<PrimitiveKind>) {
-        self.frames.push(frame);
+    pub fn add_token_type_or_undefined(
+        &mut self,
+        value: PrimitiveKind,
+        span: InputSpan,
+        identifier: Option<String>,
+    ) {
+        let start = span.start;
+        if let Some(val) = &identifier {
+            self.declare_variable(&val, value.clone(), false)
+                .unwrap_or(());
+        }
+        let token = TypedToken::new(span, value, identifier);
+        self.token_map.insert(start, token);
     }
     pub fn pop_scope(&mut self) -> Result<Frame<PrimitiveKind>, TransformError> {
         if self.frames.len() <= 1 {
@@ -124,7 +126,7 @@ impl TypeCheckerContext {
         for name in compound_name {
             let value = self.get_value(name);
             if value.is_none() {
-                return Err(TransformError::MissingVariable(name.to_string()));
+                return Err(TransformError::UndeclaredVariable(name.to_string()));
             }
             let value = value.unwrap();
             match value {
@@ -155,9 +157,13 @@ impl TypeCheckerContext {
         value: PrimitiveKind,
         strict: bool,
     ) -> Result<(), TransformError> {
-        if strict && self.get_value(name).is_some() {
-            return Err(TransformError::AlreadyExistingVariable(name.to_string()));
+        if name == "_" {
+            return Ok(());
         }
+        if strict && self.get_value(name).is_some() {
+            return Err(TransformError::AlreadyDeclaredVariable(name.to_string()));
+        }
+        check_if_reserved_token(name)?;
         let frame = self.frames.last_mut().unwrap();
         frame.declare_variable(name, value)
     }
@@ -191,7 +197,7 @@ impl TypeCheckerContext {
                 }
                 Ok(last_value.clone())
             }
-            None => Err(TransformError::MissingVariable(
+            None => Err(TransformError::UndeclaredVariable(
                 addressable_access.name.to_string(),
             )),
         }

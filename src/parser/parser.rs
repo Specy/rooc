@@ -62,11 +62,17 @@ impl PreProblem {
         transform_parsed_problem(self)
     }
     pub fn create_type_checker(&self) -> Result<(), TransformError> {
-        let mut context = TypeCheckerContext::new_from_constants(&self.constants);
+        let mut context = TypeCheckerContext::default();
+        for constants in &self.constants {
+            constants.type_check(&mut context)?;
+        }
         self.type_check(&mut context)
     }
     pub fn create_token_type_map(&self) -> HashMap<usize, TypedToken> {
-        let mut context = TypeCheckerContext::new_from_constants(&self.constants);
+        let mut context = TypeCheckerContext::default();
+        for constants in &self.constants {
+            constants.populate_token_type_map(&mut context);
+        }
         self.populate_token_type_map(&mut context);
         context.into_token_map()
     }

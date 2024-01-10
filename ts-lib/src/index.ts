@@ -197,5 +197,15 @@ export type {
     SerializedSpanned,
     SerializedTuple,
     SerializedVariableType,
-    SerializedTransformError
+    SerializedTransformError,
+    SerializedTokenType,
+    SerializedTypedToken,
+    SerializedPrimitiveKind,
+    BlockFunctionKind,
+    BlockScopedFunctionKind,
+    UnOp,
+    BinOp,
+    Comparison,
+    OptimizationType,
+    ParseError,
 } from './pkg/rooc'

@@ -81,7 +81,7 @@ pub fn parse_const_declaration(
                 .map(|n| Spanned::new(n.as_str().to_string(), InputSpan::from_span(n.as_span())));
             let value = pairs
                 .find_first_tagged("value")
-                .map(|v| parse_primitive(&v));
+                .map(|v| parse_exp(v));
             match (name, value) {
                 (Some(name), Some(value)) => Ok(Constant::new(name, value?)),
                 _ => bail_missing_token!("Missing constant body", const_declaration),
