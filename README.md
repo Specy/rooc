@@ -1,13 +1,16 @@
-# ROOC
-<img src='./logo-original.png' width='156px'/>
+<div align="center">
+  <h1><code>ROOC</code></h1>
+  <img src='./logo-original.png' width='156px'/>
+  <p><strong>Mathematical models compiler</strong></p>
+</div>
 
 [Go to the documentation (WIP)](https://github.com/Specy/rooc/wiki/ROOC-%E2%80%90-Documentation)
 
-Short for the name of the courses i took at university (Ricerca Operativa, Ottimizzazione Combinatoria)
+The name ROOC stands for for the name of the courses i took at university (Ricerca Operativa, Ottimizzazione Combinatoria) that deals with finding solutions to mathematical optimization problems
 # What it is
-Rooc is a language and compiler to parse and convert formal mathematical models into a static formulation. Static formulations can then be fed to transformers to convert them to linear problems or linear problems in standard form.
-The goal is to compile the binary to WASM and create a web wrapper to show all the individual steps needed to convert and find a solution to the model, this way people can more easily learn how to create and solve mathematical models.
-The "language" supports formal definitions of problems, with the ability to call functions, declare constants, arrays and tuples. It also supports iterators and utility functions to iterate over graphs, edges, arrays, ranges, etc.
+Rooc is a language compiler to parse and convert formal mathematical models into a static formulation. Static formulations can be fed to transformers to convert them to linear problems or linear problems in standard form.
+The "language" supports formal definitions of problems, with the ability to call functions, declare constants, arrays, graphs, tuples. It also supports builtin utility functions to iterate over graphs, edges, arrays, ranges, etc.
+The library is compiled as a wasm module to be used in the [web editor](https://rooc.specy.app) which supports a LSP for type checking, code completion and documentation
 
 # Implemented Features 
 - [ ] Syntax and parsing
@@ -43,7 +46,7 @@ The "language" supports formal definitions of problems, with the ability to call
     - [x] Type errors
     - [x] Code completion
   - [ ] Language documentation 
-  - [ ] Website to show the different steps of solving the problem
+  - [ ] Show the different steps of solving the problem
   - [ ] List of modifications from the start of the problem to the end of the solution
 
 
