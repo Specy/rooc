@@ -2,7 +2,7 @@
     "type": "module",
     "name": "@specy/rooc",
     "description": "A compiler for mathematical models",
-    "version": "0.4.3",
+    "version": "0.4.4",
     "main": "dist/index.js",
     "module": "dist/index.js",
     "typings": "dist/index.d.ts",

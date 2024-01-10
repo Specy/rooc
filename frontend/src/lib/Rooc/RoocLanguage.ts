@@ -130,7 +130,7 @@ function stringifyRuntimeEntry(entry: PossibleCompletionToken) {
 	} else if (entry.type === "RuntimeFunction") {
 		return [
 			{ value: `\`\`\`typescript\n${entry.name}(${entry.parameters.map(v => `${v.name}: ${getFormattedType(v.value)}`).join(", ")}): ${getFormattedType(entry.returnType)}\n\`\`\`` },
-			{ value: `[Function] ${entry.name}: ${entry.description}`}
+			{ value: `[Function] ${entry.name}: ${entry.description?? "Unknown description"}`}
 		]
 	}
 	return []

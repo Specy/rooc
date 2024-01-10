@@ -92,20 +92,19 @@ fn main() {
     let source = "
     min 1
     s.t.
-
-        sum((i,j,e) in enumerate(C)) { a } <= 1
+        1 <= x_a
     where 
-        C = [1,2,3]
+        a = \"hello\"
     "
     .to_string();
     let parser = RoocParser::new(source.clone());
-    let parsed = parser.parse();
+    let parsed = parser.parse_and_transform();
     match parsed {
         Ok(parsed) => {
-            println!("{:#?}", parsed.create_token_type_map());
+            println!("{}", parsed.to_string());
         }
         Err(e) => {
-            println!("{}", e.to_error_string());
+            println!("{}", e);
         }
     }
 }

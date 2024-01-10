@@ -113,7 +113,12 @@ pub fn parse_primitive(const_value: &Pair<Rule>) -> Result<Primitive, Compilatio
             _ => err_unexpected_token!("Expected boolean but got: {}", const_value),
         },
         Rule::string => {
-            let value = const_value.as_str().to_string();
+            let value = const_value.as_str();
+            //remove quotes
+            if value.len() < 2 {
+                return err_unexpected_token!("Expected string but got: {}", const_value);
+            }
+            let value = value[1..value.len() - 1].to_string();
             Ok(Primitive::String(value))
         }
         Rule::array => {
