@@ -1,8 +1,7 @@
-import { CompilationError, RoocParser, type PossibleCompletionToken, findCompletion } from '@specy/rooc'
+import { CompilationError, RoocParser, type PossibleCompletionToken, findRoocCompletionTokens, findRoocExactToken } from '@specy/rooc'
 import { editor, languages } from 'monaco-editor'
 import { MarkerSeverity, Position, Range, type IDisposable } from 'monaco-editor'
 import type { SerializedPrimitiveKind } from '@specy/rooc/dist/pkg/rooc'
-import { findExact } from '@specy/rooc/'
 
 
 export const RoocLanguage = {
@@ -131,6 +130,7 @@ function stringifyRuntimeEntry(entry: PossibleCompletionToken) {
 	} else if (entry.type === "RuntimeFunction") {
 		return [
 			{ value: `\`\`\`typescript\n${entry.name}(${entry.parameters.map(v => `${v.name}: ${getFormattedType(v.value)}`).join(", ")}):${getFormattedType(entry.returnType)}\n\`\`\`` },
+			{ value: `[Function] ${entry.name}: ${entry.description}`}
 		]
 	}
 	return []
@@ -143,7 +143,7 @@ export function createRoocHoverProvider() {
 			const word = model.getWordAtPosition(position)
 			const pos = new Position(position.lineNumber, word?.startColumn ?? position.column)
 			const offset = model.getOffsetAt(pos)
-			const exactMatch = findExact(word?.word ?? '')
+			const exactMatch = findRoocExactToken(word?.word ?? '')
 			const range = new Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + (word?.word.length ?? 0))
 
 			const contents = []
@@ -254,10 +254,10 @@ export function createRoocCompletion() {
 	return {
 		provideCompletionItems: (model: editor.ITextModel, position: Position) => {
 			const word = model.getWordUntilPosition(position)
-			const elements = findCompletion(word.word).map(makeRoocCompletionToken).filter(e => !!e)
+			const elements = findRoocCompletionTokens(word.word).map(makeRoocCompletionToken).filter(e => !!e) as  languages.CompletionItem[]
 			return {
 				suggestions: elements
 			}
 		}
-	}
+	} satisfies languages.CompletionItemProvider
 }
