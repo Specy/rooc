@@ -23,7 +23,7 @@
 	}
 </script>
 
-<Card border="secondary" style="position:relative; height: 10rem;" radius="0.4rem">
+<Card border="secondary" style="position:relative; min-height: 12rem; max-height: 20rem;" radius="0.4rem">
 	<pre class="blurred-underlay">{project.content}</pre>
 	<Column style="z-index: 2;">
 		<Column padding="0.5rem; margin-bottom: 0.4rem;" style="flex:1;">
