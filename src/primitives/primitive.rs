@@ -289,9 +289,9 @@ impl fmt::Display for Primitive {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             Primitive::Number(n) => n.to_string(),
-            Primitive::String(s) => s.to_string(),
             Primitive::Integer(n) => n.to_string(),
             Primitive::PositiveInteger(n) => n.to_string(),
+            Primitive::String(s) => format!("\"{}\"", s),
             Primitive::Iterable(i) => match i {
                 IterableKind::Numbers(v) => format!("{:?}", v),
                 IterableKind::Integers(v) => format!("{:?}", v),

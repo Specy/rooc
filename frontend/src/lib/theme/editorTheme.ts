@@ -1,7 +1,7 @@
 import { currentTheme } from "$stores/themeStore"
 import { TinyColor } from "@ctrl/tinycolor"
-import type monaco from "monaco-editor"
-export function generateTheme(): monaco.editor.IStandaloneThemeData {
+import type {editor} from "monaco-editor"
+export function generateTheme(): editor.IStandaloneThemeData {
 	return {
 		"base": "vs-dark",
 		"inherit": true,
@@ -17,8 +17,8 @@ export function generateTheme(): monaco.editor.IStandaloneThemeData {
 			'editorSuggestWidget.selectedBackground': currentTheme.getColor("accent2").darken(5).toHexString(),
 			"input.background": currentTheme.layer("tertiary", 10).toHexString(),
 		}
-	}
-}
+	} 
+} 
 
 const common = [{
 	"fontStyle": 'underline',
@@ -289,13 +289,21 @@ const darkOverride = [
 		"token": "identifier.class"
 	},
 	{
-		"foreground": "#d9b33f",
-		"background": "#d9b33f",
+		"foreground": "#c8ab50",
+		"background": "#c8ab50",
 		"token": "string"
 	},
 	{
 		"foreground": "#69ac91",
 		"background": "#69ac91",
 		"token": "number"
+	},{
+		"foreground": "#bb82d2",
+		"background": "#bb82d2",
+		"token": "identifier.define"
+	},{
+		"foreground": "#69ac91",
+		"background": "#69ac91",
+		"token": "literal"
 	}
 ]

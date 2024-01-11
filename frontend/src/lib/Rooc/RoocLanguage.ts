@@ -8,10 +8,10 @@ export const RoocLanguage = {
 	defaultToken: 'invalid',
 	ignoreCase: true,
 	tokenPostfix: '.rooc',
-	keywords: ["where","for", "min", "max", "true", "false", "in", "s.t."],
+	keywords: ["where", "for", "min", "max", "in", "s.t."],
+	literals: ["true", "false"],
 	operators: ["+", "-", "/", "*", "!", "&", "|", "=", "<=", "=>"],
 	symbols: /[=><!~?:&|+\-*\/\^%]+/,
-	escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
 	digits: /\d+(_+\d+)*/,
 	tokenizer: {
 		root: [
@@ -27,10 +27,12 @@ export const RoocLanguage = {
 			[/[ \t\r\n]+/, ''],
 			//TODO not sure why i need to do this
 			[/s\.t\./, 'keyword'],
-			{ include: "declarations"},
+			{ include: "declarations" },
+			[/([a-z$][\w$]*)(?=\s=)/, 'identifier.define'],
 			[/[a-z$][\w$]*/, {
 				"cases": {
 					"@keywords": "keyword",
+					"@literals": "literal",
 					"@default": "identifier"
 				}
 			}],
@@ -56,8 +58,6 @@ export const RoocLanguage = {
 		],
 		string_double: [
 			[/[^\\"]+/, 'string'],
-			[/@escapes/, 'string.escape'],
-			[/\\./, 'string.escape.invalid'],
 			[/"/, 'string', '@pop']
 		],
 		declarations: [
@@ -74,6 +74,7 @@ export const RoocLanguage = {
 		],
 	}
 }
+
 
 
 
@@ -109,10 +110,9 @@ const keywords = {
 	'min': 'Minimize the objective function',
 	'max': 'Maximize the objective function',
 	's.t.': 'Below here, define all the constraints of the problem',
-	'where': 'Below here, define all the constants of the problem',
+	'where': 'Below here, define all the variables of the problem',
 	'for': 'Iterate over one or more ranges to expand the constraint in multiple constraints',
 	'in': 'Iterate over a range',
-
 }
 
 function stringifyRuntimeEntry(entry: PossibleCompletionToken) {
@@ -129,7 +129,7 @@ function stringifyRuntimeEntry(entry: PossibleCompletionToken) {
 	} else if (entry.type === "RuntimeFunction") {
 		return [
 			{ value: `\`\`\`typescript\n${entry.name}(${entry.parameters.map(v => `${v.name}: ${getFormattedType(v.value)}`).join(", ")}): ${getFormattedType(entry.returnType)}\n\`\`\`` },
-			{ value: `[Function] ${entry.name}: ${entry.description?? "Unknown description"}`}
+			{ value: `[Function] ${entry.name}: ${entry.description ?? "Unknown description"}` }
 		]
 	}
 	return []
@@ -157,8 +157,8 @@ export function createRoocHoverProvider() {
 				const item = items.get?.(offset)
 				if (item) {
 					contents.push({ value: `\`\`\`typescript\n${word?.word ?? "Unknown"}: ${getFormattedType(item.value)}\n\`\`\`` })
-				} else {
-					contents.push({ value: keywords[word?.word ?? ''] ?? 'No type found' })
+				} else if (word?.word) {
+					contents.push({ value: keywords[word.word] ?? 'No type found' })
 				}
 			}
 			return {
@@ -253,7 +253,7 @@ export function createRoocCompletion() {
 	return {
 		provideCompletionItems: (model: editor.ITextModel, position: Position) => {
 			const word = model.getWordUntilPosition(position)
-			const elements = findRoocCompletionTokens(word.word).map(makeRoocCompletionToken).filter(e => !!e) as  languages.CompletionItem[]
+			const elements = findRoocCompletionTokens(word.word).map(makeRoocCompletionToken).filter(e => !!e) as languages.CompletionItem[]
 			return {
 				suggestions: elements
 			}

@@ -10,6 +10,7 @@
 	import Delete from '~icons/fa/Trash.svelte';
 	import Download from '~icons/fa/Download.svelte';
 	import Button from '$cmp/inputs/Button.svelte';
+	import SyntaxHighlighter from '$cmp/SyntaxHighlighter.svelte';
 	const dispatcher = createEventDispatcher<{
 		onUpdate: { project: Project };
 		onDownload: { project: Project };
@@ -23,8 +24,14 @@
 	}
 </script>
 
-<Card border="secondary" style="position:relative; min-height: 12rem; max-height: 20rem;" radius="0.4rem">
-	<pre class="blurred-underlay">{project.content}</pre>
+<Card
+	border="secondary"
+	style="position:relative; min-height: 12rem; max-height: 20rem;"
+	radius="0.4rem"
+>
+	<div class="blurred-underlay">
+		<SyntaxHighlighter source={project.content} style="font-size: 1rem" />
+	</div>
 	<Column style="z-index: 2; flex: 1">
 		<Column padding="0.5rem; margin-bottom: 0.4rem;" style="flex:1;">
 			<div
@@ -67,11 +74,11 @@
 <style lang="scss">
 	.blurred-underlay {
 		position: absolute;
-		margin: 0 1rem;
-		padding-top: 1rem;
+		margin: 0 0.8rem;
+		padding-top: 0.5rem;
 		top: 0;
 		left: 0;
-		width: calc(100% - 2rem);
+		width: calc(100% - 1.6rem);
 		height: 100%;
 		opacity: 0.2;
 		filter: blur(0.05rem);

@@ -7,10 +7,12 @@
 	import { projectStore, type Project } from '$src/stores/projectStore';
 	import { page } from '$app/stores';
 	import { createCompilerStore } from './projectStore';
-	import Floppy from '~icons/fa/save';
+	import Floppy from '~icons/fa/floppy-o';
+	
 	import Row from '$cmp/layout/Row.svelte';
 	import ButtonLink from '$cmp/inputs/ButtonLink.svelte';
 	import { toast } from '$src/stores/toastStore';
+	import SyntaxHighlighter from '$cmp/SyntaxHighlighter.svelte';
 	let project: Project;
 	let store: ReturnType<typeof createCompilerStore>;
 	onMount(() => {
