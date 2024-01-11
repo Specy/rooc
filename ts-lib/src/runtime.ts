@@ -1,4 +1,4 @@
-import { SerializedPrimitiveKind } from "./pkg/rooc";
+import type { SerializedPrimitiveKind } from "./pkg/rooc";
 import Fuse from 'fuse.js'
 export type NamedParameter = {
     name: string;

@@ -2,6 +2,7 @@ import { CompilationError, RoocParser, type PossibleCompletionToken, findRoocCom
 import { editor, languages } from 'monaco-editor'
 import { MarkerSeverity, Position, Range, type IDisposable } from 'monaco-editor'
 import type { SerializedPrimitiveKind } from '@specy/rooc/dist/pkg/rooc'
+import { createRoocFunctionSignature, getFormattedRoocType } from './RoocUtils'
 
 
 export const RoocLanguage = {
@@ -96,15 +97,7 @@ export function createRoocFormatter() {
 	}
 }
 
-function getFormattedType(type: SerializedPrimitiveKind) {
-	if (type.type === 'Tuple') {
-		return `(${type.value.map(getFormattedType).join(', ')})`
-	} else if (type.type === "Iterable") {
-		return `${getFormattedType(type.value)}[]`
-	} else {
-		return type.type
-	}
-}
+
 
 const keywords = {
 	'min': 'Minimize the objective function',
@@ -118,17 +111,17 @@ const keywords = {
 function stringifyRuntimeEntry(entry: PossibleCompletionToken) {
 	if (entry.type === "RuntimeBlockScopedFunction") {
 		return [
-			{ value: `${entry.name}(...) { }` },
+			{ value: createRoocFunctionSignature(entry) },
 			{ value: `[BlockScopedFunction] ${entry.name}: ${entry.description}` },
 		]
 	} else if (entry.type === "RuntimeBlockFunction") {
 		return [
-			{ value: `${entry.name}{ }` },
+			{ value: createRoocFunctionSignature(entry)},
 			{ value: `[BlockFunction] ${entry.name}: ${entry.description}` },
 		]
 	} else if (entry.type === "RuntimeFunction") {
 		return [
-			{ value: `\`\`\`typescript\n${entry.name}(${entry.parameters.map(v => `${v.name}: ${getFormattedType(v.value)}`).join(", ")}): ${getFormattedType(entry.returnType)}\n\`\`\`` },
+			{ value: `\`\`\`typescript\n${createRoocFunctionSignature(entry)}\n\`\`\`` },
 			{ value: `[Function] ${entry.name}: ${entry.description ?? "Unknown description"}` }
 		]
 	}
@@ -156,7 +149,7 @@ export function createRoocHoverProvider() {
 				const items = parsed.val.createTypeMap()
 				const item = items.get?.(offset)
 				if (item) {
-					contents.push({ value: `\`\`\`typescript\n${word?.word ?? "Unknown"}: ${getFormattedType(item.value)}\n\`\`\`` })
+					contents.push({ value: `\`\`\`typescript\n${word?.word ?? "Unknown"}: ${getFormattedRoocType(item.value)}\n\`\`\`` })
 				} else if (word?.word) {
 					contents.push({ value: keywords[word.word] ?? 'No type found' })
 				}
@@ -242,7 +235,7 @@ function makeRoocCompletionToken(entry: PossibleCompletionToken) {
 			kind: languages.CompletionItemKind.Function,
 			insertText: `${entry.name}(${pars})`,
 			insertTextRules: languages.CompletionItemInsertTextRule.InsertAsSnippet,
-			detail: `[Function] ${entry.name}(${entry.parameters.map(v => `${v.name}: ${getFormattedType(v.value)}`).join(", ")})`
+			detail: `[Function] ${entry.name}(${entry.parameters.map(v => `${v.name}: ${getFormattedRoocType(v.value)}`).join(", ")})`
 		}
 	}
 	return undefined

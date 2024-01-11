@@ -8,11 +8,15 @@
 	import { page } from '$app/stores';
 	import { createCompilerStore } from './projectStore';
 	import Floppy from '~icons/fa/floppy-o';
-	
+	import Book from '~icons/fa/book';
 	import Row from '$cmp/layout/Row.svelte';
 	import ButtonLink from '$cmp/inputs/ButtonLink.svelte';
 	import { toast } from '$src/stores/toastStore';
-	import SyntaxHighlighter from '$cmp/SyntaxHighlighter.svelte';
+	import FloatingContainer from '$cmp/misc/FloatingContainer.svelte';
+	import RoocDocs from '$cmp/roocDocs/RoocFunctionsDocs.svelte';
+	import Column from '$cmp/layout/Column.svelte';
+	import RoocSyntaxDocs from '$cmp/roocDocs/RoocSyntaxDocs.svelte';
+	let showDocs = false;
 	let project: Project;
 	let store: ReturnType<typeof createCompilerStore>;
 	onMount(() => {
@@ -48,9 +52,14 @@
 <Page style="height: 100vh">
 	<Row justify="between" padding="0.5rem" gap="0.5rem">
 		<ButtonLink href="/projects">Projects</ButtonLink>
-		<Button on:click={save} hasIcon>
-			<Floppy />
-		</Button>
+		<Row gap="0.5rem">
+			<Button hasIcon on:click={() => (showDocs = !showDocs)}>
+				<Book />
+			</Button>
+			<Button on:click={save} hasIcon>
+				<Floppy />
+			</Button>
+		</Row>
 	</Row>
 	<div class="wrapper">
 		{#if store}
@@ -73,6 +82,17 @@
 			/>
 		{/if}
 	</div>
+	<FloatingContainer bind:visible={showDocs} title="Documentation">
+		<Column
+			style="min-width: 45rem; max-width: calc(100vw - 2rem); max-height: 80vh; overflow-y: auto;"
+			padding="0.8rem"
+			gap="0.5rem"
+		>
+			<RoocSyntaxDocs />
+
+			<RoocDocs />
+		</Column>
+	</FloatingContainer>
 	<Row justify="end" gap="0.5rem" padding="0.5rem">
 		<Button on:click={compile} border="secondary" color="primary">Compile</Button>
 	</Row>
