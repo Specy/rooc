@@ -30,7 +30,7 @@
 	radius="0.4rem"
 >
 	<div class="blurred-underlay">
-		<SyntaxHighlighter source={project.content} style="font-size: 1rem" />
+		<SyntaxHighlighter source={project.content} language="rooc" style="font-size: 1rem" />
 	</div>
 	<Column style="z-index: 2; flex: 1">
 		<Column padding="0.5rem; margin-bottom: 0.4rem;" style="flex:1;">
