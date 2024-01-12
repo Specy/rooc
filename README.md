@@ -39,13 +39,13 @@ The library is compiled as a wasm module to be used in the [web editor](https://
   - [ ] Other integer solution algorithms
 - [ ] UI
   - [x] Compilation to WASM
-  - [ ] Create and manage your models
+  - [x] Create and manage your models
   - [x] LSP
     - [x] Syntax errors
     - [x] Hover types
     - [x] Type errors
     - [x] Code completion
-  - [ ] Language documentation 
+  - [x] Language documentation 
   - [ ] Show the different steps of solving the problem
   - [ ] List of modifications from the start of the problem to the end of the solution
 
