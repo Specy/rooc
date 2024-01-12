@@ -1,9 +1,9 @@
 <script lang="ts">
-	import SyntaxHighlighter from "$cmp/SyntaxHighlighter.svelte";
-import Card from "$cmp/layout/Card.svelte";
-import Column from "$cmp/layout/Column.svelte";
+	import SyntaxHighlighter from '$cmp/SyntaxHighlighter.svelte';
+	import Card from '$cmp/layout/Card.svelte';
+	import Column from '$cmp/layout/Column.svelte';
 
-const exampleModel = `
+	const exampleModel = `
 min sum(u in nodes(G)) { x_u }
 s.t.
     x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1 for v in nodes(G)
@@ -21,22 +21,20 @@ where
         [4, 5, 6]
     ]
     someString = "hello"
-`.trim()
+`.trim();
 </script>
 
-
-<h1>
-    The language
-</h1>
-<Column gap='0.4rem'>
-    With ROOC you can formalize mathematical models and let the compiler do the rest.
-    <br />
-    You can define formal expressions using iterators over data, using different functions to transform it.
-    <br />
-    A general model can be defined as an objective function, a set of constraints and a set of data (optional).
-    <br />
-    There are different expansion functions that can be used to expand the expressions
-    <Card padding='0.8rem 1rem'>
-        <SyntaxHighlighter language='rooc' source={exampleModel} />
-    </Card>
+<h1>The language</h1>
+<Column gap="0.4rem">
+	With ROOC you can formalize mathematical models and let the compiler do the rest.
+	<br />
+	You can define formal expressions using iterators over data, using different functions to transform
+	it.
+	<br />
+	A general model can be defined as an objective function, a set of constraints and a set of data (optional).
+	<br />
+	There are different expansion functions that can be used to expand the expressions
+	<Card padding="0.8rem 1rem">
+		<SyntaxHighlighter language="rooc" source={exampleModel} style="overflow-x: auto;" />
+	</Card>
 </Column>

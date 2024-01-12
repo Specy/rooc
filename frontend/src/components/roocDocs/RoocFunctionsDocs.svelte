@@ -16,19 +16,21 @@
 
 <h2>Functions</h2>
 <Column gap="0.5rem">
-	<Column style="margin-bottom: 1rem;" gap='0.4rem'>
+	<Column style="margin-bottom: 1rem;" gap="0.4rem">
 		They are functions that accept parameters and return a value, you can use them inside blocks,
 		assignments or in expressions
-        <br />
-        <Card padding='0.8rem'>
-            <SyntaxHighlighter language="rooc" source={"x * len(A) <= 2"} />
-        </Card>
+		<br />
+		<Card padding="0.8rem">
+			<SyntaxHighlighter style="overflow-x: auto" language="rooc" source={'x * len(A) <= 2'} />
+		</Card>
 	</Column>
 	{#each functions as fun}
 		<Card padding="0.8rem" gap="0.5rem">
-			<div style="overflow-x: auto">
-				<SyntaxHighlighter language="typescript" source={createRoocFunctionSignature(fun)} />
-			</div>
+			<SyntaxHighlighter
+				style="overflow-x: auto"
+				language="typescript"
+				source={createRoocFunctionSignature(fun)}
+			/>
 			{fun.description}
 		</Card>
 	{/each}
@@ -41,16 +43,18 @@
 	</Column>
 	{#each blockFunctions as fun}
 		<Card padding="0.8rem" gap="0.5rem">
-			<div style="overflow-x: auto">
-				<SyntaxHighlighter language="typescript" source={createRoocFunctionSignature(fun)} />
-			</div>
+			<SyntaxHighlighter
+				style="overflow-x: auto"
+				language="typescript"
+				source={createRoocFunctionSignature(fun)}
+			/>
 			{fun.description}
 		</Card>
 	{/each}
 </Column>
 <h2>Block scoped functions</h2>
 <Column gap="0.5rem">
-	<Column gap='0.4rem' style="margin-bottom: 1rem;">
+	<Column gap="0.4rem" style="margin-bottom: 1rem;">
 		They are function blocks, it has as parameters one or more iterators over iterable data, they
 		will declare a variable (or more uring tuples destructuring) for each iterator and then execute
 		the block.
@@ -59,14 +63,12 @@
 		is the outermost one
 		<br />
 		<Card padding="0.8rem">
-			<SyntaxHighlighter language="rooc" source={'sum(i in 0..len(A), el in A[i]) { x_i * el }'} />
+			<SyntaxHighlighter style="overflow-x: auto" language="rooc" source={'sum(i in 0..len(A), el in A[i]) { x_i * el }'} />
 		</Card>
 	</Column>
 	{#each blockScopedFunctions as fun}
 		<Card padding="0.8rem" gap="0.5rem">
-			<div style="overflow-x: auto">
-				<SyntaxHighlighter language="typescript" source={createRoocFunctionSignature(fun)} />
-			</div>
+				<SyntaxHighlighter style="overflow-x: auto" language="typescript" source={createRoocFunctionSignature(fun)} />
 			{fun.description}
 		</Card>
 	{/each}
