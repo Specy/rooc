@@ -357,11 +357,16 @@ impl TypeCheckable for PreExp {
                     Some(name.get_span_value().clone()),
                 ),
             },
-            Self::CompoundVariable(c) => context.add_token_type_or_undefined(
-                PrimitiveKind::Number, //every compound variable must be a number
-                c.get_span().clone(),
-                Some(c.to_string()),
-            ),
+            Self::CompoundVariable(c) => {
+                context.add_token_type_or_undefined(
+                    PrimitiveKind::Number, //every compound variable must be a number
+                    c.get_span().clone(),
+                    None,
+                );
+                for index in &c.indexes {
+                    index.populate_token_type_map(context);
+                }
+            }
             Self::BinaryOperation(_, lhs, rhs) => {
                 lhs.populate_token_type_map(context);
                 rhs.populate_token_type_map(context);
@@ -613,10 +618,16 @@ impl PreExp {
                 }
             }
             Self::CompoundVariable(c) => {
-                let parsed_indexes = context
-                    .flatten_variable_name(&c.indexes)
+                let indexes = &c
+                    .indexes
+                    .iter()
+                    .map(|v| v.as_primitive(context))
+                    .collect::<Result<Vec<Primitive>, TransformError>>()
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
-                Ok(Exp::Variable(format!("{}_{}", c.name, parsed_indexes)))
+                let name = context
+                    .flatten_compound_variable(&c.name, indexes)
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                Ok(Exp::Variable(name))
             }
             Self::ArrayAccess(array_access) => {
                 let value = context
@@ -691,7 +702,13 @@ impl PreExp {
                 )),
             },
             PreExp::CompoundVariable(c) => {
-                let name = context.flatten_compound_variable(&c.name, &c.indexes)?;
+                let indexes = &c
+                    .indexes
+                    .iter()
+                    .map(|v| v.as_primitive(context))
+                    .collect::<Result<Vec<Primitive>, TransformError>>()
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                let name = context.flatten_compound_variable(&c.name, indexes)?;
                 match context.get_value(&name) {
                     Some(value) => Ok(value.clone()),
                     None => Err(TransformError::UndeclaredVariable(name)),
@@ -1027,23 +1044,35 @@ impl fmt::Display for AddressableAccess {
 #[derive(Debug, Serialize, Clone)]
 pub struct CompoundVariable {
     pub name: String,
-    pub indexes: Vec<String>,
+    pub indexes: Vec<PreExp>,
 }
 #[wasm_bindgen(typescript_custom_section)]
 const ICompoundVariable: &'static str = r#"
 export type SerializedCompoundVariable = {
     name: string,
-    indexes: string[],
+    indexes: SerializedPreExp[],
 }
 "#;
 impl CompoundVariable {
-    pub fn new(name: String, indexes: Vec<String>) -> Self {
+    pub fn new(name: String, indexes: Vec<PreExp>) -> Self {
         Self { name, indexes }
     }
 }
 impl fmt::Display for CompoundVariable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}_{}", self.name, self.indexes.join("_"))
+        let indexes = self
+            .indexes
+            .iter()
+            .map(|i| match i {
+                PreExp::Primitive(p) => match p.get_span_value() {
+                    Primitive::Number(n) => format!("{}", n),
+                    _ => format!("{{{}}}", i),
+                },
+                PreExp::Variable(name) => name.get_span_value().clone(),
+                _ => format!("{{{}}}", i),
+            })
+            .collect::<Vec<String>>();
+        write!(f, "{}_{}", self.name, indexes.join("_"))
     }
 }
 #[derive(Debug, Serialize, Clone)]

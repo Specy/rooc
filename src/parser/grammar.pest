@@ -89,18 +89,18 @@ edge = { #node = simple_variable ~ (":" ~ #cost = signed_number)? }
 array    =  { "[" ~ nl* ~ ((_primitive ~ comma)* ~ _primitive) ~ nl* ~ "]" }
 // utilities
 comma_separated_exp = { (tagged_exp ~ comma)* ~ tagged_exp }
-comma = _{ "," ~ nl? }
+comma = _{ "," ~ nl* }
 nl = _{NEWLINE}
 variable       = _{ !keyword ~ (compound_variable | simple_variable) }
 // terminal characters
 objective_type = @{ ^"min" | ^"max" }
 comparison     = @{ "<=" | ">=" | "=" }
-simple_variable   = @{ LETTER+ ~ (NUMBER)* }
-compound_variable = @{ simple_variable ~ ("_" ~ LETTER+)+ }
-// maybe i should do ("_" ~ LETTER+)+
+simple_variable   = @{ LETTER ~ (LETTER | NUMBER)* }
+compound_variable = { simple_variable ~ ("_" ~ compound_variable_body)+ }
+compound_variable_body = _{ (simple_variable | number) | "{" ~ nl* ~ (tagged_exp) ~ nl* ~ "}" } 
 number    = _{ float | integer }
 integer = @{ '0'..'9'+ }
-float    = @{ '0'..'9'+ ~ ("." ~ '0'..'9'+)? }
+float    = @{ '0'..'9'+ ~ "." ~ ('0'..'9')+ }
 signed_number = @{ "-"? ~ number}
 keyword = { "for" | "min" | "max" | "where" | "true" | "false" | "in" | "s.t." | "as" | "define" }
 binary_op = _{ mul | add | sub | div }
@@ -112,9 +112,9 @@ div = { "/" }
 unary_op  = _{ neg }
 neg = { "-" }
 
-string = @ { "\"" ~ LETTER* ~ "\""}
+string = @ { "\"" ~ (LETTER | NUMBER)* ~ "\""}
 boolean = @{ ^"true" | ^"false" }
-function_name = @{ LETTER ~ (LETTER | NUMBER | "_")*}
+function_name = @{ LETTER+ ~ ("_" ~ (LETTER | NUMBER)+)*}
 // ignore whitespace in whole grammar
 WHITESPACE = _{ " " | "\t" }
 range_type = @{ "..=" | ".." }

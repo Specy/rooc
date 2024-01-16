@@ -79,9 +79,7 @@ pub fn parse_const_declaration(
             let name = pairs
                 .find_first_tagged("name")
                 .map(|n| Spanned::new(n.as_str().to_string(), InputSpan::from_span(n.as_span())));
-            let value = pairs
-                .find_first_tagged("value")
-                .map(|v| parse_exp(v));
+            let value = pairs.find_first_tagged("value").map(|v| parse_exp(v));
             match (name, value) {
                 (Some(name), Some(value)) => Ok(Constant::new(name, value?)),
                 _ => bail_missing_token!("Missing constant body", const_declaration),
@@ -104,9 +102,7 @@ pub fn parse_primitive(const_value: &Pair<Rule>) -> Result<Primitive, Compilatio
                 None => err_unexpected_token!("Expected constant value but got: {}", const_value),
             }
         }
-        Rule::float | Rule::integer => {
-            parse_number(const_value)
-        }
+        Rule::float | Rule::integer => parse_number(const_value),
         Rule::boolean => match const_value.as_str() {
             "true" => Ok(Primitive::Boolean(true)),
             "false" => Ok(Primitive::Boolean(false)),
@@ -334,27 +330,57 @@ pub fn parse_compound_variable(
 ) -> Result<CompoundVariable, CompilationError> {
     match compound_variable.as_rule() {
         Rule::compound_variable => {
-            let fields = compound_variable.as_str().split('_').collect::<Vec<_>>();
+            let mut fields = compound_variable.clone().into_inner().collect::<Vec<_>>();
             if fields.len() < 2 {
                 return err_unexpected_token!(
                     "found {}, expected compound variable",
                     compound_variable
                 );
             }
-            let name = fields[0];
-            let indexes = fields[1..]
-                .iter()
-                .map(|i| i.to_string())
-                .collect::<Vec<_>>();
-            Ok(CompoundVariable {
-                name: name.to_string(),
-                indexes,
-            })
+            let name = fields.remove(0);
+            let indexes = fields
+                .into_iter()
+                .map(|i| parse_compound_variable_index(i))
+                .collect::<Result<Vec<_>, CompilationError>>()?;
+            Ok(CompoundVariable::new(name.to_string(), indexes))
         }
         _ => err_unexpected_token!("Expected compound variable but got: {}", compound_variable),
     }
 }
-
+pub fn parse_compound_variable_index(
+    compound_variable_index: Pair<Rule>,
+) -> Result<PreExp, CompilationError> {
+    match compound_variable_index.as_rule() {
+        Rule::simple_variable => {
+            let span = InputSpan::from_pair(&compound_variable_index);
+            Ok(PreExp::Variable(Spanned::new(
+                compound_variable_index.as_str().to_string(),
+                span,
+            )))
+        }
+        Rule::integer => {
+            let span = InputSpan::from_pair(&compound_variable_index);
+            let value = compound_variable_index.as_str().parse::<i64>();
+            if value.is_err() {
+                return err_unexpected_token!(
+                    "Expected integer but got: {}",
+                    compound_variable_index
+                );
+            }
+            Ok(PreExp::Primitive(Spanned::new(
+                Primitive::Integer(value.unwrap()),
+                span,
+            )))
+        }
+        Rule::tagged_exp => {
+            parse_exp(compound_variable_index)
+        }
+        _ => err_unexpected_token!(
+            "Expected compound variable index but got: {}",
+            compound_variable_index
+        ),
+    }
+}
 pub fn parse_block_function_type(
     block_function_type: &Pair<Rule>,
 ) -> Result<BlockFunctionKind, CompilationError> {

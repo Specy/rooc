@@ -273,6 +273,24 @@ where
     }
 
     #[test]
+    fn test_compound_variable() {
+        let input = "
+        min 1
+        s.t. 
+            x_u + x_{u + 1} + x_{len(c) + 2} <= x_1 + x_{-1}
+            
+        where
+            c = [1, 2, 3, 4, 5]
+            u = 1    
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to type check problem");
+    }
+    #[test]
     fn test_no_const_keywords_1(){
         let input = "
         min 1

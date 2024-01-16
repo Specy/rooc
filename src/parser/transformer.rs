@@ -693,12 +693,11 @@ impl TransformerContext {
 
     pub fn flatten_variable_name(
         &self,
-        compound_name: &[String],
+        compound_indexes: &[Primitive],
     ) -> Result<String, TransformError> {
-        let flattened = compound_name
+        let flattened = compound_indexes
             .iter()
-            .map(|name| match self.get_value(name) {
-                Some(value) => match value {
+            .map(|value| match value {
                     Primitive::Number(value) => Ok(value.to_string()),
                     Primitive::Integer(value) => Ok(value.to_string()),
                     Primitive::PositiveInteger(value) => Ok(value.to_string()),
@@ -716,8 +715,7 @@ impl TransformerContext {
                         ],
                     }),
                 },
-                None => Err(TransformError::UndeclaredVariable(name.to_string())),
-            })
+            )
             .collect::<Result<Vec<_>, _>>()?;
         Ok(flattened.join("_"))
     }
@@ -805,7 +803,7 @@ impl TransformerContext {
     pub fn flatten_compound_variable(
         &self,
         name: &String,
-        indexes: &[String],
+        indexes: &[Primitive],
     ) -> Result<String, TransformError> {
         let names: String = self.flatten_variable_name(indexes)?;
         let name = format!("{}_{}", name, names);

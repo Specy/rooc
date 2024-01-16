@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     parser::{
-        pre_parsed_problem::AddressableAccess,
+        pre_parsed_problem::{AddressableAccess, PreExp},
         transformer::{Frame, TransformError},
     },
     primitives::{consts::Constant, primitive::PrimitiveKind},
@@ -122,11 +122,16 @@ impl TypeCheckerContext {
         }
         None
     }
-    pub fn check_compound_variable(&self, compound_name: &[String]) -> Result<(), TransformError> {
-        for name in compound_name {
-            let value = self.get_value(name);
+    pub fn check_compound_variable(&mut self, compound_indexes: &[PreExp]) -> Result<(), TransformError> {
+        for index in compound_indexes {
+            index.type_check(self)?;
+            let value = match index {
+                PreExp::Variable(v) => self.get_value(v).map(|v| v.clone()),
+                PreExp::Primitive(p) => Some(p.value.get_type()),
+                _ => Some(index.get_type(self)),
+            };
             if value.is_none() {
-                return Err(TransformError::UndeclaredVariable(name.to_string()));
+                return Err(TransformError::UndeclaredVariable(index.to_string()));
             }
             let value = value.unwrap();
             match value {

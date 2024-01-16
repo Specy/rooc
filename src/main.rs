@@ -92,9 +92,10 @@ fn main() {
     let source = "
     min 1
     s.t.
-        sum(len in a){ len } <= 1
+       x_{len(a)} <= 1
     where
         a = [1]
+        d = 10
     "
     .to_string();
     let parser = RoocParser::new(source.clone());
