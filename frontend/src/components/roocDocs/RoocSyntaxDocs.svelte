@@ -22,6 +22,14 @@ where
     ]
     someString = "hello"
 `.trim();
+const exampleModel2 = `
+min 1
+s.t.
+    x_u + x_{u + 1} + x_2 + x_{len(A)} >= 1
+where 
+    u = 1
+    A = [1, 2, 3]
+`.trim();
 </script>
 
 <h1>The language</h1>
@@ -37,4 +45,14 @@ where
 	<Card padding="0.8rem 1rem">
 		<SyntaxHighlighter language="rooc" source={exampleModel} style="overflow-x: auto;" />
 	</Card>
+	<h2>
+		Compound variables
+	</h2>
+	Compound variables are variables whose name is determined at compilation time. They have a name, and a list of indices. 
+	Those indices can be anything that can be written out, so a number or something that can be written out as a string, like strings, graph nodes, true/false.
+	You can omit the curly braces if the index is a number or a variable name, for expressions they need to be there.
+	<Card padding="0.8rem 1rem">
+		<SyntaxHighlighter language="rooc" source={exampleModel2} style="overflow-x: auto;" />
+	</Card>
+
 </Column>

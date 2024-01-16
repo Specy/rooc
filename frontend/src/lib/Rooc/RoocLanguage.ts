@@ -135,6 +135,7 @@ export function createRoocHoverProvider() {
 			const word = model.getWordAtPosition(position)
 			const pos = new Position(position.lineNumber, word?.startColumn ?? position.column)
 			const offset = model.getOffsetAt(pos)
+			const preciseOffset = model.getOffsetAt(position)
 			const exactMatch = findRoocExactToken(word?.word ?? '')
 			const range = new Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + (word?.word.length ?? 0))
 
@@ -147,7 +148,7 @@ export function createRoocHoverProvider() {
 			const parsed = parser.compile()
 			if (parsed.ok) {
 				const items = parsed.val.createTypeMap()
-				const item = items.get?.(offset)
+				const item = items.get?.(preciseOffset) ?? items.get?.(offset)
 				if (item) {
 					contents.push({ value: `\`\`\`typescript\n${word?.word ?? "Unknown"}: ${getFormattedRoocType(item.value)}\n\`\`\`` })
 				} else if (word?.word) {

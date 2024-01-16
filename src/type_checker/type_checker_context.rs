@@ -150,7 +150,7 @@ impl TypeCheckerContext {
                             PrimitiveKind::String,
                             PrimitiveKind::GraphNode,
                         ],
-                    })
+                    }.to_spanned_error(index.get_span()))
                 }
             }
         }
