@@ -305,5 +305,9 @@ const darkOverride = [
 		"foreground": "#69ac91",
 		"background": "#69ac91",
 		"token": "literal"
+	}, {
+		"foreground": "#858ec4",
+		"background": "#858ec4",
+		"token": "function"
 	}
 ]

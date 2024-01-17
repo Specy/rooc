@@ -30,6 +30,7 @@ export const RoocLanguage = {
 			[/s\.t\./, 'keyword'],
 			{ include: "declarations" },
 			[/([a-z$][\w$]*)(?=\s=)/, 'identifier.define'],
+			[/([a-z$][\w$]*)(?=\(.*\))/, 'function'],
 			[/[a-z$][\w$]*/, {
 				"cases": {
 					"@keywords": "keyword",

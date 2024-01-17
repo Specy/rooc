@@ -7,7 +7,7 @@ import Page from '$cmp/layout/Page.svelte';
 
 
 <Nav />
-<Page cropped padding='1rem' mobilePadding='0.5rem' gap="1rem">
+<Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">
 	<RoocSyntaxDocs />
 	<RoocFunctionsDocs />
 </Page>
