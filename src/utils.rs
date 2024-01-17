@@ -3,7 +3,7 @@ use std::{fmt::Debug, ops::Deref, ops::DerefMut};
 
 use pest::{iterators::Pair, Span};
 use serde::Serialize;
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use wasm_bindgen::{JsValue, prelude::wasm_bindgen};
 
 use crate::parser::parser::Rule;
 
@@ -16,6 +16,7 @@ pub struct InputSpan {
     pub len: usize,
     pub tempered: bool,
 }
+
 impl InputSpan {
     pub fn from_pair(pair: &Pair<Rule>) -> Self {
         let (start_line, start_column) = pair.line_col();
@@ -52,18 +53,18 @@ impl InputSpan {
             ));
         }
         Ok(&text[start..end])
-        
     }
 }
 
 #[derive(Clone, Serialize)]
 pub struct Spanned<T>
-where
-    T: Debug + Serialize,
+    where
+        T: Debug + Serialize,
 {
     pub value: T,
     span: InputSpan,
 }
+
 impl<T: Debug + Serialize> Spanned<T> {
     pub fn new(value: T, span: InputSpan) -> Self {
         Self { value, span }
@@ -82,6 +83,7 @@ impl<T: Debug + Serialize> Spanned<T> {
         self.span.get_span_text(text)
     }
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 pub const ISpanned: &'static str = r#"
 export type SerializedSpanned<T> = {
@@ -95,11 +97,13 @@ impl<T: Debug + Serialize> DerefMut for Spanned<T> {
         &mut self.value
     }
 }
+
 impl<T: Debug + Serialize> Debug for Spanned<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&format!("{:?}", self.value))
     }
 }
+
 impl<T: Debug + Serialize> Deref for Spanned<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
@@ -114,6 +118,7 @@ pub struct CompilationError {
     span: Box<InputSpan>,
     text: String,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 pub const ICompilationError: &'static str = r#"
 export type SerializedCompilationError = {
@@ -122,6 +127,7 @@ export type SerializedCompilationError = {
     text: string
 }
 "#;
+
 impl CompilationError {
     pub fn new(kind: ParseError, span: InputSpan, text: String) -> Self {
         Self {
@@ -152,6 +158,7 @@ impl CompilationError {
         format!("{} {}", self.kind, self.text)
     }
 }
+
 impl std::fmt::Debug for CompilationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = format!(
@@ -188,6 +195,7 @@ pub enum ParseError {
     MissingToken(String),
     SemanticError(String),
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 pub const IParseError: &'static str = r#"
 export type ParseError = {

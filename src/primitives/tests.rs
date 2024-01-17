@@ -2,7 +2,6 @@
 mod primitive_tests {
     use crate::RoocParser;
 
-
     #[test]
     fn test_spreadability() {
         let source = "
@@ -26,5 +25,4 @@ mod primitive_tests {
             .parse_and_transform()
             .expect("Failed to parse");
     }
-
 }

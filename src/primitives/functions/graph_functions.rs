@@ -10,15 +10,15 @@ use crate::{
     parser::{
         parser::Rule,
         pre_parsed_problem::PreExp,
-        transformer::{TransformError, TransformerContext},
+        transformer::{TransformerContext, TransformError},
     },
     primitives::{
         iterable::IterableKind,
         primitive::{Primitive, PrimitiveKind},
     },
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
-    utils::{CompilationError, InputSpan, ParseError},
-    wrong_argument,
+    utils::InputSpan
+    ,
 };
 
 use super::function_traits::FunctionCall;
@@ -28,11 +28,13 @@ pub struct EdgesOfGraphFn {
     args: Vec<PreExp>,
     span: InputSpan,
 }
+
 impl WithType for EdgesOfGraphFn {
     fn get_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphEdge))
     }
 }
+
 impl TypeCheckable for EdgesOfGraphFn {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         match self.args[..] {
@@ -98,19 +100,20 @@ impl FunctionCall for EdgesOfGraphFn {
         &self.args
     }
 }
+
 #[wasm_bindgen(typescript_custom_section)]
-
-
 #[derive(Debug, Serialize, Clone)]
 pub struct NodesOfGraphFn {
     args: Vec<PreExp>,
     span: InputSpan,
 }
+
 impl WithType for NodesOfGraphFn {
     fn get_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphNode))
     }
 }
+
 impl TypeCheckable for NodesOfGraphFn {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         match self.args[..] {
@@ -184,6 +187,7 @@ pub struct NeighbourOfNodeFn {
     args: Vec<PreExp>,
     span: InputSpan,
 }
+
 impl TypeCheckable for NeighbourOfNodeFn {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         match self.args[..] {
@@ -207,6 +211,7 @@ impl TypeCheckable for NeighbourOfNodeFn {
             .for_each(|arg| arg.populate_token_type_map(context));
     }
 }
+
 impl WithType for NeighbourOfNodeFn {
     fn get_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphEdge))
@@ -263,6 +268,7 @@ pub struct NeighboursOfNodeInGraphFn {
     args: Vec<PreExp>,
     span: InputSpan,
 }
+
 impl WithType for NeighboursOfNodeInGraphFn {
     fn get_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphEdge))

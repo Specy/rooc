@@ -8,7 +8,7 @@ use crate::{
         pre_parsed_problem::{AddressableAccess, PreExp},
         transformer::{Frame, TransformError},
     },
-    primitives::{consts::Constant, primitive::PrimitiveKind},
+    primitives::primitive::PrimitiveKind,
     runtime_builtin::reserved_tokens::check_if_reserved_token,
     utils::InputSpan,
 };
@@ -29,6 +29,7 @@ pub struct TypedToken {
     value: PrimitiveKind,
     identifier: Option<String>,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const ITypedToken: &'static str = r#"
 export type SerializedTypedToken = {
@@ -52,6 +53,7 @@ pub struct TypeCheckerContext {
     frames: Vec<Frame<PrimitiveKind>>,
     token_map: HashMap<usize, TypedToken>,
 }
+
 impl Default for TypeCheckerContext {
     fn default() -> Self {
         let primitives = HashMap::new();
@@ -59,6 +61,7 @@ impl Default for TypeCheckerContext {
         Self::new(primitives, token_map)
     }
 }
+
 impl TypeCheckerContext {
     pub fn new(
         primitives: HashMap<String, PrimitiveKind>,
@@ -150,7 +153,7 @@ impl TypeCheckerContext {
                             PrimitiveKind::String,
                             PrimitiveKind::GraphNode,
                         ],
-                    }.to_spanned_error(index.get_span()))
+                    }.to_spanned_error(index.get_span()));
                 }
             }
         }

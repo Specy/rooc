@@ -38,14 +38,12 @@ pub enum OperatorError {
 }
 
 
-
-
 impl OperatorError {
     pub fn incompatible_type(op: BinOp, expected: PrimitiveKind, found: PrimitiveKind) -> Self {
         OperatorError::IncompatibleType {
             operator: op,
             expected,
-            found
+            found,
         }
     }
     pub fn unsupported_bin_operation(op: BinOp, found: PrimitiveKind) -> Self {
@@ -55,6 +53,7 @@ impl OperatorError {
         OperatorError::UnsupportedUnOperation { operator: op, found }
     }
 }
+
 impl fmt::Display for OperatorError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {

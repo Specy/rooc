@@ -33,7 +33,6 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     _ => Err(format!(
                         "Expected Number, got \"{}\"",
                         v.get_type_string(),
-                    
                     )),
                 })
                 .collect::<Result<Vec<_>, String>>()?;

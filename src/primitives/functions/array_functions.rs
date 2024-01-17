@@ -1,6 +1,5 @@
 use pest::iterators::Pair;
 use serde::Serialize;
-use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     bail_incorrect_type_signature, bail_incorrect_type_signature_of_fn,
@@ -8,7 +7,7 @@ use crate::{
     parser::{
         parser::Rule,
         pre_parsed_problem::PreExp,
-        transformer::{TransformError, TransformerContext},
+        transformer::{TransformerContext, TransformError},
     },
     primitives::{
         iterable::IterableKind,
@@ -16,8 +15,8 @@ use crate::{
         tuple::Tuple,
     },
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
-    utils::{CompilationError, InputSpan, ParseError},
-    wrong_argument,
+    utils::InputSpan
+    ,
 };
 
 use super::function_traits::FunctionCall;
@@ -51,6 +50,7 @@ impl TypeCheckable for EnumerateArray {
             .for_each(|arg| arg.populate_token_type_map(context));
     }
 }
+
 impl WithType for EnumerateArray {
     fn get_type(&self, context: &TypeCheckerContext) -> PrimitiveKind {
         let arg_type = self
@@ -125,6 +125,7 @@ pub struct LenOfIterableFn {
     args: Vec<PreExp>,
     span: InputSpan,
 }
+
 impl TypeCheckable for LenOfIterableFn {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         match self.args[..] {
@@ -148,6 +149,7 @@ impl TypeCheckable for LenOfIterableFn {
             .for_each(|arg| arg.populate_token_type_map(context));
     }
 }
+
 impl WithType for LenOfIterableFn {
     fn get_type(&self, _: &TypeCheckerContext) -> PrimitiveKind {
         PrimitiveKind::PositiveInteger

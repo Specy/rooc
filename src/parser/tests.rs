@@ -29,6 +29,7 @@ where
             .type_check()
             .expect("Failed to type check problem");
     }
+
     #[test]
     fn test_parser_variants1() {
         let input = "
@@ -43,6 +44,7 @@ where
             .type_check()
             .expect("Failed to type check problem");
     }
+
     #[test]
     fn test_parser_variants2() {
         let input = "
@@ -108,6 +110,7 @@ where
             .type_check()
             .expect("Failed to type check problem");
     }
+
     #[test]
     fn test_prefix_operators() {
         let input = "
@@ -125,6 +128,7 @@ where
             .type_check()
             .expect("Failed to type check problem");
     }
+
     #[test]
     fn test_implicit_multiplication() {
         let input = "
@@ -153,6 +157,7 @@ where
             .type_check()
             .expect("Failed to type check problem");
     }
+
     #[test]
     fn test_parser_errors1() {
         let input = "
@@ -290,8 +295,9 @@ where
             .type_check()
             .expect("Failed to type check problem");
     }
+
     #[test]
-    fn test_no_const_keywords_1(){
+    fn test_no_const_keywords_1() {
         let input = "
         min 1
         s.t.
@@ -306,9 +312,9 @@ where
             .type_check()
             .expect_err("Failed to detect invalid primitive type");
     }
-    
+
     #[test]
-    fn test_no_const_keywords_2(){
+    fn test_no_const_keywords_2() {
         let input = "
         min 1
         s.t.
@@ -323,8 +329,9 @@ where
             .type_check()
             .expect_err("Failed to detect invalid primitive type");
     }
+
     #[test]
-    fn test_no_const_keywords_3(){
+    fn test_no_const_keywords_3() {
         let input = "
         min 1
         s.t.

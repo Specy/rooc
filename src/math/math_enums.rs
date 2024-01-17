@@ -2,14 +2,28 @@
 
 use core::fmt;
 use std::str::FromStr;
-use crate::enum_with_variants_to_string;
-use serde::{Serialize, Deserialize};
+
+use serde::Serialize;
 use wasm_bindgen::prelude::*;
+
+use crate::enum_with_variants_to_string;
+use crate::traits::latex::ToLatex;
+
 enum_with_variants_to_string! {
     pub enum Comparison derives[Debug, PartialEq, Clone, Copy] with_wasm {
         LowerOrEqual,
         UpperOrEqual,
         Equal,
+    }
+}
+
+impl ToLatex for Comparison {
+    fn to_latex(&self) -> String {
+        match self {
+            Comparison::LowerOrEqual => "\\leq".to_string(),
+            Comparison::UpperOrEqual => "\\geq".to_string(),
+            Comparison::Equal => "=".to_string(),
+        }
     }
 }
 
@@ -23,7 +37,7 @@ impl fmt::Display for Comparison {
 
         f.write_str(&s)
     }
-} 
+}
 
 impl FromStr for Comparison {
     type Err = ();
@@ -42,6 +56,15 @@ enum_with_variants_to_string! {
         Max,
     }
 }
+impl ToLatex for OptimizationType {
+    fn to_latex(&self) -> String {
+        match self {
+            OptimizationType::Min => "\\min".to_string(),
+            OptimizationType::Max => "\\max".to_string(),
+        }
+    }
+}
+
 impl fmt::Display for OptimizationType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {

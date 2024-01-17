@@ -4,9 +4,12 @@ use std::fmt::Debug;
 
 use pest::iterators::Pair;
 use pest::Parser;
+use serde::Serialize;
+use wasm_bindgen::prelude::*;
 
 use crate::bail_missing_token;
 use crate::primitives::consts::Constant;
+use crate::traits::latex::ToLatex;
 use crate::type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, TypedToken};
 use crate::utils::{CompilationError, InputSpan, ParseError};
 
@@ -14,9 +17,8 @@ use super::pre_parsed_problem::{PreCondition, PreObjective};
 use super::rules_parser::other_parser::{
     parse_condition_list, parse_consts_declaration, parse_objective,
 };
-use super::transformer::{transform_parsed_problem, Problem, TransformError, TransformerContext};
-use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
+use super::transformer::{transform_parsed_problem, Problem, TransformError};
+
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]
 struct PLParser;
@@ -28,6 +30,7 @@ pub struct PreProblem {
     conditions: Vec<PreCondition>,
     constants: Vec<Constant>,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const IPreProblem: &'static str = r#"
 export type SerializedPreProblem = {
@@ -94,6 +97,31 @@ impl TypeCheckable for PreProblem {
     }
 }
 
+impl ToLatex for PreProblem {
+    fn to_latex(&self) -> String {
+        let mut s = self.objective.to_latex();
+        s.push_str("\\\\\n{s.t.}\\\\\n");
+        let conditions = self
+            .conditions
+            .iter()
+            .map(|cond| format!("    \\quad {}", cond.to_latex()))
+            .collect::<Vec<_>>()
+            .join("\\\\\n");
+        s.push_str(format!("\n\\begin{{align}}\n{}\n\\end{{align}}", conditions).as_str());
+        if !self.constants.is_empty() {
+            s.push_str("\\\\\n where \\\\\n");
+            let constants = self
+                .constants
+                .iter()
+                .map(|constant| format!("     \\quad {}", constant.to_latex()))
+                .collect::<Vec<_>>()
+                .join("\\\\\n");
+            s.push_str(format!("\n\\begin{{align*}}\n{}\n\\end{{align*}}", constants).as_str());
+        }
+        s
+    }
+}
+
 #[wasm_bindgen]
 impl PreProblem {
     pub fn transform_wasm(self) -> Result<Problem, TransformErrorWrapper> {
@@ -113,6 +141,9 @@ impl PreProblem {
     }
     pub fn create_token_type_map_wasm(&self) -> JsValue {
         serde_wasm_bindgen::to_value(&self.create_token_type_map()).unwrap()
+    }
+    pub fn to_latex_wasm(&self) -> String {
+        self.to_latex()
     }
 }
 

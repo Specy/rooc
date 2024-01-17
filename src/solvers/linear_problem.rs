@@ -11,6 +11,7 @@ pub struct EqualityConstraint {
     coefficients: Vec<f64>,
     rhs: f64,
 }
+
 impl EqualityConstraint {
     pub fn new(coefficients: Vec<f64>, rhs: f64) -> EqualityConstraint {
         match rhs < 0.0 {
@@ -91,6 +92,7 @@ struct IndependentVariable {
     column: usize,
     value: f64,
 }
+
 impl IntoCanonicalTableau for StandardLinearProblem {
     fn into_canonical(&self) -> Result<Tableau, CanonicalTransformError> {
         let mut usable_independent_vars: Vec<IndependentVariable> = Vec::new();
@@ -244,6 +246,7 @@ impl IntoCanonicalTableau for StandardLinearProblem {
         }
     }
 }
+
 pub struct Constraint {
     coefficients: Vec<f64>,
     rhs: f64,
@@ -279,6 +282,7 @@ pub struct LinearProblem {
     objective: Vec<f64>,
     constraints: Vec<Constraint>,
 }
+
 impl LinearProblem {
     pub fn new(
         objective: Vec<f64>,

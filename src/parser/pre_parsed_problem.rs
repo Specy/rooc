@@ -1,6 +1,14 @@
 use core::fmt;
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
+use serde::ser::{SerializeStruct, Serializer};
+use serde::Serialize;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::prelude::*;
+
+use crate::math::operators::UnOp;
+use crate::primitives::primitive_traits::ApplyOp;
+use crate::traits::latex::{escape_latex, ToLatex};
 use crate::{
     enum_with_variants_to_string,
     math::math_enums::{Comparison, OptimizationType},
@@ -13,19 +21,12 @@ use crate::{
     },
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::{InputSpan, Spanned},
-    wrong_argument,
 };
-use wasm_bindgen::prelude::*;
 
 use super::{
     recursive_set_resolver::recursive_set_resolver,
-    transformer::{Exp, Frame, TransformError, TransformerContext, VariableType},
+    transformer::{Exp, TransformError, TransformerContext, VariableType},
 };
-use crate::math::operators::UnOp;
-use crate::primitives::primitive_traits::ApplyOp;
-use serde::ser::{SerializeStruct, Serializer};
-use serde::{de, Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 
 enum_with_variants_to_string! {
     pub enum BlockScopedFunctionKind derives[Debug, Clone] with_wasm {
@@ -48,6 +49,19 @@ impl fmt::Display for BlockScopedFunctionKind {
         f.write_str(&s)
     }
 }
+
+impl ToLatex for BlockScopedFunctionKind {
+    fn to_latex(&self) -> String {
+        match self {
+            Self::Sum => "\\sum".to_string(),
+            Self::Prod => "\\prod".to_string(),
+            Self::Min => "\\min".to_string(),
+            Self::Max => "\\max".to_string(),
+            Self::Avg => "avg".to_string(),
+        }
+    }
+}
+
 impl FromStr for BlockScopedFunctionKind {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -67,6 +81,16 @@ enum_with_variants_to_string! {
         Min,
         Max,
         Avg,
+    }
+}
+
+impl ToLatex for BlockFunctionKind {
+    fn to_latex(&self) -> String {
+        match self {
+            Self::Min => "\\min".to_string(),
+            Self::Max => "\\max".to_string(),
+            Self::Avg => "avg".to_string(),
+        }
     }
 }
 
@@ -99,6 +123,38 @@ pub struct BlockScopedFunction {
     iters: Vec<IterableSet>,
     exp: Box<PreExp>,
 }
+
+impl ToLatex for BlockScopedFunction {
+    fn to_latex(&self) -> String {
+        match self.kind {
+            BlockScopedFunctionKind::Sum | BlockScopedFunctionKind::Prod => {
+                let name = self.kind.to_latex();
+                let iters = self
+                    .iters
+                    .iter()
+                    .map(|i| format!("{}_{{{}}}", name, i.to_latex()))
+                    .collect::<Vec<String>>()
+                    .join("");
+                format!("{}{}", iters, self.exp.to_latex())
+            }
+            _ => {
+                let iters = self
+                    .iters
+                    .iter()
+                    .map(|i| i.to_latex())
+                    .collect::<Vec<String>>()
+                    .join(",\\");
+                format!(
+                    "{}_{{{}}} \\left\\{{ {} \\right\\}}",
+                    self.kind.to_latex(),
+                    iters,
+                    self.exp.to_latex()
+                )
+            }
+        }
+    }
+}
+
 #[wasm_bindgen(typescript_custom_section)]
 const IBlockScopedFunction: &'static str = r#"
 export type SerializedBlockScopedFunction = {
@@ -107,6 +163,7 @@ export type SerializedBlockScopedFunction = {
     exp: SerializedPreExp,
 }
 "#;
+
 impl BlockScopedFunction {
     pub fn new(kind: BlockScopedFunctionKind, iters: Vec<IterableSet>, exp: Box<PreExp>) -> Self {
         Self { kind, iters, exp }
@@ -115,27 +172,30 @@ impl BlockScopedFunction {
         self.exp.get_span().clone()
     }
 }
+
 impl fmt::Display for BlockScopedFunction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = self.kind.to_string();
+        let name = self.kind.to_latex();
         write!(
             f,
             "{}({}) {{ {} }}",
             name,
             self.iters
                 .iter()
-                .map(|i| i.to_string())
+                .map(|i| i.to_latex())
                 .collect::<Vec<String>>()
                 .join(", "),
             self.exp
         )
     }
 }
+
 #[derive(Debug, Serialize, Clone)]
 pub struct BlockFunction {
     kind: BlockFunctionKind,
     exps: Vec<PreExp>,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const IBlockFunction: &'static str = r#"
 export type SerializedBlockFunction = {
@@ -143,11 +203,28 @@ export type SerializedBlockFunction = {
     exps: SerializedPreExp[],
 }
 "#;
+
 impl BlockFunction {
     pub fn new(kind: BlockFunctionKind, exps: Vec<PreExp>) -> Self {
         Self { kind, exps }
     }
 }
+
+impl ToLatex for BlockFunction {
+    fn to_latex(&self) -> String {
+        let name = self.kind.to_string();
+        format!(
+            "{}\\left\\{{{}\\right\\}}",
+            name,
+            self.exps
+                .iter()
+                .map(|e| e.to_latex())
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
+    }
+}
+
 impl fmt::Display for BlockFunction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name = self.kind.to_string();
@@ -163,8 +240,8 @@ impl fmt::Display for BlockFunction {
         )
     }
 }
-#[derive(Debug)]
 
+#[derive(Debug)]
 pub enum PreExp {
     Primitive(Spanned<Primitive>),
     Mod(InputSpan, Box<PreExp>),
@@ -177,6 +254,7 @@ pub enum PreExp {
     BinaryOperation(Spanned<BinOp>, Box<PreExp>, Box<PreExp>),
     UnaryOperation(Spanned<UnOp>, Box<PreExp>),
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const IPreExp: &'static str = r#"
 export type SerializedFunctionCall = any //TODO
@@ -314,6 +392,7 @@ impl Serialize for PreExp {
         }
     }
 }
+
 #[derive(Serialize)]
 struct TempBinOp {
     op: BinOp,
@@ -326,74 +405,8 @@ struct TempUnOp {
     op: UnOp,
     exp: PreExp,
 }
+
 impl TypeCheckable for PreExp {
-    fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
-        match self {
-            Self::FunctionCall(span, fun) => {
-                fun.populate_token_type_map(context);
-                context.add_token_type_or_undefined(
-                    fun.get_type(context),
-                    span.clone(),
-                    None, //Some(fun.get_function_name()) should i add this?
-                )
-            }
-            Self::Mod(_, exp) => {
-                exp.populate_token_type_map(context);
-            }
-            Self::Primitive(p) => context.add_token_type_or_undefined(
-                p.get_span_value().get_type(),
-                p.get_span().clone(),
-                None,
-            ),
-            Self::Variable(name) => match context.get_value(name) {
-                Some(value) => context.add_token_type_or_undefined(
-                    value.clone(),
-                    name.get_span().clone(),
-                    Some(name.get_span_value().clone()),
-                ),
-                None => context.add_token_type_or_undefined(
-                    PrimitiveKind::Number, //TODO we assume undeclared variables are numbers, make this configurable with assignments
-                    name.get_span().clone(),
-                    Some(name.get_span_value().clone()),
-                ),
-            },
-            Self::CompoundVariable(c) => {
-                context.add_token_type_or_undefined(
-                    PrimitiveKind::Number, //every compound variable must be a number
-                    c.get_span().clone(),
-                    None,
-                );
-                for index in &c.indexes {
-                    index.populate_token_type_map(context);
-                }
-            }
-            Self::BinaryOperation(_, lhs, rhs) => {
-                lhs.populate_token_type_map(context);
-                rhs.populate_token_type_map(context);
-            }
-            Self::UnaryOperation(_, exp) => {
-                exp.populate_token_type_map(context);
-            }
-            Self::ArrayAccess(array_access) => context.add_token_type_or_undefined(
-                context
-                    .get_addressable_value(&array_access)
-                    .unwrap_or(PrimitiveKind::Undefined),
-                array_access.get_span().clone(),
-                Some(array_access.to_string()),
-            ),
-            Self::BlockFunction(f) => {
-                for exp in &f.exps {
-                    exp.populate_token_type_map(context);
-                }
-            }
-            Self::BlockScopedFunction(f) => {
-                for iter in &f.iters {
-                    iter.populate_token_type_map(context);
-                }
-                f.exp.populate_token_type_map(context);
-            }
-        }
-    }
     //TODO improve spans
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         match self {
@@ -511,6 +524,73 @@ impl TypeCheckable for PreExp {
                 .get_addressable_value(array_access)
                 .map(|_| ())
                 .map_err(|e| e.to_spanned_error(array_access.get_span())),
+        }
+    }
+    fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
+        match self {
+            Self::FunctionCall(span, fun) => {
+                fun.populate_token_type_map(context);
+                context.add_token_type_or_undefined(
+                    fun.get_type(context),
+                    span.clone(),
+                    None, //Some(fun.get_function_name()) should i add this?
+                )
+            }
+            Self::Mod(_, exp) => {
+                exp.populate_token_type_map(context);
+            }
+            Self::Primitive(p) => context.add_token_type_or_undefined(
+                p.get_span_value().get_type(),
+                p.get_span().clone(),
+                None,
+            ),
+            Self::Variable(name) => match context.get_value(name) {
+                Some(value) => context.add_token_type_or_undefined(
+                    value.clone(),
+                    name.get_span().clone(),
+                    Some(name.get_span_value().clone()),
+                ),
+                None => context.add_token_type_or_undefined(
+                    PrimitiveKind::Number, //TODO we assume undeclared variables are numbers, make this configurable with assignments
+                    name.get_span().clone(),
+                    Some(name.get_span_value().clone()),
+                ),
+            },
+            Self::CompoundVariable(c) => {
+                context.add_token_type_or_undefined(
+                    PrimitiveKind::Number, //every compound variable must be a number
+                    c.get_span().clone(),
+                    None,
+                );
+                for index in &c.indexes {
+                    index.populate_token_type_map(context);
+                }
+            }
+            Self::BinaryOperation(_, lhs, rhs) => {
+                lhs.populate_token_type_map(context);
+                rhs.populate_token_type_map(context);
+            }
+            Self::UnaryOperation(_, exp) => {
+                exp.populate_token_type_map(context);
+            }
+            Self::ArrayAccess(array_access) => context.add_token_type_or_undefined(
+                context
+                    .get_addressable_value(&array_access)
+                    .unwrap_or(PrimitiveKind::Undefined),
+                array_access.get_span().clone(),
+                Some(array_access.to_string()),
+            ),
+            Self::BlockFunction(f) => {
+                for exp in &f.exps {
+                    exp.populate_token_type_map(context);
+                }
+            }
+            Self::BlockScopedFunction(f) => {
+                for iter in &f.iters {
+                    iter.populate_token_type_map(context);
+                }
+                f.exp.populate_token_type_map(context);
+            }
         }
     }
 }
@@ -828,7 +908,7 @@ impl PreExp {
             .map_err(|e| e.to_spanned_error(self.get_span()))?
     }
 
-    fn is_leaf(&self) -> bool {
+    pub(crate) fn is_leaf(&self) -> bool {
         match self {
             Self::BinaryOperation(_, _, _) => false,
             Self::UnaryOperation(_, _) => false,
@@ -857,7 +937,59 @@ impl PreExp {
             _ => self.to_string(),
         }
     }
+    fn to_latex_with_precedence(&self, previous_precedence: u8) -> String {
+        match self {
+            Self::BinaryOperation(op, lhs, rhs) => {
+                //TODO add implied multiplication like 2x 2(x + y) etc...
+                /*
+                   implicit_mul = {
+                       (number | parenthesis | modulo){2,} ~ variable? |
+                       (number | parenthesis | modulo) ~ variable
+                   }
+                */
+                let lhs_str = lhs.to_latex_with_precedence(op.precedence());
+                let rhs_str = rhs.to_latex_with_precedence(op.precedence());
+
+                if op.precedence() < previous_precedence {
+                    format!("({} {} {})", lhs_str, op.to_latex(), rhs_str)
+                } else {
+                    format!("{} {} {}", lhs_str, op.to_latex(), rhs_str)
+                }
+            }
+            _ => self.to_latex(),
+        }
+    }
 }
+impl ToLatex for PreExp {
+    fn to_latex(&self) -> String {
+        match self {
+            Self::ArrayAccess(a) => a.to_latex(),
+            Self::BlockFunction(f) => f.to_latex(),
+            Self::BlockScopedFunction(f) => f.to_latex(),
+            Self::BinaryOperation(op, lhs, rhs) => {
+                let rhs = rhs.to_latex_with_precedence(op.precedence());
+                let lhs = lhs.to_latex_with_precedence(op.precedence());
+                match op.get_span_value() {
+                    BinOp::Div => format!("\\frac{{{}}}{{{}}}", lhs, rhs),
+                    _ => format!("{} {} {}", lhs, op.to_latex(), rhs),
+                }
+            }
+            Self::UnaryOperation(op, exp) => {
+                if self.is_leaf() {
+                    format!("{}{}", op.to_latex(), exp.to_latex())
+                } else {
+                    format!("{}({})", op.to_latex(), exp.to_latex())
+                }
+            }
+            Self::Variable(name) => format!("{}", escape_latex(name.get_span_value())),
+            Self::Primitive(p) => p.to_latex(),
+            Self::Mod(_, exp) => format!("|{}|", exp.to_latex()),
+            Self::CompoundVariable(c) => c.to_latex(),
+            Self::FunctionCall(_, f) => f.to_latex(),
+        }
+    }
+}
+
 impl fmt::Display for PreExp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
@@ -898,6 +1030,7 @@ pub struct IterableSet {
     pub iterator: Spanned<PreExp>,
     pub span: InputSpan,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const IIterableSet: &'static str = r#"
 export type SerializedIterableSet = {
@@ -906,6 +1039,14 @@ export type SerializedIterableSet = {
     span: InputSpan,
 }
 "#;
+
+impl ToLatex for IterableSet {
+    fn to_latex(&self) -> String {
+        let var = self.var.to_latex();
+        let iterator = self.iterator.to_latex();
+        format!("{} \\in {}", var, iterator)
+    }
+}
 
 impl IterableSet {
     pub fn new(var: VariableType, iterator: Spanned<PreExp>, span: InputSpan) -> Self {
@@ -964,7 +1105,7 @@ impl IterableSet {
                     PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
                     iter_type,
                     self.span.clone(),
-                ))
+                ));
             }
         };
         match &self.var {
@@ -1002,6 +1143,7 @@ impl IterableSet {
         }
     }
 }
+
 impl fmt::Display for IterableSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -1018,6 +1160,7 @@ pub struct AddressableAccess {
     pub name: String,
     pub accesses: Vec<PreExp>,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const IAddressableAccess: &'static str = r#"
 export type SerializedAddressableAccess = {
@@ -1025,11 +1168,25 @@ export type SerializedAddressableAccess = {
     accesses: SerializedPreExp[],
 }
 "#;
+
 impl AddressableAccess {
     pub fn new(name: String, accesses: Vec<PreExp>) -> Self {
         Self { name, accesses }
     }
 }
+
+impl ToLatex for AddressableAccess {
+    fn to_latex(&self) -> String {
+        let rest = self
+            .accesses
+            .iter()
+            .map(|a| format!("[{}]", a.to_latex()))
+            .collect::<Vec<String>>()
+            .join("");
+        format!("{}{}", self.name, rest)
+    }
+}
+
 impl fmt::Display for AddressableAccess {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let rest = self
@@ -1041,11 +1198,13 @@ impl fmt::Display for AddressableAccess {
         write!(f, "{}{}", self.name, rest)
     }
 }
+
 #[derive(Debug, Serialize, Clone)]
 pub struct CompoundVariable {
     pub name: String,
     pub indexes: Vec<PreExp>,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const ICompoundVariable: &'static str = r#"
 export type SerializedCompoundVariable = {
@@ -1053,11 +1212,34 @@ export type SerializedCompoundVariable = {
     indexes: SerializedPreExp[],
 }
 "#;
+
 impl CompoundVariable {
     pub fn new(name: String, indexes: Vec<PreExp>) -> Self {
         Self { name, indexes }
     }
 }
+
+impl ToLatex for CompoundVariable {
+    fn to_latex(&self) -> String {
+        let indexes = self
+            .indexes
+            .iter()
+            .map(|i| match i {
+                PreExp::Primitive(p) => match p.get_span_value() {
+                    Primitive::Number(n) => format!("{}", n),
+                    _ => format!("({})", i.to_latex()),
+                },
+                PreExp::Variable(name) => {
+                    let name = name.get_span_value().clone();
+                    format!("{}", name)
+                }
+                _ => format!("({})", i.to_latex()),
+            })
+            .collect::<Vec<String>>();
+        format!("{}_{{{}}}", self.name, indexes.join(""))
+    }
+}
+
 impl fmt::Display for CompoundVariable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let indexes = self
@@ -1075,11 +1257,20 @@ impl fmt::Display for CompoundVariable {
         write!(f, "{}_{}", self.name, indexes.join("_"))
     }
 }
+
 #[derive(Debug, Serialize, Clone)]
 pub struct PreObjective {
     pub objective_type: OptimizationType,
     pub rhs: PreExp,
 }
+impl ToLatex for PreObjective {
+    fn to_latex(&self) -> String {
+        let rhs = self.rhs.to_latex();
+        let opt_name = self.objective_type.to_latex();
+        format!("{} \\ {}", opt_name, rhs)
+    }
+}
+
 #[wasm_bindgen(typescript_custom_section)]
 const IPreObjective: &'static str = r#"
 export type SerializedPreObjective = {
@@ -1087,6 +1278,7 @@ export type SerializedPreObjective = {
     rhs: SerializedPreExp,
 }
 "#;
+
 impl TypeCheckable for PreObjective {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         self.rhs.type_check(context)
@@ -1104,6 +1296,7 @@ impl PreObjective {
         }
     }
 }
+
 impl fmt::Display for PreObjective {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.objective_type, self.rhs)
@@ -1118,6 +1311,7 @@ pub struct PreCondition {
     pub iteration: Vec<IterableSet>,
     pub span: InputSpan,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const IPreCondition: &'static str = r#"
 export type SerializedPreCondition = {
@@ -1198,6 +1392,30 @@ impl TypeCheckable for PreCondition {
         self.rhs.populate_token_type_map(context);
         for _ in &self.iteration {
             let _ = context.pop_scope();
+        }
+    }
+}
+
+impl ToLatex for PreCondition {
+    fn to_latex(&self) -> String {
+        let lhs = self.lhs.to_latex();
+        let rhs = self.rhs.to_latex();
+        let condition = self.condition_type.to_latex();
+        let iterations = self
+            .iteration
+            .iter()
+            .map(|i| format!("\\forall{{{}}}", i.to_latex()))
+            .collect::<Vec<String>>();
+        if iterations.is_empty() {
+            format!("{} \\ &{} \\ {}", lhs, condition, rhs)
+        } else {
+            format!(
+                "{} \\ &{} \\ {} \\qquad {} \\quad",
+                lhs,
+                condition,
+                rhs,
+                iterations.join(",\\")
+            )
         }
     }
 }

@@ -235,6 +235,7 @@ pub struct PrettyFraction {
     numerator: i64,
     denominator: i64,
 }
+
 impl PrettyFraction {
     fn new(num: f64) -> PrettyFraction {
         //TODO make it use precision for smaller numbers
@@ -256,6 +257,7 @@ impl PrettyFraction {
         }
     }
 }
+
 pub struct FractionalTableau {
     c: Vec<PrettyFraction>,
     a: Vec<Vec<PrettyFraction>>,
@@ -264,6 +266,7 @@ pub struct FractionalTableau {
     in_basis: Vec<usize>,
     value: f64,
 }
+
 impl FractionalTableau {
     pub fn new(tableau: Tableau) -> FractionalTableau {
         FractionalTableau {
@@ -324,6 +327,7 @@ pub enum CanonicalTransformError {
     Infesible(String),
     SimplexError(String),
 }
+
 impl fmt::Display for CanonicalTransformError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
@@ -335,6 +339,7 @@ impl fmt::Display for CanonicalTransformError {
         f.write_str(&s)
     }
 }
+
 pub trait IntoCanonicalTableau {
     fn into_canonical(&self) -> Result<Tableau, CanonicalTransformError>;
 }

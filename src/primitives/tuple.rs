@@ -7,6 +7,7 @@ use crate::{
     math::operators::{BinOp, UnOp},
     parser::transformer::TransformError,
 };
+use crate::traits::latex::ToLatex;
 
 use super::{
     primitive::{Primitive, PrimitiveKind},
@@ -15,10 +16,12 @@ use super::{
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Tuple(pub Vec<Primitive>);
+
 #[wasm_bindgen(typescript_custom_section)]
 const ITuple: &'static str = r#"
 export type SerializedTuple = SerializedPrimitive[]
 "#;
+
 impl Tuple {
     pub fn new(v: Vec<Primitive>) -> Self {
         Self(v)
@@ -52,6 +55,21 @@ impl Tuple {
             .into()
     }
 }
+
+
+impl ToLatex for Tuple {
+    fn to_latex(&self) -> String {
+        format!(
+            "({})",
+            self.0
+                .iter()
+                .map(|e| e.to_latex())
+                .collect::<Vec<_>>()
+                .join(",\\")
+        )
+    }
+}
+
 impl fmt::Display for Tuple {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = format!(
@@ -65,6 +83,7 @@ impl fmt::Display for Tuple {
         f.write_str(&s)
     }
 }
+
 impl ApplyOp for Tuple {
     type TargetType = PrimitiveKind;
     type Target = Primitive;

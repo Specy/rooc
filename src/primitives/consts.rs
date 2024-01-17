@@ -6,11 +6,12 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::{
     parser::{
         pre_parsed_problem::PreExp,
-        transformer::{TransformError, TransformerContext},
+        transformer::{TransformerContext, TransformError},
     },
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::Spanned,
 };
+use crate::traits::latex::ToLatex;
 
 use super::primitive::{Primitive, PrimitiveKind};
 
@@ -19,6 +20,7 @@ pub struct Constant {
     pub name: Spanned<String>,
     pub value: PreExp,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const IConstant: &'static str = r#"
 export type SerializedConstant = {
@@ -26,6 +28,13 @@ export type SerializedConstant = {
     value: SerializedPreExp
 }
 "#;
+
+impl ToLatex for Constant {
+    fn to_latex(&self) -> String {
+        format!("{} &= {}", self.name.get_span_value(), self.value.to_latex())
+    }
+}
+
 impl Constant {
     pub fn new(name: Spanned<String>, value: PreExp) -> Self {
         Self { name, value }
@@ -35,6 +44,7 @@ impl Constant {
         self.value.as_primitive(context)
     }
 }
+
 impl WithType for Constant {
     fn get_type(&self, context: &TypeCheckerContext) -> PrimitiveKind {
         self.value.get_type(context)

@@ -10,6 +10,7 @@ use crate::{
     primitives::primitive_traits::ApplyOp,
     wrong_argument,
 };
+use crate::traits::latex::ToLatex;
 
 use super::{
     graph::{Graph, GraphEdge, GraphNode},
@@ -33,6 +34,9 @@ pub enum Primitive {
     Boolean(bool),
     Undefined,
 }
+
+
+
 #[wasm_bindgen(typescript_custom_section)]
 const IPrimitive: &'static str = r#"
 export type SerializedPrimitive = 
@@ -65,6 +69,7 @@ pub enum PrimitiveKind {
     Undefined,
     Any,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const IPrimitiveKind: &'static str = r#"
 export type SerializedPrimitiveKind = 
@@ -81,6 +86,7 @@ export type SerializedPrimitiveKind =
     | { type: 'Undefined' }
     | { type: 'Any' }
 "#;
+
 impl PrimitiveKind {
     pub fn from_primitive(p: &Primitive) -> Self {
         match p {
@@ -102,7 +108,7 @@ impl PrimitiveKind {
             PrimitiveKind::Number => true,
             PrimitiveKind::Integer => true,
             PrimitiveKind::PositiveInteger => true,
-            PrimitiveKind::Boolean => true, 
+            PrimitiveKind::Boolean => true,
             _ => false,
         }
     }
@@ -117,7 +123,6 @@ impl PrimitiveKind {
             _ => Err(TransformError::Unspreadable(self.clone()))
         }
     }
-
 
 
     pub fn can_apply_binary_op(&self, op: BinOp, to: PrimitiveKind) -> bool {
@@ -281,9 +286,28 @@ impl Primitive {
     pub fn as_tuple(&self) -> Result<&Vec<Primitive>, TransformError> {
         match_or_bail!(PrimitiveKind::Tuple(vec![]),
             Primitive::Tuple(t) => Ok(t.get_primitives())
-          ; (self)) 
+          ; (self))
     }
 }
+
+impl ToLatex for Primitive {
+    fn to_latex(&self) -> String {
+        match self {
+            Primitive::Number(n) => n.to_latex(),
+            Primitive::Integer(n) => n.to_latex(),
+            Primitive::PositiveInteger(n) => n.to_latex(),
+            Primitive::String(s) => s.to_latex(),
+            Primitive::Iterable(i) => i.to_latex(),
+            Primitive::Graph(g) => g.to_latex(),
+            Primitive::GraphEdge(e) => e.to_latex(),
+            Primitive::GraphNode(n) => n.to_latex(),
+            Primitive::Tuple(v) => v.to_latex(),
+            Primitive::Boolean(b) => b.to_string(),
+            Primitive::Undefined => "undefined".to_string(),
+        }
+    }
+}
+
 
 impl fmt::Display for Primitive {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -292,25 +316,7 @@ impl fmt::Display for Primitive {
             Primitive::Integer(n) => n.to_string(),
             Primitive::PositiveInteger(n) => n.to_string(),
             Primitive::String(s) => format!("\"{}\"", s),
-            Primitive::Iterable(i) => match i {
-                IterableKind::Numbers(v) => format!("{:?}", v),
-                IterableKind::Integers(v) => format!("{:?}", v),
-                IterableKind::PositiveIntegers(v) => format!("{:?}", v),
-                IterableKind::Strings(v) => format!("{:?}", v),
-                IterableKind::Edges(v) => format!("{:?}", v),
-                IterableKind::Nodes(v) => format!("{:?}", v),
-                IterableKind::Tuple(v) => format!("{:?}", v),
-                IterableKind::Booleans(v) => format!("{:?}", v),
-                IterableKind::Graphs(v) => format!("{:?}", v),
-                IterableKind::Iterable(v) => {
-                    let result = v
-                        .iter()
-                        .map(|i| i.to_string_depth(1))
-                        .collect::<Vec<_>>()
-                        .join(",\n");
-                    format!("[\n{}\n]", result)
-                }
-            },
+            Primitive::Iterable(i) => i.to_string(),
             Primitive::Graph(g) => g.to_string(),
             Primitive::GraphEdge(e) => e.to_string(),
             Primitive::GraphNode(n) => n.to_string(),

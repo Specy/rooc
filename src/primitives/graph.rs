@@ -8,6 +8,7 @@ use crate::{
     math::operators::{BinOp, UnOp},
     parser::transformer::TransformError,
 };
+use crate::traits::latex::{escape_latex, ToLatex};
 
 use super::{
     primitive::{Primitive, PrimitiveKind},
@@ -20,6 +21,7 @@ pub struct GraphEdge {
     pub to: String,
     pub weight: Option<f64>,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const IGraphEdge: &'static str = r#"
 export type SerializedGraphEdge = {
@@ -28,11 +30,23 @@ export type SerializedGraphEdge = {
     weight?: number
 }
 "#;
+
 impl GraphEdge {
     pub fn new(from: String, to: String, weight: Option<f64>) -> Self {
         Self { from, to, weight }
     }
 }
+
+impl ToLatex for GraphEdge {
+    fn to_latex(&self) -> String {
+        if let Some(w) = self.weight {
+            format!("\\text{{{}:{}}}", escape_latex(&self.to), w)
+        } else {
+            format!("\\text{{{}}}", escape_latex(&self.to))
+        }
+    }
+}
+
 impl fmt::Display for GraphEdge {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self.weight {
@@ -42,11 +56,13 @@ impl fmt::Display for GraphEdge {
         write!(f, "{}", s)
     }
 }
+
 #[derive(Debug, Clone, Serialize)]
 pub struct GraphNode {
     name: String,
     edges: HashMap<String, GraphEdge>,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const IGraphNode: &'static str = r#"
 export type SerializedGraphNode = {
@@ -54,6 +70,7 @@ export type SerializedGraphNode = {
     edges: { [key: string]: SerializedGraphEdge }
 }
 "#;
+
 impl GraphNode {
     pub fn new(name: String, edges: Vec<GraphEdge>) -> Self {
         let edges = edges
@@ -69,6 +86,23 @@ impl GraphNode {
         &self.name
     }
 }
+
+impl ToLatex for GraphNode {
+    fn to_latex(&self) -> String {
+        let edges = self
+            .edges
+            .values()
+            .map(|edge| edge.to_latex())
+            .collect::<Vec<_>>()
+            .join(",\\ ");
+        if edges.is_empty() {
+            return format!("{}", self.name);
+        }else {
+            format!("{}\\to\\left\\{{{}\\right\\}}", self.name, edges)
+        }
+    }
+}
+
 impl fmt::Display for GraphNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let edges = self
@@ -83,16 +117,19 @@ impl fmt::Display for GraphNode {
         write!(f, "{} -> [ {} ]", self.name, edges)
     }
 }
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Graph {
     vertices: Vec<GraphNode>,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const IGraph: &'static str = r#"
 export type SerializedGraph = {
     vertices: SerializedGraphNode[]
 }
 "#;
+
 impl Graph {
     pub fn new(vertices: Vec<GraphNode>) -> Self {
         Self { vertices }
@@ -140,6 +177,23 @@ impl Graph {
         }
     }
 }
+
+//TODO decide if this is a nice enough representation
+impl ToLatex for Graph {
+    fn to_latex(&self) -> String {
+        let nodes = self
+            .vertices
+            .iter()
+            .map(|node| node.to_latex())
+            .collect::<Vec<_>>()
+            .join("\\\\ ");
+        if nodes.is_empty() {
+            return format!("\\emptyset");
+        }
+        format!("\\begin{{Bmatrix*}}[l] {} \\end{{Bmatrix*}}", nodes)
+    }
+}
+
 impl fmt::Display for Graph {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let nodes = self
@@ -178,6 +232,7 @@ impl ApplyOp for GraphNode {
         false
     }
 }
+
 impl ApplyOp for GraphEdge {
     type TargetType = PrimitiveKind;
     type Target = Primitive;
@@ -201,6 +256,7 @@ impl ApplyOp for GraphEdge {
         false
     }
 }
+
 impl ApplyOp for Graph {
     type TargetType = PrimitiveKind;
     type Target = Primitive;
@@ -234,11 +290,13 @@ impl Spreadable for GraphEdge {
         ])
     }
 }
+
 impl Spreadable for GraphNode {
     fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError> {
         Err(TransformError::Unspreadable(PrimitiveKind::GraphNode))
     }
 }
+
 impl Spreadable for Graph {
     fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError> {
         Err(TransformError::Unspreadable(PrimitiveKind::Graph))

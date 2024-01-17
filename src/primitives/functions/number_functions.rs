@@ -1,7 +1,7 @@
 use pest::{iterators::Pair, Span};
 use serde::Serialize;
-use wasm_bindgen::prelude::wasm_bindgen;
 
+use crate::traits::latex::ToLatex;
 use crate::{
     bail_incorrect_type_signature, bail_incorrect_type_signature_of_fn,
     bail_wrong_number_of_arguments,
@@ -15,8 +15,7 @@ use crate::{
         primitive::{Primitive, PrimitiveKind},
     },
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
-    utils::{CompilationError, InputSpan, ParseError, Spanned},
-    wrong_argument,
+    utils::{InputSpan, Spanned},
 };
 
 use super::function_traits::FunctionCall;
@@ -27,6 +26,7 @@ pub struct NumericRange {
     span: InputSpan,
     known_inclusive: Option<bool>,
 }
+
 impl NumericRange {
     pub fn new(from: PreExp, to: PreExp, to_inclusive: bool, span: Span) -> Self {
         Self {
@@ -83,6 +83,7 @@ impl TypeCheckable for NumericRange {
             .for_each(|arg| arg.populate_token_type_map(context));
     }
 }
+
 impl WithType for NumericRange {
     fn get_type(&self, context: &TypeCheckerContext) -> PrimitiveKind {
         match self.args[..] {
@@ -101,6 +102,7 @@ impl WithType for NumericRange {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::Integer))
     }
 }
+
 impl FunctionCall for NumericRange {
     fn from_parameters(args: Vec<PreExp>, rule: &Pair<Rule>) -> Self {
         Self {
@@ -141,12 +143,52 @@ impl FunctionCall for NumericRange {
             _ => bail_wrong_number_of_arguments!(self),
         }
     }
+    fn to_latex(&self) -> String {
+        match self.args[..] {
+            [ref from, ref to, _] => {
+                if let Some(inclusive) = self.known_inclusive {
+                    let range = if inclusive { "..=" } else { ".." };
+                    let from = if from.is_leaf() {
+                        from.to_latex()
+                    } else {
+                        format!("({})", from.to_latex())
+                    };
+                    let to = if to.is_leaf() {
+                        to.to_latex()
+                    } else {
+                        format!("({})", to.to_latex())
+                    };
+                    return format!("{}{}{}", from, range, to);
+                }
+            }
+            _ => {}
+        }
+        format!(
+            "{}({})",
+            self.get_function_name(),
+            self.args
+                .iter()
+                .map(|x| x.to_latex())
+                .collect::<Vec<String>>()
+                .join(",\\")
+        )
+    }
     fn to_string(&self) -> String {
         match self.args[..] {
             [ref from, ref to, _] => {
                 if let Some(inclusive) = self.known_inclusive {
                     let range = if inclusive { "..=" } else { ".." };
-                    return format!("{}{}{}", from.to_string(), range, to.to_string());
+                    let from = if from.is_leaf() {
+                        from.to_string()
+                    } else {
+                        format!("({})", from.to_string())
+                    };
+                    let to = if to.is_leaf() {
+                        to.to_string()
+                    } else {
+                        format!("({})", to.to_string())
+                    };
+                    return format!("{}{}{}", from, range, to);
                 }
             }
             _ => {}

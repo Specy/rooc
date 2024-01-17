@@ -4,12 +4,9 @@ use lazy_static::lazy_static;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::{
-    parser::{
-        pre_parsed_problem::{BlockFunctionKind, BlockScopedFunctionKind},
-        transformer::TransformError,
-    },
-    primitives::functions::function_traits::FunctionCall,
+use crate::parser::{
+    pre_parsed_problem::{BlockFunctionKind, BlockScopedFunctionKind},
+    transformer::TransformError,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
@@ -20,10 +17,12 @@ pub enum TokenType {
     Keyword,
     Type,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const TOKEN_TYPE: &'static str = r#"
 export type SerializedTokenType = "Function" | "Literal" | "Variable" | "Keyword" | "Type";
 "#;
+
 impl Display for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

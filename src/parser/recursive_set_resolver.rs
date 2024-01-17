@@ -5,8 +5,9 @@ use crate::{
 
 use super::{
     pre_parsed_problem::IterableSet,
-    transformer::{TransformerContext, TransformError, VariableType},
+    transformer::{TransformError, TransformerContext, VariableType},
 };
+
 //TODO make this a iterator
 pub fn recursive_set_resolver<T>(
     sets: &Vec<IterableSet>,
@@ -15,7 +16,13 @@ pub fn recursive_set_resolver<T>(
     current_level: usize,
     on_leaf: &dyn Fn(&mut TransformerContext) -> Result<T, TransformError>,
 ) -> Result<(), TransformError> {
-    let range = sets.get(current_level).unwrap();
+    //should never happen
+    let range = sets.get(current_level).ok_or_else(|| {
+        TransformError::Other(format!(
+            "Cannot find set at level {} in {:?}",
+            current_level, sets
+        ))
+    })?;
     context.add_scope();
     match &range.var {
         VariableType::Single(n) => {

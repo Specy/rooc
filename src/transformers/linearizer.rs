@@ -15,6 +15,6 @@
         BECOMES:
        x1 + y>= b
        x1 - y>= -b
-*/
+ */
 
 pub struct Linearizer {}

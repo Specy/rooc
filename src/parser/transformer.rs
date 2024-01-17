@@ -1,5 +1,8 @@
 use core::fmt;
 use std::collections::HashMap;
+
+use serde::Serialize;
+use wasm_bindgen::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use crate::math::math_enums::{Comparison, OptimizationType};
@@ -7,19 +10,18 @@ use crate::math::operators::{BinOp, UnOp};
 use crate::primitives::consts::Constant;
 use crate::primitives::functions::function_traits::FunctionCall;
 use crate::primitives::primitive::PrimitiveKind;
-use crate::runtime_builtin::reserved_tokens::{TokenType, check_if_reserved_token};
+use crate::runtime_builtin::reserved_tokens::{check_if_reserved_token, TokenType};
 use crate::{
     primitives::primitive::Primitive,
     utils::{InputSpan, Spanned},
 };
+use crate::traits::latex::{escape_latex, ToLatex};
 
 use super::{
     parser::PreProblem,
     pre_parsed_problem::{AddressableAccess, PreCondition, PreExp, PreObjective},
     recursive_set_resolver::recursive_set_resolver,
 };
-use serde::{de::value, Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Clone, Serialize)]
 pub enum Exp {
@@ -31,6 +33,7 @@ pub enum Exp {
     BinOp(BinOp, Box<Exp>, Box<Exp>),
     UnOp(UnOp, Box<Exp>),
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 pub const IExp: &'static str = r#"
 export type SerializedExp = {
@@ -63,6 +66,7 @@ export type SerializedExp = {
     }
 }
 "#;
+
 impl Exp {
     pub fn make_binop(op: BinOp, lhs: Exp, rhs: Exp) -> Box<Self> {
         Exp::BinOp(op, lhs.to_box(), rhs.to_box()).to_box()
@@ -148,6 +152,7 @@ impl Exp {
         }
     }
 }
+
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
@@ -188,12 +193,14 @@ impl fmt::Display for Exp {
         f.write_str(&s)
     }
 }
+
 #[derive(Debug, Serialize)]
 #[wasm_bindgen]
 pub struct Objective {
     objective_type: OptimizationType,
     rhs: Exp,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 pub const IObjective: &'static str = r#"
 export type SerializedObjective = {
@@ -210,6 +217,7 @@ impl Objective {
         }
     }
 }
+
 impl fmt::Display for Objective {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.objective_type, self.rhs)
@@ -222,6 +230,7 @@ pub struct Condition {
     condition_type: Comparison,
     rhs: Exp,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 pub const ICondition: &'static str = r#"
 export type SerializedCondition = {
@@ -240,17 +249,20 @@ impl Condition {
         }
     }
 }
+
 impl fmt::Display for Condition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {} {}", self.lhs, self.condition_type, self.rhs)
     }
 }
+
 #[derive(Debug, Serialize)]
 #[wasm_bindgen]
 pub struct Problem {
     objective: Objective,
     conditions: Vec<Condition>,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 pub const IProblem: &'static str = r#"
 export type SerializedProblem = {
@@ -267,6 +279,7 @@ impl Problem {
         }
     }
 }
+
 impl fmt::Display for Problem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let conditions = self
@@ -278,6 +291,7 @@ impl fmt::Display for Problem {
         write!(f, "{}\ns.t.\n    {}", self.objective, conditions)
     }
 }
+
 #[wasm_bindgen]
 impl Problem {
     pub fn to_string_wasm(&self) -> String {
@@ -287,6 +301,7 @@ impl Problem {
         serde_wasm_bindgen::to_value(&self).unwrap()
     }
 }
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "value")]
 pub enum TransformError {
@@ -328,11 +343,12 @@ pub enum TransformError {
         in_variables: Vec<String>,
     },
     AlreadyDefined {
-        name: String, 
-        kind: TokenType
+        name: String,
+        kind: TokenType,
     },
     Other(String),
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 pub const ITransformError: &'static str = r#"
 export type SerializedTransformError = {
@@ -404,10 +420,14 @@ export type SerializedTransformError = {
     }
 }
 "#;
+
 impl fmt::Display for TransformError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
-            TransformError::UndeclaredVariable(name) => format!("[UndeclaredVariable] Variable \"{}\" was not declared", name),
+            TransformError::UndeclaredVariable(name) => format!(
+                "[UndeclaredVariable] Variable \"{}\" was not declared",
+                name
+            ),
             TransformError::AlreadyDeclaredVariable(name) => {
                 format!(
                     "[AlreadyDeclaredVariable] Variable {} was already declared",
@@ -617,6 +637,7 @@ impl TransformError {
 pub struct Frame<T> {
     pub variables: HashMap<String, T>,
 }
+
 impl<T> Frame<T> {
     pub fn new() -> Self {
         Self {
@@ -657,6 +678,7 @@ impl<T> Frame<T> {
         Ok(value)
     }
 }
+
 impl<T> Default for Frame<T> {
     fn default() -> Self {
         Self::new()
@@ -667,6 +689,7 @@ impl<T> Default for Frame<T> {
 pub struct TransformerContext {
     frames: Vec<Frame<Primitive>>,
 }
+
 impl Default for TransformerContext {
     fn default() -> Self {
         let primitives = HashMap::new();
@@ -698,24 +721,23 @@ impl TransformerContext {
         let flattened = compound_indexes
             .iter()
             .map(|value| match value {
-                    Primitive::Number(value) => Ok(value.to_string()),
-                    Primitive::Integer(value) => Ok(value.to_string()),
-                    Primitive::PositiveInteger(value) => Ok(value.to_string()),
-                    Primitive::Boolean(value) => Ok(if *value { "T" } else { "F" }.to_string()),
-                    Primitive::String(value) => Ok(value.clone()),
-                    Primitive::GraphNode(v) => Ok(v.get_name().clone()),
-                    _ => Err(TransformError::WrongExpectedArgument {
-                        got: value.get_type(),
-                        one_of: vec![
-                            PrimitiveKind::Number,
-                            PrimitiveKind::Integer,
-                            PrimitiveKind::PositiveInteger,
-                            PrimitiveKind::String,
-                            PrimitiveKind::GraphNode,
-                        ],
-                    }),
-                },
-            )
+                Primitive::Number(value) => Ok(value.to_string()),
+                Primitive::Integer(value) => Ok(value.to_string()),
+                Primitive::PositiveInteger(value) => Ok(value.to_string()),
+                Primitive::Boolean(value) => Ok(if *value { "T" } else { "F" }.to_string()),
+                Primitive::String(value) => Ok(value.clone()),
+                Primitive::GraphNode(v) => Ok(v.get_name().clone()),
+                _ => Err(TransformError::WrongExpectedArgument {
+                    got: value.get_type(),
+                    one_of: vec![
+                        PrimitiveKind::Number,
+                        PrimitiveKind::Integer,
+                        PrimitiveKind::PositiveInteger,
+                        PrimitiveKind::String,
+                        PrimitiveKind::GraphNode,
+                    ],
+                }),
+            })
             .collect::<Result<Vec<_>, _>>()?;
         Ok(flattened.join("_"))
     }
@@ -858,6 +880,7 @@ pub enum VariableType {
     Single(Spanned<String>),
     Tuple(Vec<Spanned<String>>),
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 pub const IVariableType: &'static str = r#"
 export type SerializedVariableType = {
@@ -869,11 +892,27 @@ export type SerializedVariableType = {
 }
 "#;
 
-impl VariableType {
-    pub fn to_string(&self) -> String {
+impl ToLatex for VariableType {
+    fn to_latex(&self) -> String {
         match self {
             VariableType::Single(name) => name.to_string(),
             VariableType::Tuple(names) => format!(
+                "({})",
+                names
+                    .iter()
+                    .map(|name| escape_latex(name.get_span_value()))
+                    .collect::<Vec<_>>()
+                    .join(",\\ ")
+            ),
+        }
+    }
+}
+
+impl fmt::Display for  VariableType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            VariableType::Single(name) => f.write_str(name),
+            VariableType::Tuple(names) => write!(f,
                 "({})",
                 names
                     .iter()

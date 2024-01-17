@@ -3,6 +3,7 @@ use core::fmt;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
+use crate::traits::latex::ToLatex;
 use crate::{
     check_bounds,
     math::operators::{BinOp, UnOp},
@@ -30,6 +31,7 @@ pub enum IterableKind {
     Booleans(Vec<bool>),
     Iterable(Vec<IterableKind>),
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const IIterableKind: &'static str = r#"
 export type SerializedIterable = 
@@ -44,6 +46,7 @@ export type SerializedIterable =
     | { kind: 'Booleans', value: boolean[] }
     | { kind: 'Iterable', value: SerializedIterable[] }
 "#;
+
 impl IterableKind {
     pub fn get_type(&self) -> PrimitiveKind {
         PrimitiveKind::Iterable(Box::new(self.get_inner_type()))
@@ -179,7 +182,18 @@ impl IterableKind {
             indexes[0], self
         )))
     }
-
+    pub fn depth(&self) -> usize {
+        let mut current = self;
+        let mut depth = 1;
+        while let IterableKind::Iterable(v) = current {
+            depth += 1;
+            match v.get(0) {
+                Some(i) => current = i,
+                None => break,
+            }
+        }
+        depth
+    }
     pub fn to_string_depth(&self, depth: usize) -> String {
         match self {
             IterableKind::Iterable(v) => {
@@ -193,110 +207,90 @@ impl IterableKind {
             _ => format!("{}{}", "    ".repeat(depth), self.to_string()),
         }
     }
+    pub fn latexify(&self, include_block: bool) -> String {
+        match self {
+            IterableKind::Numbers(v) => latexify_vec(v, include_block),
+            IterableKind::Integers(v) => latexify_vec(v, include_block),
+            IterableKind::PositiveIntegers(v) => latexify_vec(v, include_block),
+            IterableKind::Strings(v) => latexify_vec(v, include_block),
+            IterableKind::Edges(v) => latexify_vec(v, include_block),
+            IterableKind::Nodes(v) => latexify_vec(v, include_block),
+            IterableKind::Tuple(v) => latexify_vec(v, include_block),
+            IterableKind::Booleans(v) => latexify_vec(v, include_block),
+            IterableKind::Graphs(v) => latexify_vec(v, include_block),
+            IterableKind::Iterable(v) => {
+                let s = v
+                    .iter()
+                    .map(|i| i.to_latex())
+                    .collect::<Vec<_>>()
+                    .join("\\\\");
+                if include_block {
+                    format!("\\begin{{bmatrix}} {} \\end{{bmatrix}}", s)
+                } else {
+                    format!("{}", s)
+                }
+            }
+        }
+    }
 }
+
+fn latexify_vec<T>(v: &Vec<T>, include_block: bool) -> String
+where
+    T: ToLatex,
+{
+    let values = v
+        .iter()
+        .map(|e| e.to_latex())
+        .collect::<Vec<_>>()
+        .join(" & ");
+    if include_block {
+        format!("\\begin{{bmatrix}} {} \\end{{bmatrix}}", values)
+    } else {
+        format!("{}", values)
+    }
+}
+impl ToLatex for IterableKind {
+    fn to_latex(&self) -> String {
+        match self {
+            IterableKind::Iterable(v) => {
+                let depth = self.depth();
+                if depth == 2 {
+                    //try to prettify for 2d matrices
+                    let items = v
+                        .iter()
+                        .map(|i| i.latexify(false))
+                        .collect::<Vec<_>>()
+                        .join(" \\\\ ");
+                    format!("\\begin{{bmatrix}} {} \\end{{bmatrix}}", items)
+                } else {
+                    self.latexify(true)
+                }
+            }
+            _ => self.latexify(true),
+        }
+    }
+}
+
 impl fmt::Display for IterableKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         //TODO should i turn this into a self.to_primitive_set()  and then iterate and stringify?
         let s = match self {
-            IterableKind::Edges(v) => {
-                format!(
-                    "[{}]",
-                    v.iter()
-                        .map(|e| e.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
-            IterableKind::Nodes(v) => {
-                format!(
-                    "[{}]",
-                    v.iter()
-                        .map(|e| e.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
-
-            IterableKind::Numbers(v) => {
-                format!(
-                    "[{}]",
-                    v.iter()
-                        .map(|e| e.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
-            IterableKind::Integers(v) => {
-                format!(
-                    "[{}]",
-                    v.iter()
-                        .map(|e| e.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
-            IterableKind::PositiveIntegers(v) => {
-                format!(
-                    "[{}]",
-                    v.iter()
-                        .map(|e| e.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
-            IterableKind::Strings(v) => {
-                format!(
-                    "[{}]",
-                    v.iter()
-                        .map(|e| e.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
-            IterableKind::Tuple(v) => {
-                format!(
-                    "[{}]",
-                    v.iter()
-                        .map(|e| {
-                            format!(
-                                "[{}]",
-                                e.get_primitives()
-                                    .iter()
-                                    .map(|e| e.to_string())
-                                    .collect::<Vec<_>>()
-                                    .join(", ")
-                            )
-                        })
-                        .collect::<Vec<_>>()
-                        .join(",\n")
-                )
-            }
+            IterableKind::Numbers(v) => format!("{:?}", v),
+            IterableKind::Integers(v) => format!("{:?}", v),
+            IterableKind::PositiveIntegers(v) => format!("{:?}", v),
+            IterableKind::Strings(v) => format!("{:?}", v),
+            IterableKind::Edges(v) => format!("{:?}", v),
+            IterableKind::Nodes(v) => format!("{:?}", v),
+            IterableKind::Tuple(v) => format!("{:?}", v),
+            IterableKind::Booleans(v) => format!("{:?}", v),
+            IterableKind::Graphs(v) => format!("{:?}", v),
             IterableKind::Iterable(v) => {
-                format!(
-                    "[\n{}\n]",
-                    v.iter()
-                        .map(|e| e.to_string_depth(0))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
-            IterableKind::Booleans(v) => {
-                format!(
-                    "[{}]",
-                    v.iter()
-                        .map(|e| e.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
-            IterableKind::Graphs(v) => {
-                format!(
-                    "[{}]",
-                    v.iter()
-                        .map(|e| e.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
+                let result = v
+                    .iter()
+                    .map(|i| i.to_string_depth(1))
+                    .collect::<Vec<_>>()
+                    .join(",\n");
+                format!("[\n{}\n]", result)
             }
         };
         f.write_str(&s)
@@ -323,6 +317,7 @@ impl ApplyOp for IterableKind {
         false
     }
 }
+
 impl Spreadable for IterableKind {
     fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError> {
         Ok(self.to_primitives())

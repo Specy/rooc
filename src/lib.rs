@@ -2,6 +2,16 @@ extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 
+use wasm_bindgen::prelude::*;
+
+use parser::{
+    parser::{parse_problem_source, PreProblem},
+    transformer::{Problem, transform_parsed_problem},
+};
+use utils::CompilationError;
+
+use crate::type_checker::type_checker_context::TypeCheckable;
+
 pub mod macros;
 pub mod math;
 pub mod parser;
@@ -11,15 +21,8 @@ pub mod transformers;
 pub mod utils;
 pub mod type_checker;
 pub mod runtime_builtin;
+pub mod traits;
 
-use parser::{
-    parser::{parse_problem_source, PreProblem},
-    transformer::{transform_parsed_problem, Problem},
-};
-use utils::CompilationError;
-use wasm_bindgen::prelude::*;
-
-use crate::type_checker::type_checker_context::TypeCheckable;
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -63,9 +66,7 @@ impl RoocParser {
                 .unwrap_or(e.get_traced_error())),
         }
     }
-    pub fn hover_provider(&self, line: usize, column: usize, offset: usize)  {
-
-    }
+    pub fn hover_provider(&self, line: usize, column: usize, offset: usize) {}
 }
 
 #[wasm_bindgen]

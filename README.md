@@ -40,6 +40,7 @@ The library is compiled as a wasm module to be used in the [web editor](https://
 - [ ] UI
   - [x] Compilation to WASM
   - [x] Create and manage your models
+  - [x] Automatic compilation to a LATEX block
   - [x] LSP
     - [x] Syntax errors
     - [x] Hover types

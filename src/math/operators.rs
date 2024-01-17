@@ -1,9 +1,12 @@
 use core::fmt;
 use std::str::FromStr;
 
-use crate::enum_with_variants_to_string;
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
 use wasm_bindgen::prelude::*;
+
+use crate::enum_with_variants_to_string;
+use crate::traits::latex::ToLatex;
+
 enum_with_variants_to_string! {
     pub enum Operator derives[Debug, PartialEq, Clone, Copy] with_wasm {
         Add,
@@ -28,6 +31,7 @@ impl Operator {
         }
     }
 }
+
 impl fmt::Display for Operator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
@@ -76,6 +80,18 @@ impl BinOp {
         }
     }
 }
+
+impl ToLatex for BinOp {
+    fn to_latex(&self) -> String {
+        match self {
+            BinOp::Add => "+".to_string(),
+            BinOp::Sub => "-".to_string(),
+            BinOp::Mul => "\\cdot".to_string(),
+            BinOp::Div => "\\div".to_string(),
+        }
+    }
+}
+
 impl fmt::Display for BinOp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
@@ -107,6 +123,14 @@ enum_with_variants_to_string! {
         Neg,
     }
 }
+
+impl ToLatex for UnOp {
+    fn to_latex(&self) -> String {
+        match self {
+            UnOp::Neg => "-".to_string(),
+        }
+    }
+}
 impl UnOp {
     pub fn precedence(&self) -> u8 {
         match self {
@@ -124,6 +148,7 @@ impl UnOp {
         }
     }
 }
+
 impl fmt::Display for UnOp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
@@ -133,6 +158,7 @@ impl fmt::Display for UnOp {
         f.write_str(&s)
     }
 }
+
 impl FromStr for UnOp {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {

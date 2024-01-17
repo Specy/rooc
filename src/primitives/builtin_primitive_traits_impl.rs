@@ -1,15 +1,9 @@
-use core::fmt;
-
-use serde::Serialize;
-
 use crate::{math::operators::{BinOp, UnOp}, parser::transformer::TransformError};
 
 use super::{
     primitive::{Primitive, PrimitiveKind},
     primitive_traits::{ApplyOp, OperatorError, Spreadable},
 };
-
-
 
 /* --------- ApplyOp --------- */
 
@@ -46,6 +40,7 @@ impl ApplyOp for String {
         false
     }
 }
+
 impl ApplyOp for bool {
     type TargetType = PrimitiveKind;
     type Target = Primitive;
@@ -69,6 +64,7 @@ impl ApplyOp for bool {
         false
     }
 }
+
 impl ApplyOp for f64 {
     type TargetType = PrimitiveKind;
     type Target = Primitive;
@@ -164,19 +160,18 @@ impl ApplyOp for i64 {
     }
     fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
         matches!(to, PrimitiveKind::Number | PrimitiveKind::Integer | PrimitiveKind::PositiveInteger | PrimitiveKind::Boolean)
-
     }
     fn can_apply_unary_op(op: UnOp) -> bool {
         matches!(op, UnOp::Neg)
     }
 }
+
 impl ApplyOp for u64 {
     type TargetType = PrimitiveKind;
     type Target = Primitive;
     type Error = OperatorError;
     fn apply_binary_op(&self, op: BinOp, to: &Primitive) -> Result<Primitive, OperatorError> {
         match to {
-            
             Primitive::PositiveInteger(n) => match op {
                 BinOp::Add => Ok(Primitive::PositiveInteger(self + n)),
                 BinOp::Sub => Ok(Primitive::Integer((*self as i64) - (*n as i64))),
@@ -215,13 +210,11 @@ impl ApplyOp for u64 {
     }
     fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
         matches!(to, PrimitiveKind::Number | PrimitiveKind::Integer | PrimitiveKind::PositiveInteger | PrimitiveKind::Boolean)
-
     }
     fn can_apply_unary_op(op: UnOp) -> bool {
         matches!(op, UnOp::Neg)
     }
 }
-
 
 
 /* --------- Spreadable --------- */
@@ -231,21 +224,25 @@ impl Spreadable for f64 {
         Err(TransformError::Unspreadable(PrimitiveKind::Number))
     }
 }
+
 impl Spreadable for i64 {
     fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError> {
         Err(TransformError::Unspreadable(PrimitiveKind::Integer))
     }
 }
+
 impl Spreadable for u64 {
     fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError> {
         Err(TransformError::Unspreadable(PrimitiveKind::PositiveInteger))
     }
 }
+
 impl Spreadable for String {
     fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError> {
         Err(TransformError::Unspreadable(PrimitiveKind::String))
     }
 }
+
 impl Spreadable for bool {
     fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError> {
         Err(TransformError::Unspreadable(PrimitiveKind::Boolean))

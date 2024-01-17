@@ -96,6 +96,9 @@ export class PreProblem {
     createTypeMap(): Map<number, SerializedTypedToken> {
         return this.instance.create_token_type_map_wasm()
     }
+    toLatex(): string {
+        return this.instance.to_latex_wasm()
+    }
     format(): string {
         return this.instance.format_wasm()
     }

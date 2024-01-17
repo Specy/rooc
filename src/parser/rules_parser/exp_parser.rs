@@ -7,8 +7,7 @@ use crate::{
     parser::{parser::Rule, pre_parsed_problem::PreExp},
     utils::{CompilationError, InputSpan, ParseError, Spanned},
 };
-use serde::{Serialize, Deserialize};
-use wasm_bindgen::prelude::*;
+
 use super::other_parser::{
     parse_array_access, parse_block_function, parse_block_scoped_function, parse_compound_variable,
     parse_function_call, parse_primitive,
@@ -110,7 +109,7 @@ pub fn parse_exp_leaf(exp: Pair<Rule>) -> Result<PreExp, CompilationError> {
         Rule::array_access => {
             let access = parse_array_access(&exp)?;
             Ok(PreExp::ArrayAccess(Spanned::new(access, span)))
-        },
+        }
         _ => err_unexpected_token!(
             "found \"{}\"({:?}), expected exp, binary_op, unary_op, len, variable, sum, primitive, parenthesis, array_access, min, max, block function or scoped function",
             exp, exp.as_rule()

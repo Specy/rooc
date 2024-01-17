@@ -2,6 +2,7 @@ use std::vec;
 
 use pest::iterators::{Pair, Pairs};
 
+use crate::{bail_missing_token, err_unexpected_token};
 use crate::math::math_enums::{Comparison, OptimizationType};
 use crate::parser::iterable_utils::flatten_primitive_array_values;
 use crate::parser::parser::Rule;
@@ -20,11 +21,9 @@ use crate::primitives::functions::number_functions::NumericRange;
 use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
 use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
-use crate::{bail_missing_token, err_unexpected_token};
 
 use super::exp_parser::parse_exp;
-use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
+
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {
     match objective.as_rule() {
         Rule::objective => {
@@ -167,6 +166,7 @@ pub fn parse_graph_node(node: &Pair<Rule>) -> Result<GraphNode, CompilationError
         _ => err_unexpected_token!("Expected graph node but got: {}", node),
     }
 }
+
 pub fn parse_graph_edge(edge: &Pair<Rule>, from: &str) -> Result<GraphEdge, CompilationError> {
     let inner = edge.clone().into_inner();
     let node = inner.find_first_tagged("node");
@@ -325,6 +325,7 @@ pub fn parse_block_function(exp: &Pair<Rule>) -> Result<PreExp, CompilationError
     let fun = BlockFunction::new(kind, members);
     Ok(PreExp::BlockFunction(Spanned::new(fun, span)))
 }
+
 pub fn parse_compound_variable(
     compound_variable: &Pair<Rule>,
 ) -> Result<CompoundVariable, CompilationError> {
@@ -342,11 +343,12 @@ pub fn parse_compound_variable(
                 .into_iter()
                 .map(|i| parse_compound_variable_index(i))
                 .collect::<Result<Vec<_>, CompilationError>>()?;
-            Ok(CompoundVariable::new(name.to_string(), indexes))
+            Ok(CompoundVariable::new(name.as_str().to_string(), indexes))
         }
         _ => err_unexpected_token!("Expected compound variable but got: {}", compound_variable),
     }
 }
+
 pub fn parse_compound_variable_index(
     compound_variable_index: Pair<Rule>,
 ) -> Result<PreExp, CompilationError> {
@@ -381,6 +383,7 @@ pub fn parse_compound_variable_index(
         ),
     }
 }
+
 pub fn parse_block_function_type(
     block_function_type: &Pair<Rule>,
 ) -> Result<BlockFunctionKind, CompilationError> {
@@ -393,6 +396,7 @@ pub fn parse_block_function_type(
         ),
     }
 }
+
 pub fn parse_scoped_block_function_type(
     scoped_block_function_type: &Pair<Rule>,
 ) -> Result<BlockScopedFunctionKind, CompilationError> {
@@ -405,6 +409,7 @@ pub fn parse_scoped_block_function_type(
         ),
     }
 }
+
 pub fn parse_function_call(
     function_call: &Pair<Rule>,
 ) -> Result<Box<dyn FunctionCall>, CompilationError> {
@@ -473,12 +478,14 @@ pub fn parse_parameters(pars: &Pair<Rule>) -> Result<Vec<PreExp>, CompilationErr
         _ => err_unexpected_token!("Expected function args but got: {}", pars),
     }
 }
+
 pub fn parse_parameter(arg: Pair<Rule>) -> Result<PreExp, CompilationError> {
     match arg.as_rule() {
         Rule::tagged_exp => parse_exp(arg),
         _ => err_unexpected_token!("Expected function arg but got: {}", arg),
     }
 }
+
 pub fn parse_set_iterator(range: &Pair<Rule>) -> Result<IterableSet, CompilationError> {
     match range.as_rule() {
         Rule::iteration_declaration => {
@@ -501,6 +508,7 @@ pub fn parse_set_iterator(range: &Pair<Rule>) -> Result<IterableSet, Compilation
         _ => err_unexpected_token!("Expected set iterator but got: {}", range),
     }
 }
+
 pub fn parse_variable_type(tuple: &Pair<Rule>) -> Result<VariableType, CompilationError> {
     match tuple.as_rule() {
         Rule::tuple => {

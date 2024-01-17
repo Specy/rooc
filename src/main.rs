@@ -1,11 +1,13 @@
-use term_table::{row::Row, Table, table_cell::TableCell};
+use term_table::{row::Row, table_cell::TableCell, Table};
 
+use rooc::traits::latex::ToLatex;
 use rooc::{
     math::math_enums::{Comparison, OptimizationType},
     solvers::{
         linear_problem::{Constraint, LinearProblem},
         simplex::{IntoCanonicalTableau, Tableau},
-    }, RoocParser, type_checker::type_checker_context::TypeCheckable,
+    },
+    RoocParser,
 };
 
 #[allow(unused)]
@@ -89,25 +91,30 @@ fn main() {
         }
     }
 
+    /*
+           sum(i in a, j in a) { x_i } <= 1
+       x_{len(a)} <= 1 for v in a
+       min { a, b, c } <= 1
+       min(i in a) { x_i } <= 1
+
+     */
     let source = "
-    min 1
-    s.t.
-       x_{len(a)} <= 1
-    where
-        a = [1]
-        d = 10
+min sum(u in nodes(G)) { x_u }
+s.t.
+    x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1    for v in nodes(G)
+where
+    G = Graph {
+        A -> [B: 10, C],
+        B -> [A, C],
+        C -> [A, B]
+    }
     "
     .to_string();
     let parser = RoocParser::new(source.clone());
     let parsed = parser.parse();
     match parsed {
         Ok(parsed) => {
-            match parsed.create_type_checker() {
-                Err(e) => {
-                    println!("{}", e.get_trace_from_source(source.as_str()).unwrap());
-                }
-                _ => {}
-            }
+            println!("{}", parsed.to_latex());
         }
         Err(e) => {
             println!("{}", e.to_string_from_source(source.as_str()));
