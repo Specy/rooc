@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from '$cmp/inputs/Button.svelte';
+	import Nav from '$cmp/layout/Nav.svelte';
 	import Page from '$cmp/layout/Page.svelte';
 </script>
 
@@ -8,6 +9,7 @@
 	<meta name="description" content="Rooc is a language to compile formal mathematical models" />
 </svelte:head>
 
+<Nav />
 <Page padding="1rem" gap="1rem" contentStyle="justify-content:center; align-items:center">
 	<a href="/projects" style="width: 100%; gap: 1rem;" class="container">
 		<img class="logo" alt="rooc logo" src="logo.png" />

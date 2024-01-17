@@ -1,12 +1,10 @@
 <script lang="ts">
 	import Editor from '$cmp/editor/Editor.svelte';
 	import Button from '$cmp/inputs/Button.svelte';
-	import Page from '$cmp/layout/Page.svelte';
 	import { Monaco } from '$src/lib/Monaco';
 	import { onMount } from 'svelte';
-	import { projectStore, type Project } from '$src/stores/projectStore';
+	import { type Project } from '$src/stores/projectStore';
 	import Row from '$cmp/layout/Row.svelte';
-	import Column from '$cmp/layout/Column.svelte';
 	import FaCopy from '~icons/fa/copy.svelte';
 	import { createCompilerStore } from '$src/routes/projects/[projectId]/projectStore';
 	import LatexRenderer from '$cmp/LatexRenderer.svelte';
@@ -81,17 +79,8 @@
 	}
 	@media (max-width: 768px) {
 		.wrapper {
-			display: flex;
-			flex-direction: column;
+			grid-template-rows: 50%;
+			grid-template-columns: 1fr;
 		}
-	}
-	textarea {
-		background-color: var(--secondary);
-		color: var(--secondary-text);
-		resize: none;
-		font-size: 1.1rem;
-		padding: 1rem;
-		border-radius: 0.4rem;
-		flex: 1;
 	}
 </style>

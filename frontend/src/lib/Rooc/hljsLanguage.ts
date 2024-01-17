@@ -15,7 +15,7 @@ export const highlightJsGrammar = {
 		},
 		{
 			"begin": 'Graph',
-			"end": '\\}',
+			"end": '}',
 			excludeBegin: true,
 			contains: [
 				{
@@ -24,7 +24,7 @@ export const highlightJsGrammar = {
 				},
 				{
 					className: "brackets",
-					begin: '[\\{\\}]',
+					begin: '[\\{]',
 				},
 				{
 					className: "brackets",
@@ -54,7 +54,8 @@ export const highlightJsGrammar = {
 		{
 			className: 'identifierDefine',
 			begin: '\\b[a-z\\d_]+(?=\\s*=)',
-			end: '=', excludeEnd: true,
+			end: '=', 
+			excludeEnd: true,
 		},
 		{
 			className: 'identifier',

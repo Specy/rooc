@@ -147,7 +147,7 @@ impl FunctionCall for NumericRange {
         match self.args[..] {
             [ref from, ref to, _] => {
                 if let Some(inclusive) = self.known_inclusive {
-                    let range = if inclusive { "..=" } else { ".." };
+                    let range = if inclusive { "\\dots\\text{=}" } else { "\\dots" };
                     let from = if from.is_leaf() {
                         from.to_latex()
                     } else {
@@ -158,7 +158,7 @@ impl FunctionCall for NumericRange {
                     } else {
                         format!("({})", to.to_latex())
                     };
-                    return format!("{}{}{}", from, range, to);
+                    return format!("\\left\\{{{},{},{}\\right\\}}", from, range, to);
                 }
             }
             _ => {}

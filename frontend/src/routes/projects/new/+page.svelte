@@ -7,6 +7,7 @@
 	import { projectStore } from '$src/stores/projectStore';
 	import { toast } from '$src/stores/toastStore';
 	import { goto } from '$app/navigation';
+	import Nav from '$cmp/layout/Nav.svelte';
 	let name = '';
 	let description = '';
 
@@ -27,6 +28,8 @@
 </svelte:head>
 
 
+
+<Nav />
 <Page gap="2rem" cropped padding="2rem" mobilePadding="1rem">
 	<h1>Create new project</h1>
 	<Card gap="0.5rem" padding="1rem" withShadow>

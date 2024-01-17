@@ -33,7 +33,7 @@ where
 </script>
 
 <h1>The language</h1>
-<Column gap="0.4rem">
+<Column gap="0.8rem">
 	With ROOC you can formalize mathematical models and let the compiler do the rest.
 	<br />
 	You can define formal expressions using iterators over data, using different functions to transform

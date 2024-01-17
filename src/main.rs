@@ -1,3 +1,4 @@
+use rooc::type_checker::type_checker_context::TypeCheckable;
 use term_table::{row::Row, table_cell::TableCell, Table};
 
 use rooc::traits::latex::ToLatex;
@@ -91,12 +92,11 @@ fn main() {
         }
     }
     let source = "
-min 1
-s.t.
-    x_i <= x_1
-
-where
-    i = 10
+    min 1
+    s.t.
+        sum(i in a){ x_i } <= 1 for i in 0..5
+    where
+        a = [\"a\",\"b\"]
     "
     .to_string();
     let parser = RoocParser::new(source.clone());

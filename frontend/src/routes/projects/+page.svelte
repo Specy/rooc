@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ButtonLink from '$cmp/inputs/ButtonLink.svelte';
+	import Nav from '$cmp/layout/Nav.svelte';
 	import Page from '$cmp/layout/Page.svelte';
 	import Row from '$cmp/layout/Row.svelte';
 	import ProjectCard from '$cmp/projects/ProjectCard.svelte';
@@ -32,6 +33,7 @@
 </svelte:head>
 
 
+<Nav />
 <Page cropped="50rem" padding="2rem" mobilePadding="1rem" gap="3rem">
 	<Row justify="between">
 		<h1>Projects</h1>

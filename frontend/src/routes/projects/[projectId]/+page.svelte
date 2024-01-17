@@ -111,25 +111,3 @@
 	</FloatingContainer>
 </Page>
 
-<style>
-	.wrapper {
-		display: flex;
-		gap: 1rem;
-		flex: 1;
-		padding: 0 0.5rem;
-	}
-	@media (max-width: 768px) {
-		.wrapper {
-			flex-direction: column;
-		}
-	}
-	textarea {
-		background-color: var(--secondary);
-		color: var(--secondary-text);
-		resize: none;
-		font-size: 1.1rem;
-		padding: 1rem;
-		border-radius: 0.4rem;
-		flex: 1;
-	}
-</style>

@@ -89,7 +89,7 @@ impl TypeCheckerContext {
     ) -> Result<(), TransformError> {
         let start = span.start;
         if let Some(val) = &identifier {
-            self.declare_variable(&val, value.clone(), false)
+            self.declare_variable(&val, value.clone(), true)
                 .map_err(|e| e.to_spanned_error(&span))?;
         }
         let token = TypedToken::new(span, value, identifier);
@@ -104,7 +104,7 @@ impl TypeCheckerContext {
     ) {
         let start = span.start;
         if let Some(val) = &identifier {
-            self.declare_variable(&val, value.clone(), false)
+            self.declare_variable(&val, value.clone(), true)
                 .unwrap_or(());
         }
         let token = TypedToken::new(span, value, identifier);
