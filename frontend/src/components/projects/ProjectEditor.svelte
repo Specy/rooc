@@ -65,9 +65,10 @@
 </Row>
 
 <style>
-	.result-container{
+	.result-container {
 		display: grid;
 		grid-template-rows: 50%;
+		grid-template-columns: 100%;
 		gap: 0.5rem;
 	}
 	.wrapper {
@@ -80,7 +81,7 @@
 	@media (max-width: 768px) {
 		.wrapper {
 			grid-template-rows: 50%;
-			grid-template-columns: 1fr;
+			grid-template-columns: 100%;
 		}
 	}
 </style>
