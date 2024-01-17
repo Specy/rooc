@@ -67,6 +67,7 @@
 <style>
 	.result-container {
 		display: grid;
+		flex: 1;
 		grid-template-rows: 50%;
 		grid-template-columns: 100%;
 		gap: 0.5rem;
@@ -80,8 +81,8 @@
 	}
 	@media (max-width: 768px) {
 		.wrapper {
-			grid-template-rows: 50%;
-			grid-template-columns: 100%;
+			display: flex;
+			flex-direction: column;
 		}
 	}
 </style>
