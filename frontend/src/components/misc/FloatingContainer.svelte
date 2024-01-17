@@ -63,6 +63,7 @@ import Icon from '$cmp/layout/Icon.svelte'
         scale: 1;
         box-shadow: -2px -1px 27px 4px #00000057;
 	}
+
 	@keyframes delayHide {
 		99% {
 		}
@@ -75,5 +76,14 @@ import Icon from '$cmp/layout/Icon.svelte'
         scale: 1.01;
 		transform: translate(-50%, calc(-50% - 1rem));
 		animation: delayHide 0.25s forwards;
+	}
+	@media (max-width: 768px) {
+		.floating-container {
+			top: 3.4rem;
+			transform: translate(-50%, 0);
+		}
+		.hidden {
+			transform: translate(-50%, -1rem);
+		}
 	}
 </style>

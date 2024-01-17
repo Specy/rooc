@@ -101,7 +101,7 @@
 	{/if}
 	<FloatingContainer bind:visible={showDocs} title="Documentation">
 		<Column
-			style="width: 45rem; max-width: calc(100vw - 1rem); max-height: 80vh; overflow-y: auto;"
+			style="width: 45rem; max-width: calc(100vw - 1rem); max-height: calc(80vh - 1.2rem); overflow-y: auto;"
 			padding="0.8rem"
 			gap="0.5rem"
 		>
