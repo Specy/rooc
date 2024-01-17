@@ -38,7 +38,7 @@
 		<ButtonLink href="/projects/new">New Project</ButtonLink>
 	</Row>
 	<div class="projects-wrapper">
-		{#each $projectStore.projects as project, i}
+		{#each $projectStore.projects as project, i (project.id)}
 			<div
 				in:scale|global={{ duration: 200, delay: i * 50 + 150, start: 0.9 }}
 				out:scale={{ duration: 300, start: 0.8 }}
