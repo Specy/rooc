@@ -175,14 +175,14 @@ impl BlockScopedFunction {
 
 impl fmt::Display for BlockScopedFunction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = self.kind.to_latex();
+        let name = self.kind.to_string();
         write!(
             f,
             "{}({}) {{ {} }}",
             name,
             self.iters
                 .iter()
-                .map(|i| i.to_latex())
+                .map(|i| i.to_string())
                 .collect::<Vec<String>>()
                 .join(", "),
             self.exp
