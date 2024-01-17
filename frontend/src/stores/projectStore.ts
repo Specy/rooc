@@ -16,7 +16,7 @@ export type Project = {
 
 
 
-function createProject(): Project {
+export function createProject(): Project {
     return {
         version: 1,
         id: "",
@@ -64,7 +64,10 @@ export function createProjectStore() {
     async function updateProject(id: string, fields: Partial<Project>): Promise<Project> {
         await ensureInit()
         const project = await getProject(id)
-        const pr = await db.updateProject(id, { ...project, ...fields })
+        const toUpdate = { ...project, ...fields }
+        delete toUpdate.id
+        const pr = await db.updateProject(id, toUpdate)
+        
         update(store => {
             const index = store.projects.findIndex(p => p.id === pr.id)
             if (index === -1) {

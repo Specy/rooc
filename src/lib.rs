@@ -10,7 +10,6 @@ use parser::{
 };
 use utils::CompilationError;
 
-use crate::type_checker::type_checker_context::TypeCheckable;
 
 pub mod macros;
 pub mod math;

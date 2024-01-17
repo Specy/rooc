@@ -90,24 +90,13 @@ fn main() {
             println!("Error: {:?}", e);
         }
     }
-
-    /*
-           sum(i in a, j in a) { x_i } <= 1
-       x_{len(a)} <= 1 for v in a
-       min { a, b, c } <= 1
-       min(i in a) { x_i } <= 1
-
-     */
     let source = "
-min sum(u in nodes(G)) { x_u }
+min 1
 s.t.
-    x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1    for v in nodes(G)
+    x_i <= x_1
+
 where
-    G = Graph {
-        A -> [B: 10, C],
-        B -> [A, C],
-        C -> [A, B]
-    }
+    i = 10
     "
     .to_string();
     let parser = RoocParser::new(source.clone());

@@ -104,7 +104,7 @@ impl ToLatex for PreProblem {
         let conditions = self
             .conditions
             .iter()
-            .map(|cond| format!("    \\quad {}", cond.to_latex()))
+            .map(|cond| format!("    \\quad {} \\quad", cond.to_latex()))
             .collect::<Vec<_>>()
             .join("\\\\\n");
         s.push_str(format!("\n\\begin{{align}}\n{}\n\\end{{align}}", conditions).as_str());

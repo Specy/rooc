@@ -1225,10 +1225,13 @@ impl ToLatex for CompoundVariable {
             .indexes
             .iter()
             .map(|i| match i {
-                PreExp::Primitive(p) => match p.get_span_value() {
-                    Primitive::Number(n) => format!("{}", n),
-                    _ => format!("({})", i.to_latex()),
-                },
+                PreExp::Primitive(p) => {
+                    if p.get_type().is_numeric() {
+                        format!("{}", i.to_latex())
+                    } else {
+                        format!("({})", i.to_latex())
+                    }
+                }
                 PreExp::Variable(name) => {
                     let name = name.get_span_value().clone();
                     format!("{}", name)
@@ -1410,7 +1413,7 @@ impl ToLatex for PreCondition {
             format!("{} \\ &{} \\ {}", lhs, condition, rhs)
         } else {
             format!(
-                "{} \\ &{} \\ {} \\qquad {} \\quad",
+                "{} \\ &{} \\ {} \\qquad {}",
                 lhs,
                 condition,
                 rhs,

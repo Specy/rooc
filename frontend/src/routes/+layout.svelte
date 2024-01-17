@@ -10,7 +10,6 @@
 	import NoiseOverlay from '$cmp/layout/NoiseOverlay.svelte';
 	import { projectStore } from '$src/stores/projectStore';
 	import PromptProvider from '$cmp/PromptProvider.svelte';
-	import { toast } from '$src/stores/toastStore';
 	onMount(() => {
 		themeStorage.load();
 		projectStore.syncProjectsWithStore();

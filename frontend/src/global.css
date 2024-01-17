@@ -18,9 +18,7 @@
 	outline: none;
 }
 
-.wrap {
-	flex-wrap: wrap;
-}
+
 
 body,
 html {
@@ -78,7 +76,12 @@ input:disabled {
 	background: #555;
 }
 
-
+.flex-1 {
+	flex: 1;
+}
+.wrap {
+	flex-wrap: wrap;
+}
 
 
 
@@ -98,7 +101,7 @@ input:disabled {
 }
 
 .justify-center {
-	justify-items: center;
+	justify-content: center;
 }
 .space-between {
 	justify-content: space-between;

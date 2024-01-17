@@ -4,11 +4,11 @@
 	import Page from '$cmp/layout/Page.svelte';
 	import { Monaco } from '$src/lib/Monaco';
 	import { onMount } from 'svelte';
-	import { projectStore, type Project } from '$src/stores/projectStore';
+	import { projectStore, type Project, createProject } from '$src/stores/projectStore';
 	import { page } from '$app/stores';
-	import { createCompilerStore } from './projectStore';
 	import Floppy from '~icons/fa/floppy-o';
 	import Book from '~icons/fa/book';
+	import Share from '~icons/fa/share-alt';
 	import Row from '$cmp/layout/Row.svelte';
 	import ButtonLink from '$cmp/inputs/ButtonLink.svelte';
 	import { toast } from '$src/stores/toastStore';
@@ -16,9 +16,11 @@
 	import RoocDocs from '$cmp/roocDocs/RoocFunctionsDocs.svelte';
 	import Column from '$cmp/layout/Column.svelte';
 	import RoocSyntaxDocs from '$cmp/roocDocs/RoocSyntaxDocs.svelte';
+	import ProjectEditor from '$cmp/projects/ProjectEditor.svelte';
+	import lzstring from 'lz-string';
+	import { prompter } from '$src/stores/promptStore';
 	let showDocs = false;
-	let project: Project;
-	let store: ReturnType<typeof createCompilerStore>;
+	let project: Project | undefined;
 	onMount(() => {
 		Monaco.load();
 		loadProject();
@@ -28,19 +30,45 @@
 	});
 
 	async function loadProject() {
+		const id = $page.params.projectId;
+		if (id === 'share') {
+			const code = $page.url.searchParams.get('project');
+			const parsed = JSON.parse(lzstring.decompressFromEncodedURIComponent(code));
+			parsed.id = 'share';
+			project = parsed as Project;
+			return
+		}
 		project = await projectStore.getProject($page.params.projectId);
 		if (!project) {
 			toast.error('Project not found', 10000);
 			return;
 		}
-		store = createCompilerStore(project);
 	}
 	async function save() {
-		await store?.save();
-		toast.logPill('Saved');
+		if (!project) return;
+		try {
+			if (project.id === 'share') {
+				if (!(await prompter.confirm('Do you want to save this shared project in your projets?')))
+					return;
+				delete project.id;
+				const newProject = await projectStore.createNewProject(project.name, project.description);
+				project.id = newProject.id;
+			}
+			await projectStore.updateProject(project.id, project);
+			toast.logPill('Saved');
+		} catch (e) {
+			toast.error("Couldn't save project");
+			console.error(e);
+		}
 	}
-	function compile() {
-		store?.compile();
+	function share(){
+		if (!project) return;
+		const p = {...project};
+		p.id = 'share';
+		const code = lzstring.compressToEncodedURIComponent(JSON.stringify(p));
+		const url = `${window.location.origin}/projects/share?project=${code}`;
+		navigator.clipboard.writeText(url);
+		toast.logPill('Copied to clipboard');
 	}
 </script>
 
@@ -53,6 +81,9 @@
 	<Row justify="between" padding="0.5rem" gap="0.5rem">
 		<ButtonLink href="/projects">Projects</ButtonLink>
 		<Row gap="0.5rem">
+			<Button hasIcon on:click={share}>
+				<Share />
+			</Button>
 			<Button hasIcon on:click={() => (showDocs = !showDocs)}>
 				<Book />
 			</Button>
@@ -61,27 +92,13 @@
 			</Button>
 		</Row>
 	</Row>
-	<div class="wrapper">
-		{#if store}
-			<Editor
-				style="flex: 1; height: 100%;"
-				language="rooc"
-				bind:code={$store.source}
-				highlightedLine={-1}
-			/>
-			<Editor
-				style="flex: 1; height: 100%;"
-				language="rooc"
-				code={$store.compilationError ?? $store.compiled ?? ''}
-				config={{
-					readOnly: true,
-					lineNumbers: 'off'
-				}}
-				disabled
-				highlightedLine={-1}
-			/>
-		{/if}
-	</div>
+	{#if project}
+		<ProjectEditor bind:project />
+	{:else}
+		<div class="col justify-center align-center flex-1">
+			<h1>Loading...</h1>
+		</div>
+	{/if}
 	<FloatingContainer bind:visible={showDocs} title="Documentation">
 		<Column
 			style="width: 45rem; max-width: calc(100vw - 1rem); max-height: 80vh; overflow-y: auto;"
@@ -89,13 +106,9 @@
 			gap="0.5rem"
 		>
 			<RoocSyntaxDocs />
-
 			<RoocDocs />
 		</Column>
 	</FloatingContainer>
-	<Row justify="end" gap="0.5rem" padding="0.5rem">
-		<Button on:click={compile} border="secondary" color="primary">Compile</Button>
-	</Row>
 </Page>
 
 <style>

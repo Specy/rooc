@@ -1,6 +1,6 @@
-import { projectStore, type Project } from "$src/stores/projectStore";
+import { type Project } from "$src/stores/projectStore";
 import { CompilationError, RoocParser, TransformError } from "@specy/rooc";
-import { get, writable } from "svelte/store";
+import { writable } from "svelte/store";
 
 
 
@@ -8,29 +8,34 @@ type ProjectStoreData = {
     source: string,
     compilationError?: string,
     compiled?: string,
+    latex?: string
 }
 
 export function createCompilerStore(project: Project) {
     const { subscribe, update, set } = writable<ProjectStoreData>({
-        source: project.content
+        source: project.content,
+        
     })
 
     function compile(override?: string) {
         update(s => {
             s.source = override ?? s.source;
             s.compilationError = undefined
+
             const parser = new RoocParser(s.source);
             const compile = parser.compile();
             if (!compile.ok) {
                 s.compilationError = (compile.val as CompilationError).message()
                 return s;
             }
+            const latex = compile.val.toLatex(); //before transformation because it consumes self
             const transform = compile.val.transform();
             if (!transform.ok) {
                 s.compilationError = (transform.val as TransformError).message()
                 return s;
             }
             s.compiled = transform.val.stringify();
+            s.latex = latex
             return s;
         })
     }
@@ -57,17 +62,10 @@ export function createCompilerStore(project: Project) {
             return s;
         })
     }
-
-    async function save(): Promise<Project> {
-        const store = get({ subscribe })
-        return await projectStore.updateProject(project.id, { content: store.source })
-    }
-
     return {
         subscribe,
         compile,
         typeCheck,
-        save,
         set: (data: ProjectStoreData) => {
             set(data)
         }
