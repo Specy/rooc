@@ -8,7 +8,35 @@
 	import { projectStore, type Project } from '$src/stores/projectStore';
 	import { prompter } from '$src/stores/promptStore';
 	import { toast } from '$src/stores/toastStore';
+	import { onMount } from 'svelte';
 	import { scale } from 'svelte/transition';
+
+	onMount(() => {
+		if ('launchQueue' in window) {
+			// @ts-ignore
+			launchQueue.setConsumer(async (launchParams) => {
+				for (const file of launchParams.files) {
+					try {
+						const blob = await file.getFile();
+						blob.handle = file;
+						const text = await blob.text();
+						const project = JSON.parse(text) as Project;
+						const p = await projectStore.createNewProject(project.name, project.description);
+						await projectStore.updateProject(p.id, project);
+					} catch (e) {
+						console.error(e);
+						toast.error('Failed to import project!');
+					}
+				}
+				toast.logPill(
+					// @ts-ignore
+					`Imported ${launchQueue.files.length} project${launchQueue.files.length > 1 ? 's' : ''}`
+				);
+			});
+		} else {
+			console.error('File Handling API is not supported!');
+		}
+	});
 
 	async function deleteProject(project: Project) {
 		if (!(await prompter.confirm(`Are you sure you want to delete ${project.name}?`))) return;
@@ -31,7 +59,6 @@
 	<title>Projects</title>
 	<meta name="description" content="Your Rooc projects" />
 </svelte:head>
-
 
 <Nav />
 <Page cropped="50rem" padding="2rem" mobilePadding="1rem" gap="3rem">

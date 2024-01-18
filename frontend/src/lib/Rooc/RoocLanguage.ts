@@ -28,8 +28,9 @@ export const RoocLanguage = {
 			[/[ \t\r\n]+/, ''],
 			//TODO not sure why i need to do this
 			[/s\.t\./, 'keyword'],
+			//once reached the where block, everything else is declarations
+			[/where/, 'keyword', '@where_block'],
 			{ include: "declarations" },
-			[/([a-z$][\w$]*)(?=\s=)/, 'identifier.define'],
 			[/([a-z$][\w$]*)(?=\(.*\))/, 'function'],
 			[/[a-z$][\w$]*/, {
 				"cases": {
@@ -74,6 +75,11 @@ export const RoocLanguage = {
 			[/[[\]]/, '@brackets'],
 			[/[}]/, '@brackets', '@pop'],
 		],
+
+		where_block: [
+			[/([a-z$][\w$]*)(?=\s=)/, 'identifier.define'],
+			{ include: "@common" },
+		]
 	}
 }
 
@@ -117,7 +123,7 @@ function stringifyRuntimeEntry(entry: PossibleCompletionToken) {
 		]
 	} else if (entry.type === "RuntimeBlockFunction") {
 		return [
-			{ value: createRoocFunctionSignature(entry)},
+			{ value: createRoocFunctionSignature(entry) },
 			{ value: `[BlockFunction] ${entry.name}: ${entry.description}` },
 		]
 	} else if (entry.type === "RuntimeFunction") {
