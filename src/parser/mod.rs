@@ -5,3 +5,4 @@ pub mod transformer;
 pub mod iterable_utils;
 pub mod recursive_set_resolver;
 pub mod tests;
+pub mod domain_declaration;

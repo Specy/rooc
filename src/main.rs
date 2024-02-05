@@ -91,22 +91,22 @@ fn main() {
             println!("Error: {:?}", e);
         }
     }
-    let source = "
+    let source = r#"
     min 1
     s.t.
-        sum(i in a){ x_i } <= 1 for i in 0..5
+        1 <= 1 for len in a
     where
-        a = [\"a\",\"b\"]
-    "
+        a = [1]
+    "#
     .to_string();
     let parser = RoocParser::new(source.clone());
-    let parsed = parser.parse();
+    let parsed = parser.parse_and_transform();
     match parsed {
         Ok(parsed) => {
-            println!("{}", parsed.to_latex());
+            println!("{}", parsed.to_string());
         }
         Err(e) => {
-            println!("{}", e.to_string_from_source(source.as_str()));
+            println!("{}", e);
         }
     }
 }

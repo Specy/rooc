@@ -1,9 +1,8 @@
 use core::fmt;
 use std::str::FromStr;
 
-use serde::ser::{SerializeStruct, Serializer};
+use serde::ser::SerializeStruct;
 use serde::Serialize;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use crate::math::operators::UnOp;
@@ -25,7 +24,7 @@ use crate::{
 
 use super::{
     recursive_set_resolver::recursive_set_resolver,
-    transformer::{Exp, TransformError, TransformerContext, VariableType},
+    transformer::{Exp, TransformError, TransformerContext, VariableKind},
 };
 
 enum_with_variants_to_string! {
@@ -694,7 +693,16 @@ impl PreExp {
                 });
                 match value {
                     Some(value) => Ok(value?),
-                    None => Ok(Exp::Variable(name.get_span_value().clone())),
+                    None => {
+                        let domain = context.get_variable_domain(name);
+                        if domain.is_none() {
+                            return Err(TransformError::UndeclaredVariableDomain(
+                                name.get_span_value().clone(),
+                            )
+                            .to_spanned_error(self.get_span()));
+                        }
+                        Ok(Exp::Variable(name.get_span_value().clone()))
+                    }
                 }
             }
             Self::CompoundVariable(c) => {
@@ -707,6 +715,12 @@ impl PreExp {
                 let name = context
                     .flatten_compound_variable(&c.name, indexes)
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                let domain = context.get_variable_domain(&name);
+                if domain.is_none() {
+                    return Err(TransformError::UndeclaredVariableDomain(name).to_spanned_error(
+                        self.get_span(),
+                    ));
+                }
                 Ok(Exp::Variable(name))
             }
             Self::ArrayAccess(array_access) => {
@@ -782,12 +796,7 @@ impl PreExp {
                 )),
             },
             PreExp::CompoundVariable(c) => {
-                let indexes = &c
-                    .indexes
-                    .iter()
-                    .map(|v| v.as_primitive(context))
-                    .collect::<Result<Vec<Primitive>, TransformError>>()
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                let indexes = &c.compute_indexes(context)?;
                 let name = context.flatten_compound_variable(&c.name, indexes)?;
                 match context.get_value(&name) {
                     Some(value) => Ok(value.clone()),
@@ -1026,7 +1035,7 @@ impl PreExp {
 
 #[derive(Debug, Serialize, Clone)]
 pub struct IterableSet {
-    pub var: VariableType,
+    pub var: VariableKind,
     pub iterator: Spanned<PreExp>,
     pub span: InputSpan,
 }
@@ -1049,7 +1058,7 @@ impl ToLatex for IterableSet {
 }
 
 impl IterableSet {
-    pub fn new(var: VariableType, iterator: Spanned<PreExp>, span: InputSpan) -> Self {
+    pub fn new(var: VariableKind, iterator: Spanned<PreExp>, span: InputSpan) -> Self {
         Self {
             var,
             iterator,
@@ -1064,12 +1073,12 @@ impl IterableSet {
             _ => PrimitiveKind::Undefined, //should this be undefined or any?
         };
         match &self.var {
-            VariableType::Single(name) => context.add_token_type_or_undefined(
+            VariableKind::Single(name) => context.add_token_type_or_undefined(
                 iter_type,
                 self.span.clone(),
                 Some(name.get_span_value().clone()),
             ),
-            VariableType::Tuple(vars) => match &iter_type {
+            VariableKind::Tuple(vars) => match &iter_type {
                 PrimitiveKind::Iterable(kind) => {
                     for v in vars {
                         context.add_token_type_or_undefined(
@@ -1109,8 +1118,8 @@ impl IterableSet {
             }
         };
         match &self.var {
-            VariableType::Single(name) => Ok(vec![(name.clone(), iter_type)]),
-            VariableType::Tuple(vars) => {
+            VariableKind::Single(name) => Ok(vec![(name.clone(), iter_type)]),
+            VariableKind::Tuple(vars) => {
                 match &iter_type {
                     PrimitiveKind::Iterable(kind) => {
                         Ok(vars
@@ -1216,6 +1225,16 @@ export type SerializedCompoundVariable = {
 impl CompoundVariable {
     pub fn new(name: String, indexes: Vec<PreExp>) -> Self {
         Self { name, indexes }
+    }
+
+    pub fn compute_indexes(
+        &self,
+        context: &TransformerContext,
+    ) -> Result<Vec<Primitive>, TransformError> {
+        self.indexes
+            .iter()
+            .map(|i| i.as_primitive(context))
+            .collect::<Result<Vec<Primitive>, TransformError>>()
     }
 }
 

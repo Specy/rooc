@@ -5,18 +5,19 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use crate::math::math_enums::{Comparison, OptimizationType};
+use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
 use crate::math::operators::{BinOp, UnOp};
 use crate::primitives::consts::Constant;
 use crate::primitives::functions::function_traits::FunctionCall;
 use crate::primitives::primitive::PrimitiveKind;
 use crate::runtime_builtin::reserved_tokens::{check_if_reserved_token, TokenType};
+use crate::traits::latex::{escape_latex, ToLatex};
 use crate::{
     primitives::primitive::Primitive,
     utils::{InputSpan, Spanned},
 };
-use crate::traits::latex::{escape_latex, ToLatex};
 
+use super::domain_declaration::VariablesDomainDeclaration;
 use super::{
     parser::PreProblem,
     pre_parsed_problem::{AddressableAccess, PreCondition, PreExp, PreObjective},
@@ -306,7 +307,9 @@ impl Problem {
 #[serde(tag = "type", content = "value")]
 pub enum TransformError {
     UndeclaredVariable(String),
+    UndeclaredVariableDomain(String),
     AlreadyDeclaredVariable(String),
+    AlreadyDeclaredDomainVariable(Vec<(String, (i32, VariableType))>),
     OutOfBounds(String),
     WrongArgument {
         got: PrimitiveKind,
@@ -418,6 +421,14 @@ export type SerializedTransformError = {
         name: string,
         kind: SerializedTokenType
     }
+} | {
+    type: "AlreadyDeclaredDomainVariable",
+    value: {
+        variables: [string, SerializedVariableType][]
+    }
+} | {
+    type: "UndeclaredVariableDomain",
+    value: string
 }
 "#;
 
@@ -431,6 +442,12 @@ impl fmt::Display for TransformError {
             TransformError::AlreadyDeclaredVariable(name) => {
                 format!(
                     "[AlreadyDeclaredVariable] Variable {} was already declared",
+                    name
+                )
+            },
+            TransformError::UndeclaredVariableDomain(name) => {
+                format!(
+                    "[UndeclaredVariableDomain] The domain of variable \"{}\" was not defined",
                     name
                 )
             }
@@ -486,6 +503,16 @@ impl fmt::Display for TransformError {
                 format!(
                     "[AlreadyDefined] name \"{}\" is already defined as a \"{}\"",
                     name, kind
+                )
+            }
+            TransformError::AlreadyDeclaredDomainVariable(variables) => {
+                format!(
+                    "[AlreadyDeclaredDomainVariable] There are some variables whose domain is already declared: {}",
+                    variables
+                        .iter()
+                        .map(|(name, kind)| format!("{}: {} ({} duplicates)", name, kind.1.to_string(), kind.0))
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 )
             }
             TransformError::SpreadError {
@@ -688,29 +715,66 @@ impl<T> Default for Frame<T> {
 #[derive(Debug)]
 pub struct TransformerContext {
     frames: Vec<Frame<Primitive>>,
+    domain: HashMap<String, VariableType>,
 }
 
 impl Default for TransformerContext {
     fn default() -> Self {
         let primitives = HashMap::new();
-        Self::new(primitives)
+        let domain = HashMap::new();
+        Self::new(primitives, domain)
     }
 }
 
 impl TransformerContext {
-    pub fn new(primitives: HashMap<String, Primitive>) -> Self {
+    pub fn new(
+        primitives: HashMap<String, Primitive>,
+        domain: HashMap<String, VariableType>,
+    ) -> Self {
         let frame = Frame::from_map(primitives);
         Self {
             frames: vec![frame],
+            domain,
         }
     }
-    pub fn new_from_constants(constants: Vec<Constant>) -> Result<Self, TransformError> {
+    pub fn new_from_constants(
+        constants: Vec<Constant>,
+        domain: Vec<VariablesDomainDeclaration>,
+    ) -> Result<Self, TransformError> {
         let mut context = Self::default();
         for constant in constants {
             let value = constant.as_primitive(&context)?;
             let name = constant.name.get_span_value();
             context.declare_variable(name, value, true)?; //TODO should this be strict or allow for redeclaration?
         }
+        let computed_domain = domain
+            .into_iter()
+            .map(|d| d.compute_domain(&mut context))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+        let duplicates = computed_domain
+            .iter()
+            .fold(HashMap::new(), |mut acc, (name, as_type)| {
+                if let Some((count, saved_type)) = acc.get_mut(name){
+                    //ignore the type if it's the same
+                    if saved_type == as_type {
+                        return acc;
+                    }
+                    *count += 1;
+                } else {
+                    acc.insert(name.clone(), (1, as_type.clone()));
+                }
+                acc
+            })
+            .into_iter()
+            .filter(|(_, (count, _))| *count > 1)
+            .collect::<Vec<_>>();
+        if !duplicates.is_empty() {
+            return Err(TransformError::AlreadyDeclaredDomainVariable(duplicates));
+        }
+        context.domain = HashMap::from_iter(computed_domain);
         Ok(context)
     }
 
@@ -767,6 +831,9 @@ impl TransformerContext {
             }
         }
         None
+    }
+    pub fn get_variable_domain(&self, name: &str) -> Option<&VariableType> {
+        self.domain.get(name)
     }
     pub fn exists_variable(&self, name: &str, strict: bool) -> bool {
         if strict {
@@ -855,7 +922,10 @@ impl TransformerContext {
 }
 
 pub fn transform_parsed_problem(pre_problem: PreProblem) -> Result<Problem, TransformError> {
-    let mut context = TransformerContext::new_from_constants(pre_problem.get_constants().clone())?;
+    let mut context = TransformerContext::new_from_constants(
+        pre_problem.get_constants().clone(),
+        pre_problem.get_domains().clone(),
+    )?;
     transform_problem(&pre_problem, &mut context)
 }
 
@@ -876,7 +946,7 @@ pub type PrimitiveSet = Vec<Primitive>;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "value")]
-pub enum VariableType {
+pub enum VariableKind {
     Single(Spanned<String>),
     Tuple(Vec<Spanned<String>>),
 }
@@ -892,11 +962,11 @@ export type SerializedVariableType = {
 }
 "#;
 
-impl ToLatex for VariableType {
+impl ToLatex for VariableKind {
     fn to_latex(&self) -> String {
         match self {
-            VariableType::Single(name) => name.to_string(),
-            VariableType::Tuple(names) => format!(
+            VariableKind::Single(name) => name.to_string(),
+            VariableKind::Tuple(names) => format!(
                 "({})",
                 names
                     .iter()
@@ -908,11 +978,12 @@ impl ToLatex for VariableType {
     }
 }
 
-impl fmt::Display for  VariableType {
+impl fmt::Display for VariableKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            VariableType::Single(name) => f.write_str(name),
-            VariableType::Tuple(names) => write!(f,
+            VariableKind::Single(name) => f.write_str(name),
+            VariableKind::Tuple(names) => write!(
+                f,
                 "({})",
                 names
                     .iter()

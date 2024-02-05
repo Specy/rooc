@@ -13,9 +13,10 @@ use crate::traits::latex::ToLatex;
 use crate::type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, TypedToken};
 use crate::utils::{CompilationError, InputSpan, ParseError};
 
+use super::domain_declaration::VariablesDomainDeclaration;
 use super::pre_parsed_problem::{PreCondition, PreObjective};
 use super::rules_parser::other_parser::{
-    parse_condition_list, parse_consts_declaration, parse_objective,
+    parse_condition_list, parse_consts_declaration, parse_domain_declaration, parse_domains_declaration, parse_objective
 };
 use super::transformer::{transform_parsed_problem, Problem, TransformError};
 
@@ -29,6 +30,7 @@ pub struct PreProblem {
     objective: PreObjective,
     conditions: Vec<PreCondition>,
     constants: Vec<Constant>,
+    domains: Vec<VariablesDomainDeclaration>,
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -36,7 +38,8 @@ const IPreProblem: &'static str = r#"
 export type SerializedPreProblem = {
     objective: SerializedPreObjective,
     conditions: SerializedPreCondition[],
-    constants: SerializedConstant[]
+    constants: SerializedConstant[],
+    domains: SerializedVariablesDomainDeclaration[],
 }
 "#;
 
@@ -45,11 +48,13 @@ impl PreProblem {
         objective: PreObjective,
         conditions: Vec<PreCondition>,
         constants: Vec<Constant>,
+        domains: Vec<VariablesDomainDeclaration>,
     ) -> Self {
         Self {
             objective,
             conditions,
             constants,
+            domains,
         }
     }
     pub fn get_objective(&self) -> &PreObjective {
@@ -60,6 +65,9 @@ impl PreProblem {
     }
     pub fn get_constants(&self) -> &Vec<Constant> {
         &self.constants
+    }
+    pub fn get_domains(&self) -> &Vec<VariablesDomainDeclaration> {
+        &self.domains
     }
     pub fn transform(self) -> Result<Problem, TransformError> {
         transform_parsed_problem(self)
@@ -84,6 +92,9 @@ impl PreProblem {
 impl TypeCheckable for PreProblem {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         self.objective.type_check(context)?;
+        for domain in &self.domains {
+            domain.type_check(context)?;
+        }
         for cond in &self.conditions {
             cond.type_check(context)?;
         }
@@ -91,6 +102,9 @@ impl TypeCheckable for PreProblem {
     }
     fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
         self.objective.populate_token_type_map(context);
+        for domain in &self.domains {
+            domain.populate_token_type_map(context);
+        }
         for cond in &self.conditions {
             cond.populate_token_type_map(context);
         }
@@ -117,6 +131,16 @@ impl ToLatex for PreProblem {
                 .collect::<Vec<_>>()
                 .join("\\\\\n");
             s.push_str(format!("\n\\begin{{align*}}\n{}\n\\end{{align*}}", constants).as_str());
+        }
+        if !self.domains.is_empty() {
+            s.push_str("\\\\\n define \\\\\n");
+            let domains = self
+                .domains
+                .iter()
+                .map(|domain| format!("     \\quad {}", domain.to_latex()))
+                .collect::<Vec<_>>()
+                .join("\\\\\n");
+            s.push_str(format!("\n\\begin{{align*}}\n{}\n\\end{{align*}}", domains).as_str());
         }
         s
     }
@@ -201,6 +225,17 @@ impl fmt::Display for PreProblem {
                 s.push_str(&format!("    {}\n", constant));
             }
         }
+        if !self.domains.is_empty() {
+            s.push_str("define\n");
+            for domain in &self.domains {
+                let domain = domain
+                    .to_string()
+                    .split("\n")
+                    .collect::<Vec<_>>()
+                    .join("\n    ");
+                s.push_str(&format!("    {}\n", domain));
+            }
+        }
         f.write_str(&s)
     }
 }
@@ -253,11 +288,15 @@ fn parse_problem(problem: Pair<Rule>) -> Result<PreProblem, CompilationError> {
     let consts = pairs
         .find_first_tagged("where")
         .map(parse_consts_declaration);
+    let domain = pairs
+        .find_first_tagged("define")
+        .map(|v| parse_domains_declaration(v));
     match (objective, conditions) {
         (Some(obj), Some(cond)) => Ok(PreProblem::new(
             obj?,
             cond?,
             consts.unwrap_or(Ok(Vec::new()))?,
+            domain.unwrap_or(Ok(Vec::new()))?,
         )),
         _ => bail_missing_token!("Objective and conditions are required", problem),
     }

@@ -211,4 +211,6 @@ export type {
     Comparison,
     OptimizationType,
     ParseError,
+    SerializedVariableToAssert,
+    SerializedVariablesDomainDeclaration,
 } from './pkg/rooc'

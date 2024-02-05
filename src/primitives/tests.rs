@@ -19,7 +19,8 @@ mod primitive_tests {
                     [1, 2],
                     [3, 4]
                 ]
-
+            define
+                x_u, x_v as Binary for (u, _, v) in edges(G)  
         ";
         RoocParser::new(source.to_string())
             .parse_and_transform()

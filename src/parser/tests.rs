@@ -21,6 +21,9 @@ where
         I -> [C, H, J],
         J -> [B, F, I]
     }
+define
+    x_u as Binary for v in nodes(G), (_,_,u) in edges(G) 
+    x_v as Binary for v in nodes(G)
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -120,6 +123,8 @@ where
                x + -1 >= 1
                -1 * (x) >= 1
                2 * -1 * (x) >= 1
+            define
+                x as Real
             ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -149,6 +154,8 @@ where
             |x + y|z + 2 >= 1
 
             2(x + y)3|x + y|z + 2 >= 1
+        define 
+            x,y,z as Real
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -242,6 +249,8 @@ where
                 B -> [A, C],
                 C -> [A, B]
             }
+        define
+            x_u, x_v as Binary for (u, _, v) in edges(G)
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -258,7 +267,6 @@ where
         s.t.
             1 <= sum(i in n){ x_i * num}
         where
-    
             G = Graph {
                 A -> [B: 10, C],
                 B -> [A, C],
@@ -268,6 +276,8 @@ where
             e = edges(G)
             num = len(n) + 1
             numSquared = num * num
+        define
+            x_i as Binary for i in n
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -287,6 +297,8 @@ where
         where
             c = [1, 2, 3, 4, 5]
             u = 1    
+        define 
+            x_u, x_{u + 1}, x_{len(c) + 2}, x_1, x_{-1} as Binary
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -307,10 +319,10 @@ where
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
-            .expect_err("Failed to detect invalid primitive type");
+            .expect_err("Failed to detect invalid identifier name");
         RoocParser::new(input.to_string())
             .type_check()
-            .expect_err("Failed to detect invalid primitive type");
+            .expect_err("Failed to detect invalid identifier name");
     }
 
     #[test]
@@ -324,10 +336,10 @@ where
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
-            .expect_err("Failed to detect invalid primitive type");
+            .expect_err("Failed to detect invalid identifier name");
         RoocParser::new(input.to_string())
             .type_check()
-            .expect_err("Failed to detect invalid primitive type");
+            .expect_err("Failed to detect invalid identifier name");
     }
 
     #[test]
@@ -339,11 +351,27 @@ where
         where
             a = [1]
         ";
+
         RoocParser::new(input.to_string())
             .parse_and_transform()
-            .expect_err("Failed to detect invalid primitive type");
+            .expect_err("Failed to detect invalid identifier name");
         RoocParser::new(input.to_string())
             .type_check()
-            .expect_err("Failed to detect invalid primitive type");
+            .expect_err("Failed to detect invalid identifier name");
+    }
+
+    #[test]
+    fn test_duplicate_domain(){
+        let input = "
+        min 1
+        s.t.
+            x <= 2
+        define
+            x_u as Real for u in 0..10
+            x_v as Binary for v in 0..10
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect_err("Failed to detect duplicate domain");
     }
 }

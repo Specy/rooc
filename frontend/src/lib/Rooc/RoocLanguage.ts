@@ -9,7 +9,7 @@ export const RoocLanguage = {
 	defaultToken: 'invalid',
 	ignoreCase: true,
 	tokenPostfix: '.rooc',
-	keywords: ["where", "for", "min", "max", "in", "s.t."],
+	keywords: ["where", "for", "min", "max", "in", "s.t.", "as", "define"],
 	literals: ["true", "false"],
 	operators: ["+", "-", "/", "*", "!", "&", "|", "=", "<=", "=>"],
 	symbols: /[=><!~?:&|+\-*\/\^%]+/,
@@ -32,6 +32,7 @@ export const RoocLanguage = {
 			[/where/, 'keyword', '@where_block'],
 			{ include: "declarations" },
 			[/([a-z$][\w$]*)(?=\(.*\))/, 'function'],
+			[/as/, 'keyword', '@as_assertion'],
 			[/[a-z$][\w$]*/, {
 				"cases": {
 					"@keywords": "keyword",
@@ -75,7 +76,10 @@ export const RoocLanguage = {
 			[/[[\]]/, '@brackets'],
 			[/[}]/, '@brackets', '@pop'],
 		],
-
+		as_assertion: [
+			[/\W+/, ''],
+			[/\w*/, 'identifier.type', '@pop'],
+		],
 		where_block: [
 			[/([a-z$][\w$]*)(?=\s=)/, 'identifier.define'],
 			{ include: "@common" },

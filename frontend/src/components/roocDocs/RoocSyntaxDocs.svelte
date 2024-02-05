@@ -21,6 +21,9 @@ where
         [4, 5, 6]
     ]
     someString = "hello"
+define
+	x_u, x_v as Binary for v in nodes(G), (_,_,u) in neigh_edges(v)
+	\\x_hello as Real
 `.trim();
 const exampleModel2 = `
 min 1
@@ -29,6 +32,8 @@ s.t.
 where 
     u = 1
     A = [1, 2, 3]
+define
+    x_u, x_{u + 1}, x_2, x_{len(A)} as PositiveReal 
 `.trim();
 </script>
 

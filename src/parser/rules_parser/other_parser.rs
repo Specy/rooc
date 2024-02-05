@@ -2,15 +2,15 @@ use std::vec;
 
 use pest::iterators::{Pair, Pairs};
 
-use crate::{bail_missing_token, err_unexpected_token};
-use crate::math::math_enums::{Comparison, OptimizationType};
+use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
+use crate::parser::domain_declaration::{VariableToAssert, VariablesDomainDeclaration};
 use crate::parser::iterable_utils::flatten_primitive_array_values;
 use crate::parser::parser::Rule;
 use crate::parser::pre_parsed_problem::{
     AddressableAccess, BlockFunction, BlockFunctionKind, BlockScopedFunction,
     BlockScopedFunctionKind, CompoundVariable, IterableSet, PreCondition, PreExp, PreObjective,
 };
-use crate::parser::transformer::VariableType;
+use crate::parser::transformer::VariableKind;
 use crate::primitives::consts::Constant;
 use crate::primitives::functions::array_functions::{EnumerateArray, LenOfIterableFn};
 use crate::primitives::functions::function_traits::FunctionCall;
@@ -21,6 +21,7 @@ use crate::primitives::functions::number_functions::NumericRange;
 use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
 use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
+use crate::{bail_missing_token, err_unexpected_token};
 
 use super::exp_parser::parse_exp;
 
@@ -88,6 +89,102 @@ pub fn parse_const_declaration(
             "Expected constant declaration but got: {}",
             const_declaration
         ),
+    }
+}
+
+pub fn parse_domains_declaration(
+    domains_declarations: Pair<Rule>,
+) -> Result<Vec<VariablesDomainDeclaration>, CompilationError> {
+    match domains_declarations.as_rule() {
+        Rule::domains_declaration => domains_declarations
+            .into_inner()
+            .map(parse_domain_declaration)
+            .collect(),
+        _ => err_unexpected_token!(
+            "Expected domains declaration but got: {}",
+            domains_declarations
+        ),
+    }
+}
+
+pub fn parse_domain_declaration(
+    rule: Pair<Rule>,
+) -> Result<VariablesDomainDeclaration, CompilationError> {
+    match rule.as_rule() {
+        Rule::domain_declaration => {
+            let inner = rule.clone().into_inner();
+            let variables = inner
+                .find_first_tagged("vars")
+                .map(|v| parse_variables_assertion(v));
+            let iteration = inner
+                .find_first_tagged("iteration")
+                .map(|v| parse_set_iterator_list(&v.into_inner()));
+            let as_type = inner
+                .find_first_tagged("as_type")
+                .map(|v| parse_as_assertion_type(&v));
+            let span = InputSpan::from_pair(&rule);
+            match (variables, as_type) {
+                (Some(variables), Some(as_type)) => {
+                    let iteration = iteration.unwrap_or(Ok(vec![]));
+                    Ok(VariablesDomainDeclaration::new(
+                        variables?, as_type?, iteration?, span,
+                    ))
+                }
+                _ => bail_missing_token!("Missing domain declaration body", rule),
+            }
+        }
+        _ => err_unexpected_token!("Expected domain declaration but got: {}", rule),
+    }
+}
+
+pub fn parse_variables_assertion(
+    variables_assertions: Pair<Rule>,
+) -> Result<Vec<Spanned<VariableToAssert>>, CompilationError> {
+    match variables_assertions.as_rule() {
+        Rule::domain_variables => variables_assertions
+            .into_inner()
+            .map(|v| parse_variable_assertion(&v))
+            .collect(),
+        _ => err_unexpected_token!(
+            "Expected variables assertions but got: {}",
+            variables_assertions
+        ),
+    }
+}
+pub fn parse_as_assertion_type(pair: &Pair<Rule>) -> Result<VariableType, CompilationError> {
+    match pair.as_str().parse() {
+        Ok(kind) => Ok(kind),
+        Err(_) => err_unexpected_token!(
+            "Unknown variable type \"{}\", expected one of \"{}\"",
+            pair,
+            VariableType::kinds_to_string().join(", ")
+        ),
+    }
+}
+pub fn parse_variable_assertion(
+    pair: &Pair<Rule>,
+) -> Result<Spanned<VariableToAssert>, CompilationError> {
+    let span = InputSpan::from_pair(pair);
+    match pair.as_rule() {
+        Rule::compound_variable => {
+            let compound_variable = parse_compound_variable(pair);
+            match compound_variable {
+                Ok(compound_variable) => Ok(Spanned::new(
+                    VariableToAssert::CompoundVariable(compound_variable),
+                    span,
+                )),
+                Err(e) => Err(e),
+            }
+        }
+        Rule::simple_variable => Ok(Spanned::new(
+            VariableToAssert::Variable(pair.as_str().to_string()),
+            span,
+        )),
+        Rule::escaped_compound_variable => Ok(Spanned::new(
+            VariableToAssert::Variable(pair.as_str()[1..].to_string()),
+            span,
+        )),
+        _ => err_unexpected_token!("Expected variable but got: {}", pair),
     }
 }
 
@@ -268,26 +365,7 @@ pub fn parse_set_iterator_list(
         .map(|r| parse_set_iterator(&r))
         .collect::<Result<Vec<IterableSet>, CompilationError>>()
 }
-/*
-                let inner = exp.clone().into_inner();
-                let name = inner.find_first_tagged("name");
-                let iters = inner.find_first_tagged("range");
-                let body = inner.find_first_tagged("body");
-                if name.is_none() || iters.is_none() || body.is_none() {
-                    return err_unexpected_token!("found {}, expected scoped block function", exp);
-                }
-                let body = body.unwrap();
-                let body = parse_exp(&body)?.to_boxed();
-                let iters = iters.unwrap();
-                let iters = parse_set_iterator_list(&iters.into_inner())?;
-                let kind = parse_scoped_block_function_type(&name.unwrap())?;
-                let fun = BlockScopedFunction::new(kind, iters, body);
-                let fun_exp = PreExp::BlockScopedFunction(Spanned::new(fun, span));
-                let sum =
-                    englobe_if_multiplied_by_constant(&last_token, &mut output_queue, fun_exp)?;
-                output_queue.push(sum);
 
-*/
 pub fn parse_block_scoped_function(exp: &Pair<Rule>) -> Result<PreExp, CompilationError> {
     let span = InputSpan::from_pair(exp);
     let inner = exp.clone().into_inner();
@@ -360,6 +438,13 @@ pub fn parse_compound_variable_index(
                 span,
             )))
         }
+        Rule::escaped_compound_variable => {
+            let span = InputSpan::from_pair(&compound_variable_index);
+            Ok(PreExp::Variable(Spanned::new(
+                compound_variable_index.as_str()[1..].to_string(),
+                span,
+            )))
+        }
         Rule::integer => {
             let span = InputSpan::from_pair(&compound_variable_index);
             let value = compound_variable_index.as_str().parse::<i64>();
@@ -374,9 +459,7 @@ pub fn parse_compound_variable_index(
                 span,
             )))
         }
-        Rule::tagged_exp => {
-            parse_exp(compound_variable_index)
-        }
+        Rule::tagged_exp => parse_exp(compound_variable_index),
         _ => err_unexpected_token!(
             "Expected compound variable index but got: {}",
             compound_variable_index
@@ -509,7 +592,7 @@ pub fn parse_set_iterator(range: &Pair<Rule>) -> Result<IterableSet, Compilation
     }
 }
 
-pub fn parse_variable_type(tuple: &Pair<Rule>) -> Result<VariableType, CompilationError> {
+pub fn parse_variable_type(tuple: &Pair<Rule>) -> Result<VariableKind, CompilationError> {
     match tuple.as_rule() {
         Rule::tuple => {
             let inner = tuple.clone().into_inner();
@@ -520,15 +603,18 @@ pub fn parse_variable_type(tuple: &Pair<Rule>) -> Result<VariableType, Compilati
                         Rule::simple_variable | Rule::no_par => {
                             Ok(Spanned::new(i.as_str().to_string(), span))
                         }
+                        Rule::escaped_compound_variable => {
+                            Ok(Spanned::new(i.as_str()[1..].to_string(), span))
+                        }
                         _ => err_unexpected_token!("Expected variable but got: {}", i),
                     }
                 })
                 .collect::<Result<Vec<_>, CompilationError>>()?;
-            Ok(VariableType::Tuple(inner))
+            Ok(VariableKind::Tuple(inner))
         }
-        Rule::simple_variable => {
+        Rule::simple_variable | Rule::escaped_compound_variable => {
             let span = InputSpan::from_pair(tuple);
-            Ok(VariableType::Single(Spanned::new(
+            Ok(VariableKind::Single(Spanned::new(
                 tuple.as_str().to_string(),
                 span,
             )))

@@ -5,7 +5,7 @@ use crate::{
 
 use super::{
     pre_parsed_problem::IterableSet,
-    transformer::{TransformError, TransformerContext, VariableType},
+    transformer::{TransformError, TransformerContext, VariableKind},
 };
 
 //TODO make this a iterator
@@ -25,12 +25,12 @@ pub fn recursive_set_resolver<T>(
     })?;
     context.add_scope();
     match &range.var {
-        VariableType::Single(n) => {
+        VariableKind::Single(n) => {
             context
                 .declare_variable(n, Primitive::Undefined, true)
                 .map_err(|e| e.to_spanned_error(&range.span))?;
         }
-        VariableType::Tuple(t) => {
+        VariableKind::Tuple(t) => {
             for name in t.iter() {
                 context
                     .declare_variable(name, Primitive::Undefined, true)
@@ -42,12 +42,12 @@ pub fn recursive_set_resolver<T>(
     let values = values.to_primitives();
     for value in values.into_iter() {
         match &range.var {
-            VariableType::Single(n) => {
+            VariableKind::Single(n) => {
                 context
                     .update_variable(n, value.clone())
                     .map_err(|e| e.to_spanned_error(&range.span))?;
             }
-            VariableType::Tuple(tuple) => {
+            VariableKind::Tuple(tuple) => {
                 let values = value.to_primitive_set()?;
                 apply_tuple(context, tuple, values).map_err(|e| e.to_spanned_error(&range.span))?;
             }

@@ -68,6 +68,10 @@ pub fn parse_exp_leaf(exp: Pair<Rule>) -> Result<PreExp, CompilationError> {
             let variable = exp.as_str().to_string();
             Ok(PreExp::Variable(Spanned::new(variable, span)))
         }
+        Rule::escaped_compound_variable => {
+            let variable = exp.as_str()[1..].to_string();
+            Ok(PreExp::Variable(Spanned::new(variable, span)))
+        }
         Rule::compound_variable => {
             let variable = parse_compound_variable(&exp)?;
             Ok(PreExp::CompoundVariable(Spanned::new(variable, span)))
