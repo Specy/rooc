@@ -22,7 +22,7 @@ where
     ]
     someString = "hello"
 define
-	x_u, x_v as Binary for v in nodes(G), (_,_,u) in neigh_edges(v)
+	x_u, x_v as Boolean for v in nodes(G), (_,_,u) in neigh_edges(v)
 	\\x_hello as Real
 `.trim();
 const exampleModel2 = `
@@ -44,7 +44,7 @@ define
 	You can define formal expressions using iterators over data, using different functions to transform
 	it.
 	<br />
-	A general model can be defined as an objective function, a set of constraints,a set of data (optional), and the domains where the variables lay in (Real numbers, Binary, Integer etc..).
+	A general model can be defined as an objective function, a set of constraints,a set of data (optional), and the domains where the variables lay in (Real, PositiveReal, Boolean, Integer etc..).
 	<br />
 	There are different expansion functions that can be used to expand the expressions
 	<Card padding="0.8rem 1rem">

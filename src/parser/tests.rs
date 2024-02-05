@@ -22,8 +22,8 @@ where
         J -> [B, F, I]
     }
 define
-    x_u as Binary for v in nodes(G), (_,_,u) in edges(G) 
-    x_v as Binary for v in nodes(G)
+    x_u as Boolean for v in nodes(G), (_,_,u) in edges(G) 
+    x_v as Boolean for v in nodes(G)
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -250,7 +250,7 @@ define
                 C -> [A, B]
             }
         define
-            x_u, x_v as Binary for (u, _, v) in edges(G)
+            x_u, x_v as Boolean for (u, _, v) in edges(G)
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -277,7 +277,7 @@ define
             num = len(n) + 1
             numSquared = num * num
         define
-            x_i as Binary for i in n
+            x_i as Boolean for i in n
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -298,7 +298,7 @@ define
             c = [1, 2, 3, 4, 5]
             u = 1    
         define 
-            x_u, x_{u + 1}, x_{len(c) + 2}, x_1, x_{-1} as Binary
+            x_u, x_{u + 1}, x_{len(c) + 2}, x_1, x_{-1} as Boolean
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -368,7 +368,7 @@ define
             x <= 2
         define
             x_u as Real for u in 0..10
-            x_v as Binary for v in 0..10
+            x_v as Boolean for v in 0..10
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()

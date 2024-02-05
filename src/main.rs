@@ -110,7 +110,7 @@ fn main() {
         ]
         someString = "hello"
     define
-        x_u, x_v as Binary for v in nodes(G), (_,_,u) in neigh_edges(v)
+        x_u, x_v as Boolean for v in nodes(G), (_,_,u) in neigh_edges(v)
         \x_hello as Real
     "#
     .to_string();

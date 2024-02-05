@@ -91,7 +91,7 @@ impl FromStr for OptimizationType {
 enum_with_variants_to_string!{
     pub enum VariableType derives[Debug, PartialEq, Clone] with_wasm{
         Integer,
-        Binary,
+        Boolean,
         PositiveReal,
         Real,
     }
@@ -101,7 +101,7 @@ impl fmt::Display for VariableType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             VariableType::Integer => "Integer".to_string(),
-            VariableType::Binary => "Binary".to_string(),
+            VariableType::Boolean => "Boolean".to_string(),
             VariableType::PositiveReal => "PositiveReal".to_string(),
             VariableType::Real => "Real".to_string(),
         };
@@ -114,7 +114,7 @@ impl FromStr for VariableType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Integer" => Ok(VariableType::Integer),
-            "Binary" => Ok(VariableType::Binary),
+            "Boolean" => Ok(VariableType::Boolean),
             "PositiveReal" => Ok(VariableType::PositiveReal),
             "Real" => Ok(VariableType::Real),
             _ => Err(()),
@@ -125,7 +125,7 @@ impl ToLatex for VariableType {
     fn to_latex(&self) -> String {
         match self {
             VariableType::Integer => "\\mathbb{Z}".to_string(),
-            VariableType::Binary => "\\{0,1\\}".to_string(),
+            VariableType::Boolean => "\\{0,1\\}".to_string(),
             VariableType::PositiveReal => "\\mathbb{R}^+".to_string(),
             VariableType::Real => "\\mathbb{R}".to_string(),
         }
