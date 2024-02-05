@@ -70,6 +70,8 @@ where
         I -> [C, H, J],
         J -> [B, F, I]
     }
+define
+    x_u, x_v as Boolean for v in nodes(G), (_,_,u) in neigh_edges(v)
 ```
 It is compiled down to:
 ```lua
