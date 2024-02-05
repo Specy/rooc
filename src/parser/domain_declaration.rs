@@ -6,7 +6,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::{
     math::math_enums::VariableType,
     primitives::primitive::Primitive,
-    traits::latex::ToLatex,
+    traits::latex::{escape_latex, ToLatex},
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext},
     utils::{InputSpan, Spanned},
 };
@@ -35,7 +35,7 @@ impl Display for VariableToAssert {
 impl ToLatex for VariableToAssert {
     fn to_latex(&self) -> String {
         match self {
-            VariableToAssert::Variable(name) => name.clone(),
+            VariableToAssert::Variable(name) => escape_latex(name),
             VariableToAssert::CompoundVariable(c) => c.to_latex(),
         }
     }
@@ -186,12 +186,12 @@ impl ToLatex for VariablesDomainDeclaration {
             .map(|v| v.to_latex())
             .collect::<Vec<String>>()
             .join(", ");
-        s.push_str(format!("{} \\in {}", vars, self.as_type.to_latex()).as_str());
+        s.push_str(format!("{} &\\in {}", vars, self.as_type.to_latex()).as_str());
         if !self.iteration.is_empty() {
             let iters = self
                 .iteration
                 .iter()
-                .map(|iter| format!("\\forall{{{}}}", iter.to_latex()))
+                .map(|iter| format!(" \\forall{{{}}} ", iter.to_latex()))
                 .collect::<Vec<String>>()
                 .join(",\\");
             s.push_str(format!(" \\quad {}", iters).as_str());

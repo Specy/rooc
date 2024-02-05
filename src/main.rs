@@ -92,21 +92,36 @@ fn main() {
         }
     }
     let source = r#"
-    min 1
+    min sum(u in nodes(G)) { x_u }
     s.t.
-        1 <= 1 for len in a
+        x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1 for v in nodes(G)
+        avg(el in A) { el * lengthOfA } <= x_someString * len(B)
     where
-        a = [1]
+        G = Graph {
+            A -> [ C, B:2 ],
+            B -> [ A, C:-3 ],
+            C
+        }
+        A = [1.0, 2.0, 3.0]
+        lengthOfA = len(A)
+        B = [
+            [1, 2, 3],
+            [4, 5, 6]
+        ]
+        someString = "hello"
+    define
+        x_u, x_v as Binary for v in nodes(G), (_,_,u) in neigh_edges(v)
+        \x_hello as Real
     "#
     .to_string();
     let parser = RoocParser::new(source.clone());
-    let parsed = parser.parse_and_transform();
+    let parsed = parser.parse();
     match parsed {
         Ok(parsed) => {
-            println!("{}", parsed.to_string());
+            println!("{}", parsed.to_latex());
         }
         Err(e) => {
-            println!("{}", e);
+            println!("{:?}", e);
         }
     }
 }

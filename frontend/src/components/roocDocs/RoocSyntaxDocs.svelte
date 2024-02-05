@@ -44,7 +44,7 @@ define
 	You can define formal expressions using iterators over data, using different functions to transform
 	it.
 	<br />
-	A general model can be defined as an objective function, a set of constraints and a set of data (optional).
+	A general model can be defined as an objective function, a set of constraints,a set of data (optional), and the domains where the variables lay in (Real numbers, Binary, Integer etc..).
 	<br />
 	There are different expansion functions that can be used to expand the expressions
 	<Card padding="0.8rem 1rem">
@@ -56,6 +56,9 @@ define
 	Compound variables are variables whose name is determined at compilation time. They have a name, and a list of indices. 
 	Those indices can be anything that can be written out, so a number or something that can be written out as a string, like strings, graph nodes, true/false.
 	You can omit the curly braces if the index is a number or a variable name, for expressions they need to be there.
+
+	If you want to manually write a variable which "looks like" a compound variable, but in reality is a normal one, you can 
+	escape the name with a backslash. Example: "\x_hello"
 	<Card padding="0.8rem 1rem">
 		<SyntaxHighlighter language="rooc" source={exampleModel2} style="overflow-x: auto;" />
 	</Card>
