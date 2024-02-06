@@ -14,7 +14,7 @@ The library is compiled as a wasm module to be used in the [web editor](https://
 
 # Implemented Features 
 - [x] Syntax and parsing
-  - [x] Staticn block functions (min, max, mod, avg)
+  - [x] Static block functions (min, max, mod, avg)
   - [x] Constant Graph definitions
   - [x] Iterators
   - [x] Tuples
@@ -22,7 +22,7 @@ The library is compiled as a wasm module to be used in the [web editor](https://
   - [x] Primitive destructuring
   - [x] Formal definition of a problem (sum function and generic variables)
   - [x] Constants and multi dimensional arrays in the formal definition of a problem
-  - [x] Custom functions
+  - [x] Other utility functions
   - [x] Expressions as function parameters
   - [x] Error logging and parameter validation 
   - [x] Error traces
