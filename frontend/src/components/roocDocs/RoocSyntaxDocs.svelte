@@ -11,8 +11,8 @@ s.t.
     avg(el in A) { el * lengthOfA } <= x_someString * len(B)
 where
     /*
-	    here your constants. 
-	*/
+        here your constants. 
+    */
     G = Graph {
         A -> [ C, B:2 ],
         B -> [ A, C:-3 ],
