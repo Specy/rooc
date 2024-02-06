@@ -936,7 +936,6 @@ impl PreExp {
                 */
                 let lhs_str = lhs.to_string_with_precedence(op.precedence());
                 let rhs_str = rhs.to_string_with_precedence(op.precedence());
-
                 if op.precedence() < previous_precedence {
                     format!("({} {} {})", lhs_str, op.to_string(), rhs_str)
                 } else {
@@ -1021,7 +1020,14 @@ impl fmt::Display for PreExp {
                     format!("{}({})", **op, **exp)
                 }
             }
-            Self::Variable(name) => name.to_string(),
+            Self::Variable(name) => {
+                if name.contains("_") {
+                    //in case this is a escaped variable
+                    format!("\\{}", name.to_string())
+                }else {
+                    name.to_string()
+                }
+            }
         };
         f.write_str(&s)
     }

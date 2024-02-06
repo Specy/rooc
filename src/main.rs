@@ -92,12 +92,13 @@ fn main() {
         }
     }
     let source = r#"
-    min 3x + 4y + 6z
-    s.t.
-    x + 3y + 4z = 1
+    min 1
+    s.t.    
+        //test comment
+        1 <= 2
     define
-        x, y as Real
-        z as Integer
+        \x_u_v as Boolean
+        x_u as Integer for u in 1..3
     "#
     .to_string();
     let parser = RoocParser::new(source.clone());

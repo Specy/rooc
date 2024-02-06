@@ -137,6 +137,6 @@ boolean = @{ ^"true" | ^"false" }
 function_name = @{ LETTER+ ~ ("_" ~ (LETTER | NUMBER)+)*}
 // ignore whitespace in whole grammar
 WHITESPACE = _{ " " | "\t" }
-COMMENT = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") | "//" ~ (!nl ~ ANY*) ~ nl}
+COMMENT = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") | ("//" ~ (!nl ~ ANY)* ~ nl)}
 range_type = @{ "..=" | ".." }
 no_par = @{ "_" }

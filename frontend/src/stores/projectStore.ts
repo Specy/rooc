@@ -30,10 +30,10 @@ s.t.
     /* write the constraints here */
     x >= y
 where
-    /* write the constants here */
+    // write the constants here
     y = 10
 define
-    /* define the model's variables here */
+    // define the model's variables here
     x as Real`
     }
 }

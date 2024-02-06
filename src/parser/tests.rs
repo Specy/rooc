@@ -374,4 +374,21 @@ define
             .parse_and_transform()
             .expect_err("Failed to detect duplicate domain");
     }
+
+    #[test]
+    fn test_comments() {
+        let input = "
+        min 1
+        s.t.
+            //test comment
+            /* multi 
+            line 
+            comment
+             */
+            1 <= 2
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect("Failed to parse and transform problem");
+    }
 }

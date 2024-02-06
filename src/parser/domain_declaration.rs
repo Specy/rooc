@@ -5,7 +5,6 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     math::math_enums::VariableType,
-    primitives::primitive::Primitive,
     traits::latex::{escape_latex, ToLatex},
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext},
     utils::{InputSpan, Spanned},
@@ -26,7 +25,14 @@ pub enum VariableToAssert {
 impl Display for VariableToAssert {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            VariableToAssert::Variable(name) => write!(f, "{}", name),
+            VariableToAssert::Variable(name) => {
+                if name.contains("_") {
+                    //if it's a variable to be escaped
+                    write!(f, "\\{}", name)
+                } else {
+                    write!(f, "{}", name)
+                }
+            },
             VariableToAssert::CompoundVariable(c) => write!(f, "{}", c),
         }
     }
@@ -35,7 +41,17 @@ impl Display for VariableToAssert {
 impl ToLatex for VariableToAssert {
     fn to_latex(&self) -> String {
         match self {
-            VariableToAssert::Variable(name) => escape_latex(name),
+            VariableToAssert::Variable(name) => {
+                if name.contains("_"){
+                    let mut indexes = name.split("_").collect::<Vec<&str>>();
+                    //sure to have at least one element
+                    let first = indexes.remove(0);
+                    let rest = indexes.join("");
+                    format!("{}_{{{}}}", escape_latex(first), escape_latex(&rest))
+                }else {
+                    escape_latex(name)
+                }
+            },
             VariableToAssert::CompoundVariable(c) => c.to_latex(),
         }
     }
