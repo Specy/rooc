@@ -13,28 +13,28 @@ The "language" supports formal definitions of problems, with the ability to call
 The library is compiled as a wasm module to be used in the [web editor](https://rooc.specy.app) which supports a LSP for type checking, code completion and documentation
 
 # Implemented Features 
-- [ ] Syntax and parsing
-  - [x] Basic block functions (min, max, mod)
+- [x] Syntax and parsing
+  - [x] Staticn block functions (min, max, mod, avg)
   - [x] Constant Graph definitions
   - [x] Iterators
   - [x] Tuples
   - [x] Iterators utility functions (for graphs, edges, etc)
   - [x] Primitive destructuring
-  - [x] Formal definition of a problem, (sum function and generic variables)
+  - [x] Formal definition of a problem (sum function and generic variables)
   - [x] Constants and multi dimensional arrays in the formal definition of a problem
   - [x] Custom functions
   - [x] Expressions as function parameters
   - [x] Error logging and parameter validation 
   - [x] Error traces
   - [x] Primitives Operator overloading (for example, `+` for strings)
-  - [ ] Definition of variable bounds
+  - [x] Definition of variable bounds
 - [ ] Simplex resolution
   - [ ] Linearization of a generic problem
   - [x] Transformation of a linear problem into the standard form
   - [x] Two step method using artifical variables to find a valid basis for the standard form problem
   - [x] Simplex to find the optimal solution of a standard form linear problem
 - [ ] Integer and binary problems resolution
-  - [ ] Integer problem definitions (bounds)
+  - [x] Integer problem definitions (bounds)
   - [ ] Branch & Bound method to solve integer problems
   - [ ] Other integer solution algorithms
 - [ ] UI
