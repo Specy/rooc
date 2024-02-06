@@ -1,7 +1,6 @@
 import { CompilationError, RoocParser, type PossibleCompletionToken, findRoocCompletionTokens, findRoocExactToken } from '@specy/rooc'
 import { editor, languages } from 'monaco-editor'
 import { MarkerSeverity, Position, Range, type IDisposable } from 'monaco-editor'
-import type { SerializedPrimitiveKind } from '@specy/rooc/dist/pkg/rooc'
 import { createRoocFunctionSignature, getFormattedRoocType } from './RoocUtils'
 
 
@@ -25,7 +24,6 @@ export const RoocLanguage = {
 			[/(@digits)[lL]?/, 'number'],
 		],
 		common: [
-			[/[ \t\r\n]+/, ''],
 			//TODO not sure why i need to do this
 			[/s\.t\./, 'keyword'],
 			//once reached the where block, everything else is declarations
@@ -40,6 +38,7 @@ export const RoocLanguage = {
 					"@default": "identifier"
 				}
 			}],
+			{ include: '@whitespace' },
 			[/_/, "identifier.ignore"],
 			// regular expressions
 			// delimiters
@@ -83,7 +82,19 @@ export const RoocLanguage = {
 		where_block: [
 			[/([a-z$][\w$]*)(?=\s=)/, 'identifier.define'],
 			{ include: "@common" },
-		]
+		],
+
+		comment: [
+			[/[^\/*]+/, 'comment'],
+			[/\/\*/, 'comment', '@push'],    // nested comment
+			["\\*/", 'comment', '@pop'],
+			[/[\/*]/, 'comment']
+		],
+		whitespace: [
+			[/[ \t\r\n]+/, 'white'],
+			[/\/\*/, 'comment', '@comment'],
+			[/\/\/.*$/, 'comment'],
+		],
 	}
 }
 
@@ -117,7 +128,16 @@ const keywords = {
 	'where': 'Below here, define all the variables of the problem',
 	'for': 'Iterate over one or more ranges to expand the constraint in multiple constraints',
 	'in': 'Iterate over a range',
+	'as': 'Assert that the domain of variable is of a certain type',
+	'define': 'Define the domain of the variables in your model, all variables must be defined'
 }
+const domainTypes = {
+	'Boolean': 'A boolean value {0,1}',
+	'Real': 'A real number ',
+	'Integer': 'An integer number',
+	'PositiveReal': 'A positive real number',
+}
+
 
 function stringifyRuntimeEntry(entry: PossibleCompletionToken) {
 	if (entry.type === "RuntimeBlockScopedFunction") {
@@ -150,6 +170,16 @@ export function createRoocHoverProvider() {
 			const exactMatch = findRoocExactToken(word?.word ?? '')
 			const range = new Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + (word?.word.length ?? 0))
 
+			if (pos.lineNumber === 1 && pos.column === 1) {
+				if (word?.word === "min" || word?.word === "max") {
+					return {
+						range,
+						contents: [
+							{ value: `Objective function` }
+						]
+					}
+				}
+			}
 			const contents = []
 			if (exactMatch) {
 				const match = stringifyRuntimeEntry(exactMatch)
@@ -163,7 +193,9 @@ export function createRoocHoverProvider() {
 				if (item) {
 					contents.push({ value: `\`\`\`typescript\n${word?.word ?? "Unknown"}: ${getFormattedRoocType(item.value)}\n\`\`\`` })
 				} else if (word?.word) {
-					contents.push({ value: keywords[word.word] ?? 'No type found' })
+					const type = domainTypes[word.word]
+					const keyword = keywords[word.word]
+					contents.push({ value: keyword ?? type ?? 'No type found' })
 				}
 			}
 			return {
@@ -253,14 +285,34 @@ function makeRoocCompletionToken(entry: PossibleCompletionToken) {
 	return undefined
 }
 
+const suggestedKeywords = [
+	'where', 'for', 'in', 's.t.', 'as', 'define'
+].map(k => ({
+	label: k,
+	kind: languages.CompletionItemKind.Keyword,
+	insertText: k,
+	insertTextRules: languages.CompletionItemInsertTextRule.InsertAsSnippet,
+	detail: keywords[k]
+}))
+const suggestedTypes = [
+	"Boolean", "Real", "Integer", "PositiveReal"
+].map(k => ({
+	label: k,
+	kind: languages.CompletionItemKind.Class,
+	insertText: k,
+	insertTextRules: languages.CompletionItemInsertTextRule.InsertAsSnippet,
+	detail: `Type ${k}`
+}))
 
 export function createRoocCompletion() {
 	return {
 		provideCompletionItems: (model: editor.ITextModel, position: Position) => {
 			const word = model.getWordUntilPosition(position)
 			const elements = findRoocCompletionTokens(word.word).map(makeRoocCompletionToken).filter(e => !!e) as languages.CompletionItem[]
+			const keywords = suggestedKeywords.filter(e => e.label.startsWith(word.word)) as languages.CompletionItem[]
+			const types = suggestedTypes.filter(e => e.label.startsWith(word.word)) as languages.CompletionItem[]
 			return {
-				suggestions: elements
+				suggestions: [...elements, ...keywords, ...types]
 			}
 		}
 	} satisfies languages.CompletionItemProvider

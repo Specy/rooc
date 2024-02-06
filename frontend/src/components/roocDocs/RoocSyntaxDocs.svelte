@@ -6,9 +6,11 @@
 	const exampleModel = `
 min sum(u in nodes(G)) { x_u }
 s.t.
+    /* here you can put your constraints */
     x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1 for v in nodes(G)
     avg(el in A) { el * lengthOfA } <= x_someString * len(B)
 where
+    /* here your data */
     G = Graph {
         A -> [ C, B:2 ],
         B -> [ A, C:-3 ],
@@ -22,8 +24,9 @@ where
     ]
     someString = "hello"
 define
-	x_u, x_v as Boolean for v in nodes(G), (_,_,u) in neigh_edges(v)
-	\\x_hello as Real
+    /* and here the domain of the variables */
+    x_u, x_v as Boolean for v in nodes(G), (_,_,u) in neigh_edges(v)
+    \\x_hello as Real
 `.trim();
 const exampleModel2 = `
 min 1

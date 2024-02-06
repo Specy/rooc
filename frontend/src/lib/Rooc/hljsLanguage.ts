@@ -50,6 +50,15 @@ export const highlightJsGrammar = {
 			]
 
 		},
+		//comments
+		{
+			className: 'comment',
+			begin: '//', end: '$',
+		},
+		{
+			className: 'comment',
+			begin: '/\\*', end: '\\*/',
+		},
 		//assignment
 		{
 			className: 'identifierDefine',

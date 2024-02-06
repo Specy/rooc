@@ -27,7 +27,7 @@ condition = {
   #lhs = (tagged_exp) ~
   #relation = comparison ~
   #rhs = tagged_exp ~
-  (#iteration = for_iteration)?
+  (nl* ~ #iteration = for_iteration)?
 }
 // constants declaration
 consts_declaration = { (const_declaration ~ nl+)* ~ const_declaration }
@@ -41,8 +41,8 @@ domains_declaration = { (domain_declaration ~ nl+)* ~ domain_declaration }
 domain_declaration = { 
   #vars = domain_variables ~ nl*~
   ^"as" ~ 
-  #as_type = as_assertion ~ nl*~
-  (#iteration = for_iteration)?
+  #as_type = as_assertion ~
+  (nl* ~ #iteration = for_iteration)?
 }
 domain_variables = { (variable ~ comma ~ nl*)* ~ variable }
 as_assertion = {(!keyword ~ as_type) } 

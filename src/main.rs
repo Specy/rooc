@@ -92,26 +92,12 @@ fn main() {
         }
     }
     let source = r#"
-    min sum(u in nodes(G)) { x_u }
+    min 3x + 4y + 6z
     s.t.
-        x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1 for v in nodes(G)
-        avg(el in A) { el * lengthOfA } <= x_someString * len(B)
-    where
-        G = Graph {
-            A -> [ C, B:2 ],
-            B -> [ A, C:-3 ],
-            C
-        }
-        A = [1.0, 2.0, 3.0]
-        lengthOfA = len(A)
-        B = [
-            [1, 2, 3],
-            [4, 5, 6]
-        ]
-        someString = "hello"
+    x + 3y + 4z = 1
     define
-        x_u, x_v as Boolean for v in nodes(G), (_,_,u) in neigh_edges(v)
-        \x_hello as Real
+        x, y as Real
+        z as Integer
     "#
     .to_string();
     let parser = RoocParser::new(source.clone());

@@ -62,7 +62,7 @@ const darkOverride = [
 		"token": "string.unquoted.heredoc string"
 	},
 	{
-		"foreground": "1f619a",
+		"foreground": "5474b5",
 		"fontStyle": "italic",
 		"token": "comment"
 	},

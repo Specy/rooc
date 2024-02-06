@@ -126,7 +126,7 @@ impl ToLatex for VariableType {
         match self {
             VariableType::Integer => "\\mathbb{Z}".to_string(),
             VariableType::Boolean => "\\{0,1\\}".to_string(),
-            VariableType::PositiveReal => "\\mathbb{R}^+".to_string(),
+            VariableType::PositiveReal => "\\mathbb{R}^+_0".to_string(),
             VariableType::Real => "\\mathbb{R}".to_string(),
         }
     }

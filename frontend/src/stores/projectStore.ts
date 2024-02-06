@@ -24,7 +24,17 @@ export function createProject(): Project {
         description: "",
         createdAt: new Date().getTime(),
         updatedAt: new Date().getTime(),
-        content: "min 1\ns.t.\n    1 <= 1"
+        content: 
+`min x
+s.t.
+    /* write the constraints here */
+    x >= y
+where
+    /* write the constants here */
+    y = 10
+define
+    /* define the model's variables here */
+    x as Real`
     }
 }
 
