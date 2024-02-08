@@ -98,7 +98,7 @@ export function createProjectStore() {
     }
 
     async function syncProjectsWithStore() {
-        const projects = await db.loadProjects()
+        const projects = (await db.loadProjects()).sort((a, b) => b.updatedAt - a.updatedAt)
         update(store => {
             store.projects = projects
             return store
