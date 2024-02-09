@@ -9,6 +9,7 @@ use crate::parser::model_transformer::transform_error::TransformError;
 use crate::primitives::consts::Constant;
 use crate::primitives::primitive::{Primitive, PrimitiveKind};
 use crate::runtime_builtin::reserved_tokens::check_if_reserved_token;
+use crate::utils::{InputSpan, Spanned};
 
 #[derive(Debug)]
 pub struct Frame<T> {
@@ -65,13 +66,15 @@ impl<T> Default for Frame<T> {
 #[derive(Debug, Clone, Serialize)]
 pub struct DomainVariable {
     as_type: VariableType,
+    span: InputSpan,
     usage_count: usize,
 }
 
 impl DomainVariable {
-    pub fn new(as_type: VariableType) -> Self {
+    pub fn new(as_type: VariableType, span: InputSpan) -> Self {
         Self {
             as_type,
+            span,
             usage_count: 0,
         }
     }
@@ -83,6 +86,9 @@ impl DomainVariable {
     }
     pub fn is_used(&self) -> bool {
         self.usage_count > 0
+    }
+    pub fn get_span(&self) -> &InputSpan {
+        &self.span
     }
     pub fn get_type(&self) -> &VariableType {
         &self.as_type
@@ -134,7 +140,10 @@ impl TransformerContext {
         assert_no_duplicates_in_domain(&computed_domain)?;
         let computed_domain = computed_domain
             .into_iter()
-            .map(|(name, as_type)| (name, DomainVariable::new(as_type)))
+            .map(|(name, as_type)| {
+                let (as_type, span) = as_type.into_tuple();
+                (name, DomainVariable::new(as_type, span))
+            })
             .collect::<Vec<_>>();
         context.domain = HashMap::from_iter(computed_domain);
         Ok(context)
@@ -304,28 +313,31 @@ impl TransformerContext {
     }
 }
 
-
-pub fn assert_no_duplicates_in_domain(domain: &Vec<(String, VariableType)>) -> Result<(), TransformError>{
+pub fn assert_no_duplicates_in_domain(
+    domain: &Vec<(String, Spanned<VariableType>)>,
+) -> Result<(), TransformError> {
+    let acc: HashMap<String, (i32, Spanned<VariableType>)> = HashMap::new();
     let duplicates = domain
-            .iter()
-            .fold(HashMap::new(), |mut acc, (name, as_type)| {
-                if let Some((count, saved_type)) = acc.get_mut(name) {
-                    //ignore the type if it's the same
-                    if saved_type == as_type {
-                        return acc;
-                    }
-                    *count += 1;
-                } else {
-                    acc.insert(name.clone(), (1, as_type.clone()));
+        .iter()
+        .fold(acc, |mut acc, (name, as_type)| {
+            if let Some((count, saved_type)) = acc.get_mut(name) {
+                //ignore the type if it's the same
+                if saved_type.get_span_value() == as_type.get_span_value() {
+                    return acc;
                 }
-                acc
-            })
-            .into_iter()
-            .filter(|(_, (count, _))| *count > 1)
-            .collect::<Vec<_>>();
-        if !duplicates.is_empty() {
-            Err(TransformError::AlreadyDeclaredDomainVariable(duplicates))
-        } else {
-            Ok(())
-        }
+                *count += 1;
+            } else {
+                acc.insert(name.clone(), (1, as_type.clone()));
+            }
+            acc
+        })
+        .into_iter()
+        .filter(|(_, (count, _))| *count > 1)
+        .collect::<Vec<_>>();
+    if !duplicates.is_empty() {
+        let first_span = duplicates.first().unwrap().1 .1.get_span().clone();
+        Err(TransformError::AlreadyDeclaredDomainVariable(duplicates).add_span(&first_span))
+    } else {
+        Ok(())
+    }
 }

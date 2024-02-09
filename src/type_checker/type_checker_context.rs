@@ -3,16 +3,16 @@ use std::collections::HashMap;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
+use crate::math::math_enums::{ VariableType};
+use crate::parser::il::il_exp::PreExp;
+use crate::parser::il::il_problem::AddressableAccess;
+use crate::parser::model_transformer::transform_error::TransformError;
+use crate::parser::model_transformer::transformer_context::Frame;
+use crate::utils::Spanned;
 use crate::{
     primitives::primitive::PrimitiveKind,
     runtime_builtin::reserved_tokens::check_if_reserved_token, utils::InputSpan,
 };
-use crate::math::math_enums::VariableType;
-use crate::parser::il::il_exp::PreExp;
-use crate::parser::il::il_problem::AddressableAccess;
-use crate::parser::model_transformer::model::VariableKind;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::Frame;
 
 pub trait TypeCheckable {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError>;
@@ -50,9 +50,24 @@ impl TypedToken {
     }
 }
 
+pub struct StaticVariableType {
+    pub value: VariableType,
+    pub span: InputSpan,
+}
+
+impl StaticVariableType {
+    pub fn new(value: VariableType, span: InputSpan) -> Self {
+        Self { value, span }
+    }
+    pub fn new_spanned(value: Spanned<VariableType>) -> Self {
+        let (value, span) = value.into_tuple();
+        Self { value, span }
+    }
+}
+
 pub struct TypeCheckerContext {
     frames: Vec<Frame<PrimitiveKind>>,
-    static_domain: HashMap<String, VariableType>,
+    static_domain: HashMap<String, StaticVariableType>,
     token_map: HashMap<usize, TypedToken>,
 }
 
@@ -69,7 +84,7 @@ impl TypeCheckerContext {
     pub fn new(
         primitives: HashMap<String, PrimitiveKind>,
         token_map: HashMap<usize, TypedToken>,
-        static_domain: HashMap<String, VariableType>,
+        static_domain: HashMap<String, StaticVariableType>,
     ) -> Self {
         let frame = Frame::from_map(primitives);
         Self {
@@ -95,7 +110,7 @@ impl TypeCheckerContext {
         let start = span.start;
         if let Some(val) = &identifier {
             self.declare_variable(&val, value.clone(), true)
-                .map_err(|e| e.to_spanned_error(&span))?;
+                .map_err(|e| e.add_span(&span))?;
         }
         let token = TypedToken::new(span, value, identifier);
         self.token_map.insert(start, token);
@@ -115,10 +130,13 @@ impl TypeCheckerContext {
         let token = TypedToken::new(span, value, identifier);
         self.token_map.insert(start, token);
     }
-    pub fn set_static_domain(&mut self, domain: Vec<(String, VariableType)>) {
-        self.static_domain = HashMap::from_iter(domain);
+    pub fn set_static_domain(&mut self, domain: Vec<(String, Spanned<VariableType>)>) {
+        self.static_domain = HashMap::from_iter(domain.into_iter().map(|(k, v)| {
+            let (v, span) = v.into_tuple();
+            (k, StaticVariableType::new(v, span))
+        }));
     }
-    pub fn get_static_domain_variable(&self, name: &str) -> Option<&VariableType> {
+    pub fn get_static_domain_variable(&self, name: &str) -> Option<&StaticVariableType> {
         self.static_domain.get(name)
     }
     pub fn pop_scope(&mut self) -> Result<Frame<PrimitiveKind>, TransformError> {
@@ -168,7 +186,7 @@ impl TypeCheckerContext {
                             PrimitiveKind::GraphNode,
                         ],
                     }
-                    .to_spanned_error(index.get_span()));
+                    .add_span(index.get_span()));
                 }
             }
         }
@@ -215,7 +233,7 @@ impl TypeCheckerContext {
                             "Expected value of type \"Iterable\" to index array, got \"{}\", check the definition of \"{}\"",
                             last_value.to_string(),
                             access.to_string()
-                        )).to_spanned_error(access.get_span()))
+                        )).add_span(access.get_span()))
                     }
                 }
                 Ok(last_value.clone())

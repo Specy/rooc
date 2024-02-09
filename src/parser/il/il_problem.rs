@@ -222,7 +222,7 @@ impl TypeCheckable for PreCondition {
         for iter in &self.iteration {
             iter.iterator
                 .type_check(context)
-                .map_err(|e| e.to_spanned_error(iter.iterator.get_span()))?;
+                .map_err(|e| e.add_span(iter.iterator.get_span()))?;
             context.add_scope();
             let types = iter.get_variable_types(context)?;
             for (name, t) in types {
@@ -254,7 +254,7 @@ impl TypeCheckable for PreCondition {
                 self.condition_type,
                 rhs_type.to_string()
             ))
-            .to_spanned_error(&self.span);
+            .add_span(&self.span);
             return Err(err);
         }
         Ok(())

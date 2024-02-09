@@ -49,6 +49,7 @@ impl TypeCheckable for NumericRange {
             [ref from, ref to, ref to_inclusive] => {
                 let from_type = from.get_type(context);
                 let to_type = to.get_type(context);
+                println!("from: {:?}, to: {:?}", from_type, to_type);
                 let to_inclusive_type = to_inclusive.get_type(context);
                 if !from_type.is_numeric() {
                     //TODO relaxed type checking for numeric ranges

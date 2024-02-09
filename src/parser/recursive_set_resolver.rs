@@ -27,13 +27,13 @@ pub fn recursive_set_resolver<T>(
         VariableKind::Single(n) => {
             context
                 .declare_variable(n, Primitive::Undefined, true)
-                .map_err(|e| e.to_spanned_error(&range.span))?;
+                .map_err(|e| e.add_span(&range.span))?;
         }
         VariableKind::Tuple(t) => {
             for name in t.iter() {
                 context
                     .declare_variable(name, Primitive::Undefined, true)
-                    .map_err(|e| e.to_spanned_error(&range.span))?;
+                    .map_err(|e| e.add_span(&range.span))?;
             }
         }
     }
@@ -44,11 +44,11 @@ pub fn recursive_set_resolver<T>(
             VariableKind::Single(n) => {
                 context
                     .update_variable(n, value.clone())
-                    .map_err(|e| e.to_spanned_error(&range.span))?;
+                    .map_err(|e| e.add_span(&range.span))?;
             }
             VariableKind::Tuple(tuple) => {
                 let values = value.to_primitive_set()?;
-                apply_tuple(context, tuple, values).map_err(|e| e.to_spanned_error(&range.span))?;
+                apply_tuple(context, tuple, values).map_err(|e| e.add_span(&range.span))?;
             }
         }
         if current_level + 1 >= sets.len() {
@@ -56,7 +56,7 @@ pub fn recursive_set_resolver<T>(
             results.push(value); //TODO should i do this? maybe it's best to leave it out to the caller
         } else {
             recursive_set_resolver(sets, context, results, current_level + 1, on_leaf)
-                .map_err(|e| e.to_spanned_error(&range.span))?;
+                .map_err(|e| e.add_span(&range.span))?;
         }
     }
     context.pop_scope()?;
@@ -81,7 +81,7 @@ pub fn apply_tuple(
             Some(name) => {
                 context
                     .update_variable(name, value)
-                    .map_err(|e| e.to_spanned_error(name.get_span()))?;
+                    .map_err(|e| e.add_span(name.get_span()))?;
             }
             None => return Ok(()), //tuple is smaller than the spreadable, ignore the rest
         }

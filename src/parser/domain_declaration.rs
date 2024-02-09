@@ -3,16 +3,16 @@ use std::fmt::Display;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
+use crate::parser::il::il_problem::CompoundVariable;
+use crate::parser::il::iterable_set::IterableSet;
+use crate::parser::model_transformer::transform_error::TransformError;
+use crate::parser::model_transformer::transformer_context::TransformerContext;
 use crate::{
     math::math_enums::VariableType,
     traits::latex::{escape_latex, ToLatex},
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext},
     utils::{InputSpan, Spanned},
 };
-use crate::parser::il::il_problem::CompoundVariable;
-use crate::parser::il::iterable_set::IterableSet;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::TransformerContext;
 
 use super::recursive_set_resolver::recursive_set_resolver;
 
@@ -108,11 +108,13 @@ impl VariablesDomainDeclaration {
     pub fn get_type(&self) -> &VariableType {
         &self.as_type
     }
-    pub fn get_static_variables(&self) -> Vec<&String> {
+    pub fn get_static_variables(&self) -> Vec<Spanned<String>> {
         self.variables
             .iter()
             .filter_map(|v| match &v.get_span_value() {
-                VariableToAssert::Variable(name) => Some(name),
+                VariableToAssert::Variable(name) => {
+                    Some(Spanned::new(name.clone(), v.get_span().clone()))
+                }
                 _ => None,
             })
             .collect()
@@ -124,32 +126,35 @@ impl VariablesDomainDeclaration {
     fn compute_domain_values(
         &self,
         context: &mut TransformerContext,
-    ) -> Result<Vec<(String, VariableType)>, TransformError> {
+    ) -> Result<Vec<(String, Spanned<VariableType>)>, TransformError> {
         self.variables
             .iter()
-            .map(|v| match v.get_span_value() {
-                VariableToAssert::Variable(name) => Ok((name.clone(), self.as_type.clone())),
-                VariableToAssert::CompoundVariable(c) => {
-                    let indexes = &c.compute_indexes(context)?;
-                    let name = context.flatten_compound_variable(&c.name, &indexes)?;
-                    Ok((name, self.as_type.clone()))
+            .map(|v| {
+                match v.get_span_value() {
+                    VariableToAssert::Variable(name) => Ok((name.clone(), self.as_type.clone())),
+                    VariableToAssert::CompoundVariable(c) => {
+                        let indexes = &c.compute_indexes(context)?;
+                        let name = context.flatten_compound_variable(&c.name, &indexes)?;
+                        Ok((name, self.as_type.clone()))
+                    }
                 }
+                .map(|(name, t)| (name, Spanned::new(t, v.get_span().clone())))
             })
-            .collect::<Result<Vec<(String, VariableType)>, TransformError>>()
-            .map_err(|e| e.to_spanned_error(&self.span))
+            .collect::<Result<Vec<(String, Spanned<VariableType>)>, TransformError>>()
+            .map_err(|e| e.add_span(&self.span))
     }
     pub fn compute_domain(
         &self,
         context: &mut TransformerContext,
-    ) -> Result<Vec<(String, VariableType)>, TransformError> {
+    ) -> Result<Vec<(String, Spanned<VariableType>)>, TransformError> {
         if self.iteration.is_empty() {
             return self.compute_domain_values(context);
         }
-        let mut results: Vec<Vec<(String, VariableType)>> = Vec::new();
+        let mut results: Vec<Vec<(String, Spanned<VariableType>)>> = Vec::new();
         recursive_set_resolver(&self.iteration, context, &mut results, 0, &|context| {
             self.compute_domain_values(context)
         })
-        .map_err(|e| e.to_spanned_error(&self.span))?;
+        .map_err(|e| e.add_span(&self.span))?;
         Ok(results.into_iter().flatten().collect())
     }
 }
@@ -159,7 +164,7 @@ impl TypeCheckable for VariablesDomainDeclaration {
         for iter in &self.iteration {
             iter.iterator
                 .type_check(context)
-                .map_err(|e| e.to_spanned_error(iter.iterator.get_span()))?;
+                .map_err(|e| e.add_span(iter.iterator.get_span()))?;
             context.add_scope();
             let types = iter.get_variable_types(context)?;
             for (name, t) in types {
@@ -178,13 +183,13 @@ impl TypeCheckable for VariablesDomainDeclaration {
                             "Variable {} already declared as static",
                             name
                         ))
-                        .to_spanned_error(variable.get_span()));
+                        .add_span(variable.get_span()));
                     }
                 }
                 VariableToAssert::CompoundVariable(c) => {
                     context
                         .check_compound_variable(&c.indexes)
-                        .map_err(|e| e.to_spanned_error(variable.get_span()))?;
+                        .map_err(|e| e.add_span(variable.get_span()))?;
                 }
             }
         }

@@ -387,7 +387,7 @@ pub fn transform_condition_with_iteration(
     recursive_set_resolver(&condition.iteration, context, &mut results, 0, &|c| {
         transform_condition(condition, c)
     })
-    .map_err(|e| e.to_spanned_error(&condition.span))?;
+    .map_err(|e| e.add_span(&condition.span))?;
     Ok(results)
 }
 

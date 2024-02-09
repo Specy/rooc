@@ -73,6 +73,9 @@ impl<T: Debug + Serialize> Spanned<T> {
         &self.span
     }
 
+    pub fn into_tuple(self) -> (T, InputSpan) {
+        (self.value, self.span)
+    }
     pub fn get_span_value(&self) -> &T {
         &self.value
     }

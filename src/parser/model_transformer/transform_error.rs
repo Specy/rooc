@@ -16,7 +16,7 @@ pub enum TransformError {
     UndeclaredVariable(String),
     UndeclaredVariableDomain(String),
     AlreadyDeclaredVariable(String),
-    AlreadyDeclaredDomainVariable(Vec<(String, (i32, VariableType))>),
+    AlreadyDeclaredDomainVariable(Vec<(String, (i32, Spanned<VariableType>))>),
     OutOfBounds(String),
     WrongArgument {
         got: PrimitiveKind,
@@ -285,7 +285,7 @@ impl TransformError {
         format!("{}\n{}", error, trace)
     }
     pub fn from_wrong_type(expected: PrimitiveKind, got: PrimitiveKind, span: InputSpan) -> Self {
-        TransformError::WrongArgument { got, expected }.to_spanned_error(&span)
+        TransformError::WrongArgument { got, expected }.add_span(&span)
     }
     pub fn from_wrong_binop(
         operator: BinOp,
@@ -293,12 +293,12 @@ impl TransformError {
         rhs: PrimitiveKind,
         span: InputSpan,
     ) -> Self {
-        TransformError::BinOpError { operator, lhs, rhs }.to_spanned_error(&span)
+        TransformError::BinOpError { operator, lhs, rhs }.add_span(&span)
     }
     pub fn from_wrong_unop(operator: UnOp, exp: PrimitiveKind, span: InputSpan) -> Self {
-        TransformError::UnOpError { operator, exp }.to_spanned_error(&span)
+        TransformError::UnOpError { operator, exp }.add_span(&span)
     }
-    pub fn to_spanned_error(self, span: &InputSpan) -> TransformError {
+    pub fn add_span(self, span: &InputSpan) -> TransformError {
         TransformError::SpannedError {
             spanned_error: Spanned::new(Box::new(self), span.clone()),
             value: None,

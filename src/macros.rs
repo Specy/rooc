@@ -40,7 +40,7 @@ macro_rules! bail_incorrect_type_signature {
             signature: $expected,
             got: $current,
         })
-        .to_spanned_error($span))
+        .add_span($span))
     };
     ($expected:expr, $current:expr) => {
         Err(TransformError::WrongFunctionSignature {

@@ -94,21 +94,19 @@ fn main() {
     let source = r#"
         min 1
         s.t.
-            x <= 2
-        where
-            x = 2
+            sum(i in range(0,x,true)) { i  } <= 1
         define
             x as Real
     "#
     .to_string();
     let parser = RoocParser::new(source.clone());
-    let parsed = parser.parse();
+    let parsed = parser.parse().unwrap().create_type_checker();
     match parsed {
         Ok(parsed) => {
-            println!("{:?}", parsed.create_type_checker());
+            println!("{}", "");
         }
         Err(e) => {
-            println!("{:?}", e);
+            println!("{}", e.get_trace_from_source(&source).unwrap());
         }
     }
 }

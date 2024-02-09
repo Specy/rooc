@@ -83,8 +83,8 @@ impl Clone for PreExp {
 
 impl Serialize for PreExp {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
+        where
+            S: serde::Serializer,
     {
         match self {
             Self::Primitive(p) => {
@@ -194,10 +194,10 @@ impl TypeCheckable for PreExp {
             Self::FunctionCall(span, fun) => {
                 for arg in fun.get_parameters() {
                     arg.type_check(context)
-                        .map_err(|e| e.to_spanned_error(span))?;
+                        .map_err(|e| e.add_span(span))?;
                 }
                 fun.type_check(context)
-                    .map_err(|e| e.to_spanned_error(span))
+                    .map_err(|e| e.add_span(span))
             }
             Self::BinaryOperation(op, lhs, rhs) => {
                 lhs.type_check(context)?;
@@ -217,7 +217,7 @@ impl TypeCheckable for PreExp {
             }
             Self::UnaryOperation(op, exp) => {
                 exp.type_check(context)
-                    .map_err(|e| e.to_spanned_error(exp.get_span()))?;
+                    .map_err(|e| e.add_span(exp.get_span()))?;
                 let exp_type = exp.get_type(context);
                 if !exp_type.can_apply_unary_op(**op) {
                     Err(TransformError::from_wrong_unop(
@@ -232,7 +232,7 @@ impl TypeCheckable for PreExp {
             Self::Primitive(_) => Ok(()),
             Self::Mod(_, exp) => {
                 exp.type_check(context)
-                    .map_err(|e| e.to_spanned_error(exp.get_span()))?;
+                    .map_err(|e| e.add_span(exp.get_span()))?;
                 let exp_type = exp.get_type(context);
                 if !exp_type.is_numeric() {
                     return Err(TransformError::from_wrong_type(
@@ -252,17 +252,17 @@ impl TypeCheckable for PreExp {
                         Some(_) => Ok(()),
                         None => Err(TransformError::UndeclaredVariable(
                             name.get_span_value().clone(),
-                        )),
-                    },
+                        ))
+                    }.map_err(|e| e.add_span(name.get_span())),
                 }
             }
             Self::CompoundVariable(c) => context
                 .check_compound_variable(&c.indexes)
-                .map_err(|e| e.to_spanned_error(c.get_span())),
+                .map_err(|e| e.add_span(c.get_span())),
             Self::BlockFunction(f) => {
                 for exp in &f.exps {
                     exp.type_check(context)
-                        .map_err(|e| e.to_spanned_error(f.get_span()))?;
+                        .map_err(|e| e.add_span(f.get_span()))?;
                     let exp_type = exp.get_type(context);
                     if !exp_type.is_numeric() {
                         return Err(TransformError::from_wrong_type(
@@ -270,7 +270,7 @@ impl TypeCheckable for PreExp {
                             exp_type,
                             exp.get_span().clone(),
                         )
-                        .to_spanned_error(f.get_span()));
+                            .add_span(f.get_span()));
                     }
                 }
                 Ok(())
@@ -279,11 +279,11 @@ impl TypeCheckable for PreExp {
                 for iter in &f.iters {
                     iter.iterator
                         .type_check(context)
-                        .map_err(|e| e.to_spanned_error(f.get_span()))?;
+                        .map_err(|e| e.add_span(f.get_span()))?;
                     context.add_scope();
                     let types = iter
                         .get_variable_types(context)
-                        .map_err(|e| e.to_spanned_error(f.get_span()))?;
+                        .map_err(|e| e.add_span(f.get_span()))?;
                     for (name, t) in types {
                         context.add_token_type(
                             t,
@@ -297,10 +297,10 @@ impl TypeCheckable for PreExp {
                 for _ in &f.iters {
                     context
                         .pop_scope()
-                        .map_err(|e| e.to_spanned_error(f.get_span()))?;
+                        .map_err(|e| e.add_span(f.get_span()))?;
                 }
                 if let Err(e) = res {
-                    return Err(e.to_spanned_error(f.get_span()));
+                    return Err(e.add_span(f.get_span()));
                 }
                 if !exp_type.is_numeric() {
                     let err = TransformError::from_wrong_type(
@@ -308,7 +308,7 @@ impl TypeCheckable for PreExp {
                         exp_type,
                         f.exp.get_span().clone(),
                     )
-                    .to_spanned_error(f.get_span());
+                        .add_span(f.get_span());
                     return Err(err);
                 }
                 Ok(())
@@ -316,7 +316,7 @@ impl TypeCheckable for PreExp {
             Self::ArrayAccess(array_access) => context
                 .get_addressable_value(array_access)
                 .map(|_| ())
-                .map_err(|e| e.to_spanned_error(array_access.get_span())),
+                .map_err(|e| e.add_span(array_access.get_span())),
         }
     }
     fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
@@ -343,12 +343,24 @@ impl TypeCheckable for PreExp {
                     name.get_span().clone(),
                     Some(name.get_span_value().clone()),
                 ),
-                //TODO should i add types for runtime variables in the domain?
-                None => context.add_token_type_or_undefined(
-                    PrimitiveKind::Number, //TODO we assume undeclared variables are numbers, make this configurable with assignments
-                    name.get_span().clone(),
-                    Some(name.get_span_value().clone()),
-                ),
+                None => {
+                    match context.get_static_domain_variable(name) {
+                        Some(_) => {
+                            context.add_token_type_or_undefined(
+                                PrimitiveKind::Number, //TODO we assume defined variables are numbers, this should be improved to specify this is a runtime variable
+                                name.get_span().clone(),
+                                Some(name.get_span_value().clone()),
+                            )
+                        }
+                        None => {
+                            context.add_token_type_or_undefined(
+                                PrimitiveKind::Undefined,
+                                name.get_span().clone(),
+                                Some(name.get_span_value().clone()),
+                            )
+                        }
+                    }
+                }
             },
             Self::CompoundVariable(c) => {
                 context.add_token_type_or_undefined(
@@ -394,10 +406,17 @@ impl WithType for PreExp {
         match self {
             Self::Primitive(p) => p.get_span_value().get_type(),
             Self::FunctionCall(_, fun) => fun.get_type(context),
-            Self::Variable(name) => context
-                .get_value(name)
-                .map(|e| e.clone())
-                .unwrap_or(PrimitiveKind::Number), //TODO add assignments for
+            Self::Variable(name) => {
+                match context.get_value(name) {
+                    Some(value) => value.clone(),
+                    None => {
+                        match context.get_static_domain_variable(name) {
+                            Some(_) => PrimitiveKind::Number, //TODO we assume defined variables are numbers, this should be improved to specify this is a runtime variable, currently doesn't error out in type checking as function arguments
+                            None => PrimitiveKind::Undefined,
+                        }
+                    }
+                }
+            }
             Self::BinaryOperation(_, lhs, _) => lhs.get_type(context),
             Self::UnaryOperation(_, exp) => exp.get_type(context),
             Self::Mod(_, exp) => exp.get_type(context),
@@ -434,20 +453,20 @@ impl PreExp {
             Self::BinaryOperation(op, lhs, rhs) => {
                 let lhs = lhs
                     .into_exp(context)
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.get_span()))?;
                 let rhs = rhs
                     .into_exp(context)
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.get_span()))?;
                 Ok(Exp::BinOp(**op, lhs.to_box(), rhs.to_box()))
             }
             Self::Primitive(n) => match n.as_number_cast() {
                 Ok(n) => Ok(Exp::Number(n)),
-                Err(e) => Err(e.to_spanned_error(self.get_span())),
+                Err(e) => Err(e.add_span(self.get_span())),
             },
             Self::Mod(span, exp) => {
                 let inner = exp
                     .into_exp(context)
-                    .map_err(|e| e.to_spanned_error(span))?;
+                    .map_err(|e| e.add_span(span))?;
                 Ok(Exp::Mod(inner.to_box()))
             }
             Self::BlockFunction(f) => {
@@ -456,7 +475,7 @@ impl PreExp {
                     .iter()
                     .map(|exp| exp.into_exp(context))
                     .collect::<Result<Vec<Exp>, TransformError>>()
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.get_span()))?;
                 match f.kind {
                     BlockFunctionKind::Min => Ok(Exp::Min(parsed_exp)),
                     BlockFunctionKind::Max => Ok(Exp::Max(parsed_exp)),
@@ -478,20 +497,20 @@ impl PreExp {
             Self::UnaryOperation(op, exp) => {
                 let inner = exp
                     .into_exp(context)
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.get_span()))?;
                 Ok(Exp::UnOp(**op, inner.to_box()))
             }
             Self::Variable(name) => {
                 let value = context.get_value(name).map(|v| match v.as_number_cast() {
                     Ok(n) => Ok(Exp::Number(n)),
-                    Err(e) => Err(e.to_spanned_error(self.get_span())),
+                    Err(e) => Err(e.add_span(self.get_span())),
                 });
                 match value {
                     Some(value) => Ok(value?),
                     None => {
                         context
                             .increment_domain_variable_usage(name)
-                            .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                            .map_err(|e| e.add_span(self.get_span()))?;
                         Ok(Exp::Variable(name.get_span_value().clone()))
                     }
                 }
@@ -502,22 +521,22 @@ impl PreExp {
                     .iter()
                     .map(|v| v.as_primitive(context))
                     .collect::<Result<Vec<Primitive>, TransformError>>()
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.get_span()))?;
                 let name = context
                     .flatten_compound_variable(&c.name, indexes)
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.get_span()))?;
                 context
                     .increment_domain_variable_usage(&name)
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.get_span()))?;
                 Ok(Exp::Variable(name))
             }
             Self::ArrayAccess(array_access) => {
                 let value = context
                     .get_addressable_value(array_access)
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.get_span()))?;
                 match value.as_number_cast() {
                     Ok(n) => Ok(Exp::Number(n)),
-                    Err(e) => Err(e.to_spanned_error(self.get_span())),
+                    Err(e) => Err(e.add_span(self.get_span())),
                 }
             }
             Self::BlockScopedFunction(f) => {
@@ -526,10 +545,10 @@ impl PreExp {
                     let inner = f
                         .exp
                         .into_exp(context)
-                        .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                        .map_err(|e| e.add_span(self.get_span()))?;
                     Ok(inner)
                 })
-                .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.get_span()))?;
                 match f.kind {
                     BlockScopedFunctionKind::Sum => {
                         let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
@@ -565,10 +584,10 @@ impl PreExp {
                 //TODO improve this, what other types of functions can there be?
                 let value = function_call
                     .call(context)
-                    .map_err(|e| e.to_spanned_error(span))?;
+                    .map_err(|e| e.add_span(span))?;
                 match value.as_number_cast() {
                     Ok(n) => Ok(Exp::Number(n)),
-                    Err(e) => Err(e.to_spanned_error(self.get_span())),
+                    Err(e) => Err(e.add_span(self.get_span())),
                 }
             }
         }
@@ -594,7 +613,7 @@ impl PreExp {
             PreExp::FunctionCall(_, f) => {
                 let value = f
                     .call(context)
-                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.get_span()))?;
                 Ok(value)
             }
             PreExp::ArrayAccess(a) => {
@@ -638,62 +657,62 @@ impl PreExp {
     pub fn as_number(&self, context: &TransformerContext) -> Result<f64, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_number())
-            .map_err(|e| e.to_spanned_error(self.get_span()))?
+            .map_err(|e| e.add_span(self.get_span()))?
     }
     pub fn as_number_cast(&self, context: &TransformerContext) -> Result<f64, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_number_cast())
-            .map_err(|e| e.to_spanned_error(self.get_span()))?
+            .map_err(|e| e.add_span(self.get_span()))?
     }
     pub fn as_integer(&self, context: &TransformerContext) -> Result<i64, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_integer())
-            .map_err(|e| e.to_spanned_error(self.get_span()))?
+            .map_err(|e| e.add_span(self.get_span()))?
     }
     pub fn as_integer_cast(&self, context: &TransformerContext) -> Result<i64, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_integer_cast())
-            .map_err(|e| e.to_spanned_error(self.get_span()))?
+            .map_err(|e| e.add_span(self.get_span()))?
     }
     pub fn as_positive_integer(&self, context: &TransformerContext) -> Result<u64, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_positive_integer())
-            .map_err(|e| e.to_spanned_error(self.get_span()))?
+            .map_err(|e| e.add_span(self.get_span()))?
     }
     pub fn as_usize(&self, context: &TransformerContext) -> Result<usize, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_usize().map(|v| v.to_owned()))
-            .map_err(|e| e.to_spanned_error(self.get_span()))?
+            .map_err(|e| e.add_span(self.get_span()))?
     }
     pub fn as_usize_cast(&self, context: &TransformerContext) -> Result<usize, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_usize_cast().map(|v| v.to_owned()))
-            .map_err(|e| e.to_spanned_error(self.get_span()))?
+            .map_err(|e| e.add_span(self.get_span()))?
     }
     pub fn as_string(&self, context: &TransformerContext) -> Result<String, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_string().map(|v| v.to_owned()))
-            .map_err(|e| e.to_spanned_error(self.get_span()))?
+            .map_err(|e| e.add_span(self.get_span()))?
     }
     pub fn as_boolean(&self, context: &TransformerContext) -> Result<bool, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_boolean())
-            .map_err(|e| e.to_spanned_error(self.get_span()))?
+            .map_err(|e| e.add_span(self.get_span()))?
     }
     pub fn as_graph(&self, context: &TransformerContext) -> Result<Graph, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_graph().map(|v| v.to_owned()))
-            .map_err(|e| e.to_spanned_error(self.get_span()))?
+            .map_err(|e| e.add_span(self.get_span()))?
     }
     pub fn as_node(&self, context: &TransformerContext) -> Result<GraphNode, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_graph_node().map(|v| v.to_owned()))
-            .map_err(|e| e.to_spanned_error(self.get_span()))?
+            .map_err(|e| e.add_span(self.get_span()))?
     }
     pub fn as_edge(&self, context: &TransformerContext) -> Result<GraphEdge, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_graph_edge().map(|v| v.to_owned()))
-            .map_err(|e| e.to_spanned_error(self.get_span()))?
+            .map_err(|e| e.add_span(self.get_span()))?
     }
 
     pub fn as_iterator(
@@ -702,7 +721,7 @@ impl PreExp {
     ) -> Result<IterableKind, TransformError> {
         self.as_primitive(context)
             .map(|p| p.as_iterator().map(|v| v.to_owned()))
-            .map_err(|e| e.to_spanned_error(self.get_span()))?
+            .map_err(|e| e.add_span(self.get_span()))?
     }
 
     pub(crate) fn is_leaf(&self) -> bool {

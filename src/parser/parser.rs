@@ -15,8 +15,8 @@ use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::assert_no_duplicates_in_domain;
 use crate::primitives::consts::Constant;
 use crate::traits::latex::ToLatex;
-use crate::type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, TypedToken};
-use crate::utils::{CompilationError, InputSpan, ParseError};
+use crate::type_checker::type_checker_context::{StaticVariableType, TypeCheckable, TypeCheckerContext, TypedToken};
+use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 
 use super::domain_declaration::VariablesDomainDeclaration;
 use super::rules_parser::other_parser::{
@@ -75,19 +75,23 @@ impl PreProblem {
     pub fn transform(self) -> Result<Problem, TransformError> {
         transform_parsed_problem(self)
     }
-    fn get_static_domain(&self) -> Vec<(String, VariableType)> {
+    fn get_static_domain(&self) -> Vec<(String, Spanned<VariableType>)> {
         self.domains
             .iter()
             .flat_map(|d| {
                 d.get_static_variables()
                     .into_iter()
-                    .map(|v| (v.clone(), d.get_type().clone()))
+                    .map(|v| {
+                        let (name, span) = v.into_tuple();
+                        (name, Spanned::new(d.get_type().clone(), span))
+                    })
             })
             .collect::<Vec<_>>()
     }
     pub fn create_type_checker(&self) -> Result<(), TransformError> {
         let mut context = TypeCheckerContext::default();
         let domain = self.get_static_domain();
+        //TODO add span
         assert_no_duplicates_in_domain(&domain)?;
         context.set_static_domain(domain);
         for constants in &self.constants {
@@ -308,7 +312,7 @@ fn parse_problem(problem: Pair<Rule>) -> Result<PreProblem, CompilationError> {
         .map(parse_consts_declaration);
     let domain = pairs
         .find_first_tagged("define")
-        .map(|v| parse_domains_declaration(v));
+        .map(parse_domains_declaration);
     match (objective, conditions) {
         (Some(obj), Some(cond)) => Ok(PreProblem::new(
             obj?,

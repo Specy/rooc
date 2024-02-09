@@ -115,7 +115,7 @@ impl IterableSet {
                                     .map(|v| v.get_span_value().clone())
                                     .collect::<Vec<_>>(),
                             }
-                            .to_spanned_error(&self.span);
+                            .add_span(&self.span);
                             Err(err)
                         } else {
                             Ok(
