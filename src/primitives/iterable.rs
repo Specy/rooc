@@ -6,8 +6,8 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::{
     check_bounds,
     math::operators::{BinOp, UnOp},
-    parser::transformer::TransformError,
 };
+use crate::parser::model_transformer::transform_error::TransformError;
 use crate::traits::latex::ToLatex;
 
 use super::{

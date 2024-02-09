@@ -4,13 +4,13 @@ use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
-    parser::transformer::{Frame, TransformError},
     primitives::primitive::PrimitiveKind,
-    runtime_builtin::reserved_tokens::check_if_reserved_token,
-    utils::InputSpan,
+    runtime_builtin::reserved_tokens::check_if_reserved_token, utils::InputSpan,
 };
+use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::il_problem::AddressableAccess;
-use crate::parser::il::ir_exp::PreExp;
+use crate::parser::model_transformer::transform_error::TransformError;
+use crate::parser::model_transformer::transformer_context::Frame;
 
 pub trait TypeCheckable {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError>;

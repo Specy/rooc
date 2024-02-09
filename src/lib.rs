@@ -4,11 +4,10 @@ extern crate pest_derive;
 
 use wasm_bindgen::prelude::*;
 
-use parser::{
-    parser::{parse_problem_source, PreProblem},
-    transformer::{Problem, transform_parsed_problem},
-};
+use parser::parser::{parse_problem_source, PreProblem};
 use utils::CompilationError;
+
+use crate::parser::model_transformer::model::{Problem, transform_parsed_problem};
 
 pub mod macros;
 pub mod math;

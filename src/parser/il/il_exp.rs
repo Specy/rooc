@@ -9,8 +9,10 @@ use crate::parser::il::block_functions::{
     BlockFunction, BlockFunctionKind, BlockScopedFunction, BlockScopedFunctionKind,
 };
 use crate::parser::il::il_problem::{AddressableAccess, CompoundVariable};
+use crate::parser::model_transformer::model::Exp;
+use crate::parser::model_transformer::transform_error::TransformError;
+use crate::parser::model_transformer::transformer_context::TransformerContext;
 use crate::parser::recursive_set_resolver::recursive_set_resolver;
-use crate::parser::transformer::{Exp, TransformerContext, TransformError};
 use crate::primitives::functions::function_traits::FunctionCall;
 use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
 use crate::primitives::iterable::IterableKind;

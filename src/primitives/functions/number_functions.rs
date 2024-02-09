@@ -4,10 +4,7 @@ use serde::Serialize;
 use crate::{
     bail_incorrect_type_signature, bail_incorrect_type_signature_of_fn,
     bail_wrong_number_of_arguments,
-    parser::{
-        parser::Rule,
-        transformer::{TransformerContext, TransformError},
-    },
+    parser::parser::Rule,
     primitives::{
         iterable::IterableKind,
         primitive::{Primitive, PrimitiveKind},
@@ -15,7 +12,9 @@ use crate::{
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::{InputSpan, Spanned},
 };
-use crate::parser::il::ir_exp::PreExp;
+use crate::parser::il::il_exp::PreExp;
+use crate::parser::model_transformer::transform_error::TransformError;
+use crate::parser::model_transformer::transformer_context::TransformerContext;
 use crate::traits::latex::ToLatex;
 
 use super::function_traits::FunctionCall;

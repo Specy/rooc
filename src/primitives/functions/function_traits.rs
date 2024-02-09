@@ -5,23 +5,22 @@ use erased_serde::serialize_trait_object;
 use pest::iterators::Pair;
 
 use crate::{
-    parser::{
-        parser::Rule,
-        transformer::{TransformerContext, TransformError},
-    },
+    parser::parser::Rule,
     primitives::primitive::{Primitive, PrimitiveKind},
     type_checker::type_checker_context::{TypeCheckable, WithType},
     utils::InputSpan,
 };
-use crate::parser::il::ir_exp::PreExp;
+use crate::parser::il::il_exp::PreExp;
+use crate::parser::model_transformer::transform_error::TransformError;
+use crate::parser::model_transformer::transformer_context::TransformerContext;
 use crate::traits::latex::{escape_latex, ToLatex};
 
 pub trait FunctionCall:
-Debug + DynClone + erased_serde::Serialize + WithType + TypeCheckable + Send + Sync
+    Debug + DynClone + erased_serde::Serialize + WithType + TypeCheckable + Send + Sync
 {
     fn from_parameters(args: Vec<PreExp>, origin_rule: &Pair<Rule>) -> Self
-        where
-            Self: Sized;
+    where
+        Self: Sized;
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError>;
 
     fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)>;

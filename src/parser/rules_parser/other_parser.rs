@@ -8,14 +8,14 @@ use crate::parser::domain_declaration::{VariablesDomainDeclaration, VariableToAs
 use crate::parser::il::block_functions::{
     BlockFunction, BlockFunctionKind, BlockScopedFunction, BlockScopedFunctionKind,
 };
+use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::il_problem::{
     AddressableAccess, CompoundVariable, PreCondition, PreObjective,
 };
-use crate::parser::il::ir_exp::PreExp;
 use crate::parser::il::iterable_set::IterableSet;
 use crate::parser::iterable_utils::flatten_primitive_array_values;
+use crate::parser::model_transformer::model::VariableKind;
 use crate::parser::parser::Rule;
-use crate::parser::transformer::VariableKind;
 use crate::primitives::consts::Constant;
 use crate::primitives::functions::array_functions::{EnumerateArray, LenOfIterableFn};
 use crate::primitives::functions::function_traits::FunctionCall;

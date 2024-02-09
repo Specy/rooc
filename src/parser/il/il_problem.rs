@@ -10,9 +10,10 @@ use crate::{
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::InputSpan,
 };
-use crate::parser::il::ir_exp::PreExp;
+use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::iterable_set::IterableSet;
-use crate::parser::transformer::{TransformerContext, TransformError};
+use crate::parser::model_transformer::transform_error::TransformError;
+use crate::parser::model_transformer::transformer_context::TransformerContext;
 use crate::primitives::primitive_traits::ApplyOp;
 use crate::traits::latex::ToLatex;
 

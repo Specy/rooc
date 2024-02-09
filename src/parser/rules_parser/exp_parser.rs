@@ -7,7 +7,7 @@ use crate::{
     parser::parser::Rule,
     utils::{CompilationError, InputSpan, ParseError, Spanned},
 };
-use crate::parser::il::ir_exp::PreExp;
+use crate::parser::il::il_exp::PreExp;
 
 use super::other_parser::{
     parse_array_access, parse_block_function, parse_block_scoped_function, parse_compound_variable,

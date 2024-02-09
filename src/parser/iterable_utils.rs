@@ -27,7 +27,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .into_iter()
                 .map(|v| match v {
                     Primitive::Number(n) => Ok(n),
-                    _ => Err(format!("Expected Number, got \"{}\"", v.get_type_string(), )),
+                    _ => Err(format!("Expected Number, got \"{}\"", v.get_type_string(),)),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Primitive::Iterable(IterableKind::Numbers(values)))

@@ -1,9 +1,7 @@
 use core::fmt;
 
-use crate::{
-    math::operators::{BinOp, UnOp},
-    parser::transformer::TransformError,
-};
+use crate::math::operators::{BinOp, UnOp};
+use crate::parser::model_transformer::transform_error::TransformError;
 
 use super::primitive::{Primitive, PrimitiveKind};
 

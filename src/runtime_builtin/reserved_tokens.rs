@@ -5,7 +5,7 @@ use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::parser::il::block_functions::{BlockFunctionKind, BlockScopedFunctionKind};
-use crate::parser::transformer::TransformError;
+use crate::parser::model_transformer::transform_error::TransformError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum TokenType {

@@ -3,8 +3,9 @@ use core::fmt;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::parser::il::ir_exp::PreExp;
-use crate::parser::transformer::{TransformError, VariableKind};
+use crate::parser::il::il_exp::PreExp;
+use crate::parser::model_transformer::model::VariableKind;
+use crate::parser::model_transformer::transform_error::TransformError;
 use crate::primitives::primitive::PrimitiveKind;
 use crate::traits::latex::ToLatex;
 use crate::type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType};
@@ -114,7 +115,7 @@ impl IterableSet {
                                     .map(|v| v.get_span_value().clone())
                                     .collect::<Vec<_>>(),
                             }
-                                .to_spanned_error(&self.span);
+                            .to_spanned_error(&self.span);
                             Err(err)
                         } else {
                             Ok(vars

@@ -1,4 +1,5 @@
 use core::fmt;
+use std::fmt::Display;
 
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -6,10 +7,10 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::{
     bail_wrong_argument, match_or_bail,
     math::operators::{BinOp, UnOp},
-    parser::transformer::TransformError,
     primitives::primitive_traits::ApplyOp,
     wrong_argument,
 };
+use crate::parser::model_transformer::transform_error::TransformError;
 use crate::traits::latex::ToLatex;
 
 use super::{
@@ -37,7 +38,7 @@ pub enum Primitive {
 
 #[wasm_bindgen(typescript_custom_section)]
 const IPrimitive: &'static str = r#"
-export type SerializedPrimitive = 
+export type SerializedPrimitive =
     | { kind: 'Number', value: number }
     | { kind: 'Integer', value: number }
     | { kind: 'PositiveInteger', value: number }
@@ -70,7 +71,7 @@ pub enum PrimitiveKind {
 
 #[wasm_bindgen(typescript_custom_section)]
 const IPrimitiveKind: &'static str = r#"
-export type SerializedPrimitiveKind = 
+export type SerializedPrimitiveKind =
     | { type: 'Number' }
     | { type: 'Integer' }
     | { type: 'PositiveInteger' }
@@ -154,8 +155,11 @@ impl PrimitiveKind {
             PrimitiveKind::String => String::can_apply_unary_op(op),
         }
     }
-    pub fn to_string(&self) -> String {
-        match self {
+}
+
+impl Display for PrimitiveKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
             PrimitiveKind::Number => "Number".to_string(),
             PrimitiveKind::String => "String".to_string(),
             PrimitiveKind::Integer => "Integer".to_string(),
@@ -174,7 +178,8 @@ impl PrimitiveKind {
             PrimitiveKind::Boolean => "Boolean".to_string(),
             PrimitiveKind::Undefined => "Undefined".to_string(),
             PrimitiveKind::Any => "Any".to_string(),
-        }
+        };
+        f.write_str(&s)
     }
 }
 
@@ -186,8 +191,8 @@ impl Primitive {
         self.get_type().to_string()
     }
     pub fn as_number(&self) -> Result<f64, TransformError> {
-        match_or_bail!(PrimitiveKind::Number, 
-            Primitive::Number(n) => Ok(*n) 
+        match_or_bail!(PrimitiveKind::Number,
+            Primitive::Number(n) => Ok(*n)
             ; (self))
     }
     pub fn as_number_cast(&self) -> Result<f64, TransformError> {
@@ -200,8 +205,8 @@ impl Primitive {
         }
     }
     pub fn as_integer(&self) -> Result<i64, TransformError> {
-        match_or_bail!(PrimitiveKind::Integer, 
-            Primitive::Integer(n) => Ok(*n) 
+        match_or_bail!(PrimitiveKind::Integer,
+            Primitive::Integer(n) => Ok(*n)
             ; (self))
     }
     pub fn as_integer_cast(&self) -> Result<i64, TransformError> {
@@ -220,8 +225,8 @@ impl Primitive {
         }
     }
     pub fn as_usize(&self) -> Result<usize, TransformError> {
-        match_or_bail!(PrimitiveKind::PositiveInteger, 
-            Primitive::PositiveInteger(n) => Ok(*n as usize) 
+        match_or_bail!(PrimitiveKind::PositiveInteger,
+            Primitive::PositiveInteger(n) => Ok(*n as usize)
             ; (self))
     }
     pub fn as_usize_cast(&self) -> Result<usize, TransformError> {

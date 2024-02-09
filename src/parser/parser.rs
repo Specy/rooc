@@ -9,6 +9,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::bail_missing_token;
 use crate::parser::il::il_problem::{PreCondition, PreObjective};
+use crate::parser::model_transformer::model::{Problem, transform_parsed_problem};
+use crate::parser::model_transformer::transform_error::TransformError;
 use crate::primitives::consts::Constant;
 use crate::traits::latex::ToLatex;
 use crate::type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, TypedToken};
@@ -18,7 +20,6 @@ use super::domain_declaration::VariablesDomainDeclaration;
 use super::rules_parser::other_parser::{
     parse_condition_list, parse_consts_declaration, parse_domains_declaration, parse_objective,
 };
-use super::transformer::{Problem, transform_parsed_problem, TransformError};
 
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]

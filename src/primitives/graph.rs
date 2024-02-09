@@ -4,10 +4,8 @@ use std::collections::HashMap;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::{
-    math::operators::{BinOp, UnOp},
-    parser::transformer::TransformError,
-};
+use crate::math::operators::{BinOp, UnOp};
+use crate::parser::model_transformer::transform_error::TransformError;
 use crate::traits::latex::{escape_latex, ToLatex};
 
 use super::{

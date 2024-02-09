@@ -11,11 +11,10 @@ use crate::{
 };
 use crate::parser::il::il_problem::CompoundVariable;
 use crate::parser::il::iterable_set::IterableSet;
+use crate::parser::model_transformer::transform_error::TransformError;
+use crate::parser::model_transformer::transformer_context::TransformerContext;
 
-use super::{
-    recursive_set_resolver::recursive_set_resolver,
-    transformer::{TransformerContext, TransformError},
-};
+use super::recursive_set_resolver::recursive_set_resolver;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "value")]
