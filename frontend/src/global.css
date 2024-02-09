@@ -42,8 +42,11 @@ html {
 a {
 	text-decoration: none;
 	color: inherit;
+	transition: color 0.1s ease-in-out;
 }
-
+a:hover{
+	color: var(--accent)
+}
 input:disabled {
 	cursor: not-allowed !important;
 	filter: saturate(0.6) !important;
