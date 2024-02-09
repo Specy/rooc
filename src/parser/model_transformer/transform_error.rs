@@ -214,7 +214,7 @@ impl fmt::Display for TransformError {
             }
             TransformError::AlreadyDeclaredDomainVariable(variables) => {
                 format!(
-                    "[AlreadyDeclaredDomainVariable] There are some variables whose domain is already declared: {}",
+                    "[AlreadyDeclaredDomainVariable] There are some variables whose domain is already declared:\n    {}",
                     variables
                         .iter()
                         .map(|(name, kind)| format!("{}: {} ({} duplicates)", name, kind.1.to_string(), kind.0))
