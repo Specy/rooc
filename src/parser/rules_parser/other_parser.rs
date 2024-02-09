@@ -2,14 +2,19 @@ use std::vec;
 
 use pest::iterators::{Pair, Pairs};
 
+use crate::{bail_missing_token, err_unexpected_token};
 use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
-use crate::parser::domain_declaration::{VariableToAssert, VariablesDomainDeclaration};
+use crate::parser::domain_declaration::{VariablesDomainDeclaration, VariableToAssert};
+use crate::parser::il::block_functions::{
+    BlockFunction, BlockFunctionKind, BlockScopedFunction, BlockScopedFunctionKind,
+};
+use crate::parser::il::il_problem::{
+    AddressableAccess, CompoundVariable, PreCondition, PreObjective,
+};
+use crate::parser::il::ir_exp::PreExp;
+use crate::parser::il::iterable_set::IterableSet;
 use crate::parser::iterable_utils::flatten_primitive_array_values;
 use crate::parser::parser::Rule;
-use crate::parser::pre_parsed_problem::{
-    AddressableAccess, BlockFunction, BlockFunctionKind, BlockScopedFunction,
-    BlockScopedFunctionKind, CompoundVariable, IterableSet, PreCondition, PreExp, PreObjective,
-};
 use crate::parser::transformer::VariableKind;
 use crate::primitives::consts::Constant;
 use crate::primitives::functions::array_functions::{EnumerateArray, LenOfIterableFn};
@@ -21,7 +26,6 @@ use crate::primitives::functions::number_functions::NumericRange;
 use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
 use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
-use crate::{bail_missing_token, err_unexpected_token};
 
 use super::exp_parser::parse_exp;
 
@@ -151,6 +155,7 @@ pub fn parse_variables_assertion(
         ),
     }
 }
+
 pub fn parse_as_assertion_type(pair: &Pair<Rule>) -> Result<VariableType, CompilationError> {
     match pair.as_str().parse() {
         Ok(kind) => Ok(kind),
@@ -161,6 +166,7 @@ pub fn parse_as_assertion_type(pair: &Pair<Rule>) -> Result<VariableType, Compil
         ),
     }
 }
+
 pub fn parse_variable_assertion(
     pair: &Pair<Rule>,
 ) -> Result<Spanned<VariableToAssert>, CompilationError> {

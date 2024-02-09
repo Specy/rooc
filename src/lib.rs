@@ -10,17 +10,16 @@ use parser::{
 };
 use utils::CompilationError;
 
-
 pub mod macros;
 pub mod math;
 pub mod parser;
 pub mod primitives;
-pub mod solvers;
-pub mod transformers;
-pub mod utils;
-pub mod type_checker;
 pub mod runtime_builtin;
+pub mod solvers;
 pub mod traits;
+pub mod transformers;
+pub mod type_checker;
+pub mod utils;
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]

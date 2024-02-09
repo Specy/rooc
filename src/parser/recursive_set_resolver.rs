@@ -2,11 +2,9 @@ use crate::{
     primitives::{primitive::Primitive, primitive_traits::Spreadable},
     utils::Spanned,
 };
+use crate::parser::il::iterable_set::IterableSet;
 
-use super::{
-    pre_parsed_problem::IterableSet,
-    transformer::{TransformError, TransformerContext, VariableKind},
-};
+use super::transformer::{TransformerContext, TransformError, VariableKind};
 
 //TODO make this a iterator
 pub fn recursive_set_resolver<T>(

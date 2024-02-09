@@ -4,14 +4,13 @@ use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
-    parser::{
-        pre_parsed_problem::{AddressableAccess, PreExp},
-        transformer::{Frame, TransformError},
-    },
+    parser::transformer::{Frame, TransformError},
     primitives::primitive::PrimitiveKind,
     runtime_builtin::reserved_tokens::check_if_reserved_token,
     utils::InputSpan,
 };
+use crate::parser::il::il_problem::AddressableAccess;
+use crate::parser::il::ir_exp::PreExp;
 
 pub trait TypeCheckable {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError>;
@@ -125,7 +124,10 @@ impl TypeCheckerContext {
         }
         None
     }
-    pub fn check_compound_variable(&mut self, compound_indexes: &[PreExp]) -> Result<(), TransformError> {
+    pub fn check_compound_variable(
+        &mut self,
+        compound_indexes: &[PreExp],
+    ) -> Result<(), TransformError> {
         for index in compound_indexes {
             index.type_check(self)?;
             let value = match index {
@@ -153,7 +155,8 @@ impl TypeCheckerContext {
                             PrimitiveKind::String,
                             PrimitiveKind::GraphNode,
                         ],
-                    }.to_spanned_error(index.get_span()));
+                    }
+                    .to_spanned_error(index.get_span()));
                 }
             }
         }

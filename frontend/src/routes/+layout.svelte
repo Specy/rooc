@@ -28,5 +28,5 @@
 			<slot />
 		</PromptProvider>
 	</ErrorLogger>
-	<NoiseOverlay opacity={0.1} />
+	<NoiseOverlay opacity={0.08} />
 </ThemeProvider>

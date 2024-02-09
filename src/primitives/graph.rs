@@ -97,7 +97,7 @@ impl ToLatex for GraphNode {
             .join(",\\ ");
         if edges.is_empty() {
             return format!("{}", self.name);
-        }else {
+        } else {
             format!("{}\\to\\left\\{{{}\\right\\}}", self.name, edges)
         }
     }

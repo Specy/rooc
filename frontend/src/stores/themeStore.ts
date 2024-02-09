@@ -1,5 +1,29 @@
 import { createThemeStorage, LocalStorageThemePersistence, type ComputedThemeLayers, type NamesOfTheme, type SerializedTheme } from "$lib/theme/svelteTheme";
 
+/*
+background: {
+            hex: "#130c16",
+            name: 'background',
+            cssProp: 'background',
+        },
+        primary: {
+            hex: '#1c1323',
+            name: 'primary',
+            cssProp: 'primary',
+        },
+        secondary: {
+            hex: '#24192f',
+            name: 'secondary',
+            cssProp: 'secondary'
+        },
+        tertiary: {
+            hex: '#322444',
+            name: 'tertiary',
+            cssProp: 'tertiary'
+        },
+ */
+
+
 const baseDarkTheme = {
     meta: {
         version: 1,
@@ -39,7 +63,7 @@ const baseDarkTheme = {
             cssProp: 'accent2'
         },
         shadow: {
-            hex: '#2d2d3b',
+            hex: '#3b2d37',
             name: 'shadow',
             cssProp: 'shadow'
         },

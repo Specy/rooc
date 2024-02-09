@@ -8,17 +8,17 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 use crate::bail_missing_token;
+use crate::parser::il::il_problem::{PreCondition, PreObjective};
 use crate::primitives::consts::Constant;
 use crate::traits::latex::ToLatex;
 use crate::type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, TypedToken};
 use crate::utils::{CompilationError, InputSpan, ParseError};
 
 use super::domain_declaration::VariablesDomainDeclaration;
-use super::pre_parsed_problem::{PreCondition, PreObjective};
 use super::rules_parser::other_parser::{
-    parse_condition_list, parse_consts_declaration, parse_domain_declaration, parse_domains_declaration, parse_objective
+    parse_condition_list, parse_consts_declaration, parse_domains_declaration, parse_objective,
 };
-use super::transformer::{transform_parsed_problem, Problem, TransformError};
+use super::transformer::{Problem, transform_parsed_problem, TransformError};
 
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]

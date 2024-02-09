@@ -4,10 +4,8 @@ use lazy_static::lazy_static;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::parser::{
-    pre_parsed_problem::{BlockFunctionKind, BlockScopedFunctionKind},
-    transformer::TransformError,
-};
+use crate::parser::il::block_functions::{BlockFunctionKind, BlockScopedFunctionKind};
+use crate::parser::transformer::TransformError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum TokenType {

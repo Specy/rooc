@@ -3,11 +3,11 @@ use core::fmt;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
+use crate::traits::latex::ToLatex;
 use crate::{
     math::operators::{BinOp, UnOp},
     parser::transformer::TransformError,
 };
-use crate::traits::latex::ToLatex;
 
 use super::{
     primitive::{Primitive, PrimitiveKind},
@@ -55,7 +55,6 @@ impl Tuple {
             .into()
     }
 }
-
 
 impl ToLatex for Tuple {
     fn to_latex(&self) -> String {

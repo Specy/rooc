@@ -1,26 +1,27 @@
+use std::fmt::Debug;
+
 use dyn_clone::DynClone;
 use erased_serde::serialize_trait_object;
 use pest::iterators::Pair;
-use std::fmt::Debug;
 
-use crate::traits::latex::{escape_latex, ToLatex};
 use crate::{
     parser::{
         parser::Rule,
-        pre_parsed_problem::PreExp,
-        transformer::{TransformError, TransformerContext},
+        transformer::{TransformerContext, TransformError},
     },
     primitives::primitive::{Primitive, PrimitiveKind},
     type_checker::type_checker_context::{TypeCheckable, WithType},
     utils::InputSpan,
 };
+use crate::parser::il::ir_exp::PreExp;
+use crate::traits::latex::{escape_latex, ToLatex};
 
 pub trait FunctionCall:
-    Debug + DynClone + erased_serde::Serialize + WithType + TypeCheckable + Send + Sync
+Debug + DynClone + erased_serde::Serialize + WithType + TypeCheckable + Send + Sync
 {
     fn from_parameters(args: Vec<PreExp>, origin_rule: &Pair<Rule>) -> Self
-    where
-        Self: Sized;
+        where
+            Self: Sized;
     fn call(&self, context: &TransformerContext) -> Result<Primitive, TransformError>;
 
     fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)>;
@@ -33,11 +34,7 @@ pub trait FunctionCall:
             .map(|p| p.to_latex())
             .collect::<Vec<String>>()
             .join(",\\");
-        format!(
-            "{}({})",
-            escape_latex(&self.get_function_name()),
-            pars
-        )
+        format!("{}({})", escape_latex(&self.get_function_name()), pars)
     }
 
     fn get_function_name(&self) -> String;

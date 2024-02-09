@@ -1,4 +1,7 @@
-use crate::{math::operators::{BinOp, UnOp}, parser::transformer::TransformError};
+use crate::{
+    math::operators::{BinOp, UnOp},
+    parser::transformer::TransformError,
+};
 
 use super::{
     primitive::{Primitive, PrimitiveKind},
@@ -108,13 +111,18 @@ impl ApplyOp for f64 {
         }
     }
     fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
-        matches!(to, PrimitiveKind::Number | PrimitiveKind::Integer | PrimitiveKind::PositiveInteger | PrimitiveKind::Boolean)
+        matches!(
+            to,
+            PrimitiveKind::Number
+                | PrimitiveKind::Integer
+                | PrimitiveKind::PositiveInteger
+                | PrimitiveKind::Boolean
+        )
     }
     fn can_apply_unary_op(op: UnOp) -> bool {
         matches!(op, UnOp::Neg)
     }
 }
-
 
 impl ApplyOp for i64 {
     type TargetType = PrimitiveKind;
@@ -159,7 +167,13 @@ impl ApplyOp for i64 {
         }
     }
     fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
-        matches!(to, PrimitiveKind::Number | PrimitiveKind::Integer | PrimitiveKind::PositiveInteger | PrimitiveKind::Boolean)
+        matches!(
+            to,
+            PrimitiveKind::Number
+                | PrimitiveKind::Integer
+                | PrimitiveKind::PositiveInteger
+                | PrimitiveKind::Boolean
+        )
     }
     fn can_apply_unary_op(op: UnOp) -> bool {
         matches!(op, UnOp::Neg)
@@ -209,13 +223,18 @@ impl ApplyOp for u64 {
         }
     }
     fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
-        matches!(to, PrimitiveKind::Number | PrimitiveKind::Integer | PrimitiveKind::PositiveInteger | PrimitiveKind::Boolean)
+        matches!(
+            to,
+            PrimitiveKind::Number
+                | PrimitiveKind::Integer
+                | PrimitiveKind::PositiveInteger
+                | PrimitiveKind::Boolean
+        )
     }
     fn can_apply_unary_op(op: UnOp) -> bool {
         matches!(op, UnOp::Neg)
     }
 }
-
 
 /* --------- Spreadable --------- */
 

@@ -3,26 +3,22 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::prelude::*;
 
-use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
-use crate::math::operators::{BinOp, UnOp};
-use crate::primitives::consts::Constant;
-use crate::primitives::functions::function_traits::FunctionCall;
-use crate::primitives::primitive::PrimitiveKind;
-use crate::runtime_builtin::reserved_tokens::{check_if_reserved_token, TokenType};
-use crate::traits::latex::{escape_latex, ToLatex};
 use crate::{
     primitives::primitive::Primitive,
     utils::{InputSpan, Spanned},
 };
+use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
+use crate::math::operators::{BinOp, UnOp};
+use crate::parser::il::il_problem::{AddressableAccess, PreCondition, PreObjective};
+use crate::parser::il::ir_exp::PreExp;
+use crate::primitives::consts::Constant;
+use crate::primitives::primitive::PrimitiveKind;
+use crate::runtime_builtin::reserved_tokens::{check_if_reserved_token, TokenType};
+use crate::traits::latex::{escape_latex, ToLatex};
 
+use super::{parser::PreProblem, recursive_set_resolver::recursive_set_resolver};
 use super::domain_declaration::VariablesDomainDeclaration;
-use super::{
-    parser::PreProblem,
-    pre_parsed_problem::{AddressableAccess, PreCondition, PreExp, PreObjective},
-    recursive_set_resolver::recursive_set_resolver,
-};
 
 #[derive(Debug, Clone, Serialize)]
 pub enum Exp {
@@ -444,7 +440,7 @@ impl fmt::Display for TransformError {
                     "[AlreadyDeclaredVariable] Variable {} was already declared",
                     name
                 )
-            },
+            }
             TransformError::UndeclaredVariableDomain(name) => {
                 format!(
                     "[UndeclaredVariableDomain] The domain of variable \"{}\" was not defined",
@@ -757,7 +753,7 @@ impl TransformerContext {
         let duplicates = computed_domain
             .iter()
             .fold(HashMap::new(), |mut acc, (name, as_type)| {
-                if let Some((count, saved_type)) = acc.get_mut(name){
+                if let Some((count, saved_type)) = acc.get_mut(name) {
                     //ignore the type if it's the same
                     if saved_type == as_type {
                         return acc;

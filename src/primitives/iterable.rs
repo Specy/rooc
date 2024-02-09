@@ -3,12 +3,12 @@ use core::fmt;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::traits::latex::ToLatex;
 use crate::{
     check_bounds,
     math::operators::{BinOp, UnOp},
     parser::transformer::TransformError,
 };
+use crate::traits::latex::ToLatex;
 
 use super::{
     graph::{Graph, GraphEdge, GraphNode},
@@ -249,6 +249,7 @@ where
         format!("{}", values)
     }
 }
+
 impl ToLatex for IterableKind {
     fn to_latex(&self) -> String {
         match self {

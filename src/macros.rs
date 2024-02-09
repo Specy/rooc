@@ -11,7 +11,7 @@ macro_rules! err_unexpected_token {
 #[macro_export]
 macro_rules! wrong_argument {
     ($expected_type: expr, $current_arg:expr) => {
-        TransformError::WrongArgument{
+        TransformError::WrongArgument {
             expected: $expected_type,
             got: $current_arg.get_type(),
         }
@@ -55,18 +55,15 @@ macro_rules! bail_wrong_number_of_arguments {
     ($function:expr) => {
         Err(TransformError::WrongNumberOfArguments {
             signature: $function.get_type_signature(),
-            args: $function.get_parameters().clone()
+            args: $function.get_parameters().clone(),
         })
-    }
+    };
 }
 
 #[macro_export]
 macro_rules! bail_wrong_argument {
     ($expected_type: expr, $current_arg:expr) => {
-        Err(wrong_argument!(
-            $expected_type,
-            $current_arg
-        ))
+        Err(wrong_argument!($expected_type, $current_arg))
     };
 }
 
@@ -81,7 +78,6 @@ macro_rules! match_or_bail {
         }
     };
 }
-
 
 #[macro_export]
 macro_rules! bail_missing_token {

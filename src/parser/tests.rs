@@ -361,7 +361,7 @@ define
     }
 
     #[test]
-    fn test_duplicate_domain(){
+    fn test_duplicate_domain() {
         let input = "
         min 1
         s.t.

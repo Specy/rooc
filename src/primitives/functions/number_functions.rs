@@ -1,14 +1,12 @@
 use pest::{iterators::Pair, Span};
 use serde::Serialize;
 
-use crate::traits::latex::ToLatex;
 use crate::{
     bail_incorrect_type_signature, bail_incorrect_type_signature_of_fn,
     bail_wrong_number_of_arguments,
     parser::{
         parser::Rule,
-        pre_parsed_problem::PreExp,
-        transformer::{TransformError, TransformerContext},
+        transformer::{TransformerContext, TransformError},
     },
     primitives::{
         iterable::IterableKind,
@@ -17,6 +15,8 @@ use crate::{
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::{InputSpan, Spanned},
 };
+use crate::parser::il::ir_exp::PreExp;
+use crate::traits::latex::ToLatex;
 
 use super::function_traits::FunctionCall;
 
@@ -147,7 +147,11 @@ impl FunctionCall for NumericRange {
         match self.args[..] {
             [ref from, ref to, _] => {
                 if let Some(inclusive) = self.known_inclusive {
-                    let range = if inclusive { "\\dots\\text{=}" } else { "\\dots" };
+                    let range = if inclusive {
+                        "\\dots\\text{=}"
+                    } else {
+                        "\\dots"
+                    };
                     let from = if from.is_leaf() {
                         from.to_latex()
                     } else {

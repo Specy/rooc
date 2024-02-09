@@ -1,6 +1,9 @@
 use core::fmt;
 
-use crate::{math::operators::{BinOp, UnOp}, parser::transformer::TransformError};
+use crate::{
+    math::operators::{BinOp, UnOp},
+    parser::transformer::TransformError,
+};
 
 use super::primitive::{Primitive, PrimitiveKind};
 
@@ -14,11 +17,9 @@ pub trait ApplyOp {
     fn can_apply_unary_op(op: UnOp) -> bool;
 }
 
-
 pub trait Spreadable {
     fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError>;
 }
-
 
 pub enum OperatorError {
     IncompatibleType {
@@ -37,7 +38,6 @@ pub enum OperatorError {
     UndefinedUse,
 }
 
-
 impl OperatorError {
     pub fn incompatible_type(op: BinOp, expected: PrimitiveKind, found: PrimitiveKind) -> Self {
         OperatorError::IncompatibleType {
@@ -47,10 +47,16 @@ impl OperatorError {
         }
     }
     pub fn unsupported_bin_operation(op: BinOp, found: PrimitiveKind) -> Self {
-        OperatorError::UnsupportedBinOperation { operator: op, found }
+        OperatorError::UnsupportedBinOperation {
+            operator: op,
+            found,
+        }
     }
     pub fn unsupported_un_operation(op: UnOp, found: PrimitiveKind) -> Self {
-        OperatorError::UnsupportedUnOperation { operator: op, found }
+        OperatorError::UnsupportedUnOperation {
+            operator: op,
+            found,
+        }
     }
 }
 
@@ -82,7 +88,6 @@ impl fmt::Display for OperatorError {
         f.write_str(&s)
     }
 }
-
 
 impl ApplyOp for Primitive {
     type Target = Primitive;

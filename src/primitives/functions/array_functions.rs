@@ -6,7 +6,6 @@ use crate::{
     bail_wrong_number_of_arguments,
     parser::{
         parser::Rule,
-        pre_parsed_problem::PreExp,
         transformer::{TransformerContext, TransformError},
     },
     primitives::{
@@ -15,9 +14,9 @@ use crate::{
         tuple::Tuple,
     },
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
-    utils::InputSpan
-    ,
+    utils::InputSpan,
 };
+use crate::parser::il::ir_exp::PreExp;
 
 use super::function_traits::FunctionCall;
 
@@ -108,7 +107,7 @@ impl FunctionCall for EnumerateArray {
     fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
         vec![(
             "of_iterable".to_string(),
-            PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any))
+            PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
         )]
     }
     fn get_parameters(&self) -> &Vec<PreExp> {
@@ -118,7 +117,6 @@ impl FunctionCall for EnumerateArray {
         &self.span
     }
 }
-
 
 #[derive(Debug, Serialize, Clone)]
 pub struct LenOfIterableFn {

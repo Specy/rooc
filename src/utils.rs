@@ -58,8 +58,8 @@ impl InputSpan {
 
 #[derive(Clone, Serialize)]
 pub struct Spanned<T>
-    where
-        T: Debug + Serialize,
+where
+    T: Debug + Serialize,
 {
     pub value: T,
     span: InputSpan,

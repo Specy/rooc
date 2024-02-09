@@ -9,11 +9,12 @@ use crate::{
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext},
     utils::{InputSpan, Spanned},
 };
+use crate::parser::il::il_problem::CompoundVariable;
+use crate::parser::il::iterable_set::IterableSet;
 
 use super::{
-    pre_parsed_problem::{CompoundVariable, IterableSet},
     recursive_set_resolver::recursive_set_resolver,
-    transformer::{TransformError, TransformerContext},
+    transformer::{TransformerContext, TransformError},
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -22,6 +23,7 @@ pub enum VariableToAssert {
     Variable(String),
     CompoundVariable(CompoundVariable),
 }
+
 impl Display for VariableToAssert {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -32,7 +34,7 @@ impl Display for VariableToAssert {
                 } else {
                     write!(f, "{}", name)
                 }
-            },
+            }
             VariableToAssert::CompoundVariable(c) => write!(f, "{}", c),
         }
     }
@@ -42,16 +44,16 @@ impl ToLatex for VariableToAssert {
     fn to_latex(&self) -> String {
         match self {
             VariableToAssert::Variable(name) => {
-                if name.contains("_"){
+                if name.contains("_") {
                     let mut indexes = name.split("_").collect::<Vec<&str>>();
                     //sure to have at least one element
                     let first = indexes.remove(0);
                     let rest = indexes.join("");
                     format!("{}_{{{}}}", escape_latex(first), escape_latex(&rest))
-                }else {
+                } else {
                     escape_latex(name)
                 }
-            },
+            }
             VariableToAssert::CompoundVariable(c) => c.to_latex(),
         }
     }
@@ -75,6 +77,7 @@ pub struct VariablesDomainDeclaration {
     iteration: Vec<IterableSet>,
     span: InputSpan,
 }
+
 #[wasm_bindgen(typescript_custom_section)]
 const IVariablesDomainDeclaration: &'static str = r#"
 export type SerializedVariablesDomainDeclaration = {
@@ -108,34 +111,33 @@ impl VariablesDomainDeclaration {
         &self.iteration
     }
 
-    pub fn compute_domain(
+    fn compute_domain_values(
         &self,
         context: &mut TransformerContext,
     ) -> Result<Vec<(String, VariableType)>, TransformError> {
-        if self.iteration.is_empty() {
-            return self.variables.iter().map(|v| match &v.get_span_value() {
+        self.variables
+            .iter()
+            .map(|v| match v.get_span_value() {
                 VariableToAssert::Variable(name) => Ok((name.clone(), self.as_type.clone())),
                 VariableToAssert::CompoundVariable(c) => {
                     let indexes = &c.compute_indexes(context)?;
                     let name = context.flatten_compound_variable(&c.name, &indexes)?;
                     Ok((name, self.as_type.clone()))
                 }
-            }).collect::<Result<Vec<(String, VariableType)>, TransformError>>()
-            .map_err(|e| e.to_spanned_error(&self.span));
+            })
+            .collect::<Result<Vec<(String, VariableType)>, TransformError>>()
+            .map_err(|e| e.to_spanned_error(&self.span))
+    }
+    pub fn compute_domain(
+        &self,
+        context: &mut TransformerContext,
+    ) -> Result<Vec<(String, VariableType)>, TransformError> {
+        if self.iteration.is_empty() {
+            return self.compute_domain_values(context);
         }
         let mut results: Vec<Vec<(String, VariableType)>> = Vec::new();
         recursive_set_resolver(&self.iteration, context, &mut results, 0, &|context| {
-            self.variables
-                .iter()
-                .map(|v| match &v.get_span_value() {
-                    VariableToAssert::Variable(name) => Ok((name.clone(), self.as_type.clone())),
-                    VariableToAssert::CompoundVariable(c) => {
-                        let indexes = &c.compute_indexes(context)?;
-                        let name = context.flatten_compound_variable(&c.name, &indexes)?;
-                        Ok((name, self.as_type.clone()))
-                    }
-                })
-                .collect::<Result<Vec<(String, VariableType)>, TransformError>>()
+            self.compute_domain_values(context)
         })
         .map_err(|e| e.to_spanned_error(&self.span))?;
         Ok(results.into_iter().flatten().collect())

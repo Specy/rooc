@@ -3,15 +3,13 @@ use core::fmt;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
+use crate::parser::il::ir_exp::PreExp;
+use crate::traits::latex::ToLatex;
 use crate::{
-    parser::{
-        pre_parsed_problem::PreExp,
-        transformer::{TransformerContext, TransformError},
-    },
+    parser::transformer::{TransformError, TransformerContext},
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::Spanned,
 };
-use crate::traits::latex::ToLatex;
 
 use super::primitive::{Primitive, PrimitiveKind};
 
@@ -31,7 +29,11 @@ export type SerializedConstant = {
 
 impl ToLatex for Constant {
     fn to_latex(&self) -> String {
-        format!("{} &= {}", self.name.get_span_value(), self.value.to_latex())
+        format!(
+            "{} &= {}",
+            self.name.get_span_value(),
+            self.value.to_latex()
+        )
     }
 }
 
@@ -77,4 +79,3 @@ impl fmt::Display for Constant {
         write!(f, "{} = {}", self.name.get_span_value(), self.value)
     }
 }
-

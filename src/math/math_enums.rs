@@ -87,8 +87,7 @@ impl FromStr for OptimizationType {
     }
 }
 
-
-enum_with_variants_to_string!{
+enum_with_variants_to_string! {
     pub enum VariableType derives[Debug, PartialEq, Clone] with_wasm{
         Integer,
         Boolean,
@@ -109,6 +108,7 @@ impl fmt::Display for VariableType {
         f.write_str(&s)
     }
 }
+
 impl FromStr for VariableType {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -121,6 +121,7 @@ impl FromStr for VariableType {
         }
     }
 }
+
 impl ToLatex for VariableType {
     fn to_latex(&self) -> String {
         match self {

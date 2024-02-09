@@ -35,8 +35,6 @@ pub enum Primitive {
     Undefined,
 }
 
-
-
 #[wasm_bindgen(typescript_custom_section)]
 const IPrimitive: &'static str = r#"
 export type SerializedPrimitive = 
@@ -120,10 +118,9 @@ impl PrimitiveKind {
                 PrimitiveKind::Number,
                 PrimitiveKind::String,
             ]),
-            _ => Err(TransformError::Unspreadable(self.clone()))
+            _ => Err(TransformError::Unspreadable(self.clone())),
         }
     }
-
 
     pub fn can_apply_binary_op(&self, op: BinOp, to: PrimitiveKind) -> bool {
         match self {
@@ -249,8 +246,8 @@ impl Primitive {
         }
     }
     pub fn as_positive_integer(&self) -> Result<u64, TransformError> {
-        match_or_bail!(PrimitiveKind::PositiveInteger, 
-            Primitive::PositiveInteger(n) => Ok(*n) 
+        match_or_bail!(PrimitiveKind::PositiveInteger,
+            Primitive::PositiveInteger(n) => Ok(*n)
             ; (self))
     }
     pub fn as_graph(&self) -> Result<&Graph, TransformError> {
@@ -279,14 +276,18 @@ impl Primitive {
           ; (self))
     }
     pub fn as_iterator(&self) -> Result<&IterableKind, TransformError> {
-        match_or_bail!(PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
-            Primitive::Iterable(i) => Ok(i)
-          ; (self))
+        match_or_bail!(
+            PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
+            Primitive::Iterable(i) => Ok(i);
+            (self)
+        )
     }
     pub fn as_tuple(&self) -> Result<&Vec<Primitive>, TransformError> {
-        match_or_bail!(PrimitiveKind::Tuple(vec![]),
-            Primitive::Tuple(t) => Ok(t.get_primitives())
-          ; (self))
+        match_or_bail!(
+            PrimitiveKind::Tuple(vec![]),
+            Primitive::Tuple(t) => Ok(t.get_primitives());
+            (self)
+        )
     }
 }
 
@@ -307,7 +308,6 @@ impl ToLatex for Primitive {
         }
     }
 }
-
 
 impl fmt::Display for Primitive {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

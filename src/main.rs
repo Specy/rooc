@@ -1,15 +1,14 @@
-use rooc::type_checker::type_checker_context::TypeCheckable;
-use term_table::{row::Row, table_cell::TableCell, Table};
+use term_table::{row::Row, Table, table_cell::TableCell};
 
-use rooc::traits::latex::ToLatex;
 use rooc::{
     math::math_enums::{Comparison, OptimizationType},
+    RoocParser,
     solvers::{
         linear_problem::{Constraint, LinearProblem},
         simplex::{IntoCanonicalTableau, Tableau},
     },
-    RoocParser,
 };
+use rooc::traits::latex::ToLatex;
 
 #[allow(unused)]
 fn main() {
