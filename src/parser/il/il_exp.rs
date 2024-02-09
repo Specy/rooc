@@ -243,7 +243,19 @@ impl TypeCheckable for PreExp {
                 }
                 Ok(())
             }
-            Self::Variable(name) => Ok(()),
+            Self::Variable(name) => {
+                //check if the variable is declared, if not, check if it will be declared at runtime
+                //this is possible for named variables in the domain
+                match context.get_value(name) {
+                    Some(_) => Ok(()),
+                    None => match context.get_static_domain_variable(name) {
+                        Some(_) => Ok(()),
+                        None => Err(TransformError::UndeclaredVariable(
+                            name.get_span_value().clone(),
+                        )),
+                    },
+                }
+            }
             Self::CompoundVariable(c) => context
                 .check_compound_variable(&c.indexes)
                 .map_err(|e| e.to_spanned_error(c.get_span())),
@@ -331,6 +343,7 @@ impl TypeCheckable for PreExp {
                     name.get_span().clone(),
                     Some(name.get_span_value().clone()),
                 ),
+                //TODO should i add types for runtime variables in the domain?
                 None => context.add_token_type_or_undefined(
                     PrimitiveKind::Number, //TODO we assume undeclared variables are numbers, make this configurable with assignments
                     name.get_span().clone(),
@@ -476,13 +489,9 @@ impl PreExp {
                 match value {
                     Some(value) => Ok(value?),
                     None => {
-                        let domain = context.get_variable_domain(name);
-                        if domain.is_none() {
-                            return Err(TransformError::UndeclaredVariableDomain(
-                                name.get_span_value().clone(),
-                            )
-                            .to_spanned_error(self.get_span()));
-                        }
+                        context
+                            .increment_domain_variable_usage(name)
+                            .map_err(|e| e.to_spanned_error(self.get_span()))?;
                         Ok(Exp::Variable(name.get_span_value().clone()))
                     }
                 }
@@ -497,11 +506,9 @@ impl PreExp {
                 let name = context
                     .flatten_compound_variable(&c.name, indexes)
                     .map_err(|e| e.to_spanned_error(self.get_span()))?;
-                let domain = context.get_variable_domain(&name);
-                if domain.is_none() {
-                    return Err(TransformError::UndeclaredVariableDomain(name)
-                        .to_spanned_error(self.get_span()));
-                }
+                context
+                    .increment_domain_variable_usage(&name)
+                    .map_err(|e| e.to_spanned_error(self.get_span()))?;
                 Ok(Exp::Variable(name))
             }
             Self::ArrayAccess(array_access) => {
@@ -699,11 +706,10 @@ impl PreExp {
     }
 
     pub(crate) fn is_leaf(&self) -> bool {
-        match self {
-            Self::BinaryOperation(_, _, _) => false,
-            Self::UnaryOperation(_, _) => false,
-            _ => true,
-        }
+        !matches!(
+            self,
+            Self::BinaryOperation(_, _, _) | Self::UnaryOperation(_, _)
+        )
     }
     fn to_string_with_precedence(&self, previous_precedence: u8) -> String {
         match self {
@@ -718,9 +724,9 @@ impl PreExp {
                 let lhs_str = lhs.to_string_with_precedence(op.precedence());
                 let rhs_str = rhs.to_string_with_precedence(op.precedence());
                 if op.precedence() < previous_precedence {
-                    format!("({} {} {})", lhs_str, op.to_string(), rhs_str)
+                    format!("({} {} {})", lhs_str, **op, rhs_str)
                 } else {
-                    format!("{} {} {}", lhs_str, op.to_string(), rhs_str)
+                    format!("{} {} {}", lhs_str, **op, rhs_str)
                 }
             }
             _ => self.to_string(),
@@ -771,7 +777,7 @@ impl ToLatex for PreExp {
                     format!("{}({})", op.to_latex(), exp.to_latex())
                 }
             }
-            Self::Variable(name) => format!("{}", escape_latex(name.get_span_value())),
+            Self::Variable(name) => escape_latex(name.get_span_value()),
             Self::Primitive(p) => p.to_latex(),
             Self::Mod(_, exp) => format!("|{}|", exp.to_latex()),
             Self::CompoundVariable(c) => c.to_latex(),
@@ -789,7 +795,7 @@ impl fmt::Display for PreExp {
             Self::BinaryOperation(op, lhs, rhs) => {
                 let rhs = rhs.to_string_with_precedence(op.precedence());
                 let lhs = lhs.to_string_with_precedence(op.precedence());
-                format!("{} {} {}", lhs, op.to_string(), rhs)
+                format!("{} {} {}", lhs, **op, rhs)
             }
             Self::CompoundVariable(c) => c.to_string(),
             Self::FunctionCall(_, f) => f.to_string(),
@@ -803,9 +809,9 @@ impl fmt::Display for PreExp {
                 }
             }
             Self::Variable(name) => {
-                if name.contains("_") {
+                if name.contains('_') {
                     //in case this is a escaped variable
-                    format!("\\{}", name.to_string())
+                    format!("\\{}", **name)
                 } else {
                     name.to_string()
                 }

@@ -7,8 +7,10 @@ use crate::{
     primitives::primitive::PrimitiveKind,
     runtime_builtin::reserved_tokens::check_if_reserved_token, utils::InputSpan,
 };
+use crate::math::math_enums::VariableType;
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::il_problem::AddressableAccess;
+use crate::parser::model_transformer::model::VariableKind;
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::Frame;
 
@@ -50,6 +52,7 @@ impl TypedToken {
 
 pub struct TypeCheckerContext {
     frames: Vec<Frame<PrimitiveKind>>,
+    static_domain: HashMap<String, VariableType>,
     token_map: HashMap<usize, TypedToken>,
 }
 
@@ -57,7 +60,8 @@ impl Default for TypeCheckerContext {
     fn default() -> Self {
         let primitives = HashMap::new();
         let token_map = HashMap::new();
-        Self::new(primitives, token_map)
+        let static_domain = HashMap::new();
+        Self::new(primitives, token_map, static_domain)
     }
 }
 
@@ -65,11 +69,13 @@ impl TypeCheckerContext {
     pub fn new(
         primitives: HashMap<String, PrimitiveKind>,
         token_map: HashMap<usize, TypedToken>,
+        static_domain: HashMap<String, VariableType>,
     ) -> Self {
         let frame = Frame::from_map(primitives);
         Self {
             frames: vec![frame],
             token_map,
+            static_domain,
         }
     }
 
@@ -108,6 +114,12 @@ impl TypeCheckerContext {
         }
         let token = TypedToken::new(span, value, identifier);
         self.token_map.insert(start, token);
+    }
+    pub fn set_static_domain(&mut self, domain: Vec<(String, VariableType)>) {
+        self.static_domain = HashMap::from_iter(domain);
+    }
+    pub fn get_static_domain_variable(&self, name: &str) -> Option<&VariableType> {
+        self.static_domain.get(name)
     }
     pub fn pop_scope(&mut self) -> Result<Frame<PrimitiveKind>, TransformError> {
         if self.frames.len() <= 1 {

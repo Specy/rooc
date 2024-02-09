@@ -8,9 +8,11 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 use crate::bail_missing_token;
+use crate::math::math_enums::VariableType;
 use crate::parser::il::il_problem::{PreCondition, PreObjective};
 use crate::parser::model_transformer::model::{Problem, transform_parsed_problem};
 use crate::parser::model_transformer::transform_error::TransformError;
+use crate::parser::model_transformer::transformer_context::assert_no_duplicates_in_domain;
 use crate::primitives::consts::Constant;
 use crate::traits::latex::ToLatex;
 use crate::type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, TypedToken};
@@ -73,8 +75,21 @@ impl PreProblem {
     pub fn transform(self) -> Result<Problem, TransformError> {
         transform_parsed_problem(self)
     }
+    fn get_static_domain(&self) -> Vec<(String, VariableType)> {
+        self.domains
+            .iter()
+            .flat_map(|d| {
+                d.get_static_variables()
+                    .into_iter()
+                    .map(|v| (v.clone(), d.get_type().clone()))
+            })
+            .collect::<Vec<_>>()
+    }
     pub fn create_type_checker(&self) -> Result<(), TransformError> {
         let mut context = TypeCheckerContext::default();
+        let domain = self.get_static_domain();
+        assert_no_duplicates_in_domain(&domain)?;
+        context.set_static_domain(domain);
         for constants in &self.constants {
             constants.type_check(&mut context)?;
         }
@@ -82,6 +97,8 @@ impl PreProblem {
     }
     pub fn create_token_type_map(&self) -> HashMap<usize, TypedToken> {
         let mut context = TypeCheckerContext::default();
+        let domain = self.get_static_domain();
+        context.set_static_domain(domain);
         for constants in &self.constants {
             constants.populate_token_type_map(&mut context);
         }

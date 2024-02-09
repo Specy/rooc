@@ -105,7 +105,18 @@ impl VariablesDomainDeclaration {
     pub fn get_variables(&self) -> &Vec<Spanned<VariableToAssert>> {
         &self.variables
     }
-
+    pub fn get_type(&self) -> &VariableType {
+        &self.as_type
+    }
+    pub fn get_static_variables(&self) -> Vec<&String> {
+        self.variables
+            .iter()
+            .filter_map(|v| match &v.get_span_value() {
+                VariableToAssert::Variable(name) => Some(name),
+                _ => None,
+            })
+            .collect()
+    }
     pub fn get_iters(&self) -> &Vec<IterableSet> {
         &self.iteration
     }

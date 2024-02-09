@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use serde::Serialize;
+
 use crate::math::math_enums::VariableType;
 use crate::parser::domain_declaration::VariablesDomainDeclaration;
 use crate::parser::il::il_problem::AddressableAccess;
@@ -60,10 +62,37 @@ impl<T> Default for Frame<T> {
     }
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct DomainVariable {
+    as_type: VariableType,
+    usage_count: usize,
+}
+
+impl DomainVariable {
+    pub fn new(as_type: VariableType) -> Self {
+        Self {
+            as_type,
+            usage_count: 0,
+        }
+    }
+    pub fn increment_usage(&mut self) {
+        self.usage_count += 1;
+    }
+    pub fn get_usage_count(&self) -> usize {
+        self.usage_count
+    }
+    pub fn is_used(&self) -> bool {
+        self.usage_count > 0
+    }
+    pub fn get_type(&self) -> &VariableType {
+        &self.as_type
+    }
+}
+
 #[derive(Debug)]
 pub struct TransformerContext {
     frames: Vec<Frame<Primitive>>,
-    domain: HashMap<String, VariableType>,
+    domain: HashMap<String, DomainVariable>,
 }
 
 impl Default for TransformerContext {
@@ -77,7 +106,7 @@ impl Default for TransformerContext {
 impl TransformerContext {
     pub fn new(
         primitives: HashMap<String, Primitive>,
-        domain: HashMap<String, VariableType>,
+        domain: HashMap<String, DomainVariable>,
     ) -> Self {
         let frame = Frame::from_map(primitives);
         Self {
@@ -102,26 +131,11 @@ impl TransformerContext {
             .into_iter()
             .flatten()
             .collect::<Vec<_>>();
-        let duplicates = computed_domain
-            .iter()
-            .fold(HashMap::new(), |mut acc, (name, as_type)| {
-                if let Some((count, saved_type)) = acc.get_mut(name) {
-                    //ignore the type if it's the same
-                    if saved_type == as_type {
-                        return acc;
-                    }
-                    *count += 1;
-                } else {
-                    acc.insert(name.clone(), (1, as_type.clone()));
-                }
-                acc
-            })
+        assert_no_duplicates_in_domain(&computed_domain)?;
+        let computed_domain = computed_domain
             .into_iter()
-            .filter(|(_, (count, _))| *count > 1)
+            .map(|(name, as_type)| (name, DomainVariable::new(as_type)))
             .collect::<Vec<_>>();
-        if !duplicates.is_empty() {
-            return Err(TransformError::AlreadyDeclaredDomainVariable(duplicates));
-        }
         context.domain = HashMap::from_iter(computed_domain);
         Ok(context)
     }
@@ -181,7 +195,28 @@ impl TransformerContext {
         None
     }
     pub fn get_variable_domain(&self, name: &str) -> Option<&VariableType> {
-        self.domain.get(name)
+        self.domain.get(name).map(|v| &v.as_type)
+    }
+    pub fn increment_domain_variable_usage(&mut self, name: &str) -> Result<(), TransformError> {
+        match self.domain.get_mut(name) {
+            Some(v) => {
+                v.increment_usage();
+                Ok(())
+            }
+            None => Err(TransformError::UndeclaredVariableDomain(name.to_string())),
+        }
+    }
+    pub fn reset_domain(&mut self) {
+        for (_, v) in self.domain.iter_mut() {
+            v.usage_count = 0;
+        }
+    }
+    pub fn get_used_domain_variables(&self) -> Vec<(&String, &VariableType)> {
+        self.domain
+            .iter()
+            .filter(|(_, v)| v.is_used())
+            .map(|(k, v)| (k, &v.as_type))
+            .collect()
     }
     pub fn exists_variable(&self, name: &str, strict: bool) -> bool {
         if strict {
@@ -267,4 +302,30 @@ impl TransformerContext {
             )),
         }
     }
+}
+
+
+pub fn assert_no_duplicates_in_domain(domain: &Vec<(String, VariableType)>) -> Result<(), TransformError>{
+    let duplicates = domain
+            .iter()
+            .fold(HashMap::new(), |mut acc, (name, as_type)| {
+                if let Some((count, saved_type)) = acc.get_mut(name) {
+                    //ignore the type if it's the same
+                    if saved_type == as_type {
+                        return acc;
+                    }
+                    *count += 1;
+                } else {
+                    acc.insert(name.clone(), (1, as_type.clone()));
+                }
+                acc
+            })
+            .into_iter()
+            .filter(|(_, (count, _))| *count > 1)
+            .collect::<Vec<_>>();
+        if !duplicates.is_empty() {
+            Err(TransformError::AlreadyDeclaredDomainVariable(duplicates))
+        } else {
+            Ok(())
+        }
 }

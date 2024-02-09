@@ -9,6 +9,7 @@ use rooc::{
     },
 };
 use rooc::traits::latex::ToLatex;
+use rooc::type_checker::type_checker_context::TypeCheckable;
 
 #[allow(unused)]
 fn main() {
@@ -91,20 +92,20 @@ fn main() {
         }
     }
     let source = r#"
-    min 1
-    s.t.    
-        //test comment
-        1 <= 2
-    define
-        \x_u_v as Boolean
-        x_u as Integer for u in 1..3
+        min 1
+        s.t.
+            x <= 2
+        where
+            x = 2
+        define
+            x as Real
     "#
     .to_string();
     let parser = RoocParser::new(source.clone());
     let parsed = parser.parse();
     match parsed {
         Ok(parsed) => {
-            println!("{}", parsed.to_latex());
+            println!("{:?}", parsed.create_type_checker());
         }
         Err(e) => {
             println!("{:?}", e);

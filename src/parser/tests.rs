@@ -391,4 +391,67 @@ define
             .parse_and_transform()
             .expect("Failed to parse and transform problem");
     }
+
+    #[test]
+    fn test_static_variable_check_1() {
+        let input = "
+        min 1
+        s.t.
+            x <= 2
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect_err("Failed to detect undeclared static variable");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect_err("Failed to detect undeclared static variable");
+    }
+    #[test]
+    fn test_static_variable_check_2() {
+        let input = "
+        min 1
+        s.t.
+            x <= 2
+        define
+            x as Real
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to typecheck problem");
+    }
+    #[test]
+    fn test_static_variable_check_3() {
+        let input = "
+        min 1
+        s.t.
+            x <= 2
+        where
+            x = 2
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to typecheck problem");
+    }
+    #[test]
+    fn test_static_variable_check_4() {
+        let input = "
+        min 1
+        s.t.
+            x <= 2
+        where
+            x = 2
+        define
+            x as Real
+        ";
+        //TODO should i add this to the compiler too?
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect_err("Failed to typecheck duplicate");
+    }
 }

@@ -15,7 +15,12 @@ use crate::{
     type_checker::type_checker_context::{TypeCheckable, WithType},
     utils::InputSpan,
 };
-
+/*TODO
+the PreExp should have only the function call which includes the parameters expressions and the function name
+the actual function (which can be kept like this trait, but implemented as a struct, only the `call` method should be implemented)
+should be saved inside the transformer context, this way there can also be user defined functions, and functions builtin
+perhaps i could add instance functions to objects too
+ */
 pub trait FunctionCall:
     Debug + DynClone + erased_serde::Serialize + WithType + TypeCheckable + Send + Sync
 {
