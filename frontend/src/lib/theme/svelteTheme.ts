@@ -17,7 +17,7 @@ export type ColorData = {
 }
 
 export const textColor = {
-    dark: '#dbdbdb',
+    dark: '#d0d0d0',
     light: '#181818'
 }
 

@@ -67,6 +67,11 @@ const baseDarkTheme = {
             name: 'shadow',
             cssProp: 'shadow'
         },
+        text2: {
+            hex: '#c0c0c0',
+            name: 'text2',
+            cssProp: 'text2'
+        },
         hint: {
             hex: '#939393',
             name: 'hint',

@@ -8,13 +8,14 @@
 		RUNTIME_BLOCK_SCOPED_FUNCTIONS,
 		RUNTIME_BLOCK_FUNCTIONS
 	} from '@specy/rooc/dist/runtime';
+	import Separator from "$cmp/misc/Separator.svelte";
 
 	let functions = ROOC_RUNTIME_FUNCTIONS.values();
 	let blockFunctions = RUNTIME_BLOCK_FUNCTIONS.values();
 	let blockScopedFunctions = RUNTIME_BLOCK_SCOPED_FUNCTIONS.values();
 </script>
 
-<h2>Functions</h2>
+<h1>Functions</h1>
 <Column gap="0.5rem">
 	<Column style="margin-bottom: 1rem;" gap="0.4rem">
 		They are functions that accept parameters and return a value, you can use them inside blocks,
@@ -35,7 +36,8 @@
 		</Card>
 	{/each}
 </Column>
-<h2>Block functions</h2>
+<Separator />
+<h1>Block functions</h1>
 <Column gap="0.5rem">
 	<Column>
 		They are blocks which have one or more expressions separated by a comma, they will use those
@@ -52,11 +54,12 @@
 		</Card>
 	{/each}
 </Column>
-<h2>Block scoped functions</h2>
+<Separator />
+<h1>Block scoped functions</h1>
 <Column gap="0.5rem">
 	<Column gap="0.4rem" style="margin-bottom: 1rem;">
 		They are function blocks, it has as parameters one or more iterators over iterable data, they
-		will declare a variable (or more uring tuples destructuring) for each iterator and then execute
+		will declare a variable (or more using tuples destructuring) for each iterator and then execute
 		the block.
 		<br />
 		If there are more than one iterators, they will behave as nested iterators, where the first iterator
