@@ -224,13 +224,18 @@ define
         <br />
         <br />
         The language also has support for tuples and tuples destructuring, you can destructure a tuple or array by
-        writing
-        the name of the variables inside a parenthesis "(a,b,c)"
+        writing the name of the variables inside a parenthesis "(a,b,c)". Some builtin values are destructurable, like arrays, tuples and graph edges.
     </p>
 
     <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`sum((el, idx) in enumerate([1,2,3])) { x_idx * el}`}
+        <SyntaxHighlighter language="rooc" source={`sum((el, idx) in enumerate([10, 20,30])) { x_idx * el}`}
                            style="overflow-x: auto;"/>
+    </Card>
+    <p>
+    will be compiled to
+    </p>
+    <Card padding="0.8rem 1rem">
+        <SyntaxHighlighter language="rooc" source={`x_0 * 10 + x_1 * 20 + x_2 * 30`} style="overflow-x: auto;"/>
     </Card>
     <Separator/>
     <h1 id="rooc_others">
