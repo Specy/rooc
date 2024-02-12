@@ -92,11 +92,15 @@ fn main() {
         }
     }
     let source = r#"
-        min 1
+        min x_u
         s.t.
-            sum(i in range(0,x,true)) { i  } <= 1
+            x >= sum(i in 0..y){ i }
+        where
+            u = 20
         define
             x as Real
+            \x_20 as Real
+            y as Real
     "#
     .to_string();
     let parser = RoocParser::new(source.clone());

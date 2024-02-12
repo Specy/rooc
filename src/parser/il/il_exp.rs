@@ -83,8 +83,8 @@ impl Clone for PreExp {
 
 impl Serialize for PreExp {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer,
+    where
+        S: serde::Serializer,
     {
         match self {
             Self::Primitive(p) => {
@@ -193,11 +193,9 @@ impl TypeCheckable for PreExp {
         match self {
             Self::FunctionCall(span, fun) => {
                 for arg in fun.get_parameters() {
-                    arg.type_check(context)
-                        .map_err(|e| e.add_span(span))?;
+                    arg.type_check(context).map_err(|e| e.add_span(span))?;
                 }
-                fun.type_check(context)
-                    .map_err(|e| e.add_span(span))
+                fun.type_check(context).map_err(|e| e.add_span(span))
             }
             Self::BinaryOperation(op, lhs, rhs) => {
                 lhs.type_check(context)?;
@@ -252,8 +250,9 @@ impl TypeCheckable for PreExp {
                         Some(_) => Ok(()),
                         None => Err(TransformError::UndeclaredVariable(
                             name.get_span_value().clone(),
-                        ))
-                    }.map_err(|e| e.add_span(name.get_span())),
+                        )),
+                    }
+                    .map_err(|e| e.add_span(name.get_span())),
                 }
             }
             Self::CompoundVariable(c) => context
@@ -270,7 +269,7 @@ impl TypeCheckable for PreExp {
                             exp_type,
                             exp.get_span().clone(),
                         )
-                            .add_span(f.get_span()));
+                        .add_span(f.get_span()));
                     }
                 }
                 Ok(())
@@ -295,9 +294,7 @@ impl TypeCheckable for PreExp {
                 let res = f.exp.type_check(context);
                 let exp_type = f.exp.get_type(context);
                 for _ in &f.iters {
-                    context
-                        .pop_scope()
-                        .map_err(|e| e.add_span(f.get_span()))?;
+                    context.pop_scope().map_err(|e| e.add_span(f.get_span()))?;
                 }
                 if let Err(e) = res {
                     return Err(e.add_span(f.get_span()));
@@ -308,7 +305,7 @@ impl TypeCheckable for PreExp {
                         exp_type,
                         f.exp.get_span().clone(),
                     )
-                        .add_span(f.get_span());
+                    .add_span(f.get_span());
                     return Err(err);
                 }
                 Ok(())
@@ -352,13 +349,11 @@ impl TypeCheckable for PreExp {
                                 Some(name.get_span_value().clone()),
                             )
                         }
-                        None => {
-                            context.add_token_type_or_undefined(
-                                PrimitiveKind::Undefined,
-                                name.get_span().clone(),
-                                Some(name.get_span_value().clone()),
-                            )
-                        }
+                        None => context.add_token_type_or_undefined(
+                            PrimitiveKind::Undefined,
+                            name.get_span().clone(),
+                            Some(name.get_span_value().clone()),
+                        ),
                     }
                 }
             },
@@ -464,9 +459,7 @@ impl PreExp {
                 Err(e) => Err(e.add_span(self.get_span())),
             },
             Self::Mod(span, exp) => {
-                let inner = exp
-                    .into_exp(context)
-                    .map_err(|e| e.add_span(span))?;
+                let inner = exp.into_exp(context).map_err(|e| e.add_span(span))?;
                 Ok(Exp::Mod(inner.to_box()))
             }
             Self::BlockFunction(f) => {
@@ -548,7 +541,7 @@ impl PreExp {
                         .map_err(|e| e.add_span(self.get_span()))?;
                     Ok(inner)
                 })
-                    .map_err(|e| e.add_span(self.get_span()))?;
+                .map_err(|e| e.add_span(self.get_span()))?;
                 match f.kind {
                     BlockScopedFunctionKind::Sum => {
                         let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
@@ -582,9 +575,7 @@ impl PreExp {
             }
             Self::FunctionCall(span, function_call) => {
                 //TODO improve this, what other types of functions can there be?
-                let value = function_call
-                    .call(context)
-                    .map_err(|e| e.add_span(span))?;
+                let value = function_call.call(context).map_err(|e| e.add_span(span))?;
                 match value.as_number_cast() {
                     Ok(n) => Ok(Exp::Number(n)),
                     Err(e) => Err(e.add_span(self.get_span())),
@@ -598,22 +589,38 @@ impl PreExp {
             PreExp::Primitive(p) => Ok(p.get_span_value().clone()),
             PreExp::Variable(s) => match context.get_value(s) {
                 Some(value) => Ok(value.clone()),
-                None => Err(TransformError::UndeclaredVariable(
-                    s.get_span_value().clone(),
-                )),
+                None => match context.get_variable_domain(s) {
+                    None => Err(TransformError::UndeclaredVariable(
+                        s.get_span_value().clone(),
+                    )),
+                    Some(_) => Err(
+                        //TODO create a specific error for this
+                        TransformError::Other(
+                            format!("Variable \"{}\" is a domain variable and cannot be used inside expression valuation", s.get_span_value())
+                        )
+                    )
+                },
             },
             PreExp::CompoundVariable(c) => {
                 let indexes = &c.compute_indexes(context)?;
                 let name = context.flatten_compound_variable(&c.name, indexes)?;
                 match context.get_value(&name) {
                     Some(value) => Ok(value.clone()),
-                    None => Err(TransformError::UndeclaredVariable(name)),
+                    None => match context.get_variable_domain(&name) {
+                        None => Err(TransformError::UndeclaredVariable(
+                            name.clone(),
+                        )),
+                        Some(_) => Err(
+                            //TODO create a specific error for this
+                            TransformError::Other(
+                                format!("Variable \"{}\" is a domain variable and cannot be used inside expression valuation", name)
+                            )
+                        )
+                    },
                 }
             }
             PreExp::FunctionCall(_, f) => {
-                let value = f
-                    .call(context)
-                    .map_err(|e| e.add_span(self.get_span()))?;
+                let value = f.call(context).map_err(|e| e.add_span(self.get_span()))?;
                 Ok(value)
             }
             PreExp::ArrayAccess(a) => {
