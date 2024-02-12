@@ -113,8 +113,8 @@
                 padding="0.8rem"
                 gap="0.5rem"
         >
-            <RoocSyntaxDocs/>
             <RoocDocs/>
+            <RoocSyntaxDocs/>
         </Column>
     </FloatingContainer>
 </Page>

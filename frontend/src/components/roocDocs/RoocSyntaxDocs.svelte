@@ -61,8 +61,6 @@ define
         Once the model is compiled, it will be ran through the solver and find the optimal
         solution
         which fits the constraints.
-        <br />
-        An example of an objective function is:
     </p>
 
     <Card padding="0.8rem 1rem">
@@ -76,10 +74,8 @@ define
 
         The formal model can follow a list of constraints, you can use one of {`<=, >=, =`} to define the constraints.
         <br />
-        The special keyword "for" can be used at the end of a constraints to create a constraint for each element that
+        The special keyword "for" can be used at the end of a constraint to create a constraint for each element that
         you iterate over.
-        <br />
-        An example of a constraint is:
     </p>
     <Card padding="0.8rem 1rem">
         <SyntaxHighlighter language="rooc" source={`y >= x + 2\nx * i <= i for i in 0..5`}
@@ -110,12 +106,10 @@ define
         Sometimes you might need to manually write a name of a variable which looks like a compound variable, in that
         case
         you can escape the name with a backslash. Example: "\x_hello"
-        <br />
-        An example of a compound variable is:
     </p>
     <Card padding="0.8rem 1rem">
         <SyntaxHighlighter language="rooc"
-                           source={`min 1\ns.t.\n    x_i + \\x_hello <= 1\n    x_{i + 1}_i <= 2\nwhere\n    x = 3`}
+                           source={`min 1\ns.t.\n    x_i + \\x_hello <= 1\n    x_{i + 1}_i <= 2\nwhere\n    i = 3`}
                            style="overflow-x: auto;"/>
     </Card>
     will be compiled to
@@ -190,7 +184,6 @@ define
         <br />
         <br />
         The ROOC language supports arrays, matrices, graphs, strings, numbers and boolean values.
-        An example of data is:
     </p>
 
     <Card padding="0.8rem 1rem">
@@ -213,7 +206,7 @@ define
         the
         constraints to define compound variables.
         <br />
-        The domains are "Real", "PositiveReal", "Integer", "Boolean", an example of domains is:
+        The domains are "Real", "PositiveReal", "Integer", "Boolean"
     </p>
 
     <Card padding="0.8rem 1rem">
@@ -233,8 +226,6 @@ define
         The language also has support for tuples and tuples destructuring, you can destructure a tuple or array by
         writing
         the name of the variables inside a parenthesis "(a,b,c)"
-        <br />
-        An example of both is:
     </p>
 
     <Card padding="0.8rem 1rem">
@@ -250,8 +241,6 @@ define
         You can write comments in the model by using the "//" or "/* */" syntax, a model is structured (in this order)
         by
         the objective function, constraints, data and domains.
-        <br />
-        An example of a complete model is:
     </p>
 
     <Card padding="0.8rem 1rem">
