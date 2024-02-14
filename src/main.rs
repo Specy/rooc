@@ -92,15 +92,23 @@ fn main() {
         }
     }
     let source = r#"
-        min x_u
+        //aaaa
+        min 1
+        /* aaa */
         s.t.
-            x >= sum(i in 0..y){ i }
+        /*
+            aaa
+        */
+            x <= 2
         where
-            u = 20
+            //aaa
+            let x = 2 // aaa
+            let y = 3 /*
+            aaa */
+            let z = 4
         define
+            //aa
             x as Real
-            \x_20 as Real
-            y as Real
     "#
     .to_string();
     let parser = RoocParser::new(source.clone());

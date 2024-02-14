@@ -9,7 +9,7 @@ min sum(u in nodes(G)) { x_u }
 s.t. 
     x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1    for v in nodes(G)
 where
-    G = Graph {
+    let G = Graph {
         A -> [B, C, D, E, F],
         B -> [A, E, C, D, J],
         C -> [A, B, D, E, I],
@@ -55,12 +55,12 @@ define
         s.t.
             N >= sum(i in A) { i }
         where
-            B = false
-            N = 1
-            S = \"Hello\"
-            A = [1, 2, 3]
-            M = [[1, 2], [3, 4]]
-            G = Graph {
+            let B = false
+            let N = 1
+            let S = \"Hello\"
+            let A = [1, 2, 3]
+            let M = [[1, 2], [3, 4]]
+            let G = Graph {
                 A -> [B, C: 10],
                 B -> [],
                 C
@@ -81,7 +81,7 @@ define
             s.t.
                 1 + sum(el in R, i in 0..(el + 1)) { i } <= 1 for R in M
             where
-                M = [[1, 2], [3, 4]]
+                let M = [[1, 2], [3, 4]]
             ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -104,7 +104,7 @@ define
                 min {1, 2, 3} >= 1
                 max {1, 2, 3} >= 1
             where
-                A = [1, 2, 3, 4]
+                let A = [1, 2, 3, 4]
             ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -172,7 +172,7 @@ define
             s.t.
                 A >= 1
             where 
-                A = [1, 2, 3, 4]
+                let A = [1, 2, 3, 4]
             ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -186,7 +186,7 @@ define
             s.t.
                 M >= M[i] for i in 0..len(M)
             where 
-                M = [[1, 2], [3, 4]]
+                let M = [[1, 2], [3, 4]]
             ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -200,7 +200,7 @@ define
             s.t.
              S >= 1
             where 
-                S = \"Hello\"
+                let S = \"Hello\"
             ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -218,7 +218,7 @@ define
 
             sum((row, i) in enumerate(C), el in row) { el + i } <= 0
         where
-            C = [
+            let C = [
                 [1,0,0],
                 [0,1,0], 
                 [0,0,1]
@@ -244,7 +244,7 @@ define
             sum((_, _, u) in neigh_edges(n)) { x_u } <= 0 for n in nodes(G)
             sum((_, _, u) in neigh_edges_of(v, G)) { x_u } <= x_v for (v) in edges(G)
         where
-            G = Graph {
+            let G = Graph {
                 A -> [B: 10, C],
                 B -> [A, C],
                 C -> [A, B]
@@ -267,15 +267,15 @@ define
         s.t.
             1 <= sum(i in n){ x_i * num}
         where
-            G = Graph {
+            let G = Graph {
                 A -> [B: 10, C],
                 B -> [A, C],
                 C -> [A, B]
             }
-            n = nodes(G)
-            e = edges(G)
-            num = len(n) + 1
-            numSquared = num * num
+            let n = nodes(G)
+            let e = edges(G)
+            let num = len(n) + 1
+            let numSquared = num * num
         define
             x_i as Boolean for i in n
         ";
@@ -295,8 +295,8 @@ define
             x_u + x_{u + 1} + x_{len(c) + 2} <= x_1 + x_{-1}
             
         where
-            c = [1, 2, 3, 4, 5]
-            u = 1    
+            let c = [1, 2, 3, 4, 5]
+            let u = 1
         define 
             x_u, x_{u + 1}, x_{len(c) + 2}, x_1, x_{-1} as Boolean
         ";
@@ -315,7 +315,7 @@ define
         s.t.
             1 <= 1
         where
-            nodes = [1]
+            let nodes = [1]
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -332,7 +332,7 @@ define
         s.t.
             sum(len in a){ len } <= 1
         where
-            a = [1]
+            let a = [1]
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -349,7 +349,7 @@ define
         s.t.
             1 <= 1 for len in a
         where
-            a = [1]
+            let a = [1]
         ";
 
         RoocParser::new(input.to_string())
@@ -378,18 +378,29 @@ define
     #[test]
     fn test_comments() {
         let input = "
+        //aaaa
         min 1
+        /* aaa */
         s.t.
-            //test comment
-            /* multi 
-            line 
-            comment
-             */
-            1 <= 2
+        /*
+            aaa
+        */
+            x <= 2
+        where
+            //aaa
+            let y = 3 /*
+            aaa */
+            let z = 4
+        define
+            //aa
+            x as Real //aaa
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
             .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to typecheck problem");
     }
 
     #[test]
@@ -429,7 +440,7 @@ define
         s.t.
             x <= 2
         where
-            x = 2
+            let x = 2
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()
@@ -445,7 +456,7 @@ define
         s.t.
             x <= 2
         where
-            x = 2
+            let x = 2
         define
             x as Real
         ";
@@ -454,4 +465,5 @@ define
             .type_check()
             .expect_err("Failed to typecheck duplicate");
     }
+
 }

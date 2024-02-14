@@ -31,7 +31,7 @@ s.t.
     x >= y
 where
     // write the constants here
-    y = 10
+    let y = 10
 define
     // define the model's variables here
     x as Real`

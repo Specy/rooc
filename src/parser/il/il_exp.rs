@@ -83,8 +83,8 @@ impl Clone for PreExp {
 
 impl Serialize for PreExp {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
+        where
+            S: serde::Serializer,
     {
         match self {
             Self::Primitive(p) => {
@@ -252,7 +252,7 @@ impl TypeCheckable for PreExp {
                             name.get_span_value().clone(),
                         )),
                     }
-                    .map_err(|e| e.add_span(name.get_span())),
+                        .map_err(|e| e.add_span(name.get_span())),
                 }
             }
             Self::CompoundVariable(c) => context
@@ -269,7 +269,7 @@ impl TypeCheckable for PreExp {
                             exp_type,
                             exp.get_span().clone(),
                         )
-                        .add_span(f.get_span()));
+                            .add_span(f.get_span()));
                     }
                 }
                 Ok(())
@@ -305,7 +305,7 @@ impl TypeCheckable for PreExp {
                         exp_type,
                         f.exp.get_span().clone(),
                     )
-                    .add_span(f.get_span());
+                        .add_span(f.get_span());
                     return Err(err);
                 }
                 Ok(())
@@ -374,13 +374,16 @@ impl TypeCheckable for PreExp {
             Self::UnaryOperation(_, exp) => {
                 exp.populate_token_type_map(context);
             }
-            Self::ArrayAccess(array_access) => context.add_token_type_or_undefined(
-                context
-                    .get_addressable_value(&array_access)
-                    .unwrap_or(PrimitiveKind::Undefined),
-                array_access.get_span().clone(),
-                Some(array_access.to_string()),
-            ),
+            Self::ArrayAccess(array_access) => {
+                context.add_token_type_or_undefined(
+                    context.get_value(&array_access.name).unwrap_or(&PrimitiveKind::Undefined).clone(),
+                    array_access.get_span().clone(),
+                    Some(array_access.name.to_string()),
+                );
+                for access in &array_access.accesses {
+                    access.populate_token_type_map(context);
+                }
+            }
             Self::BlockFunction(f) => {
                 for exp in &f.exps {
                     exp.populate_token_type_map(context);
@@ -541,7 +544,7 @@ impl PreExp {
                         .map_err(|e| e.add_span(self.get_span()))?;
                     Ok(inner)
                 })
-                .map_err(|e| e.add_span(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.get_span()))?;
                 match f.kind {
                     BlockScopedFunctionKind::Sum => {
                         let mut sum = results.pop().unwrap_or(Exp::Number(0.0));

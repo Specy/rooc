@@ -15,8 +15,8 @@ s.t.
 	x_i >= minimum for i in A
 where
 	// here your constants.
-	A = [1, 2, 3]
-	minimum = 1
+	let A = [1, 2, 3]
+	let minimum = 1
 define
 	// and here the domain of the variables
 	x_i as Real for i in A
@@ -72,7 +72,7 @@ define
     </h1>
     <p>
 
-        The formal model can follow a list of constraints, you can use one of {`<=, >=, =`} to define the constraints.
+        The formal model can follow a list of constraints, you can use one of {`<=, >=, =`} relations.
         <br />
         The special keyword "for" can be used at the end of a constraint to create a constraint for each element that
         you iterate over.
@@ -109,7 +109,7 @@ define
     </p>
     <Card padding="0.8rem 1rem">
         <SyntaxHighlighter language="rooc"
-                           source={`min 1\ns.t.\n    x_i + \\x_hello <= 1\n    x_{i + 1}_i <= 2\nwhere\n    i = 3`}
+                           source={`min 1\ns.t.\n    x_i + \\x_hello <= 1\n    x_{i + 1}_i <= 2\nwhere\n    let i = 3`}
                            style="overflow-x: auto;"/>
     </Card>
     will be compiled to
@@ -179,16 +179,18 @@ define
     </h1>
     <p>
 
-        After the constraints you can define the data of the model, this data will be used inside the constraints and
+        After the constraints, inside the "where" section you can define the data of the model, this data will be used inside the constraints and
         objective functions.
         <br />
         <br />
         The ROOC language supports arrays, matrices, graphs, strings, numbers and boolean values.
+        <br />
+        To define a variable, you can use the "let" keyword followed by the name of the variable and the value.
     </p>
 
     <Card padding="0.8rem 1rem">
         <SyntaxHighlighter language="rooc"
-                           source={`A = [1, 2, 3]\nB = [\n    [1, 2, 3],\n    [4, 5, 6]\n]\nG = Graph {\n    A -> [ C, B:2 ],\n    B -> [ A, C:-3 ],\n    C\n}\nlengthOfA = len(A)\nsomeString = "hello"\nsomeBool = true`}
+                           source={`let A = [1, 2, 3]\nlet B = [\n    [1, 2, 3],\n    [4, 5, 6]\n]\nlet G = Graph {\n    A -> [ C, B:2 ],\n    B -> [ A, C:-3 ],\n    C\n}\nlet lengthOfA = len(A)\nlet someString = "hello"\nlet someBool = true`}
                            style="overflow-x: auto;"/>
     </Card>
     <Separator/>

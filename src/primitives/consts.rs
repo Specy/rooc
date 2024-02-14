@@ -77,6 +77,6 @@ impl TypeCheckable for Constant {
 
 impl fmt::Display for Constant {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} = {}", self.name.get_span_value(), self.value)
+        write!(f, "let {} = {}", self.name.get_span_value(), self.value)
     }
 }

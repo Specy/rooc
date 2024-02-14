@@ -8,7 +8,7 @@ export const RoocLanguage = {
 	defaultToken: 'invalid',
 	ignoreCase: true,
 	tokenPostfix: '.rooc',
-	keywords: ["where", "for", "min", "max", "in", "s.t.", "as", "define"],
+	keywords: ["where", "for", "min", "max", "in", "s.t.", "as", "define", "let"],
 	literals: ["true", "false"],
 	operators: ["+", "-", "/", "*", "!", "&", "|", "=", "<=", "=>"],
 	symbols: /[=><!~?:&|+\-*\/\^%]+/,
@@ -129,7 +129,8 @@ const keywords = {
 	'for': 'Iterate over one or more ranges to expand the constraint in multiple constraints',
 	'in': 'Iterate over a range',
 	'as': 'Assert that the domain of variable is of a certain type',
-	'define': 'Define the domain of the variables in your model, all variables must be defined'
+	'define': 'Define the domain of the variables in your model, all variables must be defined',
+	'let': 'Define a variable in the model'
 }
 const domainTypes = {
 	'Boolean': 'A boolean value {0,1}',
@@ -233,8 +234,8 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel) {
 			if (!typeCheck.ok) {
 				const err = typeCheck.val
 				const span = err.getOriginSpan()
-				const start = model.getPositionAt(span.start)
-				const end = model.getPositionAt(span.start + span.len)
+				const start = model.getPositionAt(span?.start)
+				const end = model.getPositionAt(span?.start + span.len)
 				const message = err.stringifyBaseError()
 				markers.push({
 					startColumn: start.column,
@@ -286,7 +287,7 @@ function makeRoocCompletionToken(entry: PossibleCompletionToken) {
 }
 
 const suggestedKeywords = [
-	'where', 'for', 'in', 's.t.', 'as', 'define'
+	'where', 'for', 'in', 's.t.', 'as', 'define', 'let'
 ].map(k => ({
 	label: k,
 	kind: languages.CompletionItemKind.Keyword,

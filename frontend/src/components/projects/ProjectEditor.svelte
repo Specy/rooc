@@ -37,8 +37,8 @@
 		highlightedLine={-1}
 	/>
 	<div class="result-container">
-		<Card style="flex: 1; position:relative">
-			<LatexRenderer source={$store.latex} style="flex:1; padding: 0.5rem 1rem; overflow:auto;" />
+		<Card style="flex: 1; position:relative; overflow: hidden; max-height: 42vh; height: 42vh">
+			<LatexRenderer source={$store.latex} style="flex:1; overflow: auto; padding: 0.5rem 1rem;" />
 			<Button
 				hasIcon
 				style="position:absolute; top: 0.5rem; right: 0.5rem; width: 2.4rem; height: 2.4rem; padding: 0"
@@ -66,11 +66,11 @@
 
 <style>
 	.result-container {
-		display: grid;
+		display: flex;
 		flex: 1;
-		grid-template-rows: 50%;
-		grid-template-columns: 100%;
+		flex-direction: column;
 		gap: 0.5rem;
+		height: 100%;
 	}
 	.wrapper {
 		display: grid;

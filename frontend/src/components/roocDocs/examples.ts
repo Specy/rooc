@@ -15,23 +15,23 @@ s.t.
     x_i >= Fmin[i] for i in 0..N
 where
     // Cost of chicken, rice, avocado
-    C = [1.5, 0.5, 2.0]
+    let C = [1.5, 0.5, 2.0]
     // Min and max of: protein, carbs, fats
-    Nmin = [50, 200, 0] 
-    Nmax = [150, 300, 70]
+    let Nmin = [50, 200, 0] 
+    let Nmax = [150, 300, 70]
     // Min and max servings of each food
-    Fmin = [1, 1, 1] 
-    Fmax = [5, 5, 5]
-    a = [
+    let Fmin = [1, 1, 1] 
+    let Fmax = [5, 5, 5]
+    let a = [
     //protein, carbs, fats
         [30, 0, 5], // Chicken
         [2, 45, 0], // Rice
         [2, 15, 20] // Avocado
     ]
     // Number of foods
-    F = len(a)
+    let F = len(a)
     // Number of nutrients
-    N = len(Nmax)
+    let N = len(Nmax)
 define
     x_i as PositiveReal for i in 0..N
 `
@@ -42,7 +42,7 @@ s.t.
     // the variable "_" will simply ignore the value
     x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1    for v in nodes(G)
 where
-    G = Graph {
+    let G = Graph {
         A -> [B, C, D, E, F],
         B -> [A, E, C, D, J],
         C -> [A, B, D, E, I],
@@ -59,3 +59,6 @@ define
 `
 
 export const roocExamples = [ex_1, ex_2]
+
+
+

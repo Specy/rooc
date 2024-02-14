@@ -11,11 +11,11 @@ mod primitive_tests {
             sum((first, second) in A){ first + second } <= 1
             sum((el, j) in enumerate(A[i])){ el * j } <= 1 for i in 0..len(A)
             where 
-                G = Graph {
+                let G = Graph {
                     A -> [B],
                     B
                 }
-                A = [
+                let A = [
                     [1, 2],
                     [3, 4]
                 ]
