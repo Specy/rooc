@@ -10,7 +10,7 @@ use wasm_bindgen::prelude::*;
 use crate::bail_missing_token;
 use crate::math::math_enums::VariableType;
 use crate::parser::il::il_problem::{PreCondition, PreObjective};
-use crate::parser::model_transformer::model::{Problem, transform_parsed_problem};
+use crate::parser::model_transformer::model::{Model, transform_parsed_problem};
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::assert_no_duplicates_in_domain;
 use crate::primitives::consts::Constant;
@@ -29,7 +29,7 @@ struct PLParser;
 
 #[wasm_bindgen]
 #[derive(Debug, Serialize, Clone)]
-pub struct PreProblem {
+pub struct PreModel {
     objective: PreObjective,
     conditions: Vec<PreCondition>,
     constants: Vec<Constant>,
@@ -38,7 +38,7 @@ pub struct PreProblem {
 
 #[wasm_bindgen(typescript_custom_section)]
 const IPreProblem: &'static str = r#"
-export type SerializedPreProblem = {
+export type SerializedPreModel = {
     objective: SerializedPreObjective,
     conditions: SerializedPreCondition[],
     constants: SerializedConstant[],
@@ -46,7 +46,7 @@ export type SerializedPreProblem = {
 }
 "#;
 
-impl PreProblem {
+impl PreModel {
     pub fn new(
         objective: PreObjective,
         conditions: Vec<PreCondition>,
@@ -72,7 +72,7 @@ impl PreProblem {
     pub fn get_domains(&self) -> &Vec<VariablesDomainDeclaration> {
         &self.domains
     }
-    pub fn transform(self) -> Result<Problem, TransformError> {
+    pub fn transform(self) -> Result<Model, TransformError> {
         transform_parsed_problem(self)
     }
     fn get_static_domain(&self) -> Vec<(String, Spanned<VariableType>)> {
@@ -99,7 +99,7 @@ impl PreProblem {
         }
         self.type_check(&mut context)
     }
-    pub fn create_token_type_map(&self) -> HashMap<usize, TypedToken> {
+    pub fn create_token_type_map(&self) -> HashMap<u32, TypedToken> {
         let mut context = TypeCheckerContext::default();
         let domain = self.get_static_domain();
         context.set_static_domain(domain);
@@ -111,7 +111,7 @@ impl PreProblem {
     }
 }
 
-impl TypeCheckable for PreProblem {
+impl TypeCheckable for PreModel {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         self.objective.type_check(context)?;
         for domain in &self.domains {
@@ -133,7 +133,7 @@ impl TypeCheckable for PreProblem {
     }
 }
 
-impl ToLatex for PreProblem {
+impl ToLatex for PreModel {
     fn to_latex(&self) -> String {
         let mut s = self.objective.to_latex();
         s.push_str("\\\\\n{s.t.}\\\\\n");
@@ -169,8 +169,8 @@ impl ToLatex for PreProblem {
 }
 
 #[wasm_bindgen]
-impl PreProblem {
-    pub fn transform_wasm(self) -> Result<Problem, TransformErrorWrapper> {
+impl PreModel {
+    pub fn transform_wasm(self) -> Result<Model, TransformErrorWrapper> {
         self.transform()
             .map_err(|e| TransformErrorWrapper { error: e })
     }
@@ -229,7 +229,7 @@ impl TransformErrorWrapper {
     }
 }
 
-impl fmt::Display for PreProblem {
+impl fmt::Display for PreModel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = self.objective.to_string();
         s.push_str("\ns.t.\n");
@@ -262,7 +262,7 @@ impl fmt::Display for PreProblem {
     }
 }
 
-pub fn parse_problem_source(source: &str) -> Result<PreProblem, CompilationError> {
+pub fn parse_problem_source(source: &str) -> Result<PreModel, CompilationError> {
     let problem = PLParser::parse(Rule::problem, source);
     match problem {
         Ok(mut problem) => {
@@ -280,16 +280,16 @@ pub fn parse_problem_source(source: &str) -> Result<PreProblem, CompilationError
         Err(err) => {
             let location = &err.location;
             let span = match location {
-                pest::error::InputLocation::Pos(pos) => InputSpan {
-                    start: *pos,
+                pest::error::InputLocation::Pos(pos) =>  InputSpan {
+                    start: *pos as u32,
                     len: 1,
                     start_line: 0,
                     start_column: 0,
                     tempered: false,
                 },
                 pest::error::InputLocation::Span((start, end)) => InputSpan {
-                    start: *start,
-                    len: end - start,
+                    start: *start as u32,
+                    len: (end - start) as u32,
                     start_line: 0,
                     start_column: 0,
                     tempered: false,
@@ -301,7 +301,7 @@ pub fn parse_problem_source(source: &str) -> Result<PreProblem, CompilationError
     }
 }
 
-fn parse_problem(problem: Pair<Rule>) -> Result<PreProblem, CompilationError> {
+fn parse_problem(problem: Pair<Rule>) -> Result<PreModel, CompilationError> {
     let pairs = problem.clone().into_inner();
     let objective = pairs.find_first_tagged("objective").map(parse_objective);
     let conditions = pairs
@@ -314,7 +314,7 @@ fn parse_problem(problem: Pair<Rule>) -> Result<PreProblem, CompilationError> {
         .find_first_tagged("define")
         .map(parse_domains_declaration);
     match (objective, conditions) {
-        (Some(obj), Some(cond)) => Ok(PreProblem::new(
+        (Some(obj), Some(cond)) => Ok(PreModel::new(
             obj?,
             cond?,
             consts.unwrap_or(Ok(Vec::new()))?,

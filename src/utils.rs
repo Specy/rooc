@@ -9,11 +9,11 @@ use crate::parser::parser::Rule;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
 #[wasm_bindgen]
-pub struct InputSpan {
-    pub start_line: usize,
-    pub start_column: usize,
-    pub start: usize,
-    pub len: usize,
+pub struct InputSpan { //as u32 as realistically we won't have more than 4 billion characters in a file
+    pub start_line: u32,
+    pub start_column: u32,
+    pub start: u32,
+    pub len: u32,
     pub tempered: bool,
 }
 
@@ -23,28 +23,28 @@ impl InputSpan {
         let start = pair.as_span().start();
         let len = pair.as_span().end() - start;
         Self {
-            start_line,
-            start_column,
-            start,
-            len,
+            start_line: start_line as u32,
+            start_column: start_column as u32,
+            start: start as u32,
+            len: len as u32,
             tempered: false,
         }
     }
     pub fn from_span(span: Span) -> Self {
         let (start_line, column_start) = span.start_pos().line_col();
         Self {
-            start_line,
-            start_column: column_start,
-            start: span.start(),
-            len: span.end() - span.start(),
+            start_line: start_line as u32,
+            start_column: column_start as u32,
+            start: span.start() as u32,
+            len: (span.end() - span.start()) as u32,
             tempered: false,
         }
     }
 
     pub fn get_span_text<'a>(&self, text: &'a str) -> Result<&'a str, String> {
-        let start = self.start;
-        let end = start + self.len;
-        if start > text.len() || end > text.len() {
+        let end = (self.start + self.len) as usize;
+        let start = self.start as usize;
+        if  start > text.len() || end > text.len() {
             return Err(format!(
                 "Span out of bounds: {}..{} (text len: {})",
                 start,
@@ -52,7 +52,7 @@ impl InputSpan {
                 text.len()
             ));
         }
-        Ok(&text[start..end])
+        Ok(&text[ start..end])
     }
 }
 

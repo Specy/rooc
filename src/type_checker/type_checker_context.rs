@@ -68,7 +68,7 @@ impl StaticVariableType {
 pub struct TypeCheckerContext {
     frames: Vec<Frame<PrimitiveKind>>,
     static_domain: HashMap<String, StaticVariableType>,
-    token_map: HashMap<usize, TypedToken>,
+    token_map: HashMap<u32, TypedToken>,
 }
 
 impl Default for TypeCheckerContext {
@@ -83,7 +83,7 @@ impl Default for TypeCheckerContext {
 impl TypeCheckerContext {
     pub fn new(
         primitives: HashMap<String, PrimitiveKind>,
-        token_map: HashMap<usize, TypedToken>,
+        token_map: HashMap<u32, TypedToken>,
         static_domain: HashMap<String, StaticVariableType>,
     ) -> Self {
         let frame = Frame::from_map(primitives);
@@ -94,7 +94,7 @@ impl TypeCheckerContext {
         }
     }
 
-    pub fn into_token_map(self) -> HashMap<usize, TypedToken> {
+    pub fn into_token_map(self) -> HashMap<u32, TypedToken> {
         self.token_map
     }
     pub fn add_scope(&mut self) {

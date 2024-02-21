@@ -1,3 +1,5 @@
+use crate::parser::model_transformer::model::Exp;
+
 /**TODO
 The linearizer module contains the code for attempting to linearize a problem into a linear problem
 where the lhs is formed only by addition of variables with a constant multiplier and the rhs is formed by a single constant value.
@@ -17,4 +19,9 @@ It achieves this by following the linearization rules, where:
       x1 - y>= -b
  */
 
-pub struct Linearizer {}
+pub struct LinearizerContext {
+    
+}
+
+
+

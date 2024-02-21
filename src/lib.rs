@@ -4,10 +4,10 @@ extern crate pest_derive;
 
 use wasm_bindgen::prelude::*;
 
-use parser::parser::{parse_problem_source, PreProblem};
+use parser::parser::{parse_problem_source, PreModel};
 use utils::CompilationError;
 
-use crate::parser::model_transformer::model::{Problem, transform_parsed_problem};
+use crate::parser::model_transformer::model::{Model, transform_parsed_problem};
 
 pub mod macros;
 pub mod math;
@@ -33,14 +33,14 @@ impl RoocParser {
     pub fn new(source: String) -> Self {
         Self { source }
     }
-    pub fn parse(&self) -> Result<PreProblem, CompilationError> {
+    pub fn parse(&self) -> Result<PreModel, CompilationError> {
         parse_problem_source(&self.source)
     }
     pub fn format(&self) -> Result<String, CompilationError> {
         let parsed = self.parse()?;
         Ok(parsed.to_string())
     }
-    pub fn parse_and_transform(&self) -> Result<Problem, String> {
+    pub fn parse_and_transform(&self) -> Result<Model, String> {
         let parsed = self
             .parse()
             .map_err(|e| e.to_string_from_source(&self.source))?;
@@ -74,10 +74,10 @@ impl RoocParser {
     pub fn format_wasm(&self) -> Result<String, CompilationError> {
         self.format()
     }
-    pub fn parse_wasm(&self) -> Result<PreProblem, CompilationError> {
+    pub fn parse_wasm(&self) -> Result<PreModel, CompilationError> {
         self.parse()
     }
-    pub fn parse_and_transform_wasm(&self) -> Result<Problem, String> {
+    pub fn parse_and_transform_wasm(&self) -> Result<Model, String> {
         self.parse_and_transform()
     }
 }

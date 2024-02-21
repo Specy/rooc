@@ -1,4 +1,6 @@
 use core::fmt;
+use std::collections::HashMap;
+use std::hash::Hash;
 
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -9,8 +11,8 @@ use crate::math::operators::{BinOp, UnOp};
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::il_problem::{PreCondition, PreObjective};
 use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::TransformerContext;
-use crate::parser::parser::PreProblem;
+use crate::parser::model_transformer::transformer_context::{DomainVariable, TransformerContext};
+use crate::parser::parser::PreModel;
 use crate::parser::recursive_set_resolver::recursive_set_resolver;
 use crate::traits::latex::{escape_latex, ToLatex};
 
@@ -249,29 +251,36 @@ impl fmt::Display for Condition {
 
 #[derive(Debug, Serialize)]
 #[wasm_bindgen]
-pub struct Problem {
+pub struct Model {
     objective: Objective,
     conditions: Vec<Condition>,
+    domain: HashMap<String, DomainVariable>,
 }
 
 #[wasm_bindgen(typescript_custom_section)]
-pub const IProblem: &'static str = r#"
-export type SerializedProblem = {
+pub const IModel: &'static str = r#"
+export type SerializedModel = {
     objective: Objective,
     conditions: SerializedCondition[]
+    domain: Record<string, DomainVariable>
 }
 "#;
 
-impl Problem {
-    pub fn new(objective: Objective, conditions: Vec<Condition>) -> Self {
+impl Model {
+    pub fn new(
+        objective: Objective,
+        conditions: Vec<Condition>,
+        domain: HashMap<String, DomainVariable>,
+    ) -> Self {
         Self {
             objective,
             conditions,
+            domain,
         }
     }
 }
 
-impl fmt::Display for Problem {
+impl fmt::Display for Model {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let conditions = self
             .conditions
@@ -284,7 +293,7 @@ impl fmt::Display for Problem {
 }
 
 #[wasm_bindgen]
-impl Problem {
+impl Model {
     pub fn to_string_wasm(&self) -> String {
         self.to_string()
     }
@@ -293,12 +302,12 @@ impl Problem {
     }
 }
 
-pub fn transform_parsed_problem(pre_problem: PreProblem) -> Result<Problem, TransformError> {
-    let mut context = TransformerContext::new_from_constants(
+pub fn transform_parsed_problem(pre_problem: PreModel) -> Result<Model, TransformError> {
+    let context = TransformerContext::new_from_constants(
         pre_problem.get_constants().clone(),
         pre_problem.get_domains().clone(),
     )?;
-    transform_problem(&pre_problem, &mut context)
+    transform_model(pre_problem, context)
 }
 
 /*
@@ -399,17 +408,18 @@ pub fn transform_objective(
     Ok(Objective::new(objective.objective_type.clone(), rhs))
 }
 
-pub fn transform_problem(
-    problem: &PreProblem,
-    context: &mut TransformerContext,
-) -> Result<Problem, TransformError> {
-    let objective = transform_objective(problem.get_objective(), context)?;
+pub fn transform_model(
+    problem: PreModel,
+    mut context: TransformerContext,
+) -> Result<Model, TransformError> {
+    let objective = transform_objective(problem.get_objective(), &mut context)?;
     let mut conditions: Vec<Condition> = Vec::new();
     for condition in problem.get_conditions().iter() {
-        let transformed = transform_condition_with_iteration(condition, context)?;
+        let transformed = transform_condition_with_iteration(condition, &mut context)?;
         for condition in transformed {
             conditions.push(condition);
         }
     }
-    Ok(Problem::new(objective, conditions))
+    let (domain) = context.into_components();
+    Ok(Model::new(objective, conditions, domain))
 }
