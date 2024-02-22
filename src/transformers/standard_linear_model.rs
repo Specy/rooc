@@ -1,90 +1,10 @@
-use crate::{
-    math::math_enums::{Comparison, OptimizationType},
-    transformers::standardizer::to_standard_form,
-};
-
-use super::simplex::{
-    CanonicalTransformError, divide_matrix_row_by, IntoCanonicalTableau, Tableau, Tableauable,
-};
+use crate::solvers::simplex::{CanonicalTransformError, divide_matrix_row_by, IntoCanonicalTableau, Tableau, Tableauable};
+use crate::transformers::linear_model::LinearModel;
+use crate::transformers::standardizer::to_standard_form;
 
 pub struct EqualityConstraint {
     coefficients: Vec<f64>,
     rhs: f64,
-}
-
-impl EqualityConstraint {
-    pub fn new(coefficients: Vec<f64>, rhs: f64) -> EqualityConstraint {
-        match rhs < 0.0 {
-            true => EqualityConstraint {
-                coefficients: coefficients.iter().map(|c| c * -1.0).collect(),
-                rhs: -rhs,
-            },
-            false => EqualityConstraint { coefficients, rhs },
-        }
-    }
-    pub fn get_coefficients(&self) -> &Vec<f64> {
-        &self.coefficients
-    }
-    pub fn get_coefficient(&self, index: usize) -> f64 {
-        self.coefficients[index]
-    }
-    pub fn get_rhs(&self) -> f64 {
-        self.rhs
-    }
-    pub fn ensure_size(&mut self, size: usize) {
-        self.coefficients.resize(size, 0.0);
-    }
-}
-
-pub struct StandardLinearProblem {
-    variables: Vec<String>,
-    objective_offset: f64,
-    objective: Vec<f64>,
-    constraints: Vec<EqualityConstraint>,
-}
-
-impl StandardLinearProblem {
-    pub fn new(
-        mut objective: Vec<f64>,
-        mut constraints: Vec<EqualityConstraint>,
-        variables: Vec<String>,
-        objective_offset: f64,
-    ) -> StandardLinearProblem {
-        constraints
-            .iter_mut()
-            .for_each(|c| c.ensure_size(variables.len()));
-        objective.resize(variables.len(), 0.0);
-        StandardLinearProblem {
-            objective,
-            constraints,
-            variables,
-            objective_offset,
-        }
-    }
-    pub fn from_linear_problem(linear_problem: LinearProblem) -> Result<StandardLinearProblem, ()> {
-        to_standard_form(&linear_problem)
-    }
-}
-
-impl Tableauable for StandardLinearProblem {
-    fn get_b(&self) -> Vec<f64> {
-        self.constraints.iter().map(|c| c.rhs).collect()
-    }
-    fn get_c(&self) -> Vec<f64> {
-        self.objective.clone()
-    }
-    fn get_a(&self) -> Vec<Vec<f64>> {
-        self.constraints
-            .iter()
-            .map(|c| c.coefficients.clone())
-            .collect()
-    }
-    fn get_variables(&self) -> Vec<String> {
-        self.variables.clone()
-    }
-    fn get_objective_offset(&self) -> f64 {
-        self.objective_offset
-    }
 }
 
 struct IndependentVariable {
@@ -93,7 +13,8 @@ struct IndependentVariable {
     value: f64,
 }
 
-impl IntoCanonicalTableau for StandardLinearProblem {
+
+impl IntoCanonicalTableau for StandardLinearModel {
     fn into_canonical(&self) -> Result<Tableau, CanonicalTransformError> {
         let mut usable_independent_vars: Vec<IndependentVariable> = Vec::new();
         //find independent variables by checking if the column has a single value, and if so, add it to the independent list
@@ -247,75 +168,77 @@ impl IntoCanonicalTableau for StandardLinearProblem {
     }
 }
 
-pub struct Constraint {
-    coefficients: Vec<f64>,
-    rhs: f64,
-    constraint_type: Comparison,
-}
-
-impl Constraint {
-    pub fn new(coefficients: Vec<f64>, constraint_type: Comparison, rhs: f64) -> Constraint {
-        Constraint {
-            coefficients,
-            rhs,
-            constraint_type,
+impl EqualityConstraint {
+    pub fn new(coefficients: Vec<f64>, rhs: f64) -> EqualityConstraint {
+        match rhs < 0.0 {
+            true => EqualityConstraint {
+                coefficients: coefficients.iter().map(|c| c * -1.0).collect(),
+                rhs: -rhs,
+            },
+            false => EqualityConstraint { coefficients, rhs },
         }
     }
     pub fn get_coefficients(&self) -> &Vec<f64> {
         &self.coefficients
     }
+    pub fn get_coefficient(&self, index: usize) -> f64 {
+        self.coefficients[index]
+    }
     pub fn get_rhs(&self) -> f64 {
         self.rhs
-    }
-    pub fn get_constraint_type(&self) -> &Comparison {
-        &self.constraint_type
     }
     pub fn ensure_size(&mut self, size: usize) {
         self.coefficients.resize(size, 0.0);
     }
 }
 
-pub struct LinearProblem {
+pub struct StandardLinearModel {
     variables: Vec<String>,
     objective_offset: f64,
-    optimization_type: OptimizationType,
     objective: Vec<f64>,
-    constraints: Vec<Constraint>,
+    constraints: Vec<EqualityConstraint>,
 }
 
-impl LinearProblem {
+impl StandardLinearModel {
     pub fn new(
-        objective: Vec<f64>,
-        optimization_type: OptimizationType,
-        objective_offset: f64,
-        constraints: Vec<Constraint>,
+        mut objective: Vec<f64>,
+        mut constraints: Vec<EqualityConstraint>,
         variables: Vec<String>,
-    ) -> LinearProblem {
-        LinearProblem {
+        objective_offset: f64,
+    ) -> StandardLinearModel {
+        constraints
+            .iter_mut()
+            .for_each(|c| c.ensure_size(variables.len()));
+        objective.resize(variables.len(), 0.0);
+        StandardLinearModel {
             objective,
             constraints,
-            optimization_type,
             variables,
             objective_offset,
         }
     }
+    pub fn from_linear_problem(linear_problem: LinearModel) -> Result<StandardLinearModel, ()> {
+        to_standard_form(&linear_problem)
+    }
+}
 
-    pub fn get_optimization_type(&self) -> &OptimizationType {
-        &self.optimization_type
+impl Tableauable for StandardLinearModel {
+    fn get_b(&self) -> Vec<f64> {
+        self.constraints.iter().map(|c| c.rhs).collect()
     }
-    pub fn into_standard_form(self) -> Result<StandardLinearProblem, ()> {
-        to_standard_form(&self)
+    fn get_c(&self) -> Vec<f64> {
+        self.objective.clone()
     }
-    pub fn get_objective(&self) -> &Vec<f64> {
-        &self.objective
+    fn get_a(&self) -> Vec<Vec<f64>> {
+        self.constraints
+            .iter()
+            .map(|c| c.coefficients.clone())
+            .collect()
     }
-    pub fn get_constraints(&self) -> &Vec<Constraint> {
-        &self.constraints
+    fn get_variables(&self) -> Vec<String> {
+        self.variables.clone()
     }
-    pub fn get_variables(&self) -> &Vec<String> {
-        &self.variables
-    }
-    pub fn get_objective_offset(&self) -> f64 {
+    fn get_objective_offset(&self) -> f64 {
         self.objective_offset
     }
 }

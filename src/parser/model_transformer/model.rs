@@ -20,7 +20,7 @@ use crate::traits::latex::{escape_latex, ToLatex};
 pub enum Exp {
     Number(f64),
     Variable(String),
-    Mod(Box<Exp>),
+    Abs(Box<Exp>),
     Min(Vec<Exp>),
     Max(Vec<Exp>),
     BinOp(BinOp, Box<Exp>, Box<Exp>),
@@ -36,7 +36,7 @@ export type SerializedExp = {
     type: "Variable",
     value: string
 } | {
-    type: "Mod",
+    type: "Abs",
     value: SerializedExp
 } | {
     type: "Min",
@@ -89,7 +89,7 @@ impl Exp {
                         Exp::make_binop(BinOp::Mul, *lhs, c.clone()),
                         Exp::make_binop(BinOp::Mul, *rhs, c),
                     )
-                    .flatten()
+                        .flatten()
                 }
                 //c(a +- b) = ac +- bc
                 (BinOp::Mul, c, Exp::BinOp(inner_op @ (BinOp::Add | BinOp::Sub), lhs, rhs)) => {
@@ -98,7 +98,7 @@ impl Exp {
                         Exp::make_binop(BinOp::Mul, c.clone(), *lhs),
                         Exp::make_binop(BinOp::Mul, c, *rhs),
                     )
-                    .flatten()
+                        .flatten()
                 }
                 //-(a)b = -ab
                 (BinOp::Mul, Exp::UnOp(op @ UnOp::Neg, lhs), c) => {
@@ -151,7 +151,7 @@ impl fmt::Display for Exp {
         let s = match self {
             Exp::Number(value) => value.to_string(),
             Exp::Variable(name) => name.clone(),
-            Exp::Mod(exp) => format!("|{}|", exp),
+            Exp::Abs(exp) => format!("|{}|", exp),
             Exp::Min(exps) => format!(
                 "min{{ {} }}",
                 exps.iter()
@@ -278,6 +278,21 @@ impl Model {
             domain,
         }
     }
+    pub fn into_components(self) -> (Objective, Vec<Condition>, HashMap<String, DomainVariable>) {
+        (self.objective, self.conditions, self.domain)
+    }
+    pub fn get_objective(&self) -> &Objective {
+        &self.objective
+    }
+    pub fn get_conditions(&self) -> &Vec<Condition> {
+        &self.conditions
+    }
+    pub fn get_domain(&self) -> &HashMap<String, DomainVariable> {
+        &self.domain
+    }
+    pub fn get_domain_mut(&mut self) -> &mut HashMap<String, DomainVariable> {
+        &mut self.domain
+    }
 }
 
 impl fmt::Display for Model {
@@ -396,7 +411,7 @@ pub fn transform_condition_with_iteration(
     recursive_set_resolver(&condition.iteration, context, &mut results, 0, &|c| {
         transform_condition(condition, c)
     })
-    .map_err(|e| e.add_span(&condition.span))?;
+        .map_err(|e| e.add_span(&condition.span))?;
     Ok(results)
 }
 

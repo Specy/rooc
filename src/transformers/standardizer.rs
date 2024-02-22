@@ -1,11 +1,11 @@
 use crate::{
     math::math_enums::{Comparison, OptimizationType},
-    solvers::linear_problem::{
-        Constraint, EqualityConstraint, LinearProblem, StandardLinearProblem,
+    solvers::linear_model::{
+        Constraint, EqualityConstraint, LinearProblem, StandardLinearModel,
     },
 };
 
-pub fn to_standard_form(problem: &LinearProblem) -> Result<StandardLinearProblem, ()> {
+pub fn to_standard_form(problem: &LinearProblem) -> Result<StandardLinearModel, ()> {
     let objective = problem.get_objective();
     let mut constraints: Vec<EqualityConstraint> = Vec::new();
     let mut variables = problem.get_variables().clone();
@@ -32,7 +32,7 @@ pub fn to_standard_form(problem: &LinearProblem) -> Result<StandardLinearProblem
         ),
         OptimizationType::Min => (problem.get_objective_offset(), objective.clone()),
     };
-    Ok(StandardLinearProblem::new(
+    Ok(StandardLinearModel::new(
         objective,
         constraints,
         variables,

@@ -88,7 +88,7 @@ pub fn parse_exp_leaf(exp: Pair<Rule>) -> Result<PreExp, CompilationError> {
         Rule::parenthesis => parse_exp(exp),
         Rule::modulo => {
             let exp = parse_exp(exp)?;
-            Ok(PreExp::Mod(span, Box::new(exp)))
+            Ok(PreExp::Abs(span, Box::new(exp)))
         }
         Rule::implicit_mul => {
             let exps = exp.clone().into_inner().map(parse_exp_leaf).collect::<Result<Vec<_>, _>>()?;

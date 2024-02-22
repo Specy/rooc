@@ -25,7 +25,7 @@ use crate::utils::{InputSpan, Spanned};
 #[derive(Debug)]
 pub enum PreExp {
     Primitive(Spanned<Primitive>),
-    Mod(InputSpan, Box<PreExp>),
+    Abs(InputSpan, Box<PreExp>),
     BlockFunction(Spanned<BlockFunction>),
     Variable(Spanned<String>),
     CompoundVariable(Spanned<CompoundVariable>),
@@ -41,7 +41,7 @@ const IPreExp: &'static str = r#"
 export type SerializedFunctionCall = any //TODO
 export type SerializedPreExp = {span: InputSpan} & (
     {type: "Primitive", value: SerializedPrimitive} |
-    {type: "Mod", value: SerializedPreExp} |
+    {type: "Abs", value: SerializedPreExp} |
     {type: "BlockFunction", value: SerializedBlockFunction} |
     {type: "Variable", value: string} |
     {type: "CompoundVariable", value: SerializedCompoundVariable} |
@@ -64,7 +64,7 @@ impl Clone for PreExp {
     fn clone(&self) -> Self {
         match self {
             Self::Primitive(p) => Self::Primitive(p.clone()),
-            Self::Mod(span, exp) => Self::Mod(span.clone(), exp.clone()),
+            Self::Abs(span, exp) => Self::Abs(span.clone(), exp.clone()),
             Self::BlockFunction(f) => Self::BlockFunction(f.clone()),
             Self::Variable(name) => Self::Variable(name.clone()),
             Self::CompoundVariable(c) => Self::CompoundVariable(c.clone()),
@@ -94,7 +94,7 @@ impl Serialize for PreExp {
                 state.serialize_field("span", &p.get_span())?;
                 state.end()
             }
-            Self::Mod(span, exp) => {
+            Self::Abs(span, exp) => {
                 let mut state = serializer.serialize_struct("Mod", 3)?;
                 state.serialize_field("type", &"Mod")?;
                 state.serialize_field("value", &exp)?;
@@ -228,7 +228,7 @@ impl TypeCheckable for PreExp {
                 }
             }
             Self::Primitive(_) => Ok(()),
-            Self::Mod(_, exp) => {
+            Self::Abs(_, exp) => {
                 exp.type_check(context)
                     .map_err(|e| e.add_span(exp.get_span()))?;
                 let exp_type = exp.get_type(context);
@@ -326,7 +326,7 @@ impl TypeCheckable for PreExp {
                     None, //Some(fun.get_function_name()) should i add this?
                 )
             }
-            Self::Mod(_, exp) => {
+            Self::Abs(_, exp) => {
                 exp.populate_token_type_map(context);
             }
             Self::Primitive(p) => context.add_token_type_or_undefined(
@@ -417,7 +417,7 @@ impl WithType for PreExp {
             }
             Self::BinaryOperation(_, lhs, _) => lhs.get_type(context),
             Self::UnaryOperation(_, exp) => exp.get_type(context),
-            Self::Mod(_, exp) => exp.get_type(context),
+            Self::Abs(_, exp) => exp.get_type(context),
             Self::ArrayAccess(a) => context
                 .get_addressable_value(a)
                 .unwrap_or(PrimitiveKind::Undefined),
@@ -435,7 +435,7 @@ impl PreExp {
     pub fn get_span(&self) -> &InputSpan {
         match self {
             Self::Primitive(n) => n.get_span(),
-            Self::Mod(span, _) => span,
+            Self::Abs(span, _) => span,
             Self::BlockFunction(f) => f.get_span(),
             Self::Variable(name) => name.get_span(),
             Self::CompoundVariable(c) => c.get_span(),
@@ -461,9 +461,9 @@ impl PreExp {
                 Ok(n) => Ok(Exp::Number(n)),
                 Err(e) => Err(e.add_span(self.get_span())),
             },
-            Self::Mod(span, exp) => {
+            Self::Abs(span, exp) => {
                 let inner = exp.into_exp(context).map_err(|e| e.add_span(span))?;
-                Ok(Exp::Mod(inner.to_box()))
+                Ok(Exp::Abs(inner.to_box()))
             }
             Self::BlockFunction(f) => {
                 let mut parsed_exp = f
@@ -654,7 +654,7 @@ impl PreExp {
                     )),
                 }
             }
-            PreExp::Mod(_, _) | PreExp::BlockFunction(_) | PreExp::BlockScopedFunction(_) => {
+            PreExp::Abs(_, _) | PreExp::BlockFunction(_) | PreExp::BlockScopedFunction(_) => {
                 //TODO is this correct?
                 Err(TransformError::WrongArgument {
                     got: PrimitiveKind::Undefined,
@@ -808,7 +808,7 @@ impl ToLatex for PreExp {
             }
             Self::Variable(name) => escape_latex(name.get_span_value()),
             Self::Primitive(p) => p.to_latex(),
-            Self::Mod(_, exp) => format!("|{}|", exp.to_latex()),
+            Self::Abs(_, exp) => format!("|{}|", exp.to_latex()),
             Self::CompoundVariable(c) => c.to_latex(),
             Self::FunctionCall(_, f) => f.to_latex(),
         }
@@ -828,7 +828,7 @@ impl fmt::Display for PreExp {
             }
             Self::CompoundVariable(c) => c.to_string(),
             Self::FunctionCall(_, f) => f.to_string(),
-            Self::Mod(_, exp) => format!("|{}|", **exp),
+            Self::Abs(_, exp) => format!("|{}|", **exp),
             Self::Primitive(p) => p.to_string(),
             Self::UnaryOperation(op, exp) => {
                 if self.is_leaf() {

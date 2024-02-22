@@ -311,6 +311,9 @@ impl TransformerContext {
             )),
         }
     }
+    pub fn into_components(self) -> (HashMap<String, DomainVariable>) {
+        (self.domain)
+    }
 }
 
 pub fn assert_no_duplicates_in_domain(

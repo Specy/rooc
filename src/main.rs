@@ -4,7 +4,7 @@ use rooc::{
     math::math_enums::{Comparison, OptimizationType},
     RoocParser,
     solvers::{
-        linear_problem::{Constraint, LinearProblem},
+        linear_model::{Constraint, LinearProblem},
         simplex::{IntoCanonicalTableau, Tableau},
     },
 };

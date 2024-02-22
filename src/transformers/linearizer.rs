@@ -1,4 +1,7 @@
-use crate::parser::model_transformer::model::Exp;
+use std::collections::HashMap;
+use crate::parser::model_transformer::model::{Exp, Model};
+use crate::parser::model_transformer::transformer_context::DomainVariable;
+use crate::transformers::linear_model::LinearModel;
 
 /**TODO
 The linearizer module contains the code for attempting to linearize a problem into a linear problem
@@ -19,9 +22,31 @@ It achieves this by following the linearization rules, where:
       x1 - y>= -b
  */
 
-pub struct LinearizerContext {
-    
+struct LinearVariable {
+    name: String,
+    multiplier: f64,
 }
 
+
+enum ContextLocation{
+    Constraint,
+    Objective
+}
+pub struct LinearizerContext{
+    location: ContextLocation,
+    surplus_count: u32,
+    slack_count: u32,
+    extra_count: u32,
+    domain: HashMap<String, DomainVariable>
+}
+
+
+pub struct Linearizer {
+
+}
+
+pub fn linearize_model(model: Model) -> LinearModel {
+    todo!()
+}
 
 
