@@ -8,8 +8,6 @@ use rooc::{
         simplex::{IntoCanonicalTableau, Tableau},
     },
 };
-use rooc::traits::latex::ToLatex;
-use rooc::type_checker::type_checker_context::TypeCheckable;
 
 #[allow(unused)]
 fn main() {

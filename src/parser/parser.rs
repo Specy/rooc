@@ -15,7 +15,7 @@ use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::assert_no_duplicates_in_domain;
 use crate::primitives::consts::Constant;
 use crate::traits::latex::ToLatex;
-use crate::type_checker::type_checker_context::{StaticVariableType, TypeCheckable, TypeCheckerContext, TypedToken};
+use crate::type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, TypedToken};
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 
 use super::domain_declaration::VariablesDomainDeclaration;

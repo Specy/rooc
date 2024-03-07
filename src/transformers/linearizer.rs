@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use crate::parser::model_transformer::model::{Exp, Model};
+
+use crate::parser::model_transformer::model::Model;
 use crate::parser::model_transformer::transformer_context::DomainVariable;
 use crate::transformers::linear_model::LinearModel;
 

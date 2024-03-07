@@ -8,7 +8,6 @@ use wasm_bindgen::prelude::*;
 
 use crate::enum_with_variants_to_string;
 use crate::traits::latex::ToLatex;
-use crate::utils::InputSpan;
 
 enum_with_variants_to_string! {
     pub enum Comparison derives[Debug, PartialEq, Clone, Copy] with_wasm {

@@ -3,8 +3,6 @@ use crate::{
     transformers::standardizer::to_standard_form,
 };
 
-
-
 pub struct Constraint {
     coefficients: Vec<f64>,
     rhs: f64,

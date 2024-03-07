@@ -1,20 +1,20 @@
-use std::fmt;
 use std::fmt::{Debug, Display};
 
 use dyn_clone::DynClone;
 use erased_serde::serialize_trait_object;
 use pest::iterators::Pair;
 
-use crate::parser::il::il_exp::PreExp;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::TransformerContext;
-use crate::traits::latex::{escape_latex, ToLatex};
 use crate::{
     parser::parser::Rule,
     primitives::primitive::{Primitive, PrimitiveKind},
     type_checker::type_checker_context::{TypeCheckable, WithType},
     utils::InputSpan,
 };
+use crate::parser::il::il_exp::PreExp;
+use crate::parser::model_transformer::transform_error::TransformError;
+use crate::parser::model_transformer::transformer_context::TransformerContext;
+use crate::traits::latex::{escape_latex, ToLatex};
+
 /*TODO
 the PreExp should have only the function call which includes the parameters expressions and the function name
 the actual function (which can be kept like this trait, but implemented as a struct, only the `call` method should be implemented)
