@@ -1,11 +1,10 @@
 use crate::{
     math::math_enums::{Comparison, OptimizationType},
-    solvers::linear_model::{
-        Constraint, EqualityConstraint, LinearProblem, StandardLinearModel,
-    },
 };
+use crate::transformers::linear_model::{Constraint, LinearModel};
+use crate::transformers::standard_linear_model::{EqualityConstraint, StandardLinearModel};
 
-pub fn to_standard_form(problem: &LinearProblem) -> Result<StandardLinearModel, ()> {
+pub fn to_standard_form(problem: &LinearModel) -> Result<StandardLinearModel, ()> {
     let objective = problem.get_objective();
     let mut constraints: Vec<EqualityConstraint> = Vec::new();
     let mut variables = problem.get_variables().clone();

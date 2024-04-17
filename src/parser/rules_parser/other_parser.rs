@@ -10,7 +10,7 @@ use crate::parser::il::block_functions::{
 };
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::il_problem::{
-    AddressableAccess, CompoundVariable, PreCondition, PreObjective,
+    AddressableAccess, CompoundVariable, PreConstraint, PreObjective,
 };
 use crate::parser::il::iterable_set::IterableSet;
 use crate::parser::iterable_utils::flatten_primitive_array_values;
@@ -297,23 +297,23 @@ pub fn parse_graph_edge(edge: &Pair<Rule>, from: &str) -> Result<GraphEdge, Comp
     }
 }
 
-pub fn parse_condition_list(
-    condition_list: &Pair<Rule>,
-) -> Result<Vec<PreCondition>, CompilationError> {
-    match condition_list.as_rule() {
-        Rule::condition_list => condition_list
+pub fn parse_constraint_list(
+    constraint_list: &Pair<Rule>,
+) -> Result<Vec<PreConstraint>, CompilationError> {
+    match constraint_list.as_rule() {
+        Rule::constraint_list => constraint_list
             .clone()
             .into_inner()
-            .map(|c| parse_condition(&c))
+            .map(|c| parse_constraint(&c))
             .collect(),
-        _ => err_unexpected_token!("Expected condition list but got: {}", condition_list),
+        _ => err_unexpected_token!("Expected constraint list but got: {}", constraint_list),
     }
 }
 
-pub fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, CompilationError> {
-    match condition.as_rule() {
-        Rule::condition => {
-            let inner = condition.clone().into_inner();
+pub fn parse_constraint(constraint: &Pair<Rule>) -> Result<PreConstraint, CompilationError> {
+    match constraint.as_rule() {
+        Rule::constraint => {
+            let inner = constraint.clone().into_inner();
             let lhs = inner.find_first_tagged("lhs");
             let relation = inner.find_first_tagged("relation");
             let rhs = inner.find_first_tagged("rhs");
@@ -324,18 +324,18 @@ pub fn parse_condition(condition: &Pair<Rule>) -> Result<PreCondition, Compilati
                         Some(iteration) => parse_set_iterator_list(&iteration.into_inner())?,
                         None => vec![],
                     };
-                    Ok(PreCondition::new(
+                    Ok(PreConstraint::new(
                         parse_exp(lhs)?,
                         parse_comparison(&relation_type)?,
                         parse_exp(rhs)?,
                         iteration,
-                        InputSpan::from_pair(condition),
+                        InputSpan::from_pair(constraint),
                     ))
                 }
-                _ => bail_missing_token!("Missing condition body", condition),
+                _ => bail_missing_token!("Missing constraint body", constraint),
             }
         }
-        _ => err_unexpected_token!("Expected condition but got: {}", condition),
+        _ => err_unexpected_token!("Expected constraint but got: {}", constraint),
     }
 }
 

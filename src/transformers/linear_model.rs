@@ -2,6 +2,7 @@ use crate::{
     math::math_enums::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
 };
+use crate::transformers::standard_linear_model::StandardLinearModel;
 
 pub struct Constraint {
     coefficients: Vec<f64>,

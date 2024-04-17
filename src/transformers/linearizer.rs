@@ -34,7 +34,6 @@ enum ContextLocation{
     Objective
 }
 pub struct LinearizerContext{
-    location: ContextLocation,
     surplus_count: u32,
     slack_count: u32,
     extra_count: u32,
@@ -46,7 +45,10 @@ pub struct Linearizer {
 
 }
 
+
 pub fn linearize_model(model: Model) -> LinearModel {
+    for constraint in model.get_constraints() {
+    }
     todo!()
 }
 

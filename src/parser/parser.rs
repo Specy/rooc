@@ -9,7 +9,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::bail_missing_token;
 use crate::math::math_enums::VariableType;
-use crate::parser::il::il_problem::{PreCondition, PreObjective};
+use crate::parser::il::il_problem::{PreConstraint, PreObjective};
 use crate::parser::model_transformer::model::{Model, transform_parsed_problem};
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::assert_no_duplicates_in_domain;
@@ -20,7 +20,7 @@ use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 
 use super::domain_declaration::VariablesDomainDeclaration;
 use super::rules_parser::other_parser::{
-    parse_condition_list, parse_consts_declaration, parse_domains_declaration, parse_objective,
+    parse_constraint_list, parse_consts_declaration, parse_domains_declaration, parse_objective,
 };
 
 #[derive(Parser)]
@@ -31,7 +31,7 @@ struct PLParser;
 #[derive(Debug, Serialize, Clone)]
 pub struct PreModel {
     objective: PreObjective,
-    conditions: Vec<PreCondition>,
+    constraints: Vec<PreConstraint>,
     constants: Vec<Constant>,
     domains: Vec<VariablesDomainDeclaration>,
 }
@@ -40,7 +40,7 @@ pub struct PreModel {
 const IPreProblem: &'static str = r#"
 export type SerializedPreModel = {
     objective: SerializedPreObjective,
-    conditions: SerializedPreCondition[],
+    constraints: SerializedPreConstraint[],
     constants: SerializedConstant[],
     domains: SerializedVariablesDomainDeclaration[],
 }
@@ -49,13 +49,13 @@ export type SerializedPreModel = {
 impl PreModel {
     pub fn new(
         objective: PreObjective,
-        conditions: Vec<PreCondition>,
+        constraint: Vec<PreConstraint>,
         constants: Vec<Constant>,
         domains: Vec<VariablesDomainDeclaration>,
     ) -> Self {
         Self {
             objective,
-            conditions,
+            constraints: constraint,
             constants,
             domains,
         }
@@ -63,8 +63,8 @@ impl PreModel {
     pub fn get_objective(&self) -> &PreObjective {
         &self.objective
     }
-    pub fn get_conditions(&self) -> &Vec<PreCondition> {
-        &self.conditions
+    pub fn get_constraints(&self) -> &Vec<PreConstraint> {
+        &self.constraints
     }
     pub fn get_constants(&self) -> &Vec<Constant> {
         &self.constants
@@ -117,7 +117,7 @@ impl TypeCheckable for PreModel {
         for domain in &self.domains {
             domain.type_check(context)?;
         }
-        for cond in &self.conditions {
+        for cond in &self.constraints {
             cond.type_check(context)?;
         }
         Ok(())
@@ -127,7 +127,7 @@ impl TypeCheckable for PreModel {
         for domain in &self.domains {
             domain.populate_token_type_map(context);
         }
-        for cond in &self.conditions {
+        for cond in &self.constraints {
             cond.populate_token_type_map(context);
         }
     }
@@ -137,13 +137,13 @@ impl ToLatex for PreModel {
     fn to_latex(&self) -> String {
         let mut s = self.objective.to_latex();
         s.push_str("\\\\\n{s.t.}\\\\\n");
-        let conditions = self
-            .conditions
+        let constraints = self
+            .constraints
             .iter()
             .map(|cond| format!("    \\quad {} \\quad", cond.to_latex()))
             .collect::<Vec<_>>()
             .join("\\\\\n");
-        s.push_str(format!("\n\\begin{{align}}\n{}\n\\end{{align}}", conditions).as_str());
+        s.push_str(format!("\n\\begin{{align}}\n{}\n\\end{{align}}", constraints).as_str());
         if !self.constants.is_empty() {
             s.push_str("\\\\\n where \\\\\n");
             let constants = self
@@ -233,7 +233,7 @@ impl fmt::Display for PreModel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = self.objective.to_string();
         s.push_str("\ns.t.\n");
-        for cond in &self.conditions {
+        for cond in &self.constraints {
             s.push_str(&format!("    {}\n", cond.to_string()));
         }
         if !self.constants.is_empty() {
@@ -304,22 +304,22 @@ pub fn parse_problem_source(source: &str) -> Result<PreModel, CompilationError> 
 fn parse_problem(problem: Pair<Rule>) -> Result<PreModel, CompilationError> {
     let pairs = problem.clone().into_inner();
     let objective = pairs.find_first_tagged("objective").map(parse_objective);
-    let conditions = pairs
-        .find_first_tagged("conditions")
-        .map(|v| parse_condition_list(&v));
+    let constraints = pairs
+        .find_first_tagged("constraints")
+        .map(|v| parse_constraint_list(&v));
     let consts = pairs
         .find_first_tagged("where")
         .map(parse_consts_declaration);
     let domain = pairs
         .find_first_tagged("define")
         .map(parse_domains_declaration);
-    match (objective, conditions) {
+    match (objective, constraints) {
         (Some(obj), Some(cond)) => Ok(PreModel::new(
             obj?,
             cond?,
             consts.unwrap_or(Ok(Vec::new()))?,
             domain.unwrap_or(Ok(Vec::new()))?,
         )),
-        _ => bail_missing_token!("Objective and conditions are required", problem),
+        _ => bail_missing_token!("Objective and constraints are required", problem),
     }
 }

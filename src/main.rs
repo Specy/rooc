@@ -4,10 +4,10 @@ use rooc::{
     math::math_enums::{Comparison, OptimizationType},
     RoocParser,
     solvers::{
-        linear_model::{Constraint, LinearProblem},
         simplex::{IntoCanonicalTableau, Tableau},
     },
 };
+use rooc::transformers::linear_model::{Constraint, LinearModel};
 
 #[allow(unused)]
 fn main() {
@@ -52,7 +52,7 @@ fn main() {
         create_variable_names(7),
     );
 
-    let linear_problem = LinearProblem::new(
+    let linear_problem = LinearModel::new(
         vec![3.0, 4.0, 6.0],
         OptimizationType::Min,
         0.0,

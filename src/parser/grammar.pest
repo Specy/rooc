@@ -2,7 +2,7 @@ problem = {
     SOI ~ nl* ~
     #objective = objective ~ nl+ ~
     ^"s.t." ~ nl+ ~
-    #conditions = condition_list ~
+    #constraints = constraint_list ~
     (
     	nl+ ~
     	^"where" ~ nl+ ~
@@ -21,9 +21,9 @@ objective = {
   #objective_type = objective_type ~
   #objective_body = tagged_exp
 }
-condition_list = { (condition ~ (nl* ~condition)*)?}
-// condition
-condition = {
+constraint_list = { (constraint ~ (nl* ~constraint)*)?}
+// constraint
+constraint = {
   #lhs = (tagged_exp) ~
   #relation = comparison ~
   #rhs = tagged_exp ~

@@ -180,9 +180,9 @@ impl fmt::Display for PreObjective {
 }
 
 #[derive(Debug, Serialize, Clone)]
-pub struct PreCondition {
+pub struct PreConstraint {
     pub lhs: PreExp,
-    pub condition_type: Comparison,
+    pub constraint_type: Comparison,
     pub rhs: PreExp,
     pub iteration: Vec<IterableSet>,
     pub span: InputSpan,
@@ -190,26 +190,26 @@ pub struct PreCondition {
 
 #[wasm_bindgen(typescript_custom_section)]
 const IPreCondition: &'static str = r#"
-export type SerializedPreCondition = {
+export type SerializedPreConstraint = {
     lhs: SerializedPreExp,
-    condition_type: Comparison,
+    constraint_type: Comparison,
     rhs: SerializedPreExp,
     iteration: SerializedVariableType[],
     span: InputSpan,
 }
 "#;
 
-impl PreCondition {
+impl PreConstraint {
     pub fn new(
         lhs: PreExp,
-        condition_type: Comparison,
+        constraint_type: Comparison,
         rhs: PreExp,
         iteration: Vec<IterableSet>,
         span: InputSpan,
     ) -> Self {
         Self {
             lhs,
-            condition_type,
+            constraint_type,
             rhs,
             iteration,
             span,
@@ -217,7 +217,7 @@ impl PreCondition {
     }
 }
 
-impl TypeCheckable for PreCondition {
+impl TypeCheckable for PreConstraint {
     fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
         for iter in &self.iteration {
             iter.iterator
@@ -251,7 +251,7 @@ impl TypeCheckable for PreCondition {
             let err = TransformError::Other(format!(
                 "Expected comparison of \"Number\", got \"{}\" {} \"{}\"",
                 lhs_type.to_string(),
-                self.condition_type,
+                self.constraint_type,
                 rhs_type.to_string()
             ))
             .add_span(&self.span);
@@ -272,23 +272,23 @@ impl TypeCheckable for PreCondition {
     }
 }
 
-impl ToLatex for PreCondition {
+impl ToLatex for PreConstraint {
     fn to_latex(&self) -> String {
         let lhs = self.lhs.to_latex();
         let rhs = self.rhs.to_latex();
-        let condition = self.condition_type.to_latex();
+        let constraint = self.constraint_type.to_latex();
         let iterations = self
             .iteration
             .iter()
             .map(|i| format!("\\forall{{{}}}", i.to_latex()))
             .collect::<Vec<String>>();
         if iterations.is_empty() {
-            format!("{} \\ &{} \\ {}", lhs, condition, rhs)
+            format!("{} \\ &{} \\ {}", lhs, constraint, rhs)
         } else {
             format!(
                 "{} \\ &{} \\ {} \\qquad {}",
                 lhs,
-                condition,
+                constraint,
                 rhs,
                 iterations.join(",\\")
             )
@@ -296,12 +296,12 @@ impl ToLatex for PreCondition {
     }
 }
 
-impl fmt::Display for PreCondition {
+impl fmt::Display for PreConstraint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
         s.push_str(&format!(
             "{} {} {}",
-            self.lhs, self.condition_type, self.rhs
+            self.lhs, self.constraint_type, self.rhs
         ));
         if !self.iteration.is_empty() {
             s.push_str(" for ");

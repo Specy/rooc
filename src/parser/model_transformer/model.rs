@@ -9,12 +9,13 @@ use crate::{primitives::primitive::Primitive, utils::Spanned};
 use crate::math::math_enums::{Comparison, OptimizationType};
 use crate::math::operators::{BinOp, UnOp};
 use crate::parser::il::il_exp::PreExp;
-use crate::parser::il::il_problem::{PreCondition, PreObjective};
+use crate::parser::il::il_problem::{PreConstraint, PreObjective};
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::{DomainVariable, TransformerContext};
 use crate::parser::parser::PreModel;
 use crate::parser::recursive_set_resolver::recursive_set_resolver;
 use crate::traits::latex::{escape_latex, ToLatex};
+
 
 #[derive(Debug, Clone, Serialize)]
 pub enum Exp {
@@ -76,7 +77,119 @@ impl Exp {
     }
 
     pub fn simplify(&self) -> Exp {
-        todo!("implement the simplify function by using e-graphs egg")
+        //implement the simplify function by using e-graphs egg
+        match self {
+            Exp::BinOp(op, lhs, rhs) => {
+                let lhs = lhs.simplify();
+                let rhs = rhs.simplify();
+                match (op, lhs, rhs) {
+                    (op, Exp::Number(lhs), Exp::Number(rhs)) => match op {
+                        BinOp::Add => Exp::Number(lhs + rhs),
+                        BinOp::Sub => Exp::Number(lhs - rhs),
+                        BinOp::Mul => Exp::Number(lhs * rhs),
+                        BinOp::Div => Exp::Number(lhs / rhs),
+                    },
+                    (BinOp::Add, Exp::Number(0.0), rhs) => rhs,
+                    (BinOp::Add, lhs, Exp::Number(0.0)) => lhs,
+                    (BinOp::Sub, lhs, Exp::Number(0.0)) => lhs,
+                    (BinOp::Mul, Exp::Number(0.0), _) => Exp::Number(0.0),
+                    (BinOp::Mul, _, Exp::Number(0.0)) => Exp::Number(0.0),
+                    (BinOp::Mul, Exp::Number(1.0), rhs) => rhs,
+                    (BinOp::Mul, lhs, Exp::Number(1.0)) => lhs,
+                    (BinOp::Div, lhs, Exp::Number(1.0)) => lhs,
+                    //this would be an error, keep it as it is
+                    (BinOp::Div, lhs, Exp::Number(0.0)) => {
+                        Exp::BinOp(BinOp::Div, lhs.to_box(), Exp::Number(0.0).to_box())
+                    }
+                    (BinOp::Div, Exp::Number(0.0), _) => Exp::Number(0.0),
+                    //move the number to the left
+                    (op, lhs, Exp::Number(rhs)) => {
+                        Exp::BinOp(op.clone(), Exp::Number(rhs).to_box(), lhs.to_box())
+                    }
+                    // num1 + num2 + x = (num1 + num2) + x
+                    // num1 - num2 - x = (num1 - num2) - x
+                    // num1 * num2 * x = (num1 * num2) * x
+                    // num1 / num2 / x = (num1 / num2) / x
+                    (op, Exp::Number(lhs), Exp::BinOp(op2, inner_lhs, inner_rhs)) => {
+                        let inner_lhs = inner_lhs.simplify();
+                        let inner_rhs = inner_rhs.simplify();
+                        if *op != op2 {
+                            return Exp::BinOp(
+                                op.clone(),
+                                Exp::Number(lhs).to_box(),
+                                Exp::BinOp(op2, inner_lhs.to_box(), inner_rhs.to_box()).to_box(),
+                            )
+                            .simplify();
+                        }
+                        if let Exp::Number(rhs) = inner_lhs {
+                            let val = match op {
+                                BinOp::Add => lhs + rhs,
+                                BinOp::Sub => lhs - rhs,
+                                BinOp::Mul => lhs * rhs,
+                                BinOp::Div => lhs / rhs,
+                            };
+                            Exp::BinOp(op2, Exp::Number(val).to_box(), inner_rhs.to_box())
+                        } else {
+                            Exp::BinOp(
+                                op.clone(),
+                                Exp::Number(lhs).to_box(),
+                                Exp::BinOp(op2, inner_lhs.to_box(), inner_rhs.to_box()).to_box(),
+                            )
+                        }
+                    }
+                    //keep the rest equal
+                    (op, lhs, rhs) => Exp::BinOp(op.clone(), lhs.to_box(), rhs.to_box()),
+                }
+            }
+            Exp::UnOp(op, exp) => {
+                let exp = exp.simplify();
+                match op {
+                    UnOp::Neg => match exp {
+                        Exp::Number(value) => Exp::Number(-value),
+                        _ => Exp::UnOp(UnOp::Neg, exp.to_box()),
+                    },
+                }
+            }
+            Exp::Max(exps) => {
+                //if they are all numbers, return the max
+                let nums = exps
+                    .iter()
+                    .map(|exp| {
+                        let exp = exp.simplify();
+                        if let Exp::Number(value) = exp {
+                            Some(value)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Option<Vec<f64>>>();
+                match nums {
+                    Some(nums) => {
+                        Exp::Number(nums.iter().cloned().fold(f64::NEG_INFINITY, f64::max))
+                    }
+                    None => Exp::Max(exps.iter().map(|exp| exp.simplify()).collect::<Vec<_>>()),
+                }
+            }
+            Exp::Min(exps) => {
+                //if they are all numbers, return the min
+                let nums = exps
+                    .iter()
+                    .map(|exp| {
+                        let exp = exp.simplify();
+                        if let Exp::Number(value) = exp {
+                            Some(value)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Option<Vec<f64>>>();
+                match nums {
+                    Some(nums) => Exp::Number(nums.iter().cloned().fold(f64::INFINITY, f64::min)),
+                    None => Exp::Min(exps.iter().map(|exp| exp.simplify()).collect::<Vec<_>>()),
+                }
+            }
+            exp => exp.clone(),
+        }
     }
 
     pub fn flatten(self) -> Exp {
@@ -89,7 +202,7 @@ impl Exp {
                         Exp::make_binop(BinOp::Mul, *lhs, c.clone()),
                         Exp::make_binop(BinOp::Mul, *rhs, c),
                     )
-                        .flatten()
+                    .flatten()
                 }
                 //c(a +- b) = ac +- bc
                 (BinOp::Mul, c, Exp::BinOp(inner_op @ (BinOp::Add | BinOp::Sub), lhs, rhs)) => {
@@ -98,7 +211,7 @@ impl Exp {
                         Exp::make_binop(BinOp::Mul, c.clone(), *lhs),
                         Exp::make_binop(BinOp::Mul, c, *rhs),
                     )
-                        .flatten()
+                    .flatten()
                 }
                 //-(a)b = -ab
                 (BinOp::Mul, Exp::UnOp(op @ UnOp::Neg, lhs), c) => {
@@ -218,9 +331,9 @@ impl fmt::Display for Objective {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct Condition {
+pub struct Constraint {
     lhs: Exp,
-    condition_type: Comparison,
+    constraint_type: Comparison,
     rhs: Exp,
 }
 
@@ -228,24 +341,24 @@ pub struct Condition {
 pub const ICondition: &'static str = r#"
 export type SerializedCondition = {
     lhs: SerializedExp,
-    condition_type: Comparison,
+    constraint_type: Comparison,
     rhs: SerializedExp
 }
 "#;
 
-impl Condition {
-    pub fn new(lhs: Exp, condition_type: Comparison, rhs: Exp) -> Self {
+impl Constraint {
+    pub fn new(lhs: Exp, constraint_type: Comparison, rhs: Exp) -> Self {
         Self {
             lhs,
-            condition_type,
+            constraint_type,
             rhs,
         }
     }
 }
 
-impl fmt::Display for Condition {
+impl fmt::Display for Constraint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {} {}", self.lhs, self.condition_type, self.rhs)
+        write!(f, "{} {} {}", self.lhs, self.constraint_type, self.rhs)
     }
 }
 
@@ -253,7 +366,7 @@ impl fmt::Display for Condition {
 #[wasm_bindgen]
 pub struct Model {
     objective: Objective,
-    conditions: Vec<Condition>,
+    constraints: Vec<Constraint>,
     domain: HashMap<String, DomainVariable>,
 }
 
@@ -261,7 +374,7 @@ pub struct Model {
 pub const IModel: &'static str = r#"
 export type SerializedModel = {
     objective: Objective,
-    conditions: SerializedCondition[]
+    constraints: SerializedCondition[]
     domain: Record<string, DomainVariable>
 }
 "#;
@@ -269,23 +382,23 @@ export type SerializedModel = {
 impl Model {
     pub fn new(
         objective: Objective,
-        conditions: Vec<Condition>,
+        constraints: Vec<Constraint>,
         domain: HashMap<String, DomainVariable>,
     ) -> Self {
         Self {
             objective,
-            conditions,
+            constraints,
             domain,
         }
     }
-    pub fn into_components(self) -> (Objective, Vec<Condition>, HashMap<String, DomainVariable>) {
-        (self.objective, self.conditions, self.domain)
+    pub fn into_components(self) -> (Objective, Vec<Constraint>, HashMap<String, DomainVariable>) {
+        (self.objective, self.constraints, self.domain)
     }
     pub fn get_objective(&self) -> &Objective {
         &self.objective
     }
-    pub fn get_conditions(&self) -> &Vec<Condition> {
-        &self.conditions
+    pub fn get_constraints(&self) -> &Vec<Constraint> {
+        &self.constraints
     }
     pub fn get_domain(&self) -> &HashMap<String, DomainVariable> {
         &self.domain
@@ -297,13 +410,13 @@ impl Model {
 
 impl fmt::Display for Model {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let conditions = self
-            .conditions
+        let constraints = self
+            .constraints
             .iter()
-            .map(|condition| condition.to_string())
+            .map(|constraint| constraint.to_string())
             .collect::<Vec<_>>()
             .join("\n    ");
-        write!(f, "{}\ns.t.\n    {}", self.objective, conditions)
+        write!(f, "{}\ns.t.\n    {}", self.objective, constraints)
     }
 }
 
@@ -391,27 +504,27 @@ impl fmt::Display for VariableKind {
     }
 }
 
-pub fn transform_condition(
-    condition: &PreCondition,
+pub fn transform_constraint(
+    constraint: &PreConstraint,
     context: &mut TransformerContext,
-) -> Result<Condition, TransformError> {
-    let lhs = condition.lhs.into_exp(context)?;
-    let rhs = condition.rhs.into_exp(context)?;
-    Ok(Condition::new(lhs, condition.condition_type, rhs))
+) -> Result<Constraint, TransformError> {
+    let lhs = constraint.lhs.into_exp(context)?;
+    let rhs = constraint.rhs.into_exp(context)?;
+    Ok(Constraint::new(lhs, constraint.constraint_type, rhs))
 }
 
-pub fn transform_condition_with_iteration(
-    condition: &PreCondition,
+pub fn transform_constraint_with_iteration(
+    constraint: &PreConstraint,
     context: &mut TransformerContext,
-) -> Result<Vec<Condition>, TransformError> {
-    if condition.iteration.is_empty() {
-        return Ok(vec![transform_condition(condition, context)?]);
+) -> Result<Vec<Constraint>, TransformError> {
+    if constraint.iteration.is_empty() {
+        return Ok(vec![transform_constraint(constraint, context)?]);
     }
-    let mut results: Vec<Condition> = Vec::new();
-    recursive_set_resolver(&condition.iteration, context, &mut results, 0, &|c| {
-        transform_condition(condition, c)
+    let mut results: Vec<Constraint> = Vec::new();
+    recursive_set_resolver(&constraint.iteration, context, &mut results, 0, &|c| {
+        transform_constraint(constraint, c)
     })
-        .map_err(|e| e.add_span(&condition.span))?;
+    .map_err(|e| e.add_span(&constraint.span))?;
     Ok(results)
 }
 
@@ -428,13 +541,13 @@ pub fn transform_model(
     mut context: TransformerContext,
 ) -> Result<Model, TransformError> {
     let objective = transform_objective(problem.get_objective(), &mut context)?;
-    let mut conditions: Vec<Condition> = Vec::new();
-    for condition in problem.get_conditions().iter() {
-        let transformed = transform_condition_with_iteration(condition, &mut context)?;
-        for condition in transformed {
-            conditions.push(condition);
+    let mut constraints: Vec<Constraint> = Vec::new();
+    for constraint in problem.get_constraints().iter() {
+        let transformed = transform_constraint_with_iteration(constraint, &mut context)?;
+        for transformed_constraint in transformed {
+            constraints.push(transformed_constraint);
         }
     }
     let (domain) = context.into_components();
-    Ok(Model::new(objective, conditions, domain))
+    Ok(Model::new(objective, constraints, domain))
 }
