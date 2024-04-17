@@ -354,6 +354,9 @@ impl Constraint {
             rhs,
         }
     }
+    pub fn into_parts(self) -> (Exp, Comparison, Exp) {
+        (self.lhs, self.constraint_type, self.rhs)
+    }
 }
 
 impl fmt::Display for Constraint {
