@@ -1,18 +1,21 @@
+use std::fmt::Display;
 use crate::{
     math::math_enums::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
 };
 use crate::transformers::standard_linear_model::StandardLinearModel;
 
-pub struct Constraint {
+
+#[derive(Debug)]
+pub struct LinearConstraint {
     coefficients: Vec<f64>,
     rhs: f64,
     constraint_type: Comparison,
 }
 
-impl Constraint {
-    pub fn new(coefficients: Vec<f64>, constraint_type: Comparison, rhs: f64) -> Constraint {
-        Constraint {
+impl LinearConstraint {
+    pub fn new(coefficients: Vec<f64>, constraint_type: Comparison, rhs: f64) -> LinearConstraint {
+        LinearConstraint {
             coefficients,
             rhs,
             constraint_type,
@@ -32,12 +35,13 @@ impl Constraint {
     }
 }
 
+#[derive(Debug)]
 pub struct LinearModel {
     variables: Vec<String>,
     objective_offset: f64,
     optimization_type: OptimizationType,
     objective: Vec<f64>,
-    constraints: Vec<Constraint>,
+    constraints: Vec<LinearConstraint>,
 }
 
 impl LinearModel {
@@ -45,7 +49,7 @@ impl LinearModel {
         objective: Vec<f64>,
         optimization_type: OptimizationType,
         objective_offset: f64,
-        constraints: Vec<Constraint>,
+        constraints: Vec<LinearConstraint>,
         variables: Vec<String>,
     ) -> LinearModel {
         LinearModel {
@@ -66,7 +70,7 @@ impl LinearModel {
     pub fn get_objective(&self) -> &Vec<f64> {
         &self.objective
     }
-    pub fn get_constraints(&self) -> &Vec<Constraint> {
+    pub fn get_constraints(&self) -> &Vec<LinearConstraint> {
         &self.constraints
     }
     pub fn get_variables(&self) -> &Vec<String> {
@@ -74,5 +78,34 @@ impl LinearModel {
     }
     pub fn get_objective_offset(&self) -> f64 {
         self.objective_offset
+    }
+}
+
+impl Display for LinearModel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let constraints = self.constraints.iter().map(|c| {
+            let coefficients = c
+                .coefficients
+                .iter()
+                .enumerate()
+                .map(|(i, c)| format!("{}{}", c, self.variables[i]))
+                .collect::<Vec<String>>()
+                .join(" + ");
+            format!("{} {} {}", coefficients, c.constraint_type, c.rhs)
+        });
+        let constraints = constraints.collect::<Vec<String>>().join("\n");
+        let objective = self
+            .objective
+            .iter()
+            .enumerate()
+            .map(|(i, c)| format!("{}{}", c, self.variables[i]))
+            .collect::<Vec<String>>()
+            .join(" + ");
+        let objective = format!("{} + {}", objective, self.objective_offset);
+        write!(
+            f,
+            "{} {}\ns.t.\n{}",
+            self.optimization_type, objective, constraints
+        )
     }
 }

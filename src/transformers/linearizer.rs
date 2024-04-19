@@ -5,10 +5,8 @@ use crate::math::math_enums::{Comparison, VariableType};
 use crate::math::operators::{BinOp, UnOp};
 use crate::parser::model_transformer::model::{Constraint, Exp, Model};
 use crate::parser::model_transformer::transformer_context::DomainVariable;
-use crate::transformers::linear_model::LinearModel;
+use crate::transformers::linear_model::{LinearConstraint, LinearModel};
 use crate::utils::InputSpan;
-
-use std::collections::HashMap;
 
 /**TODO
 The linearizer module contains the code for attempting to linearize a problem into a linear problem
@@ -126,14 +124,14 @@ impl Exp {
 }
 
 #[derive(Debug)]
-pub struct LinearConstraint {
+pub struct MidLinearConstraint {
     lhs: HashMap<String, f64>,
     rhs: f64,
     comparison: Comparison,
 }
-impl LinearConstraint {
+impl MidLinearConstraint {
     pub fn new(lhs: HashMap<String, f64>, rhs: f64, comparison: Comparison) -> Self {
-        LinearConstraint {
+        MidLinearConstraint {
             lhs,
             rhs,
             comparison,
@@ -143,25 +141,21 @@ impl LinearConstraint {
         context: LinearizationContext,
         comparison: Comparison,
     ) -> Self {
-        LinearConstraint {
+        MidLinearConstraint {
             lhs: context.current_vars,
             rhs: -context.current_rhs,
             comparison,
         }
     }
     pub fn to_coefficient_vector(&self, vars: &HashMap<String, usize>) -> Vec<f64> {
-        let mut vec = vec![0.0; vars.len()];
-        for (name, val) in self.lhs.iter() {
-            let index = vars.get(name).unwrap();
-            vec[*index] = *val;
-        }
-        vec
+        extract_coeffs(&self.lhs, vars)
     }
-    pub fn to_constraint(self) -> Constraint {
-        
+    pub fn to_linear_constraint(self, vars: &HashMap<String, usize>) -> LinearConstraint {
+        let coeffs = self.to_coefficient_vector(vars);
+        LinearConstraint::new(coeffs, self.comparison, self.rhs)
     }
 }
-impl Display for LinearConstraint {
+impl Display for MidLinearConstraint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut lhs = String::new();
         for (name, val) in self.lhs.iter() {
@@ -230,7 +224,7 @@ impl Linearizer {
         let (objective, constraints, domain) = model.into_components();
 
         let mut context = Linearizer::new_from(constraints, domain);
-        let mut linear_constraints: Vec<LinearConstraint> = Vec::new();
+        let mut linear_constraints: Vec<MidLinearConstraint> = Vec::new();
         let objective_type = objective.objective_type.clone();
         let objective_exp = objective.rhs.flatten().simplify();
         let linearized_objective = objective_exp.linearize(&mut context)?;
@@ -240,7 +234,7 @@ impl Linearizer {
                 .flatten()
                 .simplify();
             let res = exp.linearize(&mut context)?;
-            linear_constraints.push(LinearConstraint::new_from_linearized_context(res, op));
+            linear_constraints.push(MidLinearConstraint::new_from_linearized_context(res, op));
         }
         let mut vars = context.get_used_variables();
         vars.sort();
@@ -249,14 +243,32 @@ impl Linearizer {
             .enumerate()
             .map(|(i, name)| (name.clone(), i))
             .collect();
-        let linear_constraints = linear_constraints
-            .iter()
-            .map(|c| c.to_coefficient_vector(&vars_indexes))
+        let linear_constraints: Vec<LinearConstraint> = linear_constraints
+            .into_iter()
+            .map(|c| c.to_linear_constraint(&vars_indexes))
             .collect();
-        todo!()
+        let objective_coeffs = extract_coeffs(&linearized_objective.current_vars, &vars_indexes);
+        let objective_offset = linearized_objective.current_rhs;
+        Ok(LinearModel::new(
+            objective_coeffs,
+            objective_type,
+            objective_offset,
+            linear_constraints,
+            vars,
+        ))
     }
 }
 
+fn extract_coeffs(exp: &HashMap<String, f64>, vars: &HashMap<String, usize>) -> Vec<f64> {
+    let mut vec = vec![0.0; vars.len()];
+    for (name, val) in exp.iter() {
+        let index = vars.get(name).unwrap();
+        vec[*index] = *val;
+    }
+    vec
+}
+
+#[derive(Debug)]
 pub enum LinearizationError {
     NonLinearExpression(Box<Exp>),
     VarAlreadyDeclared(String),

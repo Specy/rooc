@@ -1,7 +1,7 @@
 use crate::{
     math::math_enums::{Comparison, OptimizationType},
 };
-use crate::transformers::linear_model::{Constraint, LinearModel};
+use crate::transformers::linear_model::{LinearConstraint, LinearModel};
 use crate::transformers::standard_linear_model::{EqualityConstraint, StandardLinearModel};
 
 pub fn to_standard_form(problem: &LinearModel) -> Result<StandardLinearModel, ()> {
@@ -40,7 +40,7 @@ pub fn to_standard_form(problem: &LinearModel) -> Result<StandardLinearModel, ()
 }
 
 pub fn normalize_constraint(
-    constraint: &Constraint,
+    constraint: &LinearConstraint,
     last_slack_surplus_index: usize,
     total_variables: usize,
 ) -> (EqualityConstraint, Option<String>) {
