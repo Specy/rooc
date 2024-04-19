@@ -8,6 +8,7 @@ use rooc::{
     },
 };
 use rooc::transformers::linear_model::{Constraint, LinearModel};
+use rooc::transformers::linearizer::Linearizer;
 
 #[allow(unused)]
 fn main() {
@@ -90,33 +91,25 @@ fn main() {
         }
     }
     let source = r#"
-        //aaaa
-        min 1
-        /* aaa */
+        min 3x + 4y + 6z
         s.t.
-        /*
-            aaa
-        */
-            x <= 2
-        where
-            //aaa
-            let x = 2 // aaa
-            let y = 3 /*
-            aaa */
-            let z = 4
+            x + 3y + 4z = 1
+            (10 * x - 10 * y) - (300 + x + 3 * z) = 1
+            (10 * x) * (20 + y) <= 1
+            10 * (x - y) <= 300 + x + 3z
         define
-            //aa
-            x as Real
+            x,y,z as Real
     "#
     .to_string();
     let parser = RoocParser::new(source.clone());
-    let parsed = parser.parse().unwrap().create_type_checker();
+    let parsed = parser.parse_and_transform();
     match parsed {
         Ok(parsed) => {
+            let linear = Linearizer::linearize(parsed);
             println!("{}", "");
         }
         Err(e) => {
-            println!("{}", e.get_trace_from_source(&source).unwrap());
+            println!("{}", e);
         }
     }
 }

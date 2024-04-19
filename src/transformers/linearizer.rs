@@ -1,10 +1,13 @@
 use std::collections::HashMap;
+use std::fmt::Display;
+use pest::error::InputLocation::Span;
 
-use crate::math::math_enums::Comparison;
+use crate::math::math_enums::{Comparison, VariableType};
 use crate::math::operators::{BinOp, UnOp};
 use crate::parser::model_transformer::model::{Constraint, Exp, Model};
 use crate::parser::model_transformer::transformer_context::DomainVariable;
 use crate::transformers::linear_model::LinearModel;
+use crate::utils::InputSpan;
 
 /**TODO
 The linearizer module contains the code for attempting to linearize a problem into a linear problem
@@ -22,18 +25,145 @@ It achieves this by following the linearization rules, where:
      |x1| + y <= b
        BECOMES:
       x1 + y>= b
-      x1 - y>= -b
+
+    //TODO
+      x1 - y>= -b 
+    -(-x1 + y) >= -b
+
+
  */
 
-struct LinearVariable {
-    name: String,
-    multiplier: f64,
+
+impl Exp {
+    fn linearize(
+        &self,
+        linearizer_context: &mut Linearizer,
+    ) -> Result<LinearizationContext, LinearizationError> {
+        match self {
+            Exp::BinOp(op, lhs, rhs) => {
+                let mut lhs = lhs.linearize(linearizer_context)?;
+                let mut rhs = rhs.linearize(linearizer_context)?;
+                let context = match op {
+                    BinOp::Add => {
+                        lhs.merge_add(rhs);
+                        lhs
+                    }
+                    BinOp::Sub => {
+                        lhs.merge_sub(rhs);
+                        lhs
+                    }
+                    BinOp::Mul => {
+                        if lhs.has_no_vars() {
+                            rhs.mul_by(lhs.get_rhs());
+                            rhs
+                        } else if rhs.has_no_vars() {
+                            lhs.mul_by(rhs.get_rhs());
+                            lhs
+                        } else {
+                            return Err(LinearizationError::NonLinearExpression(Box::new(
+                                self.clone(),
+                            )));
+                        }
+                    }
+                    BinOp::Div => {
+                        if rhs.has_no_vars() {
+                            lhs.div_by(rhs.get_rhs());
+                            lhs
+                        } else if lhs.has_no_vars() {
+                            rhs.div_by(lhs.get_rhs());
+                            rhs
+                        } else {
+                            return Err(LinearizationError::NonLinearExpression(Box::new(
+                                self.clone(),
+                            )));
+                        }
+                    }
+                };
+                Ok(context)
+            }
+            Exp::UnOp(op, exp) => match op {
+                UnOp::Neg => {
+                    let mut context = exp.linearize(linearizer_context)?;
+                    context.mul_by(-1.0);
+                    Ok(context)
+                }
+            },
+            Exp::Number(num) => Ok(LinearizationContext::from_rhs(*num)),
+            Exp::Variable(name) => Ok(LinearizationContext::from_var(name.clone(), 1.0)),
+            Exp::Min(exps) => {
+                let var_name = format!("rcmin_{}", linearizer_context.min_count);
+                linearizer_context.min_count += 1;
+                for exp in exps {
+                    let constraint = Constraint::new(
+                        Exp::Variable(var_name.clone()).clone(),
+                        Comparison::LowerOrEqual,
+                        exp.clone(),
+                    );
+                    linearizer_context.add_constraint(constraint)
+                }
+                linearizer_context.declare_variable(var_name.clone(), VariableType::Real)?;
+                Ok(LinearizationContext::from_var(var_name, 1.0))
+            }
+            Exp::Max(exps) => {
+                let var_name = format!("rcmax_{}", linearizer_context.max_count);
+                linearizer_context.max_count += 1;
+                for exp in exps {
+                    let constraint = Constraint::new(
+                        Exp::Variable(var_name.clone()).clone(),
+                        Comparison::UpperOrEqual,
+                        exp.clone(),
+                    );
+                    linearizer_context.add_constraint(constraint)
+                }
+                linearizer_context.declare_variable(var_name.clone(), VariableType::Real)?;
+                Ok(LinearizationContext::from_var(var_name, 1.0))
+            }
+            Exp::Abs(exp) => {
+                Err(LinearizationError::UnimplementedExpression(Box::new(self.clone())))
+            }
+        }
+    }
 }
 
-pub struct LinearizerContext {
+
+
+#[derive(Debug)]
+pub struct LinearConstraint {
+    lhs: HashMap<String, f64>,
+    rhs: f64,
+    comparison: Comparison,
+}
+impl LinearConstraint {
+    pub fn new(lhs: HashMap<String, f64>, rhs: f64, comparison: Comparison) -> Self {
+        LinearConstraint { lhs, rhs, comparison }
+    }
+    pub fn new_from_linearized_context(context: LinearizationContext, comparison: Comparison) -> Self {
+        LinearConstraint {
+            lhs: context.current_vars,
+            rhs: -context.current_rhs,
+            comparison,
+        }
+    }
+}
+impl Display for LinearConstraint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut lhs = String::new();
+        for (name, val) in self.lhs.iter() {
+            if *val < 0.0 {
+                lhs.push_str(&format!(" - {}{}", val.abs(), name));
+            } else {
+                lhs.push_str(&format!(" + {}{}", val, name));
+            }
+        }
+        lhs.pop();
+        write!(f, "{} {} {}", lhs, self.comparison, self.rhs)
+    }
+}
+
+
+
+pub struct Linearizer {
     constraints: Vec<Constraint>,
-    transformed_constraints: Vec<MidLinearizedConstraint>,
-    current_context: MidLinearizedConstraint,
     surplus_count: u32,
     slack_count: u32,
     min_count: u32,
@@ -41,52 +171,10 @@ pub struct LinearizerContext {
     domain: HashMap<String, DomainVariable>,
 }
 
-#[derive(Debug, Clone)]
-pub struct MidLinearizedConstraint {
-    lhs: HashMap<String, f64>,
-    rhs: f64,
-    comparison: Comparison,
-}
-impl MidLinearizedConstraint {
-    pub fn new(lhs: HashMap<String, f64>, rhs: f64, comparison: Comparison) -> Self {
-        MidLinearizedConstraint {
-            lhs,
-            rhs,
-            comparison,
-        }
-    }
-
-    pub fn increment_coeff_by(&mut self, amount: f64, name: &String) -> f64 {
-        if self.lhs.contains_key(name) {
-            let val = self.lhs.get_mut(name).unwrap();
-            *val += amount;
-            *val
-        } else {
-            self.lhs.insert(name.clone(), amount);
-            amount
-        }
-    }
-    pub fn increment_rhs_by(&mut self, amount: f64) -> f64 {
-        self.rhs += amount;
-        self.rhs
-    }
-}
-impl Default for MidLinearizedConstraint {
+impl Default for Linearizer {
     fn default() -> Self {
-        MidLinearizedConstraint {
-            lhs: HashMap::new(),
-            rhs: 0.0,
-            comparison: Comparison::Equal,
-        }
-    }
-}
-
-impl Default for LinearizerContext {
-    fn default() -> Self {
-        LinearizerContext {
+        Linearizer {
             constraints: Vec::new(),
-            transformed_constraints: Vec::new(),
-            current_context: MidLinearizedConstraint::new(HashMap::new(), 0.0, Comparison::Equal),
             surplus_count: 0,
             slack_count: 0,
             min_count: 0,
@@ -95,7 +183,7 @@ impl Default for LinearizerContext {
         }
     }
 }
-impl LinearizerContext {
+impl Linearizer {
     pub fn new() -> Self {
         Self::default()
     }
@@ -108,113 +196,118 @@ impl LinearizerContext {
     pub fn add_constraint(&mut self, constraint: Constraint) {
         self.constraints.push(constraint);
     }
-    pub fn create_new_context(&mut self, comparison: Comparison) {
-        self.current_context = MidLinearizedConstraint::default();
-        self.current_context.comparison = comparison;
-    }
-    pub fn save_context_as_constraint(&mut self) {
-        self.transformed_constraints
-            .push(self.current_context.clone());
-    }
+
     pub fn get_constraints(&self) -> &Vec<Constraint> {
         &self.constraints
     }
     pub fn pop_constraint(&mut self) -> Option<Constraint> {
         self.constraints.pop()
     }
+    pub fn declare_variable(&mut self, name: String, as_type: VariableType) -> Result<(), LinearizationError>{
+        if self.domain.contains_key(&name) {
+            return Err(LinearizationError::VarAlreadyDeclared(name));
+        }
+        let mut var = DomainVariable::new(as_type, InputSpan::default());
+        var.increment_usage();
+        self.domain.insert(name, var);
+        Ok(())
+    }
+    pub fn linearize(model: Model) -> Result<LinearModel, LinearizationError> {
+        let (objective, constraints, domain) = model.into_components();
+        let mut context = Linearizer::new_from(constraints, domain);
+        let mut linear_constraints: Vec<LinearConstraint> = Vec::new();
+        let objective_type = objective.objective_type.clone();
+        let objective_exp = objective.rhs.flatten().simplify();
+        let linearized_objective = objective_exp.linearize(&mut context)?;
+        while let Some(constraint) = context.pop_constraint() {
+            let (lhs, op, rhs) = constraint.into_parts();
+            let exp = Exp::BinOp(BinOp::Sub, Box::new(lhs), Box::new(rhs))
+                .flatten()
+                .simplify();
+            println!("{:?}", exp.to_string());
+            let res = exp.linearize(&mut context)?;
+            linear_constraints.push(LinearConstraint::new_from_linearized_context(res, op));
+        }
+        println!("{:?}", linear_constraints);
+        todo!()
+    }
 }
 
-pub struct Linearizer {}
-
-enum LinearExp {
-    Variable { name: String, multiplier: f64 },
-    Constant(f64),
-    
+pub enum LinearizationError {
+    NonLinearExpression(Box<Exp>),
+    VarAlreadyDeclared(String),
+    UnimplementedExpression(Box<Exp>),
+}
+pub struct LinearizationContext {
+    current_vars: HashMap<String, f64>,
+    current_rhs: f64,
 }
 
-impl Exp {
-    fn linearize(self, linearizer_context: &mut LinearizerContext) {
-        match self {
-            Exp::Abs(exp) => {
-                todo!("Implement Abs linearization")
-            }
-            Exp::BinOp(op, lhs, rhs) => match (*lhs, op, *rhs) {
-                (Exp::Number(num), op, Exp::Variable(name)) => match op {
-                    BinOp::Mul => {
-                        linearizer_context
-                            .current_context
-                            .increment_coeff_by(num, &name);
-                    }
-                    BinOp::Div => {
-                        linearizer_context
-                            .current_context
-                            .increment_coeff_by(1.0 / num, &name);
-                    }
-                    BinOp::Add => {
-                        linearizer_context
-                            .current_context
-                            .increment_coeff_by(1.0, &name);
-                        linearizer_context.current_context.increment_rhs_by(num);
-                    }
-                    BinOp::Sub => {
-                        linearizer_context
-                            .current_context
-                            .increment_coeff_by(1.0, &name);
-                        linearizer_context.current_context.increment_rhs_by(-num);
-                    }
-                },
-            },
-            Exp::UnOp(op, exp) => match op {
-                UnOp::Neg => {
-                    todo!()
-                }
-            },
-            Exp::Number(num) => {
-                linearizer_context.current_context.increment_rhs_by(num);
-            }
-            Exp::Variable(name) => {
-                linearizer_context
-                    .current_context
-                    .increment_coeff_by(1.0, &name);
-            }
-            Exp::Min(exps) => {
-                let var_name = format!("min_{}", linearizer_context.min_count);
-                linearizer_context.min_count += 1;
-                for exp in exps {
-                    let constraint = Constraint::new(
-                        Exp::Variable(var_name.clone()).clone(),
-                        Comparison::LowerOrEqual,
-                        exp.clone(),
-                    );
-                    linearizer_context.add_constraint(constraint)
-                }
-            }
-            Exp::Max(exps) => {
-                let var_name = format!("max_{}", linearizer_context.max_count);
-                linearizer_context.max_count += 1;
-                for exp in exps {
-                    let constraint = Constraint::new(
-                        Exp::Variable(var_name.clone()).clone(),
-                        Comparison::UpperOrEqual,
-                        exp.clone(),
-                    );
-                    linearizer_context.add_constraint(constraint)
-                }
-            }
+impl LinearizationContext {
+    pub fn new() -> Self {
+        LinearizationContext {
+            current_vars: HashMap::new(),
+            current_rhs: 0.0,
         }
     }
-}
-pub fn linearize_model(model: Model) -> LinearModel {
-    let (objective, constraints, domain) = model.into_components();
-    let mut context = LinearizerContext::new_from(constraints, domain);
-    while let Some(constraint) = context.pop_constraint() {
-        let (lhs, op, rhs) = constraint.into_parts();
-        let mut exp = Exp::BinOp(BinOp::Sub, Box::new(lhs), Box::new(rhs))
-            .flatten()
-            .simplify();
-        context.create_new_context(op);
-        exp.linearize(&mut context);
-        context.save_context_as_constraint();
+    pub fn from_var(name: String, multiplier: f64) -> Self {
+        let mut context = LinearizationContext::new();
+        context.add_var(name, multiplier);
+        context
     }
-    todo!()
+    pub fn from_rhs(rhs: f64) -> Self {
+        let mut context = LinearizationContext::new();
+        context.add_rhs(rhs);
+        context
+    }
+    pub fn add_var(&mut self, name: String, multiplier: f64) {
+        if self.current_vars.contains_key(&name) {
+            let val = self.current_vars.get_mut(&name).unwrap();
+            *val += multiplier;
+        } else {
+            self.current_vars.insert(name, multiplier);
+        }
+    }
+
+    pub fn merge_add(&mut self, other: LinearizationContext) {
+        for (name, multiplier) in other.current_vars {
+            self.add_var(name, multiplier);
+        }
+        self.add_rhs(other.current_rhs);
+    }
+    pub fn merge_sub(&mut self, other: LinearizationContext) {
+        for (name, multiplier) in other.current_vars {
+            self.add_var(name, -multiplier);
+        }
+        self.add_rhs(-other.current_rhs);
+    }
+    pub fn add_rhs(&mut self, rhs: f64) {
+        self.current_rhs += rhs;
+    }
+    pub fn get_vars(&self) -> &HashMap<String, f64> {
+        &self.current_vars
+    }
+    pub fn get_rhs(&self) -> f64 {
+        self.current_rhs
+    }
+    pub fn has_var(&self, name: &String) -> bool {
+        self.current_vars.contains_key(name)
+    }
+    pub fn mul_by(&mut self, multiplier: f64) {
+        for (_, val) in self.current_vars.iter_mut() {
+            *val *= multiplier;
+        }
+        self.current_rhs *= multiplier;
+    }
+    pub fn div_by(&mut self, divisor: f64) {
+        for (_, val) in self.current_vars.iter_mut() {
+            *val /= divisor;
+        }
+        self.current_rhs /= divisor;
+    }
+
+    pub fn has_no_vars(&self) -> bool {
+        self.current_vars.is_empty()
+    }
+    
 }

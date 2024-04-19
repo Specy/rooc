@@ -16,7 +16,6 @@ use crate::parser::parser::PreModel;
 use crate::parser::recursive_set_resolver::recursive_set_resolver;
 use crate::traits::latex::{escape_latex, ToLatex};
 
-
 #[derive(Debug, Clone, Serialize)]
 pub enum Exp {
     Number(f64),
@@ -102,10 +101,6 @@ impl Exp {
                         Exp::BinOp(BinOp::Div, lhs.to_box(), Exp::Number(0.0).to_box())
                     }
                     (BinOp::Div, Exp::Number(0.0), _) => Exp::Number(0.0),
-                    //move the number to the left
-                    (op, lhs, Exp::Number(rhs)) => {
-                        Exp::BinOp(op.clone(), Exp::Number(rhs).to_box(), lhs.to_box())
-                    }
                     // num1 + num2 + x = (num1 + num2) + x
                     // num1 - num2 - x = (num1 - num2) - x
                     // num1 * num2 * x = (num1 * num2) * x
@@ -131,14 +126,14 @@ impl Exp {
                             Exp::BinOp(op2, Exp::Number(val).to_box(), inner_rhs.to_box())
                         } else {
                             Exp::BinOp(
-                                op.clone(),
+                                *op,
                                 Exp::Number(lhs).to_box(),
                                 Exp::BinOp(op2, inner_lhs.to_box(), inner_rhs.to_box()).to_box(),
                             )
                         }
                     }
                     //keep the rest equal
-                    (op, lhs, rhs) => Exp::BinOp(op.clone(), lhs.to_box(), rhs.to_box()),
+                    (op, lhs, rhs) => Exp::BinOp(*op, lhs.to_box(), rhs.to_box()),
                 }
             }
             Exp::UnOp(op, exp) => {
@@ -242,16 +237,24 @@ impl Exp {
         matches!(self, Exp::BinOp(_, _, _) | Exp::UnOp(_, _))
     }
 
-    pub fn to_string_with_precedence(&self, last_precedence: u8) -> String {
+    pub fn to_string_with_precedence(&self, last_operator: BinOp) -> String {
+        let last_precedence = last_operator.precedence();
         match self {
             Exp::BinOp(op, lhs, rhs) => {
-                let lhs = lhs.to_string_with_precedence(op.precedence());
-                let rhs = rhs.to_string_with_precedence(op.precedence());
+                let string_lhs = lhs.to_string_with_precedence(*op);
+                let string_rhs = rhs.to_string_with_precedence(*op);
                 let precedence = op.precedence();
                 if precedence < last_precedence {
-                    format!("({} {} {})", lhs, op, rhs)
+                    format!("({} {} {})", string_lhs, op, string_rhs)
                 } else {
-                    format!("{} {} {}", lhs, op, rhs)
+                    //TODO improve this
+                    match (op, lhs.is_leaf(), rhs.is_leaf()){
+                        (BinOp::Add, true, true) => format!("{} + {}", string_lhs, string_rhs),
+                        (BinOp::Sub, true, true) => format!("{} - {}", string_lhs, string_rhs),
+                        (BinOp::Mul, true, true) => format!("{}{}", string_lhs, string_rhs),
+                        (BinOp::Div, true, true) => format!("{} / {}", string_lhs, string_rhs),
+                        _ => format!("({} {} {})", string_lhs, op, string_rhs)
+                    }
                 }
             }
             _ => self.to_string(),
@@ -281,12 +284,9 @@ impl fmt::Display for Exp {
             ),
             Exp::BinOp(operator, lhs, rhs) => {
                 //TODO: add parenthesis when needed
-                format!(
-                    "{} {} {}",
-                    lhs.to_string_with_precedence(operator.precedence()),
-                    operator,
-                    rhs.to_string_with_precedence(operator.precedence())
-                )
+                let string_lhs = lhs.to_string_with_precedence(*operator);
+                let string_rhs = rhs.to_string_with_precedence(*operator);
+                format!("{} - {}", string_lhs, string_rhs)
             }
             Exp::UnOp(op, exp) => {
                 if exp.is_leaf() {
@@ -301,10 +301,9 @@ impl fmt::Display for Exp {
 }
 
 #[derive(Debug, Serialize)]
-#[wasm_bindgen]
 pub struct Objective {
-    objective_type: OptimizationType,
-    rhs: Exp,
+    pub objective_type: OptimizationType,
+    pub rhs: Exp,
 }
 
 #[wasm_bindgen(typescript_custom_section)]
