@@ -1,4 +1,7 @@
-use crate::solvers::simplex::{CanonicalTransformError, divide_matrix_row_by, IntoCanonicalTableau, Tableau, Tableauable};
+use std::fmt::Display;
+use crate::solvers::simplex::{
+    CanonicalTransformError, divide_matrix_row_by, IntoCanonicalTableau, Tableau, Tableauable,
+};
 use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standardizer::to_standard_form;
 
@@ -12,7 +15,6 @@ struct IndependentVariable {
     column: usize,
     value: f64,
 }
-
 
 impl IntoCanonicalTableau for StandardLinearModel {
     fn into_canonical(&self) -> Result<Tableau, CanonicalTransformError> {
@@ -72,7 +74,7 @@ impl IntoCanonicalTableau for StandardLinearModel {
                 self.get_variables(),
             ))
         } else {
-            //use the 2 phase method to find a canonical tableau by adding artificial variables to the constraints and solvign the tableau
+            //use the 2 phase method to find a canonical tableau by adding artificial variables to the constraints and solving the tableau
             let mut a = self.get_a();
             //TODO can i simplify this by only adding necessary artificial variables? reusing the independent variables?
             let number_of_artificial_variables = self.constraints.len();
@@ -89,10 +91,11 @@ impl IntoCanonicalTableau for StandardLinearModel {
             let mut value = 0.0;
             //add the variables to the matrix and turn the objective function into
             //canonical form by subtracting all rows from the objective function
+            println!("{:?}", c);
             for (i, constraint) in a.iter_mut().enumerate() {
                 constraint.resize(number_of_variables + number_of_artificial_variables, 0.0);
                 constraint[i + number_of_variables] = 1.0;
-                variables.push(format!("_a{}", i));
+                variables.push(format!("rca{}", i));
                 for (j, coefficient) in constraint.iter().enumerate() {
                     c[j] -= coefficient;
                 }
@@ -111,52 +114,53 @@ impl IntoCanonicalTableau for StandardLinearModel {
             let artificial_variables = (number_of_variables
                 ..number_of_variables + number_of_artificial_variables)
                 .collect::<Vec<_>>();
+            println!("-- {:#?}", tableau);
             match tableau.solve_avoiding(10000, &artificial_variables) {
                 Ok(optimal_tableau) => {
                     let tableau = optimal_tableau.get_tableau();
                     if tableau.get_current_value() != 0.0 {
                         return Err(CanonicalTransformError::Infesible(
-                            "Initial problem is infesible".to_string(),
+                            "Initial problem is infeasible".to_string(),
                         ));
                     }
                     let new_basis = tableau.get_in_basis().clone();
-                    //check that the new basis is valid
-                    match new_basis.iter().all(|&i| i < number_of_variables) {
-                        true => {
-                            //restore the original objective function
-                            let mut new_a = tableau.get_a().clone();
-                            //remove the artificial variables from the tableau
-                            for row in 0..new_a.len() {
-                                new_a[row].resize(number_of_variables, 0.0);
-                            }
-                            let mut value = 0.0;
-                            let mut new_c = self.get_c();
-                            let new_b = tableau.get_b().clone();
-                            //put in the original objective function in canonical form
-                            for (row_index, variable_index) in new_basis.iter().enumerate() {
-                                //values in base need to be 0, we know that the coefficient in basis is 0 or 1 so we can
-                                //simply multiply by the coefficient of the row
-                                let coefficient = new_c[*variable_index];
-                                for (index, c) in new_c.iter_mut().enumerate() {
-                                    *c -= coefficient * new_a[row_index][index];
-                                }
-                                value -= coefficient * new_b[row_index];
-                            }
-
-                            Ok(Tableau::new(
-                                new_c,
-                                new_a,
-                                new_b,
-                                new_basis,
-                                value,
-                                self.get_objective_offset(),
-                                self.get_variables(),
-                            ))
+                    println!("{:?}", new_basis);
+                    //check that the new basis is valid,
+                    if new_basis.iter().all(|&i| i < number_of_variables) {
+                        //restore the original objective function
+                        let mut new_a = tableau.get_a().clone();
+                        //remove the artificial variables from the tableau
+                        for row in 0..new_a.len() {
+                            new_a[row].resize(number_of_variables, 0.0);
                         }
-                        false => Err(CanonicalTransformError::InvalidBasis(format!(
+                        let mut value = 0.0;
+                        let mut new_c = self.get_c();
+                        let new_b = tableau.get_b().clone();
+                        //put in the original objective function in canonical form
+                        for (row_index, variable_index) in new_basis.iter().enumerate() {
+                            //values in base need to be 0, we know that the coefficient in basis is 0 or 1 so we can
+                            //simply multiply by the coefficient of the row
+                            let coefficient = new_c[*variable_index];
+                            for (index, c) in new_c.iter_mut().enumerate() {
+                                *c -= coefficient * new_a[row_index][index];
+                            }
+                            value -= coefficient * new_b[row_index];
+                        }
+
+                        Ok(Tableau::new(
+                            new_c,
+                            new_a,
+                            new_b,
+                            new_basis,
+                            value,
+                            self.get_objective_offset(),
+                            self.get_variables(),
+                        ))
+                    } else {
+                        Err(CanonicalTransformError::InvalidBasis(format!(
                             "Invalid basis: {:?}",
                             new_basis
-                        ))),
+                        )))
                     }
                 }
                 Err(e) => Err(CanonicalTransformError::SimplexError(format!(
@@ -196,6 +200,7 @@ pub struct StandardLinearModel {
     variables: Vec<String>,
     objective_offset: f64,
     objective: Vec<f64>,
+    flip_objective: bool,
     constraints: Vec<EqualityConstraint>,
 }
 
@@ -205,6 +210,7 @@ impl StandardLinearModel {
         mut constraints: Vec<EqualityConstraint>,
         variables: Vec<String>,
         objective_offset: f64,
+        flip_objective: bool,
     ) -> StandardLinearModel {
         constraints
             .iter_mut()
@@ -215,13 +221,39 @@ impl StandardLinearModel {
             constraints,
             variables,
             objective_offset,
+            flip_objective,
         }
     }
     pub fn from_linear_problem(linear_problem: LinearModel) -> Result<StandardLinearModel, ()> {
         to_standard_form(&linear_problem)
     }
 }
-
+impl Display for StandardLinearModel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let constraints = self.constraints.iter().map(|c| {
+            let coefficients = c
+                .coefficients
+                .iter()
+                .enumerate()
+                .map(|(i, c)| format!("{}{}", c, self.variables[i]))
+                .collect::<Vec<_>>()
+                .join(" + ");
+            format!("{} = {}", coefficients, c.rhs)
+        });
+        write!(
+            f,
+            "min {} + {} \ns.t.\n{}",
+            self.objective
+                .iter()
+                .enumerate()
+                .map(|(i, c)| format!("{}{}", c, self.variables[i]))
+                .collect::<Vec<_>>()
+                .join(" + "),
+            self.objective_offset,
+            constraints.collect::<Vec<_>>().join("\n")
+        )
+    }
+}
 impl Tableauable for StandardLinearModel {
     fn get_b(&self) -> Vec<f64> {
         self.constraints.iter().map(|c| c.rhs).collect()

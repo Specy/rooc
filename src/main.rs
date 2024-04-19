@@ -11,6 +11,14 @@ use rooc::transformers::linearizer::Linearizer;
 
 #[allow(unused)]
 fn main() {
+    /*
+    for some reason this does not generate a valid basis during solution:
+            x + 3y + 4z = 1
+            2x + y + 3z = 2
+    but this does:
+            2x + y + 3z = 2
+            x + 3y + 4z = 1
+     */
     let source = r#"
         min 3x + 4y + 6z
         s.t.
@@ -25,7 +33,9 @@ fn main() {
     match parsed {
         Ok(parsed) => {
             let linear = Linearizer::linearize(parsed).expect("Failed to linearize");
+            println!("\n{}", linear);
             let model = linear.into_standard_form().expect("Failed to standardize");
+            println!("\n{}", model);
             let mut tableau = model
                 .into_canonical()
                 .expect("Failed to transform to canonical tableau");
