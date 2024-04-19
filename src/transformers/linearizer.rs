@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fmt::Display;
-use pest::error::InputLocation::Span;
 
 use crate::math::math_enums::{Comparison, VariableType};
 use crate::math::operators::{BinOp, UnOp};
@@ -8,6 +7,8 @@ use crate::parser::model_transformer::model::{Constraint, Exp, Model};
 use crate::parser::model_transformer::transformer_context::DomainVariable;
 use crate::transformers::linear_model::LinearModel;
 use crate::utils::InputSpan;
+
+use std::collections::HashMap;
 
 /**TODO
 The linearizer module contains the code for attempting to linearize a problem into a linear problem
@@ -27,12 +28,11 @@ It achieves this by following the linearization rules, where:
       x1 + y>= b
 
     //TODO
-      x1 - y>= -b 
+      x1 - y>= -b
     -(-x1 + y) >= -b
 
 
  */
-
 
 impl Exp {
     fn linearize(
@@ -118,14 +118,12 @@ impl Exp {
                 linearizer_context.declare_variable(var_name.clone(), VariableType::Real)?;
                 Ok(LinearizationContext::from_var(var_name, 1.0))
             }
-            Exp::Abs(exp) => {
-                Err(LinearizationError::UnimplementedExpression(Box::new(self.clone())))
-            }
+            Exp::Abs(exp) => Err(LinearizationError::UnimplementedExpression(Box::new(
+                self.clone(),
+            ))),
         }
     }
 }
-
-
 
 #[derive(Debug)]
 pub struct LinearConstraint {
@@ -135,14 +133,32 @@ pub struct LinearConstraint {
 }
 impl LinearConstraint {
     pub fn new(lhs: HashMap<String, f64>, rhs: f64, comparison: Comparison) -> Self {
-        LinearConstraint { lhs, rhs, comparison }
+        LinearConstraint {
+            lhs,
+            rhs,
+            comparison,
+        }
     }
-    pub fn new_from_linearized_context(context: LinearizationContext, comparison: Comparison) -> Self {
+    pub fn new_from_linearized_context(
+        context: LinearizationContext,
+        comparison: Comparison,
+    ) -> Self {
         LinearConstraint {
             lhs: context.current_vars,
             rhs: -context.current_rhs,
             comparison,
         }
+    }
+    pub fn to_coefficient_vector(&self, vars: &HashMap<String, usize>) -> Vec<f64> {
+        let mut vec = vec![0.0; vars.len()];
+        for (name, val) in self.lhs.iter() {
+            let index = vars.get(name).unwrap();
+            vec[*index] = *val;
+        }
+        vec
+    }
+    pub fn to_constraint(self) -> Constraint {
+        
     }
 }
 impl Display for LinearConstraint {
@@ -160,8 +176,7 @@ impl Display for LinearConstraint {
     }
 }
 
-
-
+#[derive(Default)]
 pub struct Linearizer {
     constraints: Vec<Constraint>,
     surplus_count: u32,
@@ -171,18 +186,6 @@ pub struct Linearizer {
     domain: HashMap<String, DomainVariable>,
 }
 
-impl Default for Linearizer {
-    fn default() -> Self {
-        Linearizer {
-            constraints: Vec::new(),
-            surplus_count: 0,
-            slack_count: 0,
-            min_count: 0,
-            max_count: 0,
-            domain: HashMap::new(),
-        }
-    }
-}
 impl Linearizer {
     pub fn new() -> Self {
         Self::default()
@@ -203,7 +206,11 @@ impl Linearizer {
     pub fn pop_constraint(&mut self) -> Option<Constraint> {
         self.constraints.pop()
     }
-    pub fn declare_variable(&mut self, name: String, as_type: VariableType) -> Result<(), LinearizationError>{
+    pub fn declare_variable(
+        &mut self,
+        name: String,
+        as_type: VariableType,
+    ) -> Result<(), LinearizationError> {
         if self.domain.contains_key(&name) {
             return Err(LinearizationError::VarAlreadyDeclared(name));
         }
@@ -212,8 +219,16 @@ impl Linearizer {
         self.domain.insert(name, var);
         Ok(())
     }
+    pub fn get_used_variables(&self) -> Vec<String> {
+        self.domain
+            .iter()
+            .filter(|(name, v)| v.is_used())
+            .map(|(name, _)| name.clone())
+            .collect()
+    }
     pub fn linearize(model: Model) -> Result<LinearModel, LinearizationError> {
         let (objective, constraints, domain) = model.into_components();
+
         let mut context = Linearizer::new_from(constraints, domain);
         let mut linear_constraints: Vec<LinearConstraint> = Vec::new();
         let objective_type = objective.objective_type.clone();
@@ -224,11 +239,20 @@ impl Linearizer {
             let exp = Exp::BinOp(BinOp::Sub, Box::new(lhs), Box::new(rhs))
                 .flatten()
                 .simplify();
-            println!("{:?}", exp.to_string());
             let res = exp.linearize(&mut context)?;
             linear_constraints.push(LinearConstraint::new_from_linearized_context(res, op));
         }
-        println!("{:?}", linear_constraints);
+        let mut vars = context.get_used_variables();
+        vars.sort();
+        let vars_indexes: HashMap<String, usize> = vars
+            .iter()
+            .enumerate()
+            .map(|(i, name)| (name.clone(), i))
+            .collect();
+        let linear_constraints = linear_constraints
+            .iter()
+            .map(|c| c.to_coefficient_vector(&vars_indexes))
+            .collect();
         todo!()
     }
 }
@@ -309,5 +333,4 @@ impl LinearizationContext {
     pub fn has_no_vars(&self) -> bool {
         self.current_vars.is_empty()
     }
-    
 }

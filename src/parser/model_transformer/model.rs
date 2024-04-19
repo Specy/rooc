@@ -16,6 +16,7 @@ use crate::parser::parser::PreModel;
 use crate::parser::recursive_set_resolver::recursive_set_resolver;
 use crate::traits::latex::{escape_latex, ToLatex};
 
+
 #[derive(Debug, Clone, Serialize)]
 pub enum Exp {
     Number(f64),
@@ -234,7 +235,7 @@ impl Exp {
     }
 
     pub fn is_leaf(&self) -> bool {
-        matches!(self, Exp::BinOp(_, _, _) | Exp::UnOp(_, _))
+        !matches!(self, Exp::BinOp(_, _, _) | Exp::UnOp(_, _))
     }
 
     pub fn to_string_with_precedence(&self, last_operator: BinOp) -> String {
@@ -248,12 +249,14 @@ impl Exp {
                     format!("({} {} {})", string_lhs, op, string_rhs)
                 } else {
                     //TODO improve this
-                    match (op, lhs.is_leaf(), rhs.is_leaf()){
-                        (BinOp::Add, true, true) => format!("{} + {}", string_lhs, string_rhs),
-                        (BinOp::Sub, true, true) => format!("{} - {}", string_lhs, string_rhs),
-                        (BinOp::Mul, true, true) => format!("{}{}", string_lhs, string_rhs),
-                        (BinOp::Div, true, true) => format!("{} / {}", string_lhs, string_rhs),
-                        _ => format!("({} {} {})", string_lhs, op, string_rhs)
+                    match last_operator {
+                        BinOp::Add  | BinOp::Mul | BinOp::Div => {
+                            format!("{} {} {}", string_lhs, op, string_rhs)
+                        }
+                        BinOp::Sub => match rhs.is_leaf() {
+                            true => format!("{} {} {}", string_lhs, op, string_rhs),
+                            false => format!("{} {} ({})", string_lhs, op, string_rhs),
+                        },
                     }
                 }
             }
@@ -286,7 +289,7 @@ impl fmt::Display for Exp {
                 //TODO: add parenthesis when needed
                 let string_lhs = lhs.to_string_with_precedence(*operator);
                 let string_rhs = rhs.to_string_with_precedence(*operator);
-                format!("{} - {}", string_lhs, string_rhs)
+                format!("{} {} {}", string_lhs, operator, string_rhs)
             }
             Exp::UnOp(op, exp) => {
                 if exp.is_leaf() {

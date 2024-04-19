@@ -93,10 +93,10 @@ fn main() {
     let source = r#"
         min 3x + 4y + 6z
         s.t.
-            x + 3y + 4z = 1
+            //x + 3y + 4z = 1
             (10 * x - 10 * y) - (300 + x + 3 * z) = 1
-            (10 * x) * (20 + y) <= 1
-            10 * (x - y) <= 300 + x + 3z
+            //(10 * x) * (20 + y) <= 1
+            //10 * (x - y) <= 1
         define
             x,y,z as Real
     "#
