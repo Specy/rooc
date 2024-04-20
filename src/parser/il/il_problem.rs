@@ -194,7 +194,7 @@ export type SerializedPreConstraint = {
     lhs: SerializedPreExp,
     constraint_type: Comparison,
     rhs: SerializedPreExp,
-    iteration: SerializedVariableType[],
+    iteration: SerializedVariableKind[],
     span: InputSpan,
 }
 "#;

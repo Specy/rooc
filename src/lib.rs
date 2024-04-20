@@ -82,4 +82,8 @@ impl RoocParser {
     pub fn parse_and_transform_wasm(&self) -> Result<Model, String> {
         self.parse_and_transform()
     }
+    
+    pub fn wasm_get_source(&self) -> String {
+        self.source.clone()
+    }
 }

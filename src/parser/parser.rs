@@ -30,6 +30,7 @@ struct PLParser;
 #[wasm_bindgen]
 #[derive(Debug, Serialize, Clone)]
 pub struct PreModel {
+    source: Option<String>,
     objective: PreObjective,
     constraints: Vec<PreConstraint>,
     constants: Vec<Constant>,
@@ -52,12 +53,14 @@ impl PreModel {
         constraint: Vec<PreConstraint>,
         constants: Vec<Constant>,
         domains: Vec<VariablesDomainDeclaration>,
+        source: Option<String>,
     ) -> Self {
         Self {
             objective,
             constraints: constraint,
             constants,
             domains,
+            source,
         }
     }
     pub fn get_objective(&self) -> &PreObjective {
@@ -191,6 +194,10 @@ impl PreModel {
     pub fn to_latex_wasm(&self) -> String {
         self.to_latex()
     }
+    
+    pub fn wasm_get_source(&self) -> Option<String> {
+        self.source.clone()
+    }
 }
 
 #[wasm_bindgen]
@@ -262,8 +269,8 @@ impl fmt::Display for PreModel {
     }
 }
 
-pub fn parse_problem_source(source: &str) -> Result<PreModel, CompilationError> {
-    let problem = PLParser::parse(Rule::problem, source);
+pub fn parse_problem_source(source: &String) -> Result<PreModel, CompilationError> {
+    let problem = PLParser::parse(Rule::problem, &source);
     match problem {
         Ok(mut problem) => {
             let problem = problem.next();
@@ -271,11 +278,11 @@ pub fn parse_problem_source(source: &str) -> Result<PreModel, CompilationError> 
                 return Err(CompilationError::new(
                     ParseError::MissingToken("Failed to parse, missing problem".to_string()),
                     InputSpan::default(),
-                    source.to_string(),
+                    source.clone()
                 ));
             }
             let problem = problem.unwrap();
-            parse_problem(problem)
+            parse_problem(problem, source)
         }
         Err(err) => {
             let location = &err.location;
@@ -301,7 +308,7 @@ pub fn parse_problem_source(source: &str) -> Result<PreModel, CompilationError> 
     }
 }
 
-fn parse_problem(problem: Pair<Rule>) -> Result<PreModel, CompilationError> {
+fn parse_problem(problem: Pair<Rule>, source: &String) -> Result<PreModel, CompilationError> {
     let pairs = problem.clone().into_inner();
     let objective = pairs.find_first_tagged("objective").map(parse_objective);
     let constraints = pairs
@@ -319,6 +326,7 @@ fn parse_problem(problem: Pair<Rule>) -> Result<PreModel, CompilationError> {
             cond?,
             consts.unwrap_or(Ok(Vec::new()))?,
             domain.unwrap_or(Ok(Vec::new()))?,
+            Some(source.clone()),
         )),
         _ => bail_missing_token!("Objective and constraints are required", problem),
     }

@@ -19,13 +19,13 @@ use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standard_linear_model::StandardLinearModel;
 
 #[wasm_bindgen]
-struct PipeWasmRunner {
+struct WasmPipeRunner {
     pipe: PipeRunner,
 }
 
 #[wasm_bindgen]
-impl PipeWasmRunner {
-    pub fn new_wasm(steps: Vec<Pipes>) -> Result<PipeWasmRunner, String> {
+impl WasmPipeRunner {
+    pub fn new_wasm(steps: Vec<Pipes>) -> Result<WasmPipeRunner, String> {
         let runners = steps
             .into_iter()
             .map(|step| {
@@ -41,11 +41,11 @@ impl PipeWasmRunner {
                 item
             })
             .collect();
-        Ok(PipeWasmRunner {
+        Ok(WasmPipeRunner {
             pipe: PipeRunner::new(runners),
         })
     }
-    
+
     pub fn wasm_run_from_string(&self, data: String) -> Result<Vec<WasmPipableData>, WasmPipeError>{
         let data = PipeableData::String(data);
         match self.pipe.run(data) {
@@ -109,11 +109,11 @@ impl WasmPipableData {
     pub fn wasm_get_type(&self) ->  PipeDataType {
         self.data.get_type()
     }
-    
+
     //TODO is there a better way to do this instead of making singular functions for each type?
     pub fn to_string_data(self) -> Result<String, JsValue>{
         self.data.to_string_data().map_err(|e| JsValue::from_str(&e.to_string()))
-    } 
+    }
     pub fn to_parser(self) -> Result<RoocParser, JsValue>{
         self.data.to_parser().map_err(|e| JsValue::from_str(&e.to_string()))
     }

@@ -131,7 +131,7 @@ export type SerializedTransformError = {
 } | {
     type: "AlreadyDeclaredDomainVariable",
     value: {
-        variables: [string, SerializedVariableType][]
+        variables: [string, SerializedVariableKind][]
     }
 } | {
     type: "UndeclaredVariableDomain",

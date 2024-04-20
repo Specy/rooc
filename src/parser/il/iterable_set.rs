@@ -21,7 +21,7 @@ pub struct IterableSet {
 #[wasm_bindgen(typescript_custom_section)]
 const IIterableSet: &'static str = r#"
 export type SerializedIterableSet = {
-    var: SerializedVariableType,
+    var: SerializedVariableKind,
     iterator: SerializedSpanned<SerializedPreExp>,
     span: InputSpan,
 }

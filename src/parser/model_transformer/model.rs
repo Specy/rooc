@@ -378,7 +378,7 @@ pub struct Model {
 #[wasm_bindgen(typescript_custom_section)]
 pub const IModel: &'static str = r#"
 export type SerializedModel = {
-    objective: Objective,
+    objective: SerializedObjective,
     constraints: SerializedCondition[]
     domain: Record<string, DomainVariable>
 }
@@ -467,7 +467,7 @@ pub enum VariableKind {
 
 #[wasm_bindgen(typescript_custom_section)]
 pub const IVariableType: &'static str = r#"
-export type SerializedVariableType = {
+export type SerializedVariableKind = {
     type: "Single",
     value: SerializedSpanned<string>
 } | {

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use serde::Serialize;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::math::math_enums::VariableType;
 use crate::parser::domain_declaration::VariablesDomainDeclaration;
@@ -69,6 +70,16 @@ pub struct DomainVariable {
     span: InputSpan,
     usage_count: usize,
 }
+#[wasm_bindgen(typescript_custom_section)]
+pub const IModel: &'static str = r#"
+export interface DomainVariable {
+    as_type: VariableType;
+    span: InputSpan;
+    usage_count: number;
+}
+"#;
+
+
 
 impl DomainVariable {
     pub fn new(as_type: VariableType, span: InputSpan) -> Self {
