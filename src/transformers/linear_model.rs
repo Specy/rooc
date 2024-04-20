@@ -1,5 +1,7 @@
 use std::fmt::Display;
+
 use wasm_bindgen::prelude::wasm_bindgen;
+
 use crate::{
     math::math_enums::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
@@ -8,6 +10,7 @@ use crate::transformers::standard_linear_model::StandardLinearModel;
 
 
 #[derive(Debug, Clone)]
+#[wasm_bindgen]
 pub struct LinearConstraint {
     coefficients: Vec<f64>,
     rhs: f64,
@@ -33,6 +36,18 @@ impl LinearConstraint {
     }
     pub fn ensure_size(&mut self, size: usize) {
         self.coefficients.resize(size, 0.0);
+    }
+}
+#[wasm_bindgen]
+impl LinearConstraint {
+    pub fn wasm_get_coefficients(&self) -> Vec<f64> {
+        self.coefficients.clone()
+    }
+    pub fn wasm_get_rhs(&self) -> f64 {
+        self.rhs
+    }
+    pub fn wasm_get_constraint_type(&self) -> Comparison {
+        self.constraint_type
     }
 }
 
@@ -109,5 +124,28 @@ impl Display for LinearModel {
             "{} {}\ns.t.\n{}",
             self.optimization_type, objective, constraints
         )
+    }
+}
+
+#[wasm_bindgen]
+impl LinearModel {
+    pub fn wasm_get_objective(&self) -> Vec<f64> {
+        self.objective.clone()
+    }
+    pub fn wasm_get_constraints(&self) -> Vec<LinearConstraint> {
+        self.constraints.clone()
+    }
+    pub fn wasm_get_variables(&self) -> Vec<String> {
+        self.variables.clone()
+    }
+    pub fn wasm_get_objective_offset(&self) -> f64 {
+        self.objective_offset
+    }
+    pub fn wasm_get_optimization_type(&self) -> OptimizationType {
+        self.optimization_type.clone()
+    }
+    
+    pub fn wasm_to_string(&self) -> String {
+        format!("{}", self)
     }
 }

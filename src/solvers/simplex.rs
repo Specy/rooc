@@ -8,6 +8,7 @@ use num_traits::cast::FromPrimitive;
 use term_table::row::Row;
 use term_table::Table;
 use term_table::table_cell::TableCell;
+use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Debug, Clone)]
@@ -45,6 +46,39 @@ impl Display for Tableau {
     }
 }
 
+
+#[wasm_bindgen]
+impl Tableau{
+    pub fn wasm_get_variables(&self) -> Vec<String> {
+        self.variables.clone()
+    }
+    pub fn wasm_get_c(&self) -> Vec<f64> {
+        self.c.clone()
+    }
+    pub fn wasm_get_a(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self.a).unwrap()
+    }
+    pub fn wasm_get_b(&self) -> Vec<f64> {
+        self.b.clone()
+    }
+    pub fn wasm_get_in_basis(&self) -> Vec<usize> {
+        self.in_basis.clone()
+    }
+    pub fn wasm_get_current_value(&self) -> f64 {
+        self.current_value
+    }
+    pub fn wasm_get_value_offset(&self) -> f64 {
+        self.value_offset
+    }
+    
+    pub fn wasm_step(&mut self, variables_to_avoid: Vec<usize>) -> Result<bool, SimplexError> {
+        self.step(&variables_to_avoid)
+    }
+    pub fn wasm_to_string(&self) -> String {
+        self.to_string()
+    }
+}
+
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
 pub struct OptimalTableau {
@@ -74,6 +108,19 @@ impl OptimalTableau {
     }
 }
 
+#[wasm_bindgen]
+impl OptimalTableau {
+    pub fn wasm_get_variables_values(&self) -> Vec<f64> {
+        self.values.clone()
+    }
+    pub fn wasm_get_optimal_value(&self) -> f64 {
+        self.get_optimal_value()
+    }
+    pub fn wasm_get_tableau(&self) -> Tableau {
+        self.tableau.clone()
+    }
+}
+
 impl Display for OptimalTableau {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let tableau = self.tableau.to_string();
@@ -87,6 +134,7 @@ impl Display for OptimalTableau {
 }
 
 #[derive(Debug)]
+#[wasm_bindgen]
 pub enum SimplexError {
     Unbounded,
     IterationLimitReached,

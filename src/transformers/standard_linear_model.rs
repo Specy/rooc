@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::wasm_bindgen;
 use crate::solvers::simplex::{
     CanonicalTransformError, divide_matrix_row_by, IntoCanonicalTableau, Tableau, Tableauable,
@@ -8,10 +9,22 @@ use crate::transformers::standardizer::to_standard_form;
 
 
 #[derive(Debug, Clone)]
+#[wasm_bindgen]
 pub struct EqualityConstraint {
     coefficients: Vec<f64>,
     rhs: f64,
 }
+
+#[wasm_bindgen]
+impl EqualityConstraint {
+    pub fn wasm_get_coefficients(&self) -> Vec<f64> {
+        self.coefficients.clone()
+    }
+    pub fn wasm_get_rhs(&self) -> f64 {
+        self.rhs
+    }
+}
+
 
 struct IndependentVariable {
     row: usize,
@@ -278,5 +291,37 @@ impl Tableauable for StandardLinearModel {
     }
     fn get_objective_offset(&self) -> f64 {
         self.objective_offset
+    }
+}
+
+#[wasm_bindgen]
+impl StandardLinearModel {
+    pub fn wasm_get_objective(&self) -> Vec<f64> {
+        self.objective.clone()
+    }
+    pub fn wasm_get_constraints(&self) -> Vec<EqualityConstraint> {
+        self.constraints.clone()
+    }
+    pub fn wasm_get_variables(&self) -> Vec<String> {
+        self.variables.clone()
+    }
+    pub fn wasm_get_objective_offset(&self) -> f64 {
+        self.objective_offset
+    }
+    pub fn wasm_get_flip_objective(&self) -> bool {
+        self.flip_objective
+    }
+
+    pub fn wasm_get_a(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self.get_a()).unwrap()
+    }
+    pub fn wasm_get_b(&self) -> Vec<f64> {
+        self.get_b()
+    }
+    pub fn wasm_get_c(&self) -> Vec<f64> {
+        self.get_c()
+    }
+    pub fn wasm_to_string(&self) -> String {
+        self.to_string()
     }
 }
