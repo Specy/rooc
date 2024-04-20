@@ -16,12 +16,19 @@ fn main() {
             x + 3y + 4z = 1
      */
     let source = r#"
-        min 3x + 4y + 6z
+        min sum(id in 0..len(C)) { v_{vars[id]} * C[id] }
         s.t.
-            2x + y + 3z = 2
-            x + 3y + 4z = 1
+            sum((a, j) in enumerate(A[i])) { v_{vars[j]} * a  } = B[i]  for i in 0..len(A)
+        where
+            let C = [3, 4, 6]
+            let A = [
+               [2, 1, 3],
+               [1, 3, 4]
+            ]
+            let B = [2, 1]
+            let vars = ["x", "y", "z"]
         define
-            x,y,z as Real
+            v_x  as Real for x in vars
     "#
     .to_string();
 
