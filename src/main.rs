@@ -1,13 +1,9 @@
-use term_table::{row::Row, Table, table_cell::TableCell};
-
-use rooc::{
-    RoocParser,
-    solvers::simplex::{IntoCanonicalTableau, Tableau},
+use rooc::pipe::pipe::PipeableData;
+use rooc::pipe::pipe_executors::{
+    CompilerPipe, LinearModelPipe, ModelPipe, OptimalTableauPipe, PreModelPipe,
+    StandardLinearModelPipe, TableauPipe,
 };
-use rooc::math::math_enums::{Comparison, OptimizationType};
-use rooc::solvers::simplex::OptimalTableau;
-use rooc::transformers::linear_model::{LinearConstraint, LinearModel};
-use rooc::transformers::linearizer::Linearizer;
+use rooc::pipe::pipe_runner::PipeRunner;
 
 #[allow(unused)]
 fn main() {
@@ -28,41 +24,34 @@ fn main() {
             x,y,z as Real
     "#
     .to_string();
-    let parser = RoocParser::new(source.clone());
-    let parsed = parser.parse_and_transform();
-    match parsed {
-        Ok(parsed) => {
-            let linear = Linearizer::linearize(parsed).expect("Failed to linearize");
-            println!("\n{}", linear);
-            let model = linear.into_standard_form().expect("Failed to standardize");
-            println!("\n{}", model);
-            let mut tableau = model
-                .into_canonical()
-                .expect("Failed to transform to canonical tableau");
-            let optimal_tableau = tableau.solve(1000).expect("Failed to solve");
-            print_tableau(tableau, optimal_tableau);
+
+    let pipe_runner = PipeRunner::new(vec![
+        Box::new(CompilerPipe::new()),
+        Box::new(PreModelPipe::new()),
+        Box::new(ModelPipe::new()),
+        Box::new(LinearModelPipe::new()),
+        Box::new(StandardLinearModelPipe::new()),
+        Box::new(TableauPipe::new()),
+        Box::new(OptimalTableauPipe::new()),
+    ]);
+
+    let (result) = pipe_runner.run(PipeableData::String(source));
+    match result {
+        Ok(data) => {
+            let str = data
+                .iter()
+                .map(|data| data.to_string())
+                .collect::<Vec<String>>()
+                .join("\n\n//--------//\n\n");
+            println!("{}", str)
         }
-        Err(e) => {
-            println!("{}", e);
+        Err((error, context)) => {
+            let context = context
+                .iter()
+                .map(|data| data.to_string())
+                .collect::<Vec<String>>()
+                .join("\n\n//--------//\n\n");
+            println!("Context:\n{}\n\nError:\n{:?}", context, error)
         }
     }
-}
-
-fn print_tableau(tableau: Tableau, optimal_tableau: OptimalTableau) {
-    let pretty = tableau.to_fractional_tableau();
-    let table = pretty.pretty_table();
-    let mut cli_table = Table::new();
-    let values = optimal_tableau.get_variables_values().clone();
-    let mut header = Row::new(values.iter().map(TableCell::new));
-    header.cells.push(TableCell::new(
-        optimal_tableau.get_tableau().get_current_value(),
-    ));
-    cli_table.add_row(header);
-    let empty: Vec<TableCell> = Vec::new();
-    cli_table.add_row(Row::new(empty));
-    table.iter().for_each(|row| {
-        cli_table.add_row(Row::new(row.iter().map(TableCell::new)));
-    });
-    println!("{}", cli_table.render());
-    println!("Optimal value: {}", optimal_tableau.get_optimal_value());
 }

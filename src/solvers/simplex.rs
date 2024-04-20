@@ -1,13 +1,17 @@
 use core::fmt;
+use std::fmt::Display;
 
 //TODO make the implementation use row vectors with a trait so that i can implement fraction and float versions
 //togehter with overriding the operators, so that i can use the same code for both versions
 use num_rational::Rational64;
 use num_traits::cast::FromPrimitive;
+use term_table::row::Row;
+use term_table::Table;
+use term_table::table_cell::TableCell;
 
 #[derive(Debug, Clone)]
 pub struct Tableau {
-    #[allow(unused)]
+    flip_result: bool,
     variables: Vec<String>,
     c: Vec<f64>,
     a: Vec<Vec<f64>>,
@@ -17,25 +21,65 @@ pub struct Tableau {
     value_offset: f64,
 }
 
+impl Display for Tableau {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let pretty = self.clone().to_fractional_tableau();
+        let table = pretty.pretty_table();
+        let mut cli_table = Table::new();
+        let vars: Vec<String> = self
+            .variables
+            .iter()
+            .zip(self.c.iter())
+            .map(|(v, c)| format!("{}: {}", v, c))
+            .collect();
+        let header = Row::new(vars.iter().map(TableCell::new));
+        cli_table.add_row(header);
+        let empty: Vec<TableCell> = Vec::new();
+        cli_table.add_row(Row::new(empty));
+        table.iter().for_each(|row| {
+            cli_table.add_row(Row::new(row.iter().map(TableCell::new)));
+        });
+        write!(f, "{}", cli_table.render())
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct OptimalTableau {
+    flip_result: bool,
     values: Vec<f64>,
     tableau: Tableau,
 }
 
 impl OptimalTableau {
     fn new(values: Vec<f64>, tableau: Tableau) -> OptimalTableau {
-        OptimalTableau { values, tableau }
+        OptimalTableau {
+            values,
+            flip_result: tableau.flip_result,
+            tableau,
+        }
     }
 
     pub fn get_variables_values(&self) -> &Vec<f64> {
         &self.values
     }
     pub fn get_optimal_value(&self) -> f64 {
-        (self.tableau.get_current_value() * -1.0) + self.tableau.get_value_offset()
+        let flip = if self.flip_result { -1.0 } else { 1.0 };
+        (self.tableau.get_current_value() * -1.0) + self.tableau.get_value_offset() * flip
     }
     pub fn get_tableau(&self) -> &Tableau {
         &self.tableau
+    }
+}
+
+impl Display for OptimalTableau {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let tableau = self.tableau.to_string();
+        write!(
+            f,
+            "{}\n\nOptimal Value: {}",
+            tableau,
+            self.get_optimal_value(),
+        )
     }
 }
 
@@ -55,6 +99,7 @@ impl Tableau {
         current_value: f64,
         value_offset: f64,
         variables: Vec<String>,
+        flip_result: bool,
     ) -> Tableau {
         Tableau {
             c,
@@ -64,6 +109,7 @@ impl Tableau {
             current_value,
             value_offset,
             variables,
+            flip_result,
         }
     }
     pub fn solve(&mut self, limit: i64) -> Result<OptimalTableau, SimplexError> {

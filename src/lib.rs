@@ -19,12 +19,14 @@ pub mod traits;
 pub mod transformers;
 pub mod type_checker;
 pub mod utils;
+pub mod pipe;
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
+#[derive(Debug)]
 pub struct RoocParser {
     source: String,
 }

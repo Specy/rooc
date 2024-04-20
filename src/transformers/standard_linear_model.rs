@@ -5,6 +5,8 @@ use crate::solvers::simplex::{
 use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standardizer::to_standard_form;
 
+
+#[derive(Debug)]
 pub struct EqualityConstraint {
     coefficients: Vec<f64>,
     rhs: f64,
@@ -72,6 +74,7 @@ impl IntoCanonicalTableau for StandardLinearModel {
                 value,
                 self.get_objective_offset(),
                 self.get_variables(),
+                self.flip_objective,
             ))
         } else {
             //use the 2 phase method to find a canonical tableau by adding artificial variables to the constraints and solving the tableau
@@ -91,7 +94,6 @@ impl IntoCanonicalTableau for StandardLinearModel {
             let mut value = 0.0;
             //add the variables to the matrix and turn the objective function into
             //canonical form by subtracting all rows from the objective function
-            println!("{:?}", c);
             for (i, constraint) in a.iter_mut().enumerate() {
                 constraint.resize(number_of_variables + number_of_artificial_variables, 0.0);
                 constraint[i + number_of_variables] = 1.0;
@@ -110,11 +112,11 @@ impl IntoCanonicalTableau for StandardLinearModel {
                 value,
                 self.get_objective_offset(),
                 variables,
+                self.flip_objective,
             );
             let artificial_variables = (number_of_variables
                 ..number_of_variables + number_of_artificial_variables)
                 .collect::<Vec<_>>();
-            println!("-- {:#?}", tableau);
             match tableau.solve_avoiding(10000, &artificial_variables) {
                 Ok(optimal_tableau) => {
                     let tableau = optimal_tableau.get_tableau();
@@ -124,7 +126,6 @@ impl IntoCanonicalTableau for StandardLinearModel {
                         ));
                     }
                     let new_basis = tableau.get_in_basis().clone();
-                    println!("{:?}", new_basis);
                     //check that the new basis is valid,
                     if new_basis.iter().all(|&i| i < number_of_variables) {
                         //restore the original objective function
@@ -155,6 +156,7 @@ impl IntoCanonicalTableau for StandardLinearModel {
                             value,
                             self.get_objective_offset(),
                             self.get_variables(),
+                            self.flip_objective,
                         ))
                     } else {
                         Err(CanonicalTransformError::InvalidBasis(format!(
@@ -196,6 +198,8 @@ impl EqualityConstraint {
     }
 }
 
+
+#[derive(Debug)]
 pub struct StandardLinearModel {
     variables: Vec<String>,
     objective_offset: f64,

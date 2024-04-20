@@ -6,7 +6,7 @@ use crate::{
 use crate::transformers::standard_linear_model::StandardLinearModel;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LinearConstraint {
     coefficients: Vec<f64>,
     rhs: f64,
@@ -35,7 +35,7 @@ impl LinearConstraint {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LinearModel {
     variables: Vec<String>,
     objective_offset: f64,

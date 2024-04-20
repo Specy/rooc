@@ -303,7 +303,7 @@ impl fmt::Display for Exp {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Objective {
     pub objective_type: OptimizationType,
     pub rhs: Exp,
@@ -367,7 +367,7 @@ impl fmt::Display for Constraint {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[wasm_bindgen]
 pub struct Model {
     objective: Objective,
