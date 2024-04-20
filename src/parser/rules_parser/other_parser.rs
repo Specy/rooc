@@ -2,9 +2,8 @@ use std::vec;
 
 use pest::iterators::{Pair, Pairs};
 
-use crate::{bail_missing_token, err_unexpected_token};
 use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
-use crate::parser::domain_declaration::{VariablesDomainDeclaration, VariableToAssert};
+use crate::parser::domain_declaration::{VariableToAssert, VariablesDomainDeclaration};
 use crate::parser::il::block_functions::{
     BlockFunction, BlockFunctionKind, BlockScopedFunction, BlockScopedFunctionKind,
 };
@@ -28,6 +27,8 @@ use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 
 use super::exp_parser::parse_exp;
+
+use crate::{bail_missing_token, err_unexpected_token};
 
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {
     match objective.as_rule() {
@@ -416,18 +417,26 @@ pub fn parse_compound_variable(
     match compound_variable.as_rule() {
         Rule::compound_variable => {
             let mut fields = compound_variable.clone().into_inner().collect::<Vec<_>>();
-            if fields.len() < 2 {
-                return err_unexpected_token!(
-                    "found {}, expected compound variable",
-                    compound_variable
-                );
+            let str = compound_variable.as_str();
+            let starts_with = str.chars().next().unwrap_or('_');
+            if starts_with == '_' {
+                //compound variable has no name, only indexes
+                let indexes = fields
+                    .into_iter()
+                    .map(|i| parse_compound_variable_index(i))
+                    .collect::<Result<Vec<_>, CompilationError>>()?;
+                Ok(CompoundVariable::new("".to_string(), indexes))
+            } else if fields.len() >= 2 {
+                //compound variable has name and indexes
+                let name = fields.remove(0);
+                let indexes = fields
+                    .into_iter()
+                    .map(|i| parse_compound_variable_index(i))
+                    .collect::<Result<Vec<_>, CompilationError>>()?;
+                Ok(CompoundVariable::new(name.as_str().to_string(), indexes))
+            } else {
+                err_unexpected_token!("found {}, expected compound variable", compound_variable)
             }
-            let name = fields.remove(0);
-            let indexes = fields
-                .into_iter()
-                .map(|i| parse_compound_variable_index(i))
-                .collect::<Result<Vec<_>, CompilationError>>()?;
-            Ok(CompoundVariable::new(name.as_str().to_string(), indexes))
         }
         _ => err_unexpected_token!("Expected compound variable but got: {}", compound_variable),
     }

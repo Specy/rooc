@@ -1,8 +1,21 @@
 use std::fmt::Display;
+use wasm_bindgen::prelude::wasm_bindgen;
 use crate::pipe::pipe::{Pipeable, PipeableData, PipeError};
 use crate::RoocParser;
 use crate::solvers::simplex::IntoCanonicalTableau;
 use crate::transformers::linearizer::Linearizer;
+
+
+#[wasm_bindgen]
+pub enum Pipes {
+    CompilerPipe,
+    PreModelPipe,
+    ModelPipe,
+    LinearModelPipe,
+    StandardLinearModelPipe,
+    TableauPipe,
+    OptimalTableauPipe
+}
 
 
 //-------------------- Source Compiler --------------------
@@ -32,7 +45,10 @@ impl Pipeable for PreModelPipe{
         let parser = data.as_parser()?;
         match parser.parse(){
             Ok(model) => Ok(PipeableData::PreModel(model)),
-            Err(e) => Err(PipeError::CompilationError(e))
+            Err(e) => Err(PipeError::CompilationError{
+                error: e,
+                source: parser.source.clone()
+            })
         }
     }
 }

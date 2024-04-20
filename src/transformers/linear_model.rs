@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use wasm_bindgen::prelude::wasm_bindgen;
 use crate::{
     math::math_enums::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
@@ -36,6 +37,7 @@ impl LinearConstraint {
 }
 
 #[derive(Debug, Clone)]
+#[wasm_bindgen]
 pub struct LinearModel {
     variables: Vec<String>,
     objective_offset: f64,

@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use wasm_bindgen::prelude::wasm_bindgen;
 use crate::solvers::simplex::{
     CanonicalTransformError, divide_matrix_row_by, IntoCanonicalTableau, Tableau, Tableauable,
 };
@@ -6,7 +7,7 @@ use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standardizer::to_standard_form;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EqualityConstraint {
     coefficients: Vec<f64>,
     rhs: f64,
@@ -199,7 +200,8 @@ impl EqualityConstraint {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[wasm_bindgen]
 pub struct StandardLinearModel {
     variables: Vec<String>,
     objective_offset: f64,

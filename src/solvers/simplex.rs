@@ -8,8 +8,10 @@ use num_traits::cast::FromPrimitive;
 use term_table::row::Row;
 use term_table::Table;
 use term_table::table_cell::TableCell;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Debug, Clone)]
+#[wasm_bindgen]
 pub struct Tableau {
     flip_result: bool,
     variables: Vec<String>,
@@ -44,6 +46,7 @@ impl Display for Tableau {
 }
 
 #[derive(Debug, Clone)]
+#[wasm_bindgen]
 pub struct OptimalTableau {
     flip_result: bool,
     values: Vec<f64>,
@@ -89,6 +92,17 @@ pub enum SimplexError {
     IterationLimitReached,
     Other,
 }
+impl Display for SimplexError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            SimplexError::Unbounded => "Unbounded Problem",
+            SimplexError::IterationLimitReached => "Iteration Limit Reached",
+            SimplexError::Other => "Other",
+        };
+        f.write_str(s)
+    }
+}
+
 
 impl Tableau {
     pub fn new(

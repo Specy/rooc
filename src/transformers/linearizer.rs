@@ -274,6 +274,21 @@ pub enum LinearizationError {
     VarAlreadyDeclared(String),
     UnimplementedExpression(Box<Exp>),
 }
+impl Display for LinearizationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LinearizationError::NonLinearExpression(exp) => {
+                write!(f, "Non linear expression: \"{}\"", exp)
+            }
+            LinearizationError::VarAlreadyDeclared(name) => {
+                write!(f, "Variable \"{}\" already declared", name)
+            }
+            LinearizationError::UnimplementedExpression(exp) => {
+                write!(f, "Unimplemented expression: \"{}\"", exp)
+            }
+        }
+    }
+}
 pub struct LinearizationContext {
     current_vars: HashMap<String, f64>,
     current_rhs: f64,

@@ -26,7 +26,7 @@ pub mod pipe;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RoocParser {
     source: String,
 }

@@ -117,7 +117,7 @@ comparison     = @{ "<=" | ">=" | "=" }
 simple_variable   = @{ LETTER ~ (LETTER | NUMBER)* }
 
 escaped_compound_variable = { "\\" ~ compound_variable }
-compound_variable = { simple_variable ~ ("_" ~ compound_variable_body)+ }
+compound_variable = { simple_variable? ~ ("_" ~ compound_variable_body)+ }
 compound_variable_body = _{ (simple_variable | number) | "{" ~ nl* ~ (tagged_exp) ~ nl* ~ "}" } 
 number    = _{ float | integer }
 integer = @{ '0'..'9'+ }

@@ -1,0 +1,139 @@
+use wasm_bindgen::JsValue;
+use wasm_bindgen::prelude::wasm_bindgen;
+use crate::parser::model_transformer::model::Model;
+use crate::parser::parser::PreModel;
+
+use crate::pipe::pipe::{Pipeable, PipeableData, PipeDataType, PipeError};
+use crate::pipe::pipe_executors::{CompilerPipe,
+                                  LinearModelPipe,
+                                  ModelPipe,
+                                  OptimalTableauPipe,
+                                  Pipes,
+                                  PreModelPipe,
+                                  StandardLinearModelPipe,
+                                  TableauPipe};
+use crate::pipe::pipe_runner::PipeRunner;
+use crate::RoocParser;
+use crate::solvers::simplex::{OptimalTableau, Tableau};
+use crate::transformers::linear_model::LinearModel;
+use crate::transformers::standard_linear_model::StandardLinearModel;
+
+#[wasm_bindgen]
+struct PipeWasmRunner {
+    pipe: PipeRunner,
+}
+
+#[wasm_bindgen]
+impl PipeWasmRunner {
+    pub fn new_wasm(steps: Vec<Pipes>) -> Result<PipeWasmRunner, String> {
+        let runners = steps
+            .into_iter()
+            .map(|step| {
+                let item: Box<dyn Pipeable> = match step {
+                    Pipes::CompilerPipe => Box::new(CompilerPipe::new()),
+                    Pipes::PreModelPipe => Box::new(PreModelPipe::new()),
+                    Pipes::ModelPipe => Box::new(ModelPipe::new()),
+                    Pipes::LinearModelPipe => Box::new(LinearModelPipe::new()),
+                    Pipes::StandardLinearModelPipe => Box::new(StandardLinearModelPipe::new()),
+                    Pipes::TableauPipe => Box::new(TableauPipe::new()),
+                    Pipes::OptimalTableauPipe => Box::new(OptimalTableauPipe::new()),
+                };
+                item
+            })
+            .collect();
+        Ok(PipeWasmRunner {
+            pipe: PipeRunner::new(runners),
+        })
+    }
+    
+    pub fn wasm_run_from_string(&self, data: String) -> Result<Vec<WasmPipableData>, WasmPipeError>{
+        let data = PipeableData::String(data);
+        match self.pipe.run(data) {
+            Ok(results) => Ok(results.into_iter().map(WasmPipableData::new).collect()),
+            Err((e, results)) => {
+                let results: Vec<WasmPipableData> = results.into_iter().map(WasmPipableData::new).collect();
+                Err(WasmPipeError::new(e, results))
+            }
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub struct WasmPipeError{
+    error: PipeError,
+    context: Vec<WasmPipableData>
+}
+
+impl WasmPipeError {
+    pub fn new(error: PipeError, context: Vec<WasmPipableData>) -> WasmPipeError {
+        WasmPipeError {
+            error,
+            context
+        }
+    }
+}
+
+#[wasm_bindgen]
+impl WasmPipeError {
+    pub fn wasm_get_error(&self) -> String {
+        self.error.to_string()
+    }
+    pub fn wasm_get_context(&self) -> Vec<WasmPipableData> {
+        self.context.clone()
+    }
+    pub fn wasm_to_context(self) -> Vec<WasmPipableData> {
+        self.context
+    }
+}
+
+
+#[wasm_bindgen]
+#[derive(Debug, Clone)]
+pub struct WasmPipableData{
+    data: PipeableData
+}
+impl WasmPipableData {
+    pub fn new(data: PipeableData) -> WasmPipableData {
+        WasmPipableData {
+            data
+        }
+    }
+}
+impl From<WasmPipableData> for PipeableData {
+    fn from(data: WasmPipableData) -> Self {
+        data.data
+    }
+}
+#[wasm_bindgen]
+impl WasmPipableData {
+    pub fn wasm_get_type(&self) ->  PipeDataType {
+        self.data.get_type()
+    }
+    
+    //TODO is there a better way to do this instead of making singular functions for each type?
+    pub fn to_string_data(self) -> Result<String, JsValue>{
+        self.data.to_string_data().map_err(|e| JsValue::from_str(&e.to_string()))
+    } 
+    pub fn to_parser(self) -> Result<RoocParser, JsValue>{
+        self.data.to_parser().map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+    pub fn to_pre_model(self) -> Result<PreModel, JsValue>{
+        self.data.to_pre_model().map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+    pub fn to_model(self) -> Result<Model, JsValue>{
+        self.data.to_model().map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+    pub fn to_linear_model(self) -> Result<LinearModel, JsValue>{
+        self.data.to_linear_model().map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+    pub fn to_standard_linear_model(self) -> Result<StandardLinearModel, JsValue>{
+        self.data.to_standard_linear_model().map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+    pub fn to_tableau(self) -> Result<Tableau, JsValue>{
+        self.data.to_tableau().map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+    pub fn to_optimal_tableau(self) -> Result<OptimalTableau, JsValue>{
+        self.data.to_optimal_tableau().map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+}
+

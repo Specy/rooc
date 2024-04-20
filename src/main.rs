@@ -47,18 +47,18 @@ fn main() {
         Ok(data) => {
             let str = data
                 .iter()
-                .map(|data| data.to_string())
+                .map(|data| format!("//--------{}--------//\n\n{}", data.get_type(), data))
                 .collect::<Vec<String>>()
-                .join("\n\n//--------//\n\n");
+                .join("\n\n");
             println!("{}", str)
         }
         Err((error, context)) => {
             let context = context
                 .iter()
-                .map(|data| data.to_string())
+                .map(|data| format!("//--------{}--------//\n\n{}", data.get_type(), data))
                 .collect::<Vec<String>>()
-                .join("\n\n//--------//\n\n");
-            println!("Context:\n{}\n\nError:\n{:?}", context, error)
+                .join("\n\n");
+            println!("Context:\n{}\n\nError:\n{}", context, error)
         }
     }
 }

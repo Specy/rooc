@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use wasm_bindgen::prelude::wasm_bindgen;
+
 use crate::{match_pipe_data_to, RoocParser};
 use crate::parser::model_transformer::model::Model;
 use crate::parser::model_transformer::transform_error::TransformError;
@@ -10,7 +12,8 @@ use crate::transformers::linearizer::LinearizationError;
 use crate::transformers::standard_linear_model::StandardLinearModel;
 use crate::utils::CompilationError;
 
-#[derive(Debug)]
+
+#[derive(Debug, Clone)]
 pub enum PipeableData {
     String(String),
     Parser(RoocParser),
@@ -22,9 +25,8 @@ pub enum PipeableData {
     OptimalTableau(OptimalTableau),
 }
 
-impl PipeableData {
-    
 
+impl PipeableData {
     pub fn get_type(&self) -> PipeDataType {
         match self {
             PipeableData::String(_) => PipeDataType::String,
@@ -104,7 +106,7 @@ impl Display for PipeableData {
     }
 }
 
-//TODO make this a macro
+#[wasm_bindgen]
 #[derive(Debug)]
 pub enum PipeDataType {
     String,
@@ -116,7 +118,22 @@ pub enum PipeDataType {
     Tableau,
     OptimalTableau,
 }
+impl Display for PipeDataType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            PipeDataType::String => "String".to_string(),
+            PipeDataType::Parser => "Parser".to_string(),
+            PipeDataType::PreModel => "PreModel".to_string(),
+            PipeDataType::Model => "Model".to_string(),
+            PipeDataType::LinearModel => "LinearModel".to_string(),
+            PipeDataType::StandardLinearModel => "StandardLinearModel".to_string(),
+            PipeDataType::Tableau => "Tableau".to_string(),
+            PipeDataType::OptimalTableau => "OptimalTableau".to_string(),
+        };
 
+        f.write_str(&s)
+    }
+}
 
 #[derive(Debug)]
 pub enum PipeError {
@@ -125,12 +142,37 @@ pub enum PipeError {
         expected: PipeDataType,
         got: PipeDataType,
     },
-    CompilationError(CompilationError),
+    CompilationError {
+        error: CompilationError,
+        source: String,
+    },
     TransformError(TransformError),
     LinearizationError(LinearizationError),
     StandardizationError(()),
     CanonicalizationError(CanonicalTransformError),
     SimplexError(SimplexError),
+}
+impl Display for PipeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PipeError::EmptyPipeData => write!(f, "Pipe data is empty"),
+            PipeError::InvalidData { expected, got } => {
+                write!(
+                    f,
+                    "Expected data of type \"{}\" but got \"{}\"",
+                    expected, got
+                )
+            }
+            PipeError::CompilationError { error, source } => {
+                write!(f, "{}", error.to_string_from_source(source))
+            }
+            PipeError::TransformError(e) => write!(f, "{}", e),
+            PipeError::LinearizationError(e) => write!(f, "{}", e),
+            PipeError::StandardizationError(_) => write!(f, "Standardization error"),
+            PipeError::CanonicalizationError(e) => write!(f, "{}", e),
+            PipeError::SimplexError(e) => write!(f, "{}", e),
+        }
+    }
 }
 
 pub trait Pipeable {
