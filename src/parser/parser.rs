@@ -78,6 +78,9 @@ impl PreModel {
     pub fn transform(self) -> Result<Model, TransformError> {
         transform_parsed_problem(self)
     }
+    pub fn get_source(&self) -> Option<String> {
+        self.source.clone()
+    }
     fn get_static_domain(&self) -> Vec<(String, Spanned<VariableType>)> {
         self.domains
             .iter()

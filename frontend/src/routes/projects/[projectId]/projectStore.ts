@@ -1,5 +1,5 @@
 import {type Project} from "$stores/userProjectsStore";
-import {type Pipes, type RoocData, RoocRunnablePipe} from "@specy/rooc";
+import {type Pipes, type RoocData, RoocParser, RoocRunnablePipe} from "@specy/rooc";
 import {writable} from "svelte/store";
 
 
@@ -8,10 +8,12 @@ type ProjectStoreData = {
     pipes: Pipes[],
     result?: {
         ok: boolean,
+        latex?: string,
         val: RoocData[]
         pipes: Pipes[]
     } | {
         ok: false
+        latex?: string
         context: RoocData[]
         error: string
         pipes: Pipes[]
@@ -30,9 +32,14 @@ export function createCompilerStore(project: Project) {
             s.result = undefined;
             const pipe = new RoocRunnablePipe(s.pipes)
             const res = pipe.run(s.source)
+            const latex = new RoocParser(s.source)
+                .compile()
+                .map(x => x.toLatex())
+                .unwrapOr("")
             if (res.ok) {
                 s.result = {
                     ok: true,
+                    latex: latex || undefined,
                     val: res.val,
                     pipes: [...s.pipes]
                 }
@@ -40,6 +47,7 @@ export function createCompilerStore(project: Project) {
                 const error = res.val as { context: RoocData[], error: string }
                 s.result = {
                     ok: false,
+                    latex: latex || undefined,
                     context: error?.context ?? [],
                     error: error?.error ?? "",
                     pipes: [...s.pipes]

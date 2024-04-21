@@ -1,12 +1,13 @@
 use std::fmt::Display;
+
 use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::wasm_bindgen;
+
 use crate::solvers::simplex::{
     CanonicalTransformError, divide_matrix_row_by, IntoCanonicalTableau, Tableau, Tableauable,
 };
 use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standardizer::to_standard_form;
-
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
@@ -24,7 +25,6 @@ impl EqualityConstraint {
         self.rhs
     }
 }
-
 
 struct IndependentVariable {
     row: usize,
@@ -212,7 +212,6 @@ impl EqualityConstraint {
     }
 }
 
-
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
 pub struct StandardLinearModel {
@@ -244,12 +243,13 @@ impl StandardLinearModel {
         }
     }
     pub fn from_linear_problem(linear_problem: LinearModel) -> Result<StandardLinearModel, ()> {
-        to_standard_form(&linear_problem)
+        to_standard_form(linear_problem)
     }
 }
 impl Display for StandardLinearModel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let constraints = self.constraints.iter().map(|c| {
+            let mut is_first = true;
             let coefficients = c
                 .coefficients
                 .iter()
@@ -258,16 +258,26 @@ impl Display for StandardLinearModel {
                     if *c == 0.0 {
                         None
                     } else {
-                        Some(format!("{}{}", c, self.variables[i]))
+                        let var = format_var(&self.variables[i], *c, is_first);
+                        is_first = false;
+                        Some(var)
                     }
                 })
                 .collect::<Vec<_>>()
-                .join(" + ");
+                .join(" ");
             format!("    {} = {}", coefficients, c.rhs)
         });
+        let mut is_first = true;
+        let offset = if self.objective_offset == 0.0 {
+            "".to_string()
+        } else if self.objective_offset < 0.0 {
+            format!(" - {}", self.objective_offset.abs())
+        } else {
+            format!(" + {}", self.objective_offset)
+        };
         write!(
             f,
-            "min {} + {} \ns.t.\n{}",
+            "min {}{} \ns.t.\n{}",
             self.objective
                 .iter()
                 .enumerate()
@@ -275,16 +285,35 @@ impl Display for StandardLinearModel {
                     if *c == 0.0 {
                         None
                     } else {
-                        Some(format!("{}{}", c, self.variables[i]))
+                        let var = format_var(&self.variables[i], *c, is_first);
+                        is_first = false;
+                        Some(var)
                     }
                 })
                 .collect::<Vec<_>>()
-                .join(" + "),
-            self.objective_offset,
+                .join(" "),
+            offset,
             constraints.collect::<Vec<_>>().join("\n")
         )
     }
 }
+
+pub fn format_var(name: &str, value: f64, is_first: bool) -> String {
+    let sign = if value < 0.0 {
+        "- "
+    } else if is_first {
+        ""
+    } else {
+        "+ "
+    };
+    let num = if value == 1.0 || value == -1.0 {
+        "".to_string()
+    } else {
+        value.abs().to_string()
+    };
+    format!("{}{}{}", sign, num, name)
+}
+
 impl Tableauable for StandardLinearModel {
     fn get_b(&self) -> Vec<f64> {
         self.constraints.iter().map(|c| c.rhs).collect()

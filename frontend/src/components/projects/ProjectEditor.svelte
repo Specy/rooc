@@ -16,6 +16,9 @@
     import {prompter} from '$stores/promptStore'
     import PipeResultRenderer from "$cmp/PipeResultRenderer.svelte";
     import FaPlus from '~icons/fa/plus.svelte'
+    import LatexRenderer from "$cmp/LatexRenderer.svelte";
+    import ExpandableContainer from "$cmp/layout/ExpandableContainer.svelte";
+    import {toast} from "$stores/toastStore";
 
     export let project: Project;
     let store = createCompilerStore(project);
@@ -39,6 +42,7 @@
     function reset() {
         store?.reset();
     }
+
 
     $: $store.source = project.content;
     $: $store.pipes = project.pipes;
@@ -155,6 +159,25 @@
         <h1 id="jump-to">
             {$store.result.ok ? "Execution successful" : "Execution failed"}
         </h1>
+        {#if $store.result.latex}
+            <ExpandableContainer>
+                <h2 slot="title">
+                    LaTeX
+                </h2>
+                <Column style="position: relative;" gap="0.5rem">
+                    <LatexRenderer
+                            source={$store.result.latex}
+                            style="overflow-y: auto; overflow-x: auto; max-height: 50vh"
+                    />
+                    <Button on:click={() => {
+                        navigator.clipboard.writeText($store.result.latex);
+                        toast.logPill('LaTeX source copied to clipboard')
+                    }}>
+                        Copy
+                    </Button>
+                </Column>
+            </ExpandableContainer>
+        {/if}
         {#if $store.result.ok}
             <Column gap="0.5rem">
                 {#each $store.result.val as step, i}
@@ -190,8 +213,8 @@
             </Column>
 
             <Card
-                    style="background-color: color-mix(in srgb, var(--danger) 20%, transparent)"
-                    padding="0.5rem 1rem"
+                    style="background-color: rgba(var(--danger-rgb), 0.2); border: solid 0.2rem rgba(var(--danger-rgb), 0.5);"
+                    padding="1rem"
             >
                 <pre style="overflow-x: auto">{$store.result.error}</pre>
             </Card>

@@ -146,7 +146,10 @@ pub enum PipeError {
         error: CompilationError,
         source: String,
     },
-    TransformError(TransformError),
+    TransformError{
+        error: TransformError,
+        source: String,
+    },
     LinearizationError(LinearizationError),
     StandardizationError(()),
     CanonicalizationError(CanonicalTransformError),
@@ -166,7 +169,12 @@ impl Display for PipeError {
             PipeError::CompilationError { error, source } => {
                 write!(f, "{}", error.to_string_from_source(source))
             }
-            PipeError::TransformError(e) => write!(f, "{}", e),
+            PipeError::TransformError { error, source }=> {
+                match error.get_trace_from_source(source) {
+                    Ok(trace) => write!(f, "{}", trace),
+                    Err(_) => write!(f, "{}", error.get_traced_error()),
+                }
+            },
             PipeError::LinearizationError(e) => write!(f, "{}", e),
             PipeError::StandardizationError(_) => write!(f, "Standardization error"),
             PipeError::CanonicalizationError(e) => write!(f, "{}", e),

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fmt::Display;
 
 use crate::math::math_enums::{Comparison, VariableType};
@@ -172,7 +172,7 @@ impl Display for MidLinearConstraint {
 
 #[derive(Default)]
 pub struct Linearizer {
-    constraints: Vec<Constraint>,
+    constraints: VecDeque<Constraint>,
     surplus_count: u32,
     slack_count: u32,
     min_count: u32,
@@ -186,19 +186,19 @@ impl Linearizer {
     }
     pub fn new_from(constraints: Vec<Constraint>, domain: HashMap<String, DomainVariable>) -> Self {
         let mut context = Self::default();
-        context.constraints = constraints;
+        context.constraints = constraints.into_iter().collect();
         context.domain = domain;
         context
     }
     pub fn add_constraint(&mut self, constraint: Constraint) {
-        self.constraints.push(constraint);
+        self.constraints.push_front(constraint);
     }
 
-    pub fn get_constraints(&self) -> &Vec<Constraint> {
+    pub fn get_constraints(&self) -> &VecDeque<Constraint> {
         &self.constraints
     }
     pub fn pop_constraint(&mut self) -> Option<Constraint> {
-        self.constraints.pop()
+        self.constraints.pop_front()
     }
     pub fn declare_variable(
         &mut self,

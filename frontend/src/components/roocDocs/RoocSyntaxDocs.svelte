@@ -8,18 +8,18 @@
     const exampleModel = `
 min sum(i in A) { x_i }
 s.t.
-	/*
-		here you can put your constraints
-	*/
-	avg(i in A) { x_i } <= 2
-	x_i >= minimum for i in A
+    /*
+        here you can put your constraints
+    */
+    avg(i in A) { x_i } <= 2
+    x_i >= minimum for i in A
 where
-	// here your constants.
-	let A = [1, 2, 3]
-	let minimum = 1
+    // here your constants.
+    let A = [1, 2, 3]
+    let minimum = 1
 define
-	// and here the domain of the variables
-	x_i as Real for i in A
+    // and here the domain of the variables
+    x_i as Real for i in A
 `.trim();
 </script>
 

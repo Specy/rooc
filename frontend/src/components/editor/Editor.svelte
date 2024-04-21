@@ -32,6 +32,8 @@
             language: language.toLowerCase(),
             theme: 'custom-theme',
             minimap: {enabled: false},
+            fontLigatures: true,
+            fontFamily: "Fira Code",
             scrollbar: {
                 vertical: 'auto',
                 horizontal: 'auto'

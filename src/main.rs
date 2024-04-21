@@ -16,19 +16,15 @@ fn main() {
             x + 3y + 4z = 1
      */
     let source = r#"
-        min sum(id in 0..len(C)) { v_{vars[id]} * C[id] }
-        s.t.
-            sum((a, j) in enumerate(A[i])) { v_{vars[j]} * a  } = B[i]  for i in 0..len(A)
-        where
-            let C = [3, 4, 6]
-            let A = [
-               [2, 1, 3],
-               [1, 3, 4]
-            ]
-            let B = [2, 1]
-            let vars = ["x", "y", "z"]
-        define
-            v_x  as Real for x in vars
+min 2x_1 - x_2 + x_3
+s.t.
+    /* write the constraints here */
+    3x_1 - x_2 + 2x_3 = 4
+    4x_1 + 2x_2 - x_3 >= 2
+    x_1 + x_3 <= 2
+define
+    // define the model's variables here
+    x_1, x_2, x_3 as Real
     "#
     .to_string();
 
