@@ -3,7 +3,7 @@
 	import Card from '$cmp/layout/Card.svelte';
 	import Column from '$cmp/layout/Column.svelte';
 	import Row from '$cmp/layout/Row.svelte';
-	import type { Project } from '$src/stores/projectStore';
+	import type { Project } from '$stores/userProjectsStore';
 	import { createEventDispatcher } from 'svelte';
 	export let project: Project;
 	import sago from 's-ago';

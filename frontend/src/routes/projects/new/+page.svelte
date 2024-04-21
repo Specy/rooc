@@ -4,7 +4,7 @@
 	import Textarea from '$cmp/inputs/Textarea.svelte';
 	import Card from '$cmp/layout/Card.svelte';
 	import Page from '$cmp/layout/Page.svelte';
-	import { projectStore } from '$src/stores/projectStore';
+	import { projectStore } from '$stores/userProjectsStore';
 	import { toast } from '$src/stores/toastStore';
 	import { goto } from '$app/navigation';
 	import Nav from '$cmp/layout/Nav.svelte';

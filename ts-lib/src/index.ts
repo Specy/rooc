@@ -1,7 +1,9 @@
 import {
     CompilationError as _CompilationError,
+    EqualityConstraint as _EqualityConstraint,
     InputSpan,
     LinearModel as _LinearModel,
+    LinearConstraint as _LinearConstraint,
     Model as _Model,
     OptimalTableau as _OptimalTableau,
     ParseError,
@@ -14,7 +16,6 @@ import {
     SerializedPreModel,
     SerializedTransformError,
     SerializedTypedToken,
-    EqualityConstraint as _EqualityConstraint,
     StandardLinearModel as _StandardLinearModel,
     Tableau as _Tableau,
     TransformErrorWrapper as _TransformErrorWrapper,
@@ -144,7 +145,7 @@ type RoocType<T, D> = {
     type: T
     data: D
 }
-type RoocData =
+export type RoocData =
     RoocType<PipeDataType.String, string> |
     RoocType<PipeDataType.Parser, RoocParser> |
     RoocType<PipeDataType.PreModel, PreModel> |
@@ -167,7 +168,10 @@ function toRoocData(data: WasmPipableData): RoocData {
         case PipeDataType.LinearModel:
             return {type: PipeDataType.LinearModel, data: new LinearModel(data.to_linear_model())}
         case PipeDataType.StandardLinearModel:
-            return {type: PipeDataType.StandardLinearModel, data: new StandardLinearModel(data.to_standard_linear_model())}
+            return {
+                type: PipeDataType.StandardLinearModel,
+                data: new StandardLinearModel(data.to_standard_linear_model())
+            }
         case PipeDataType.Tableau:
             return {type: PipeDataType.Tableau, data: new SimplexTableau(data.to_tableau())}
         case PipeDataType.OptimalTableau:
@@ -179,115 +183,180 @@ function toRoocData(data: WasmPipableData): RoocData {
 
 export class LinearModel {
     instance: _LinearModel
+
     constructor(instance: _LinearModel) {
         this.instance = instance;
     }
+
+    stringify() {
+        return this.instance.wasm_to_string()
+    }
+    getVariables() {
+        return this.instance.wasm_get_variables()
+    }
+    getObjectiveCoefficients() {
+        return this.instance.wasm_get_objective()
+    }
+    getObjectiveOffset() {
+        return this.instance.wasm_get_objective_offset()
+    }
+    getOptimizationType() {
+        return this.instance.wasm_get_optimization_type()
+    }
+    getConstraints(){
+        return this.instance.wasm_get_constraints()
+    }
 }
+
+export class LinearConstraint {
+    instance: _LinearConstraint
+
+    constructor(instance: _LinearConstraint) {
+        this.instance = instance;
+    }
+
+    getCoefficients() {
+        return this.instance.wasm_get_coefficients()
+    }
+
+    getRhs() {
+        return this.instance.wasm_get_rhs()
+    }
+    getConstraintType() {
+        return this.instance.wasm_get_constraint_type()
+    }
+
+}
+
 export class SimplexTableau {
     instance: _Tableau
+
     constructor(instance: _Tableau) {
         this.instance = instance;
     }
 
-    getOffsetValue(){
+    getOffsetValue() {
         return this.instance.wasm_get_value_offset()
     }
-    getCurrentValue(){
+
+    getCurrentValue() {
         return this.instance.wasm_get_current_value()
     }
-    getAMatrix(): number[][]{
+
+    getAMatrix(): number[][] {
         return this.instance.wasm_get_a()
     }
-    getBVector(): Float64Array{
+
+    getBVector(): Float64Array {
         return this.instance.wasm_get_b()
     }
+
     getCVector() {
         return this.instance.wasm_get_c()
     }
+
     getVariableNames() {
         return this.instance.wasm_get_variables()
     }
-    getIndexesOfVarsInBasis(){
+
+    getIndexesOfVarsInBasis() {
         return this.instance.wasm_get_in_basis()
     }
-    step(variableIndexesToAvoid?: number[]){
+
+    step(variableIndexesToAvoid?: number[]) {
         const vars = new Uint32Array(variableIndexesToAvoid ?? [])
         this.instance.wasm_step(vars)
     }
-    toString(){
+
+    stringify() {
         return this.instance.wasm_to_string()
     }
 
 }
+
 export class OptimalTableau {
     instance: _OptimalTableau
+
     constructor(instance: _OptimalTableau) {
         this.instance = instance;
     }
 
-    getTableau(){
+    getTableau() {
         return new SimplexTableau(this.instance.wasm_get_tableau())
     }
 
-    getVariablesValues(){
+    getVariablesValues() {
         return this.instance.wasm_get_variables_values()
     }
-    getOptimalValue(){
+
+    getOptimalValue() {
         return this.instance.wasm_get_optimal_value()
     }
 }
 
 export class StandardLinearModel {
     instance: _StandardLinearModel
+
     constructor(instance: _StandardLinearModel) {
         this.instance = instance;
     }
 
-    getObjective(){
+    getObjective() {
 
         return this.instance.wasm_get_objective()
     }
-    getConstraints(){
+
+    getConstraints() {
         return this.instance.wasm_get_constraints()
     }
-    getVariables(){
+
+    getVariables() {
         return this.instance.wasm_get_variables()
     }
-    getAMatrix(): number[][]{
+
+    getAMatrix(): number[][] {
         return this.instance.wasm_get_a()
     }
+
     getCVector() {
         return this.instance.wasm_get_c()
     }
-    getBVector(): Float64Array{
+
+    getBVector(): Float64Array {
         return this.instance.wasm_get_b()
     }
+
     getVariableNames() {
         return this.instance.wasm_get_variables()
     }
-    isObjectiveFlipped(){
+
+    isObjectiveFlipped() {
         return this.instance.wasm_get_flip_objective()
     }
 
-    toString(){
+    stringify() {
         return this.instance.wasm_to_string()
     }
 }
 
-export class EqualityConstraint{
+export class EqualityConstraint {
     instance: _EqualityConstraint
+
     constructor(instance: _EqualityConstraint) {
 
         this.instance = instance;
     }
-    getCoefficients(){
+
+    getCoefficients() {
         return this.instance.wasm_get_coefficients()
     }
-    getRhs(){
+
+    getRhs() {
         return this.instance.wasm_get_rhs()
     }
 
 }
+
 export class RoocRunnablePipe {
     instance: WasmPipeRunner
 
@@ -416,22 +485,22 @@ export type {
     SerializedPrimitive,
     SerializedSpanned,
     SerializedTuple,
-    VariableType,
     SerializedVariableKind,
     SerializedTransformError,
     SerializedTokenType,
     SerializedTypedToken,
     SerializedPrimitiveKind,
+    ParseError,
+    SerializedVariableToAssert,
+    SerializedVariablesDomainDeclaration,
+} from './pkg/rooc'
+
+export {
+    VariableType,
     BlockFunctionKind,
     BlockScopedFunctionKind,
     UnOp,
     BinOp,
     Comparison,
     OptimizationType,
-    ParseError,
-    SerializedVariableToAssert,
-    SerializedVariablesDomainDeclaration,
-    Pipes,
-    PipeDataType,
-
 } from './pkg/rooc'

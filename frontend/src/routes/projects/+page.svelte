@@ -5,7 +5,7 @@
 	import Row from '$cmp/layout/Row.svelte';
 	import ProjectCard from '$cmp/projects/ProjectCard.svelte';
 	import { textDownloader } from '$src/lib/utils';
-	import { projectStore, type Project } from '$src/stores/projectStore';
+	import { projectStore, type Project } from '$stores/userProjectsStore';
 	import { prompter } from '$src/stores/promptStore';
 	import { toast } from '$src/stores/toastStore';
 	import { onMount } from 'svelte';

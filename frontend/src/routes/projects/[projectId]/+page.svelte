@@ -4,7 +4,7 @@
     import Page from '$cmp/layout/Page.svelte';
     import {Monaco} from '$src/lib/Monaco';
     import {onMount} from 'svelte';
-    import {projectStore, type Project, createProject} from '$src/stores/projectStore';
+    import {projectStore, type Project, createProject, validateProject} from '$stores/userProjectsStore';
     import {page} from '$app/stores';
     import Floppy from '~icons/fa/floppy-o';
     import Book from '~icons/fa/book';
@@ -36,7 +36,7 @@
             const code = $page.url.searchParams.get('project');
             const parsed = JSON.parse(lzstring.decompressFromEncodedURIComponent(code));
             parsed.id = 'share';
-            project = parsed as Project;
+            project = validateProject(parsed)
             return
         }
         project = await projectStore.getProject($page.params.projectId);
@@ -80,7 +80,7 @@
     <meta name="description" content="Edit your Rooc project"/>
 </svelte:head>
 
-<Page style="height: 100vh">
+<Page style="height: 100vh; max-height: 100vh; overflow-y: scroll">
     <Row justify="between" padding="0.5rem" gap="0.5rem" align="center">
         <ButtonLink href="/projects">Projects</ButtonLink>
 

@@ -1,4 +1,4 @@
-import type { Project } from '$src/stores/projectStore';
+import type { Project } from '$stores/userProjectsStore';
 import Dexie from 'dexie';
 import type { Table } from 'dexie';
 

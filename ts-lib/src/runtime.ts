@@ -1,5 +1,26 @@
-import type { SerializedPrimitiveKind } from "./pkg/rooc";
+import { type SerializedPrimitiveKind} from "./pkg/rooc";
 import Fuse from 'fuse.js'
+
+//TODO remember to put this back in whenever they are updated, the runtime is supposed to not import anything from the compiler
+export enum PipeDataType {
+  String = 0,
+  Parser = 1,
+  PreModel = 2,
+  Model = 3,
+  LinearModel = 4,
+  StandardLinearModel = 5,
+  Tableau = 6,
+  OptimalTableau = 7,
+}
+export enum Pipes {
+  CompilerPipe = 0,
+  PreModelPipe = 1,
+  ModelPipe = 2,
+  LinearModelPipe = 3,
+  StandardLinearModelPipe = 4,
+  TableauPipe = 5,
+  OptimalTableauPipe = 6,
+}
 export type NamedParameter = {
     name: string;
     value: SerializedPrimitiveKind;
@@ -11,94 +32,94 @@ export type RuntimeFunction<T extends NamedParameter[], R extends SerializedPrim
     parameters: T;
     returnType: R;
 }
+
 export function makeRuntimeFunction<T extends NamedParameter[], R extends SerializedPrimitiveKind>(name: string, parameters: T, returnType: R, description?: string): RuntimeFunction<T, R> {
-    return { name, parameters, returnType, type: "RuntimeFunction", description };
+    return {name, parameters, returnType, type: "RuntimeFunction", description};
 }
 
 
-
 export const FN_lenOfIterable = makeRuntimeFunction("len", [
-    {
-        name: "of_iterable",
-        value: {
-            type: "Iterable",
+        {
+            name: "of_iterable",
             value: {
-                type: "Any"
+                type: "Iterable",
+                value: {
+                    type: "Any"
+                }
             }
-        }
-    },
-],
-    { type: "PositiveInteger" },
+        },
+    ],
+    {type: "PositiveInteger"},
     "Returns the length of the iterable"
 )
 export const FN_enumerateArray = makeRuntimeFunction("enumerate", [
-    {
-        name: "of_iterable",
-        value: {
-            type: "Iterable",
+        {
+            name: "of_iterable",
             value: {
-                type: "Any"
+                type: "Iterable",
+                value: {
+                    type: "Any"
+                }
             }
-        }
-    },
-],
+        },
+    ],
     {
         type: "Iterable",
         value: {
             type: "Tuple",
-            value: [{ type: "Any" }, { type: "PositiveInteger" }]
+            value: [{type: "Any"}, {type: "PositiveInteger"}]
         }
     },
     "Enumerates the iterable, returning a tuple of the element and its index"
 )
 
 export const FN_edges = makeRuntimeFunction("edges", [
-    { name: "of_graph", value: { type: "Graph" } }
-],
-    { type: "Iterable", value: { type: "GraphEdge" } },
+        {name: "of_graph", value: {type: "Graph"}}
+    ],
+    {type: "Iterable", value: {type: "GraphEdge"}},
     "Returns the edges of a graph"
 )
 
 export const FN_nodes = makeRuntimeFunction("nodes", [
-    { name: "of_graph", value: { type: "Graph" } }
-],
-    { type: "Iterable", value: { type: "GraphNode" } },
+        {name: "of_graph", value: {type: "Graph"}}
+    ],
+    {type: "Iterable", value: {type: "GraphNode"}},
     "Returns the nodes of a graph"
 )
 export const FN_neigh_edges = makeRuntimeFunction("neigh_edges", [
-    { name: "of_node", value: { type: "GraphNode" } },
-],
-    { type: "Iterable", value: { type: "GraphEdge" } },
+        {name: "of_node", value: {type: "GraphNode"}},
+    ],
+    {type: "Iterable", value: {type: "GraphEdge"}},
     "Returns the neighbour edges of a node"
 )
 
 export const FN_neigh_edges_of = makeRuntimeFunction("neigh_edges_of", [
-    { name: "of_node_name", value: { type: "String" } },
-    { name: "in_graph", value: { type: "Graph" } },
-],
-    { type: "Iterable", value: { type: "GraphEdge" } },
+        {name: "of_node_name", value: {type: "String"}},
+        {name: "in_graph", value: {type: "Graph"}},
+    ],
+    {type: "Iterable", value: {type: "GraphEdge"}},
     "Returns the neighbour edges of a node name in a graph"
 )
 export const FN_rangeArray = makeRuntimeFunction("range", [
-    {
-        name: "from",
-        value: {
-            type: "Integer"
-        }
-    },
-    {
-        name: "to",
-        value: {
-            type: "Integer"
-        }
-    },
-    {
-        name: "to_inclusive",
-        value: {
-            type: "Boolean"
-        }
-    },
-],
+        {
+            name: "from",
+            value: {
+                type: "Integer"
+            }
+        },
+        {
+            name: "to",
+            value: {
+                type: "Integer"
+            }
+        },
+        {
+            name: "to_inclusive",
+            value: {
+                type: "Boolean"
+            }
+        },
+    ],
     {
         type: "Iterable",
         value: {
@@ -126,7 +147,7 @@ export type RuntimeBlockScopedFunction = {
 }
 
 function makeRuntimeBlockScopedFunctionEntry(name: string, description: string): [string, RuntimeBlockScopedFunction] {
-    return [name, { type: "RuntimeBlockScopedFunction", name, description }]
+    return [name, {type: "RuntimeBlockScopedFunction", name, description}]
 }
 
 export const RUNTIME_BLOCK_SCOPED_FUNCTIONS = new Map([
@@ -142,9 +163,11 @@ export type RuntimeBlockFunction = {
     name: string;
     description: string;
 }
+
 function makeRuntimeBlockFunctionEntry(name: string, description: string): [string, RuntimeBlockFunction] {
-    return [name, { type: "RuntimeBlockFunction", name, description }]
+    return [name, {type: "RuntimeBlockFunction", name, description}]
 }
+
 export const RUNTIME_BLOCK_FUNCTIONS = new Map([
     makeRuntimeBlockFunctionEntry("min", "Computes the inner expression as the minimum of all elements"),
     makeRuntimeBlockFunctionEntry("max", "Computes the inner expression as the maximum of all elements"),
@@ -173,7 +196,9 @@ const fuzzer = new Fuse(ROOC_RUNTIME_TOKENS, {
 export function findRoocCompletionTokens(text: string) {
     return fuzzer.search(text).map(r => r.item)
 }
+
 export type PossibleCompletionToken = typeof ROOC_RUNTIME_TOKENS[number]
+
 export function findRoocExactToken(text: string): PossibleCompletionToken | undefined {
     return ROOC_RUNTIME_TOKENS.find(t => t.name === text)
 }
@@ -183,21 +208,26 @@ export type BuiltinType = {
     type: SerializedPrimitiveKind;
     description: string;
 }
+
 function makeBuiltinTypeEntry(type: SerializedPrimitiveKind, description: string): [string, BuiltinType] {
-    return [type.type, { type, description }]
+    return [type.type, {type, description}]
 }
+
 export const BUILTIN_TYPES_MAP = new Map([
-    makeBuiltinTypeEntry({ type: "Boolean" }, "A boolean value. can be defiend by `true` or `false`"),
-    makeBuiltinTypeEntry({ type: "Integer" }, "A integer"),
-    makeBuiltinTypeEntry({ type: "PositiveInteger" }, "A integer greater than zero"),
-    makeBuiltinTypeEntry({ type: "Number" }, "A floating point number"),
-    makeBuiltinTypeEntry({ type: "String" }, "A string, can be defined by `\"...\"`"),
-    makeBuiltinTypeEntry({ type: "Any" }, "Any value"),
-    makeBuiltinTypeEntry({ type: "Iterable", value: { type: "Any" } }, "An iterable of a value, usually an array, defined as a comma separated list of values in square brackets `[]`, e.g. `[1,2,3]`"),
-    makeBuiltinTypeEntry({ type: "Tuple", value: [] }, "A tuple of values"),
-    makeBuiltinTypeEntry({ type: "Graph" }, "A graph, can be defined as `Graph { ... }` where inside the brackets there are a list of nodes and it's adjacent edges, e.g. \n```rust\nGraph {\n    A -> [B:10, C],\n    B -> [C:2],\n    C\n}\n```"),
-    makeBuiltinTypeEntry({ type: "GraphNode" }, "A node of a graph"),
-    makeBuiltinTypeEntry({ type: "GraphEdge" }, "An edge of a graph"),
+    makeBuiltinTypeEntry({type: "Boolean"}, "A boolean value. can be defiend by `true` or `false`"),
+    makeBuiltinTypeEntry({type: "Integer"}, "A integer"),
+    makeBuiltinTypeEntry({type: "PositiveInteger"}, "A integer greater than zero"),
+    makeBuiltinTypeEntry({type: "Number"}, "A floating point number"),
+    makeBuiltinTypeEntry({type: "String"}, "A string, can be defined by `\"...\"`"),
+    makeBuiltinTypeEntry({type: "Any"}, "Any value"),
+    makeBuiltinTypeEntry({
+        type: "Iterable",
+        value: {type: "Any"}
+    }, "An iterable of a value, usually an array, defined as a comma separated list of values in square brackets `[]`, e.g. `[1,2,3]`"),
+    makeBuiltinTypeEntry({type: "Tuple", value: []}, "A tuple of values"),
+    makeBuiltinTypeEntry({type: "Graph"}, "A graph, can be defined as `Graph { ... }` where inside the brackets there are a list of nodes and it's adjacent edges, e.g. \n```rust\nGraph {\n    A -> [B:10, C],\n    B -> [C:2],\n    C\n}\n```"),
+    makeBuiltinTypeEntry({type: "GraphNode"}, "A node of a graph"),
+    makeBuiltinTypeEntry({type: "GraphEdge"}, "An edge of a graph"),
 ])
 export const BUILTIN_TYPE = BUILTIN_TYPES_MAP.values()
 const ALL = [
@@ -215,3 +245,96 @@ export const documentationFuzzer = new Fuse(ALL, {
 export function findRoocDocumentation(text: string) {
     return documentationFuzzer.search(text).map(r => r.item)
 }
+
+function makePipeDescriptionEntry(type: Pipes, name: string, description: string, input: PipeDataType, output: PipeDataType) {
+    return {
+        type,
+        name,
+        description,
+        input,
+        output
+    } as PipeDescription
+}
+type PipeDescription = {
+    type: Pipes;
+    name: string;
+    description: string;
+    input: PipeDataType;
+    output: PipeDataType;
+}
+export const pipeDescriptions = {
+    [Pipes.CompilerPipe]: makePipeDescriptionEntry(
+        Pipes.CompilerPipe,
+        "Compiler",
+        "Compiles the code",
+        PipeDataType.String,
+        PipeDataType.Parser
+    ),
+    [Pipes.PreModelPipe]: makePipeDescriptionEntry(
+        Pipes.PreModelPipe,
+        "Pre Model",
+        "Generates a model from the compiler output",
+        PipeDataType.Parser,
+        PipeDataType.PreModel
+    ),
+    [Pipes.ModelPipe]: makePipeDescriptionEntry(
+        Pipes.ModelPipe,
+        "Model",
+        "Run the Pre Model to generate the static model",
+        PipeDataType.PreModel,
+        PipeDataType.Model
+    ),
+    [Pipes.LinearModelPipe]: makePipeDescriptionEntry(
+        Pipes.LinearModelPipe,
+        "Linear model",
+        "Transforms the model into a linear model",
+        PipeDataType.Model,
+        PipeDataType.LinearModel
+    ),
+    [Pipes.StandardLinearModelPipe]: makePipeDescriptionEntry(
+        Pipes.StandardLinearModelPipe,
+        "Standard linear model",
+        "Transforms the linear model into a model in standard form",
+        PipeDataType.LinearModel,
+        PipeDataType.StandardLinearModel
+    ),
+    [Pipes.TableauPipe]: makePipeDescriptionEntry(
+        Pipes.TableauPipe,
+        "Tableau for simplex",
+        "Transforms the standard linear model into a tableau that can be used in the simplex algorithm, it creates artificial variables to find the initial basis",
+        PipeDataType.StandardLinearModel,
+        PipeDataType.Tableau
+    ),
+    [Pipes.OptimalTableauPipe]: makePipeDescriptionEntry(
+        Pipes.OptimalTableauPipe,
+        "Simplex algorithm",
+        "Runs the simplex algorithm to find the optimal solution",
+        PipeDataType.Tableau,
+        PipeDataType.OptimalTableau
+    )
+} satisfies Record<Pipes, PipeDescription>
+
+function makePipeDataEntry(type: PipeDataType, name: string, description: string) {
+    return {
+        type,
+        name,
+        description
+    } as PipeDataDescription
+}
+
+
+type PipeDataDescription = {
+    type: PipeDataType;
+    name: string;
+    description: string;
+}
+export const  pipeDataDescriptions = {
+    [PipeDataType.String]: makePipeDataEntry(PipeDataType.String, "String", "A string"),
+    [PipeDataType.Parser]: makePipeDataEntry(PipeDataType.Parser, "Parser", "The ROOC parser"),
+    [PipeDataType.PreModel]: makePipeDataEntry(PipeDataType.PreModel, "Pre Model", "The parsed model"),
+    [PipeDataType.Model]: makePipeDataEntry(PipeDataType.Model, "Model", "The compiled model"),
+    [PipeDataType.LinearModel]: makePipeDataEntry(PipeDataType.LinearModel, "Linear Model", "The linear model"),
+    [PipeDataType.StandardLinearModel]: makePipeDataEntry(PipeDataType.StandardLinearModel, "Standard Linear Model", "The linear model in standard form"),
+    [PipeDataType.Tableau]: makePipeDataEntry(PipeDataType.Tableau, "Tableau", "The tableau for the simplex algorithm"),
+    [PipeDataType.OptimalTableau]: makePipeDataEntry(PipeDataType.OptimalTableau, "Optimal Tableau", "The tableau after running the simplex algorithm")
+} satisfies Record<PipeDataType, PipeDataDescription>

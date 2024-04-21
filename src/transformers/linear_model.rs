@@ -8,7 +8,6 @@ use crate::{
 };
 use crate::transformers::standard_linear_model::StandardLinearModel;
 
-
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
 pub struct LinearConstraint {
@@ -38,6 +37,7 @@ impl LinearConstraint {
         self.coefficients.resize(size, 0.0);
     }
 }
+
 #[wasm_bindgen]
 impl LinearConstraint {
     pub fn wasm_get_coefficients(&self) -> Vec<f64> {
@@ -105,17 +105,29 @@ impl Display for LinearModel {
                 .coefficients
                 .iter()
                 .enumerate()
-                .map(|(i, c)| format!("{}{}", c, self.variables[i]))
+                .filter_map(|(i, c)| {
+                    if *c == 0.0 {
+                        None
+                    } else {
+                        Some(format!("{}{}", c, self.variables[i]))
+                    }
+                })
                 .collect::<Vec<String>>()
                 .join(" + ");
-            format!("{} {} {}", coefficients, c.constraint_type, c.rhs)
+            format!("    {} {} {}", coefficients, c.constraint_type, c.rhs)
         });
         let constraints = constraints.collect::<Vec<String>>().join("\n");
         let objective = self
             .objective
             .iter()
             .enumerate()
-            .map(|(i, c)| format!("{}{}", c, self.variables[i]))
+            .filter_map(|(i, c)| {
+                if *c == 0.0 {
+                    None
+                } else {
+                    Some(format!("{}{}", c, self.variables[i]))
+                }
+            })
             .collect::<Vec<String>>()
             .join(" + ");
         let objective = format!("{} + {}", objective, self.objective_offset);
@@ -144,7 +156,7 @@ impl LinearModel {
     pub fn wasm_get_optimization_type(&self) -> OptimizationType {
         self.optimization_type.clone()
     }
-    
+
     pub fn wasm_to_string(&self) -> String {
         format!("{}", self)
     }

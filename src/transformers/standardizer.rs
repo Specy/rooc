@@ -8,21 +8,22 @@ pub fn to_standard_form(problem: &LinearModel) -> Result<StandardLinearModel, ()
     let objective = problem.get_objective();
     let mut constraints: Vec<EqualityConstraint> = Vec::new();
     let mut variables = problem.get_variables().clone();
-    let mut slack_surplus_index = 0;
-    let mut total_variables = variables.len();
+    let mut context = NormalizationContext {
+        surplus_index: 0,
+        slack_index: 0,
+        total_variables: variables.len()
+    };
     for constraint in problem.get_constraints() {
         let (equality_constraint, added_variable) =
-            normalize_constraint(constraint, slack_surplus_index, total_variables);
+            normalize_constraint(constraint, &mut context);
         if let Some(variable) = added_variable {
             variables.push(variable);
-            slack_surplus_index += 1;
-            total_variables += 1;
         };
         constraints.push(equality_constraint);
     }
     constraints
         .iter_mut()
-        .for_each(|c| c.ensure_size(total_variables));
+        .for_each(|c| c.ensure_size(context.total_variables));
     let (objective_offset, objective, flip_objective) = match problem.get_optimization_type() {
         OptimizationType::Max => (
             problem.get_objective_offset(),
@@ -41,10 +42,16 @@ pub fn to_standard_form(problem: &LinearModel) -> Result<StandardLinearModel, ()
     ))
 }
 
+
+pub struct NormalizationContext {
+    pub surplus_index: usize,
+    pub slack_index: usize,
+    pub total_variables: usize,
+}
+
 pub fn normalize_constraint(
     constraint: &LinearConstraint,
-    last_slack_surplus_index: usize,
-    total_variables: usize,
+    context: &mut NormalizationContext,
 ) -> (EqualityConstraint, Option<String>) {
     match constraint.get_constraint_type() {
         Comparison::Equal => {
@@ -56,22 +63,24 @@ pub fn normalize_constraint(
         }
         Comparison::LowerOrEqual => {
             let mut coefficients = constraint.get_coefficients().clone();
-            coefficients.resize(total_variables, 0.0);
+            coefficients.resize(context.total_variables, 0.0);
             coefficients.push(1.0);
+            context.surplus_index += 1;
             let equality_constraint = EqualityConstraint::new(coefficients, constraint.get_rhs());
             (
                 equality_constraint,
-                Some(format!("rcs{}", last_slack_surplus_index + 1)),
+                Some(format!("$su_{}", context.surplus_index)),
             )
         }
         Comparison::UpperOrEqual => {
             let mut coefficients = constraint.get_coefficients().clone();
-            coefficients.resize(total_variables, 0.0);
+            coefficients.resize(context.total_variables, 0.0);
             coefficients.push(-1.0);
+            context.slack_index += 1;
             let equality_constraint = EqualityConstraint::new(coefficients, constraint.get_rhs());
             (
                 equality_constraint,
-                Some(format!("rcs{}", last_slack_surplus_index + 1)),
+                Some(format!("$sl_{}", context.slack_index)),
             )
         }
     }

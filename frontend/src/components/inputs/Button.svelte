@@ -39,7 +39,7 @@
 		text-align: center;
 		display: flex;
 		transition: all 0.3s;
-		font-size: 1rem;
+		font-size: 1em;
 		align-items: center;
 		justify-content: center;
 		width: fit-content;

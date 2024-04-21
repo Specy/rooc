@@ -8,7 +8,7 @@
 	import { onMount } from 'svelte';
 
 	import NoiseOverlay from '$cmp/layout/NoiseOverlay.svelte';
-	import { projectStore } from '$src/stores/projectStore';
+	import { projectStore } from '$stores/userProjectsStore';
 	import PromptProvider from '$cmp/PromptProvider.svelte';
 	import { registerServiceWorker } from '$src/lib/register-sw';
 	onMount(() => {

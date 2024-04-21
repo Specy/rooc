@@ -1,6 +1,7 @@
-import { db } from "$src/lib/db"
-import { get, writable } from "svelte/store"
-
+import {db} from "$src/lib/db"
+import {get, writable} from "svelte/store"
+import {type Pipes} from "@specy/rooc";
+import {defaultPipe} from "$lib/pipePresets";
 
 
 export type Project = {
@@ -11,10 +12,12 @@ export type Project = {
     createdAt: number,
     updatedAt: number
     content: string
+    pipes: Pipes[]
 }
 
-
-
+export function validateProject(project: Project): Project {
+    return {...createProject(), ...project}
+}
 
 export function createProject(): Project {
     return {
@@ -24,8 +27,8 @@ export function createProject(): Project {
         description: "",
         createdAt: new Date().getTime(),
         updatedAt: new Date().getTime(),
-        content: 
-`min x
+        content:
+            `min x
 s.t.
     /* write the constraints here */
     x >= y
@@ -35,22 +38,29 @@ where
 define
     // define the model's variables here
     x as Real`
+        ,
+        pipes: [...defaultPipe]
     }
+
 }
 
-type ProjectStore = {
+
+
+
+
+type UserProjectsStore = {
     initialized: boolean,
     projects: Project[],
 }
 
 export function createProjectStore() {
-    const { subscribe, update } = writable<ProjectStore>({
+    const {subscribe, update} = writable<UserProjectsStore>({
         initialized: false,
         projects: []
     })
 
     async function ensureInit() {
-        const isInit = get({ subscribe }).initialized
+        const isInit = get({subscribe}).initialized
         if (!isInit) {
             await syncProjectsWithStore()
             update(store => {
@@ -59,6 +69,7 @@ export function createProjectStore() {
             })
         }
     }
+
     async function createNewProject(name: string, description: string): Promise<Project> {
         await ensureInit()
         const project = createProject()
@@ -71,13 +82,14 @@ export function createProjectStore() {
         })
         return pr
     }
+
     async function updateProject(id: string, fields: Partial<Project>): Promise<Project> {
         await ensureInit()
         const project = await getProject(id)
-        const toUpdate = { ...project, ...fields }
+        const toUpdate = {...project, ...fields}
         delete toUpdate.id
         const pr = await db.updateProject(id, toUpdate)
-        
+
         update(store => {
             const index = store.projects.findIndex(p => p.id === pr.id)
             if (index === -1) {
@@ -88,6 +100,7 @@ export function createProjectStore() {
         })
         return pr
     }
+
     async function deleteProject(id: string) {
         await ensureInit()
         await db.deleteProject(id)
@@ -98,16 +111,20 @@ export function createProjectStore() {
     }
 
     async function syncProjectsWithStore() {
-        const projects = (await db.loadProjects()).sort((a, b) => b.updatedAt - a.updatedAt)
+        const promise = await db.loadProjects()
+        const projects = promise.sort((a, b) => b.updatedAt - a.updatedAt)
+            .map(validateProject)
         update(store => {
             store.projects = projects
             return store
         })
     }
+
     async function getProject(id: string): Promise<Project | undefined> {
         await ensureInit()
-        return get({ subscribe }).projects.find(p => p.id === id)
+        return get({subscribe}).projects.find(p => p.id === id)
     }
+
     return {
         subscribe,
         createNewProject,

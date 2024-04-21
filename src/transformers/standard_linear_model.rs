@@ -111,7 +111,7 @@ impl IntoCanonicalTableau for StandardLinearModel {
             for (i, constraint) in a.iter_mut().enumerate() {
                 constraint.resize(number_of_variables + number_of_artificial_variables, 0.0);
                 constraint[i + number_of_variables] = 1.0;
-                variables.push(format!("rca{}", i));
+                variables.push(format!("$a_{}", i));
                 for (j, coefficient) in constraint.iter().enumerate() {
                     c[j] -= coefficient;
                 }
@@ -254,10 +254,16 @@ impl Display for StandardLinearModel {
                 .coefficients
                 .iter()
                 .enumerate()
-                .map(|(i, c)| format!("{}{}", c, self.variables[i]))
+                .flat_map(|(i, c)| {
+                    if *c == 0.0 {
+                        None
+                    } else {
+                        Some(format!("{}{}", c, self.variables[i]))
+                    }
+                })
                 .collect::<Vec<_>>()
                 .join(" + ");
-            format!("{} = {}", coefficients, c.rhs)
+            format!("    {} = {}", coefficients, c.rhs)
         });
         write!(
             f,
@@ -265,7 +271,13 @@ impl Display for StandardLinearModel {
             self.objective
                 .iter()
                 .enumerate()
-                .map(|(i, c)| format!("{}{}", c, self.variables[i]))
+                .flat_map(|(i, c)| {
+                    if *c == 0.0 {
+                        None
+                    } else {
+                        Some(format!("{}{}", c, self.variables[i]))
+                    }
+                })
                 .collect::<Vec<_>>()
                 .join(" + "),
             self.objective_offset,

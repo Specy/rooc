@@ -89,7 +89,7 @@ impl Exp {
             Exp::Number(num) => Ok(LinearizationContext::from_rhs(*num)),
             Exp::Variable(name) => Ok(LinearizationContext::from_var(name.clone(), 1.0)),
             Exp::Min(exps) => {
-                let var_name = format!("rcmin_{}", linearizer_context.min_count);
+                let var_name = format!("$min_{}", linearizer_context.min_count);
                 linearizer_context.min_count += 1;
                 for exp in exps {
                     let constraint = Constraint::new(
@@ -103,7 +103,7 @@ impl Exp {
                 Ok(LinearizationContext::from_var(var_name, 1.0))
             }
             Exp::Max(exps) => {
-                let var_name = format!("rcmax_{}", linearizer_context.max_count);
+                let var_name = format!("$max_{}", linearizer_context.max_count);
                 linearizer_context.max_count += 1;
                 for exp in exps {
                     let constraint = Constraint::new(

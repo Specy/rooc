@@ -114,7 +114,7 @@ variable       = _{ !keyword ~ (compound_variable | simple_variable | escaped_co
 // terminal characters
 objective_type = @{ ^"min" | ^"max" }
 comparison     = @{ "<=" | ">=" | "=" }
-simple_variable   = @{ LETTER ~ (LETTER | NUMBER)* }
+simple_variable   = @{ "$"? ~ LETTER ~ (LETTER | NUMBER)* }
 
 escaped_compound_variable = { "\\" ~ compound_variable }
 compound_variable = { simple_variable? ~ ("_" ~ compound_variable_body)+ }
