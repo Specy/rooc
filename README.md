@@ -48,7 +48,7 @@ The library is compiled as a wasm module to be used in the [web editor](https://
     - [x] Code completion
   - [x] Language documentation 
   - [ ] Show the different steps of solving the problem
-  - [ ] List of modifications from the start of the problem to the end of the solution
+  - [x] List of modifications from the start of the problem to the end of the solution
 
 
 # Example

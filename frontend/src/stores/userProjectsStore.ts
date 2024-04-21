@@ -1,6 +1,6 @@
 import {db} from "$src/lib/db"
 import {get, writable} from "svelte/store"
-import {type Pipes} from "@specy/rooc";
+import type {Pipes} from "@specy/rooc";
 import {defaultPipe} from "$lib/pipePresets";
 
 
@@ -41,11 +41,7 @@ define
         ,
         pipes: [...defaultPipe]
     }
-
 }
-
-
-
 
 
 type UserProjectsStore = {

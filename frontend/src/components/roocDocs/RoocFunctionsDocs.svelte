@@ -9,7 +9,7 @@
         RUNTIME_BLOCK_SCOPED_FUNCTIONS,
         pipeDataDescriptions,
         pipeDescriptions
-    } from '@specy/rooc';
+    } from "@specy/rooc";
     import Separator from "$cmp/misc/Separator.svelte";
     import Row from "$cmp/layout/Row.svelte";
 

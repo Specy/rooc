@@ -1,5 +1,4 @@
-import {Pipes} from "@specy/rooc";
-
+import { Pipes } from "@specy/rooc"
 
 type PipePreset = {
     name: string,
