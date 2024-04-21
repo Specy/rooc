@@ -4,7 +4,7 @@
   <p><strong>Mathematical models compiler</strong></p>
 </div>
 
-[Go to the documentation (WIP)](https://github.com/Specy/rooc/wiki/ROOC-%E2%80%90-Documentation)
+[Go to the documentation (WIP)](https://rooc.specy.app/docs/rooc)
 
 The name ROOC stands for for the name of the courses i took at university (Ricerca Operativa, Ottimizzazione Combinatoria) that deals with finding solutions to mathematical optimization problems
 # What it is

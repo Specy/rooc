@@ -1,7 +1,7 @@
 # ROOC
 <img src='https://github.com/Specy/rooc/blob/main/logo-original.png' width='156px'/>
 
-[Go to the documentation (WIP)](https://github.com/Specy/rooc/wiki/ROOC-%E2%80%90-Documentation)
+[Go to the documentation (WIP)](https://rooc.specy.app/docs/rooc)
 
 # What it is
 Rooc is a language and compiler to parse and convert formal mathematical models into a static formulation. Static formulations can then be fed to transformers to convert them to linear problems or linear problems in standard form.
