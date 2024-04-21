@@ -157,7 +157,7 @@
         </h1>
         {#if $store.result.ok}
             <Column gap="0.5rem">
-                 {#each $store.result.val as step, i}
+                {#each $store.result.val as step, i}
                     {#if i === 0}
                         <PipeResultRenderer
                                 data={{type: PipeDataType.String, data: $store.source}}
@@ -193,11 +193,7 @@
                     style="background-color: color-mix(in srgb, var(--danger) 20%, transparent)"
                     padding="0.5rem 1rem"
             >
-                <pre
-                    style="overflow-x: auto"
-                >
-                    {$store.result.error}
-                </pre>
+                <pre style="overflow-x: auto">{$store.result.error}</pre>
             </Card>
         {/if}
     </Column>
