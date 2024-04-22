@@ -80,7 +80,7 @@
     <meta name="description" content="Edit your Rooc project"/>
 </svelte:head>
 
-<Page style="height: 100vh; max-height: 100vh; overflow-y: scroll">
+<Page style="min-height: 100vh;">
     <Row justify="between" padding="0.5rem" gap="0.5rem" align="center">
         <ButtonLink href="/projects">Projects</ButtonLink>
 
