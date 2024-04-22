@@ -1,12 +1,4 @@
-@font-face {
-	font-family: Rubik;
-	src: url(/fonts/Rubik-VariableFont_wght.ttf);
-}
-
-@font-face {
-	font-family: FiraCode;
-	src: url(/fonts/FiraCode-Medium.ttf);
-}
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Rubik:ital,wght@0,300..900;1,300..900&display=swap');
 
 * {
 	margin: 0;
