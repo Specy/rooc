@@ -36,7 +36,7 @@
                     <h1 class="welcome-title textShadow">
                         ROOC Optimization
                     </h1>
-                    <div>
+                    <div style="text-shadow: 2px 2px 10px black;">
                         A language and platform for easy optimization models.
                     </div>
                     <ul style="max-width: 30rem;">
@@ -132,16 +132,17 @@
     justify-content: flex-end;
     align-items: center;
     background-color: rgba(var(--RGB-primary), 0.9);
-    backdrop-filter: blur(1px);
     z-index: 2;
   }
 
   ul {
     margin-left: 1rem;
+
   }
 
   li {
     margin: 0.5rem 0;
+    text-shadow: 2px 2px 10px black;
   }
 
   .preview-image {
@@ -153,6 +154,7 @@
     position: absolute;
     background-image: url('/images/rooc-editor-wide.webp');
     mask: linear-gradient(90deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.1) 70%);
+    filter: blur(1px);
     background-repeat: no-repeat;
     background-position: center;
     background-size: cover;
