@@ -59,10 +59,6 @@ export function createProjectStore() {
         const isInit = get({subscribe}).initialized
         if (!isInit) {
             await syncProjectsWithStore()
-            update(store => {
-                store.initialized = true
-                return store
-            })
         }
     }
 
@@ -112,6 +108,7 @@ export function createProjectStore() {
             .map(validateProject)
         update(store => {
             store.projects = projects
+            store.initialized = true
             return store
         })
     }

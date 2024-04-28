@@ -3,6 +3,8 @@
     import SyntaxHighlighter from "$cmp/SyntaxHighlighter.svelte";
     import Column from "$cmp/layout/Column.svelte";
     import ExpandableContainer from "$cmp/layout/ExpandableContainer.svelte";
+    import PipeOptimalTableauRenderer from "$cmp/pipe/PipeOptimalTableauRenderer.svelte";
+    import PipeTableauRenderer from "$cmp/pipe/PipeTableauRenderer.svelte";
 
     export let data: RoocData
     export let pipeStep: Pipes | string
@@ -34,14 +36,9 @@
         <SyntaxHighlighter language="rooc" source={data.data.stringify()}
                            style="overflow-y: auto; overflow-x: auto; max-height: 50vh"/>
     {:else if data.type === PipeDataType.Tableau}
-        <pre>{data.data.stringify()}</pre>
-
+        <PipeTableauRenderer tableau={data.data}/>
     {:else if data.type === PipeDataType.OptimalTableau}
-        <pre>{data.data.getTableau().stringify()}</pre>
-
-        <Column>
-            Optimal value: {data.data.getOptimalValue()}
-        </Column>
+        <PipeOptimalTableauRenderer tableau={data.data}/>
     {/if}
 </ExpandableContainer>
 

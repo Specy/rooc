@@ -6,12 +6,12 @@
     "display": "fullscreen",
     "scope": "/",
     "start_url": "/projects",
-    "description": "Write formal mathematical optimization models",
+    "description": "A language and platform for easy optimization models.",
     "screenshots": [
         {
             "src": "/images/rooc-editor-wide.webp",
             "type": "image/png",
-            "sizes": "1156x907",
+            "sizes": "1918x907",
             "form_factor": "wide"
         }, {
             "src": "/images/rooc-editor-narrow.webp",

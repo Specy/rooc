@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use num_traits::Zero;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -127,7 +128,7 @@ impl Display for LinearModel {
                 .iter()
                 .enumerate()
                 .flat_map(|(i, c)| {
-                    if *c == 0.0 {
+                    if c.is_zero() {
                         None
                     } else {
                         let var = format_var(&self.variables[i], *c, is_first);
@@ -137,7 +138,8 @@ impl Display for LinearModel {
                 })
                 .collect::<Vec<String>>()
                 .join(" ");
-            format!("    {} {} {}", coefficients, c.constraint_type, c.rhs)
+            let rhs = if c.rhs.is_zero() { "0".to_string()} else { c.rhs.to_string() };
+            format!("    {} {} {rhs}", coefficients, c.constraint_type, )
         });
 
         let constraints = constraints.collect::<Vec<String>>().join("\n");
@@ -147,7 +149,7 @@ impl Display for LinearModel {
             .iter()
             .enumerate()
             .flat_map(|(i, c)| {
-                if *c == 0.0 {
+                if c.is_zero() {
                     None
                 } else {
                     let var = format_var(&self.variables[i], *c, is_first);
@@ -157,14 +159,14 @@ impl Display for LinearModel {
             })
             .collect::<Vec<String>>()
             .join(" ");
-        let offset = if self.objective_offset == 0.0 {
+        let offset = if self.objective_offset.is_zero() {
             "".to_string()
         } else if self.objective_offset < 0.0 {
             format!(" - {}", self.objective_offset.abs())
         } else {
             format!(" + {}", self.objective_offset)
         };
-        let objective = format!("{}{}", objective, self.objective_offset);
+        let objective = format!("{}{}", objective, offset);
         write!(
             f,
             "{} {}\ns.t.\n{}",

@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use num_traits::Zero;
 
 use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -255,7 +256,7 @@ impl Display for StandardLinearModel {
                 .iter()
                 .enumerate()
                 .flat_map(|(i, c)| {
-                    if *c == 0.0 {
+                    if c.is_zero() {
                         None
                     } else {
                         let var = format_var(&self.variables[i], *c, is_first);
@@ -265,10 +266,12 @@ impl Display for StandardLinearModel {
                 })
                 .collect::<Vec<_>>()
                 .join(" ");
-            format!("    {} = {}", coefficients, c.rhs)
+            let rhs = if c.rhs.is_zero() { "0".to_string()} else { c.rhs.to_string() };
+            
+            format!("    {} = {}", coefficients, rhs)
         });
         let mut is_first = true;
-        let offset = if self.objective_offset == 0.0 {
+        let offset = if self.objective_offset.is_zero() {
             "".to_string()
         } else if self.objective_offset < 0.0 {
             format!(" - {}", self.objective_offset.abs())
@@ -282,7 +285,7 @@ impl Display for StandardLinearModel {
                 .iter()
                 .enumerate()
                 .flat_map(|(i, c)| {
-                    if *c == 0.0 {
+                    if c.is_zero() {
                         None
                     } else {
                         let var = format_var(&self.variables[i], *c, is_first);

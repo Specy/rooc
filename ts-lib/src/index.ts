@@ -21,7 +21,8 @@ import {
     TransformErrorWrapper as _TransformErrorWrapper,
     WasmPipableData,
     WasmPipeError,
-    WasmPipeRunner
+    WasmPipeRunner,
+    Comparison,
 } from './pkg/rooc.js'
 import {Err, Ok, Result} from 'ts-results'
 
@@ -183,7 +184,12 @@ function toRoocData(data: WasmPipableData): RoocData {
 
 export class LinearModel {
     instance: _LinearModel
-
+    private cache: {
+        variables?: string[]
+        objectiveCoefficients?: number[]
+        objectiveOffset?: number
+        constraints?: LinearConstraint[]
+    } = {}
     constructor(instance: _LinearModel) {
         this.instance = instance;
     }
@@ -192,10 +198,16 @@ export class LinearModel {
         return this.instance.wasm_to_string()
     }
     getVariables() {
-        return this.instance.wasm_get_variables()
+        if(!this.cache.variables) {
+            this.cache.variables = this.instance.wasm_get_variables()
+        }
+        return this.cache.variables
     }
     getObjectiveCoefficients() {
-        return this.instance.wasm_get_objective()
+        if(!this.cache.objectiveCoefficients) {
+            this.cache.objectiveCoefficients = Array.from(this.instance.wasm_get_objective())
+        }
+        return this.cache.objectiveCoefficients
     }
     getObjectiveOffset() {
         return this.instance.wasm_get_objective_offset()
@@ -204,19 +216,27 @@ export class LinearModel {
         return this.instance.wasm_get_optimization_type()
     }
     getConstraints(){
-        return this.instance.wasm_get_constraints()
+        if(!this.cache.constraints) {
+            this.cache.constraints = Array.from(this.instance.wasm_get_constraints()).map(c => new LinearConstraint(c))
+        }
+        return this.cache.constraints
     }
 }
 
 export class LinearConstraint {
     instance: _LinearConstraint
-
+    private cache: {
+        coefficients?: number[]
+    } = {}
     constructor(instance: _LinearConstraint) {
         this.instance = instance;
     }
 
     getCoefficients() {
-        return this.instance.wasm_get_coefficients()
+        if(!this.cache.coefficients) {
+            this.cache.coefficients = Array.from(this.instance.wasm_get_coefficients())
+        }
+        return this.cache.coefficients
     }
 
     getRhs() {
@@ -230,6 +250,13 @@ export class LinearConstraint {
 
 export class SimplexTableau {
     instance: _Tableau
+    private cache: {
+        aMatrix?: number[][]
+        bVector?: number[]
+        cVector?: number[]
+        variableNames?: string[]
+        indexesOfVarsInBasis?: number[]
+    } = {}
 
     constructor(instance: _Tableau) {
         this.instance = instance;
@@ -244,28 +271,45 @@ export class SimplexTableau {
     }
 
     getAMatrix(): number[][] {
-        return this.instance.wasm_get_a()
+        if(!this.cache.aMatrix) {
+            this.cache.aMatrix = this.instance.wasm_get_a()
+        }
+        return this.cache.aMatrix
     }
 
-    getBVector(): Float64Array {
-        return this.instance.wasm_get_b()
+
+    getBVector() {
+        if(!this.cache.bVector) {
+            this.cache.bVector = Array.from(this.instance.wasm_get_b())
+        }
+        return this.cache.bVector
     }
 
     getCVector() {
-        return this.instance.wasm_get_c()
+        if(!this.cache.cVector) {
+            this.cache.cVector = Array.from(this.instance.wasm_get_c())
+        }
+        return this.cache.cVector
     }
 
     getVariableNames() {
-        return this.instance.wasm_get_variables()
+        if(!this.cache.variableNames) {
+            this.cache.variableNames = this.instance.wasm_get_variables()
+        }
+        return this.cache.variableNames
     }
 
     getIndexesOfVarsInBasis() {
-        return this.instance.wasm_get_in_basis()
+        if(!this.cache.indexesOfVarsInBasis) {
+            this.cache.indexesOfVarsInBasis = Array.from(this.instance.wasm_get_in_basis())
+        }
+        return this.cache.indexesOfVarsInBasis
     }
 
     step(variableIndexesToAvoid?: number[]) {
         const vars = new Uint32Array(variableIndexesToAvoid ?? [])
         this.instance.wasm_step(vars)
+        this.cache = {}
     }
 
     stringify() {
@@ -276,17 +320,26 @@ export class SimplexTableau {
 
 export class OptimalTableau {
     instance: _OptimalTableau
-
+    private cache: {
+        tableau?: SimplexTableau
+        variablesValues?: number[]
+    } = {}
     constructor(instance: _OptimalTableau) {
         this.instance = instance;
     }
 
     getTableau() {
-        return new SimplexTableau(this.instance.wasm_get_tableau())
+        if (!this.cache.tableau) {
+            this.cache.tableau = new SimplexTableau(this.instance.wasm_get_tableau())
+        }
+        return this.cache.tableau
     }
 
     getVariablesValues() {
-        return this.instance.wasm_get_variables_values()
+        if (!this.cache.variablesValues) {
+            this.cache.variablesValues = Array.from(this.instance.wasm_get_variables_values())
+        }
+        return this.cache.variablesValues
     }
 
     getOptimalValue() {
@@ -296,38 +349,59 @@ export class OptimalTableau {
 
 export class StandardLinearModel {
     instance: _StandardLinearModel
-
+    private cache: {
+        objective?: number[]
+        aMatrix?: number[][]
+        constraints?: EqualityConstraint[]
+        variables?: string[]
+        cVector?: number[]
+        bVector?: number[]
+    } = {}
     constructor(instance: _StandardLinearModel) {
         this.instance = instance;
     }
 
     getObjective() {
+        if (!this.cache.objective) {
+            this.cache.objective = Array.from(this.instance.wasm_get_objective())
+        }
+        return this.cache.objective
 
-        return this.instance.wasm_get_objective()
     }
 
     getConstraints() {
-        return this.instance.wasm_get_constraints()
+        if (!this.cache.constraints) {
+            this.cache.constraints = Array.from(this.instance.wasm_get_constraints()).map(c => new EqualityConstraint(c))
+        }
+        return this.cache.constraints
     }
 
     getVariables() {
-        return this.instance.wasm_get_variables()
+        if (!this.cache.variables) {
+            this.cache.variables = this.instance.wasm_get_variables()
+        }
+        return this.cache.variables
     }
 
     getAMatrix(): number[][] {
-        return this.instance.wasm_get_a()
+        if (!this.cache.aMatrix) {
+            this.cache.aMatrix = this.instance.wasm_get_a()
+        }
+        return this.cache.aMatrix
     }
 
     getCVector() {
-        return this.instance.wasm_get_c()
+        if (!this.cache.cVector) {
+            this.cache.cVector = Array.from(this.instance.wasm_get_c())
+        }
+        return this.cache.cVector
     }
 
-    getBVector(): Float64Array {
-        return this.instance.wasm_get_b()
-    }
-
-    getVariableNames() {
-        return this.instance.wasm_get_variables()
+    getBVector() {
+        if (!this.cache.bVector) {
+            this.cache.bVector = Array.from(this.instance.wasm_get_b())
+        }
+        return this.cache.bVector
     }
 
     isObjectiveFlipped() {
@@ -341,14 +415,19 @@ export class StandardLinearModel {
 
 export class EqualityConstraint {
     instance: _EqualityConstraint
-
+    private cache: {
+        coefficients?: number[]
+    } = {}
     constructor(instance: _EqualityConstraint) {
 
         this.instance = instance;
     }
 
     getCoefficients() {
-        return this.instance.wasm_get_coefficients()
+        if (!this.cache.coefficients) {
+            this.cache.coefficients = Array.from(this.instance.wasm_get_coefficients())
+        }
+        return this.cache.coefficients
     }
 
     getRhs() {

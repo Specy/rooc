@@ -16,15 +16,15 @@ fn main() {
             x + 3y + 4z = 1
      */
     let source = r#"
-min 2x_1 - x_2 + x_3
+min y + z
 s.t.
     /* write the constraints here */
-    3x_1 - x_2 + 2x_3 = 4
-    4x_1 + 2x_2 - x_3 >= 2
-    x_1 + x_3 <= 2
+    y <= min { 10, 20 }
+    z <= 20
+    y >= 4
 define
     // define the model's variables here
-    x_1, x_2, x_3 as Real
+    y, z as Real
     "#
     .to_string();
 

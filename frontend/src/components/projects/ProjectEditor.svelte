@@ -7,14 +7,14 @@
     import Row from '$cmp/layout/Row.svelte';
     import {createCompilerStore} from '$src/routes/projects/[projectId]/projectStore';
     import {PipeDataType, pipeDescriptions, Pipes} from "@specy/rooc";
-    import PipeInput from "$cmp/PipeInput.svelte";
+    import PipeInput from "$cmp/pipe/PipeInput.svelte";
     import Card from "$cmp/layout/Card.svelte";
     import PlugOut from "$cmp/icons/PlugOut.svelte";
     import PlugIn from "$cmp/icons/PlugIn.svelte";
     import Column from "$cmp/layout/Column.svelte";
     import {isPreset, pipePresets} from "$lib/pipePresets";
     import {prompter} from '$stores/promptStore'
-    import PipeResultRenderer from "$cmp/PipeResultRenderer.svelte";
+    import PipeResultRenderer from "$cmp/pipe/PipeResultRenderer.svelte";
     import FaPlus from '~icons/fa/plus.svelte'
     import LatexRenderer from "$cmp/LatexRenderer.svelte";
     import ExpandableContainer from "$cmp/layout/ExpandableContainer.svelte";

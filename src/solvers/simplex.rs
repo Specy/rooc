@@ -101,7 +101,7 @@ impl OptimalTableau {
     }
     pub fn get_optimal_value(&self) -> f64 {
         let flip = if self.flip_result { -1.0 } else { 1.0 };
-        ((self.tableau.get_current_value() * -1.0) + self.tableau.get_value_offset()) * flip
+        ((self.tableau.get_current_value()) + self.tableau.get_value_offset()) * flip
     }
     pub fn get_tableau(&self) -> &Tableau {
         &self.tableau
