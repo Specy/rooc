@@ -79,7 +79,7 @@
 
                     {#if installEvent}
                         <Button
-                                style="margin-top: 1rem; gap: 0.5rem;"
+                                style="gap: 0.5rem;"
                                 color="secondary"
                                 on:click={async () => {
 							try {
@@ -96,6 +96,10 @@
                             </Icon>
                             Install WebApp
                         </Button>
+                    {:else}
+                        <div style="height: 2.4rem">
+
+                        </div>
                     {/if}
                 </Column>
             </div>
@@ -104,11 +108,12 @@
 </Page>
 
 <style lang="scss">
-  .buttons{
+  .buttons {
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem;
   }
+
   .content {
     display: flex;
     flex: 1;
