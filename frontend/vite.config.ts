@@ -18,6 +18,6 @@ export default defineConfig({
 	],
 
 	optimizeDeps: {
-		exclude: ["@specy/rooc"]
+		exclude: ["@specy/dotlr"]
 	}
 });
