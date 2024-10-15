@@ -1,7 +1,6 @@
 <script lang="ts">
     import {pipeDataDescriptions, PipeDataType, pipeDescriptions, type Pipes, type RoocData} from "@specy/rooc";
     import SyntaxHighlighter from "$cmp/SyntaxHighlighter.svelte";
-    import Column from "$cmp/layout/Column.svelte";
     import ExpandableContainer from "$cmp/layout/ExpandableContainer.svelte";
     import PipeOptimalTableauRenderer from "$cmp/pipe/PipeOptimalTableauRenderer.svelte";
     import PipeTableauRenderer from "$cmp/pipe/PipeTableauRenderer.svelte";

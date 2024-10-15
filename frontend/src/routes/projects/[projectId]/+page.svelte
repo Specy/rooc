@@ -20,6 +20,7 @@
     import Book from '~icons/fa/book';
     import Share from '~icons/fa/share-alt';
     import FaDonate from '~icons/fa6-solid/hand-holding-dollar.svelte';
+
     let showDocs = false;
     let project: Project | undefined;
     onMount(() => {
@@ -84,7 +85,6 @@
     const debouncer = createDebouncer();
     $: {
         if(project && project?.id !== 'share'){
-            console.log('save')
             debouncer(() => save(), 1000);
         }
     }

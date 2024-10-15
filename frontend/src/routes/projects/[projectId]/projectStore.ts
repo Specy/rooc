@@ -1,5 +1,5 @@
 import {type Project, type ProjectPipe} from "$stores/userProjectsStore";
-import {type Pipes, type RoocData, RoocParser, RoocRunnablePipe} from "@specy/rooc";
+import {type RoocData, RoocParser, RoocRunnablePipe} from "@specy/rooc";
 import {writable} from "svelte/store";
 
 

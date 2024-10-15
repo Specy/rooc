@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {pipeDataDescriptions, PipeDataType, pipeDescriptions, Pipes} from "@specy/rooc";
+    import {pipeDataDescriptions, PipeDataType, pipeDescriptions} from "@specy/rooc";
     import {createEventDispatcher} from "svelte";
     import Card from "$cmp/layout/Card.svelte";
     import Column from "$cmp/layout/Column.svelte";

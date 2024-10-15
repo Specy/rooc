@@ -76,7 +76,6 @@ export function createProjectStore() {
     async function createNewProject(name: string, description: string): Promise<Project> {
         await ensureInit()
         const project = createProject()
-        console.log(project.pipes)
         project.name = name || "Unnamed"
         project.description = description
         const pr = await db.saveProject(project)

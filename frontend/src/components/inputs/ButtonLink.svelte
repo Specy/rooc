@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { ColorName } from '$src/stores/themeStore';
+	import type {ColorName} from '$src/stores/themeStore';
 	import Button from './Button.svelte';
+
 	export let disabled = false;
 	export let style = '';
 	export let hasIcon = false;
