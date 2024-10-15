@@ -88,7 +88,7 @@
             {project?.name ?? 'Project'}
         </h3>
 
-        <Row gap="0.5rem" style="margin-left: auto; height: 100%">
+        <Row gap="0.5rem" style="margin-left: auto; height: 2.4rem">
             <Button hasIcon on:click={share}>
                 <Share/>
             </Button>
@@ -125,5 +125,8 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+    :global(html){
+        overflow-y: scroll;
     }
 </style>

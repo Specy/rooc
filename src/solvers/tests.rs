@@ -108,7 +108,6 @@ fn should_solve_correctly_3() {
     let solution = solve(source).unwrap();
     assert_eq!(solution.get_optimal_value(), -2.0);
     let variables = solution.get_variables_values();
-    println!("{:?}", variables);
     assert_variables(variables, &vec![0.0, 2.0, 0.0, 5.0]);
 }
 
@@ -128,7 +127,7 @@ fn should_find_unbounded_2d() {
         Err(e) => {
             match e {
                 PipeError::SimplexError(SimplexError::Unbounded, _tableau) => {
-                    return; //TODO
+                    //TODO
                             /*
 
                             let variables = tableau.get_b();
@@ -160,14 +159,14 @@ fn should_find_unbounded_4d() {
         Err(e) => {
             match e {
                 PipeError::SimplexError(SimplexError::Unbounded, _tableau) => {
-                    return; //TODO
-                            /*
-                            let variables = tableau.get_b();
-                            println!("{}", tableau.to_string());
-                            let solution = tableau.get_current_value();
-                            assert_eq!(solution, 10.0);
-                            assert_variables(variables, &vec![0.0, 10.0, 0.0, 0.0, 0.0, 38.0, 17.0]);
-                             */
+                    //TODO
+                    /*
+                    let variables = tableau.get_b();
+                    println!("{}", tableau.to_string());
+                    let solution = tableau.get_current_value();
+                    assert_eq!(solution, 10.0);
+                    assert_variables(variables, &vec![0.0, 10.0, 0.0, 0.0, 0.0, 38.0, 17.0]);
+                     */
                 }
                 _ => panic!("Should be unbounded"),
             }
@@ -244,9 +243,7 @@ fn infeasible_starting_basis() {
     match solution {
         Ok(_) => panic!("Should not reach here"),
         Err(e) => match e {
-            PipeError::CanonicalizationError(CanonicalTransformError::Infesible(_)) => {
-                return;
-            }
+            PipeError::CanonicalizationError(CanonicalTransformError::Infesible(_)) => {}
             _ => panic!("Should be infeasible"),
         },
     }

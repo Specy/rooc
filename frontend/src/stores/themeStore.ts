@@ -53,7 +53,7 @@ const baseDarkTheme = {
         },
 
         accent: {
-            hex: '#b32d68',
+            hex: '#5256a4',
             name: 'accent',
             cssProp: 'accent'
         },

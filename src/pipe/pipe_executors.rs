@@ -122,7 +122,6 @@ impl Pipeable for TableauPipe {
     fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
         let standard_linear_model = data.as_standard_linear_model()?;
         let tableau = standard_linear_model.into_canonical();
-        //println!("--{:#?}", tableau);
         match tableau {
             Ok(tableau) => Ok(PipeableData::Tableau(tableau)),
             Err(e) => Err(PipeError::CanonicalizationError(e)),

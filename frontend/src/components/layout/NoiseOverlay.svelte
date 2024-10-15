@@ -7,12 +7,12 @@
 	style="
 		background-image: url('/images/noise2.png');
 		opacity: {opacity}
-        "
+    "
 />
 
 <style>
 	.overlay {
-		position: fixed;
+		position: absolute;
 		inset: 0;
 		z-index: 2;
 		background-size: var(--noise-size);
