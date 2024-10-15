@@ -1,5 +1,6 @@
 <script lang="ts">
     import type {SimplexTableau} from "@specy/rooc";
+    import {formatNum} from "$cmp/pipe/utils";
 
     export let tableau: SimplexTableau
 
@@ -31,9 +32,9 @@
         </tr>
         <tr>
             {#each c as value}
-                <th>{value}</th>
+                <th>{formatNum(value)}</th>
             {/each}
-            <th style="background-color: var(--accent); color: var(--accent-text)">{currentVal}</th>
+            <th style="background-color: var(--accent); color: var(--accent-text)">{formatNum(currentVal)}</th>
         </tr>
         </thead>
         <tbody>
@@ -41,12 +42,12 @@
         {#each a as row, i}
             <tr>
                 {#each row as value}
-                    <td>{value}</td>
+                    <td>{formatNum(value)}</td>
                 {/each}
                 <td
                         style="background-color: var(--secondary-10); color: var(--secondary-text)"
                 >
-                    {b[i]}
+                    {formatNum(b[i])}
                 </td>
             </tr>
         {/each}

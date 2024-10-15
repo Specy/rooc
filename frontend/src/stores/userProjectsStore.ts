@@ -21,18 +21,12 @@ export type Project = {
 }
 
 export function validateProject(project: Project): Project {
-    const p = {...createProject(), ...project}
-    if(project.version === 1){
-        //@ts-expect-error using new format
-        p.pipes = p.pipes.map(p => ({pipe: p, open: false}))
-        p.version = 2
-    }
-    return p
+    return {...createProject(), ...project}
 }
 
 export function createProject(): Project {
     return {
-        version: 2,
+        version: 1,
         id: "",
         name: "Unnamed",
         description: "",
