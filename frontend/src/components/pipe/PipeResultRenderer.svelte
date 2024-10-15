@@ -11,7 +11,10 @@
     export let expanded: boolean = false
 </script>
 
-<ExpandableContainer bind:expanded>
+<ExpandableContainer
+        bind:expanded
+        disabled={data.type === PipeDataType.Parser || data.type === PipeDataType.PreModel}
+>
     <h2 slot="title">
         {typeof pipeStep === "string" ? pipeStep : pipeDescriptions[pipeStep].name}
         ({pipeDataDescriptions[data.type].name})
