@@ -79,8 +79,6 @@ export interface DomainVariable {
 }
 "#;
 
-
-
 impl DomainVariable {
     pub fn new(as_type: VariableType, span: InputSpan) -> Self {
         Self {
@@ -322,8 +320,8 @@ impl TransformerContext {
             )),
         }
     }
-    pub fn into_components(self) -> (HashMap<String, DomainVariable>) {
-        (self.domain)
+    pub fn into_components(self) -> HashMap<String, DomainVariable> {
+        self.domain
     }
 }
 

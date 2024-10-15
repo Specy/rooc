@@ -1,11 +1,11 @@
-use crate::{
-    primitives::{primitive::Primitive, primitive_traits::Spreadable},
-    utils::Spanned,
-};
 use crate::parser::il::iterable_set::IterableSet;
 use crate::parser::model_transformer::model::VariableKind;
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::TransformerContext;
+use crate::{
+    primitives::{primitive::Primitive, primitive_traits::Spreadable},
+    utils::Spanned,
+};
 
 //TODO make this a iterator
 pub fn recursive_set_resolver<T>(

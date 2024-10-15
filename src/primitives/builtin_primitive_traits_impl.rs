@@ -34,10 +34,10 @@ impl ApplyOp for String {
             PrimitiveKind::String,
         ))
     }
-    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+    fn can_apply_binary_op(_op: BinOp, to: Self::TargetType) -> bool {
         matches!(to, PrimitiveKind::String)
     }
-    fn can_apply_unary_op(op: UnOp) -> bool {
+    fn can_apply_unary_op(_op: UnOp) -> bool {
         false
     }
 }
@@ -58,10 +58,10 @@ impl ApplyOp for bool {
             PrimitiveKind::Boolean,
         ))
     }
-    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+    fn can_apply_binary_op(_op: BinOp, _to: Self::TargetType) -> bool {
         false
     }
-    fn can_apply_unary_op(op: UnOp) -> bool {
+    fn can_apply_unary_op(_op: UnOp) -> bool {
         false
     }
 }
@@ -108,7 +108,7 @@ impl ApplyOp for f64 {
             UnOp::Neg => Ok(Primitive::Number(-self)),
         }
     }
-    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+    fn can_apply_binary_op(_op: BinOp, to: Self::TargetType) -> bool {
         matches!(
             to,
             PrimitiveKind::Number
@@ -220,7 +220,7 @@ impl ApplyOp for u64 {
             UnOp::Neg => Ok(Primitive::Integer(-(*self as i64))),
         }
     }
-    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+    fn can_apply_binary_op(_op: BinOp, to: Self::TargetType) -> bool {
         matches!(
             to,
             PrimitiveKind::Number

@@ -7,11 +7,12 @@ use wasm_bindgen::prelude::*;
 use parser::parser::{parse_problem_source, PreModel};
 use utils::CompilationError;
 
-use crate::parser::model_transformer::model::{Model, transform_parsed_problem};
+use crate::parser::model_transformer::model::{transform_parsed_problem, Model};
 
 pub mod macros;
 pub mod math;
 pub mod parser;
+pub mod pipe;
 pub mod primitives;
 pub mod runtime_builtin;
 pub mod solvers;
@@ -19,7 +20,6 @@ pub mod traits;
 pub mod transformers;
 pub mod type_checker;
 pub mod utils;
-pub mod pipe;
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -65,7 +65,7 @@ impl RoocParser {
                 .unwrap_or(e.get_traced_error())),
         }
     }
-    pub fn hover_provider(&self, line: usize, column: usize, offset: usize) {}
+    pub fn hover_provider(&self, _line: usize, _column: usize, _offset: usize) {}
 }
 
 #[wasm_bindgen]
@@ -82,7 +82,7 @@ impl RoocParser {
     pub fn parse_and_transform_wasm(&self) -> Result<Model, String> {
         self.parse_and_transform()
     }
-    
+
     pub fn wasm_get_source(&self) -> String {
         self.source.clone()
     }

@@ -1,11 +1,11 @@
-use std::fmt::Display;
 use num_traits::Zero;
+use std::fmt::Display;
 
-use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsValue;
 
 use crate::solvers::simplex::{
-    CanonicalTransformError, divide_matrix_row_by, IntoCanonicalTableau, Tableau, Tableauable,
+    divide_matrix_row_by, CanonicalTransformError, IntoCanonicalTableau, Tableau, Tableauable,
 };
 use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standardizer::to_standard_form;
@@ -27,6 +27,7 @@ impl EqualityConstraint {
     }
 }
 
+#[derive(Debug, Clone)]
 struct IndependentVariable {
     row: usize,
     column: usize,
@@ -266,8 +267,12 @@ impl Display for StandardLinearModel {
                 })
                 .collect::<Vec<_>>()
                 .join(" ");
-            let rhs = if c.rhs.is_zero() { "0".to_string()} else { c.rhs.to_string() };
-            
+            let rhs = if c.rhs.is_zero() {
+                "0".to_string()
+            } else {
+                c.rhs.to_string()
+            };
+
             format!("    {} = {}", coefficients, rhs)
         });
         let mut is_first = true;

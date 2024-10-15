@@ -2,7 +2,6 @@ use std::fmt::Display;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::{match_pipe_data_to, RoocParser};
 use crate::parser::model_transformer::model::Model;
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::parser::PreModel;
@@ -11,7 +10,7 @@ use crate::transformers::linear_model::LinearModel;
 use crate::transformers::linearizer::LinearizationError;
 use crate::transformers::standard_linear_model::StandardLinearModel;
 use crate::utils::CompilationError;
-
+use crate::{match_pipe_data_to, RoocParser};
 
 #[derive(Debug, Clone)]
 pub enum PipeableData {
@@ -24,7 +23,6 @@ pub enum PipeableData {
     Tableau(Tableau),
     OptimalTableau(OptimalTableau),
 }
-
 
 impl PipeableData {
     pub fn get_type(&self) -> PipeDataType {
@@ -146,14 +144,14 @@ pub enum PipeError {
         error: CompilationError,
         source: String,
     },
-    TransformError{
+    TransformError {
         error: TransformError,
         source: String,
     },
     LinearizationError(LinearizationError),
     StandardizationError(()),
     CanonicalizationError(CanonicalTransformError),
-    SimplexError(SimplexError),
+    SimplexError(SimplexError, Tableau),
 }
 impl Display for PipeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -169,16 +167,16 @@ impl Display for PipeError {
             PipeError::CompilationError { error, source } => {
                 write!(f, "{}", error.to_string_from_source(source))
             }
-            PipeError::TransformError { error, source }=> {
+            PipeError::TransformError { error, source } => {
                 match error.get_trace_from_source(source) {
                     Ok(trace) => write!(f, "{}", trace),
                     Err(_) => write!(f, "{}", error.get_traced_error()),
                 }
-            },
+            }
             PipeError::LinearizationError(e) => write!(f, "{}", e),
             PipeError::StandardizationError(_) => write!(f, "Standardization error"),
             PipeError::CanonicalizationError(e) => write!(f, "{}", e),
-            PipeError::SimplexError(e) => write!(f, "{}", e),
+            PipeError::SimplexError(e, _) => write!(f, "{}", e),
         }
     }
 }

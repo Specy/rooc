@@ -10,7 +10,7 @@ use wasm_bindgen::prelude::*;
 use crate::bail_missing_token;
 use crate::math::math_enums::VariableType;
 use crate::parser::il::il_problem::{PreConstraint, PreObjective};
-use crate::parser::model_transformer::model::{Model, transform_parsed_problem};
+use crate::parser::model_transformer::model::{transform_parsed_problem, Model};
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::assert_no_duplicates_in_domain;
 use crate::primitives::consts::Constant;
@@ -85,12 +85,10 @@ impl PreModel {
         self.domains
             .iter()
             .flat_map(|d| {
-                d.get_static_variables()
-                    .into_iter()
-                    .map(|v| {
-                        let (name, span) = v.into_tuple();
-                        (name, Spanned::new(d.get_type().clone(), span))
-                    })
+                d.get_static_variables().into_iter().map(|v| {
+                    let (name, span) = v.into_tuple();
+                    (name, Spanned::new(d.get_type().clone(), span))
+                })
             })
             .collect::<Vec<_>>()
     }
@@ -197,7 +195,7 @@ impl PreModel {
     pub fn to_latex_wasm(&self) -> String {
         self.to_latex()
     }
-    
+
     pub fn wasm_get_source(&self) -> Option<String> {
         self.source.clone()
     }
@@ -281,7 +279,7 @@ pub fn parse_problem_source(source: &String) -> Result<PreModel, CompilationErro
                 return Err(CompilationError::new(
                     ParseError::MissingToken("Failed to parse, missing problem".to_string()),
                     InputSpan::default(),
-                    source.clone()
+                    source.clone(),
                 ));
             }
             let problem = problem.unwrap();
@@ -290,7 +288,7 @@ pub fn parse_problem_source(source: &String) -> Result<PreModel, CompilationErro
         Err(err) => {
             let location = &err.location;
             let span = match location {
-                pest::error::InputLocation::Pos(pos) =>  InputSpan {
+                pest::error::InputLocation::Pos(pos) => InputSpan {
                     start: *pos as u32,
                     len: 1,
                     start_line: 0,

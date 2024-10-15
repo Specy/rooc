@@ -2,11 +2,10 @@ use std::fmt::Display;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::pipe::pipe::{Pipeable, PipeableData, PipeError};
-use crate::RoocParser;
+use crate::pipe::pipe::{PipeError, Pipeable, PipeableData};
 use crate::solvers::simplex::IntoCanonicalTableau;
 use crate::transformers::linearizer::Linearizer;
-
+use crate::RoocParser;
 
 #[wasm_bindgen]
 pub enum Pipes {
@@ -123,6 +122,7 @@ impl Pipeable for TableauPipe {
     fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
         let standard_linear_model = data.as_standard_linear_model()?;
         let tableau = standard_linear_model.into_canonical();
+        //println!("--{:#?}", tableau);
         match tableau {
             Ok(tableau) => Ok(PipeableData::Tableau(tableau)),
             Err(e) => Err(PipeError::CanonicalizationError(e)),
@@ -142,7 +142,7 @@ impl Pipeable for OptimalTableauPipe {
         let optimal_tableau = tableau.solve(1000);
         match optimal_tableau {
             Ok(optimal_tableau) => Ok(PipeableData::OptimalTableau(optimal_tableau)),
-            Err(e) => Err(PipeError::SimplexError(e)),
+            Err(e) => Err(PipeError::SimplexError(e, tableau)),
         }
     }
 }

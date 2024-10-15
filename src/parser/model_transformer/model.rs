@@ -5,7 +5,6 @@ use std::hash::Hash;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use crate::{primitives::primitive::Primitive, utils::Spanned};
 use crate::math::math_enums::{Comparison, OptimizationType};
 use crate::math::operators::{BinOp, UnOp};
 use crate::parser::il::il_exp::PreExp;
@@ -15,7 +14,7 @@ use crate::parser::model_transformer::transformer_context::{DomainVariable, Tran
 use crate::parser::parser::PreModel;
 use crate::parser::recursive_set_resolver::recursive_set_resolver;
 use crate::traits::latex::{escape_latex, ToLatex};
-
+use crate::{primitives::primitive::Primitive, utils::Spanned};
 
 #[derive(Debug, Clone, Serialize)]
 pub enum Exp {
@@ -250,7 +249,7 @@ impl Exp {
                 } else {
                     //TODO improve this
                     match last_operator {
-                        BinOp::Add  | BinOp::Mul | BinOp::Div => {
+                        BinOp::Add | BinOp::Mul | BinOp::Div => {
                             format!("{} {} {}", string_lhs, op, string_rhs)
                         }
                         BinOp::Sub => match rhs.is_leaf() {
@@ -553,6 +552,6 @@ pub fn transform_model(
             constraints.push(transformed_constraint);
         }
     }
-    let (domain) = context.into_components();
+    let domain = context.into_components();
     Ok(Model::new(objective, constraints, domain))
 }

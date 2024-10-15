@@ -1,6 +1,9 @@
 use pest::iterators::Pair;
 use serde::Serialize;
 
+use crate::parser::il::il_exp::PreExp;
+use crate::parser::model_transformer::transform_error::TransformError;
+use crate::parser::model_transformer::transformer_context::TransformerContext;
 use crate::{
     bail_incorrect_type_signature, bail_incorrect_type_signature_of_fn,
     bail_wrong_number_of_arguments,
@@ -13,9 +16,6 @@ use crate::{
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::InputSpan,
 };
-use crate::parser::il::il_exp::PreExp;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::TransformerContext;
 
 use super::function_traits::FunctionCall;
 

@@ -3,14 +3,14 @@ use core::fmt;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::{
-    type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
-    utils::Spanned,
-};
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::TransformerContext;
 use crate::traits::latex::ToLatex;
+use crate::{
+    type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
+    utils::Spanned,
+};
 
 use super::primitive::{Primitive, PrimitiveKind};
 

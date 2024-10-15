@@ -94,10 +94,10 @@ impl ApplyOp for Tuple {
     fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
         Err(OperatorError::unsupported_un_operation(op, self.get_type()))
     }
-    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+    fn can_apply_binary_op(_: BinOp, _: Self::TargetType) -> bool {
         false
     }
-    fn can_apply_unary_op(op: UnOp) -> bool {
+    fn can_apply_unary_op(_: UnOp) -> bool {
         false
     }
 }

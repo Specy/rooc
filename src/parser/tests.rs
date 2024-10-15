@@ -465,5 +465,4 @@ define
             .type_check()
             .expect_err("Failed to typecheck duplicate");
     }
-
 }

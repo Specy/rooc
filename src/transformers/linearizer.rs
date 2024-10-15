@@ -116,7 +116,7 @@ impl Exp {
                 linearizer_context.declare_variable(var_name.clone(), VariableType::Real)?;
                 Ok(LinearizationContext::from_var(var_name, 1.0))
             }
-            Exp::Abs(exp) => Err(LinearizationError::UnimplementedExpression(Box::new(
+            Exp::Abs(_) => Err(LinearizationError::UnimplementedExpression(Box::new(
                 self.clone(),
             ))),
         }
@@ -173,7 +173,9 @@ impl Display for MidLinearConstraint {
 #[derive(Default)]
 pub struct Linearizer {
     constraints: VecDeque<Constraint>,
+    #[allow(dead_code)]
     surplus_count: u32,
+    #[allow(dead_code)]
     slack_count: u32,
     min_count: u32,
     max_count: u32,
@@ -216,7 +218,7 @@ impl Linearizer {
     pub fn get_used_variables(&self) -> Vec<String> {
         self.domain
             .iter()
-            .filter(|(name, v)| v.is_used())
+            .filter(|(_, v)| v.is_used())
             .map(|(name, _)| name.clone())
             .collect()
     }

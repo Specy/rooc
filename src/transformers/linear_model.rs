@@ -1,13 +1,13 @@
-use std::fmt::Display;
 use num_traits::Zero;
+use std::fmt::Display;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
+use crate::transformers::standard_linear_model::{format_var, StandardLinearModel};
 use crate::{
     math::math_enums::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
 };
-use crate::transformers::standard_linear_model::{format_var, StandardLinearModel};
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
@@ -138,8 +138,12 @@ impl Display for LinearModel {
                 })
                 .collect::<Vec<String>>()
                 .join(" ");
-            let rhs = if c.rhs.is_zero() { "0".to_string()} else { c.rhs.to_string() };
-            format!("    {} {} {rhs}", coefficients, c.constraint_type, )
+            let rhs = if c.rhs.is_zero() {
+                "0".to_string()
+            } else {
+                c.rhs.to_string()
+            };
+            format!("    {} {} {rhs}", coefficients, c.constraint_type,)
         });
 
         let constraints = constraints.collect::<Vec<String>>().join("\n");

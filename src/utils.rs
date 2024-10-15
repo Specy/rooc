@@ -3,13 +3,14 @@ use std::{fmt::Debug, ops::Deref, ops::DerefMut};
 
 use pest::{iterators::Pair, Span};
 use serde::Serialize;
-use wasm_bindgen::{JsValue, prelude::wasm_bindgen};
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 use crate::parser::parser::Rule;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
 #[wasm_bindgen]
-pub struct InputSpan { //as u32 as realistically we won't have more than 4 billion characters in a file
+pub struct InputSpan {
+    //as u32 as realistically we won't have more than 4 billion characters in a file
     pub start_line: u32,
     pub start_column: u32,
     pub start: u32,
@@ -44,7 +45,7 @@ impl InputSpan {
     pub fn get_span_text<'a>(&self, text: &'a str) -> Result<&'a str, String> {
         let end = (self.start + self.len) as usize;
         let start = self.start as usize;
-        if  start > text.len() || end > text.len() {
+        if start > text.len() || end > text.len() {
             return Err(format!(
                 "Span out of bounds: {}..{} (text len: {})",
                 start,
@@ -52,7 +53,7 @@ impl InputSpan {
                 text.len()
             ));
         }
-        Ok(&text[ start..end])
+        Ok(&text[start..end])
     }
 }
 

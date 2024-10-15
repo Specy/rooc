@@ -118,13 +118,11 @@ impl IterableSet {
                             .add_span(&self.span);
                             Err(err)
                         } else {
-                            Ok(
-                                vars
+                            Ok(vars
                                 .iter()
                                 .zip(spreads_into.iter())
                                 .map(|(v, t)| (v.clone(), t.clone()))
-                                .collect::<Vec<_>>()
-                            )
+                                .collect::<Vec<_>>())
                         }
                     }
                 }

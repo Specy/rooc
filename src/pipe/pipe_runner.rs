@@ -1,4 +1,4 @@
-use crate::pipe::pipe::{Pipeable, PipeableData, PipeError};
+use crate::pipe::pipe::{PipeError, Pipeable, PipeableData};
 
 pub struct PipeRunner {
     pipes: Vec<Box<dyn Pipeable>>,
@@ -9,7 +9,10 @@ impl PipeRunner {
         PipeRunner { pipes }
     }
 
-    pub fn run(&self, data: PipeableData) -> Result<Vec<PipeableData>, (PipeError, Vec<PipeableData>)> {
+    pub fn run(
+        &self,
+        data: PipeableData,
+    ) -> Result<Vec<PipeableData>, (PipeError, Vec<PipeableData>)> {
         if self.pipes.is_empty() {
             return Ok(vec![data]);
         }

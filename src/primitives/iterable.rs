@@ -3,12 +3,12 @@ use core::fmt;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
+use crate::parser::model_transformer::transform_error::TransformError;
+use crate::traits::latex::ToLatex;
 use crate::{
     check_bounds,
     math::operators::{BinOp, UnOp},
 };
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::traits::latex::ToLatex;
 
 use super::{
     graph::{Graph, GraphEdge, GraphNode},
@@ -311,10 +311,10 @@ impl ApplyOp for IterableKind {
             self.get_inner_type(),
         ))
     }
-    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+    fn can_apply_binary_op(_: BinOp, _: Self::TargetType) -> bool {
         false
     }
-    fn can_apply_unary_op(op: UnOp) -> bool {
+    fn can_apply_unary_op(_: UnOp) -> bool {
         false
     }
 }

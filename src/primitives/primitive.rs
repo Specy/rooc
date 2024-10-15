@@ -4,14 +4,14 @@ use std::fmt::Display;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
+use crate::parser::model_transformer::transform_error::TransformError;
+use crate::traits::latex::ToLatex;
 use crate::{
     bail_wrong_argument, match_or_bail,
     math::operators::{BinOp, UnOp},
     primitives::primitive_traits::ApplyOp,
     wrong_argument,
 };
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::traits::latex::ToLatex;
 
 use super::{
     graph::{Graph, GraphEdge, GraphNode},

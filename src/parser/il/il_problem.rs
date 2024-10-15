@@ -1,21 +1,19 @@
 use core::fmt;
 
-use serde::ser::SerializeStruct;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use crate::{
-    math::math_enums::{Comparison, OptimizationType},
-    primitives::{functions::function_traits::FunctionCall, primitive::Primitive},
-    type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
-    utils::InputSpan,
-};
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::iterable_set::IterableSet;
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::TransformerContext;
-use crate::primitives::primitive_traits::ApplyOp;
 use crate::traits::latex::ToLatex;
+use crate::{
+    math::math_enums::{Comparison, OptimizationType},
+    primitives::primitive::Primitive,
+    type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
+    utils::InputSpan,
+};
 
 #[derive(Debug, Serialize, Clone)]
 pub struct AddressableAccess {

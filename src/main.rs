@@ -16,15 +16,15 @@ fn main() {
             x + 3y + 4z = 1
      */
     let source = r#"
-min y + z
+max x_1 + 2x_2
 s.t.
     /* write the constraints here */
-    y <= min { 10, 20 }
-    z <= 20
-    y >= 4
+    x_2 <= 2x_1 + 2
+    x_1 + 3x_2 <= 27
+    x_1 + x_2 <= 15
+    2x_1 <= x_2 + 18
 define
-    // define the model's variables here
-    y, z as Real
+    x_1, x_2 as PositiveReal
     "#
     .to_string();
 
@@ -49,6 +49,7 @@ define
             println!("{}", str)
         }
         Err((error, context)) => {
+            return;
             let context = context
                 .iter()
                 .map(|data| format!("//--------{}--------//\n\n{}", data.get_type(), data))

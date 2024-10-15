@@ -3,7 +3,7 @@ use crate::transformers::linear_model::{LinearConstraint, LinearModel};
 use crate::transformers::standard_linear_model::{EqualityConstraint, StandardLinearModel};
 
 pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, ()> {
-    let (objective, optimization_type, objective_offset, mut constraints, mut variables) =
+    let (objective, optimization_type, objective_offset, constraints, mut variables) =
         problem.into_parts();
     let mut context = NormalizationContext {
         surplus_index: 0,
@@ -34,7 +34,6 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, ()>
         ),
         OptimizationType::Min => (objective_offset, objective.clone(), false),
     };
-    println!("{:#?}", constraints);
     Ok(StandardLinearModel::new(
         objective,
         constraints,

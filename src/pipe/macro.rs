@@ -15,7 +15,7 @@ macro_rules! match_pipe_data_to {
             PipeableData::$type(m) => Ok(m),
             _ => Err(PipeError::InvalidData {
                 expected: PipeDataType::$expected,
-                got: $to.get_type()
+                got: $to.get_type(),
             }),
         }
     };

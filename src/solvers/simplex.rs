@@ -6,10 +6,10 @@ use std::fmt::Display;
 use num_rational::Rational64;
 use num_traits::cast::FromPrimitive;
 use term_table::row::Row;
-use term_table::Table;
 use term_table::table_cell::TableCell;
-use wasm_bindgen::JsValue;
+use term_table::Table;
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsValue;
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
@@ -46,9 +46,8 @@ impl Display for Tableau {
     }
 }
 
-
 #[wasm_bindgen]
-impl Tableau{
+impl Tableau {
     pub fn wasm_get_variables(&self) -> Vec<String> {
         self.variables.clone()
     }
@@ -70,7 +69,7 @@ impl Tableau{
     pub fn wasm_get_value_offset(&self) -> f64 {
         self.value_offset
     }
-    
+
     pub fn wasm_step(&mut self, variables_to_avoid: Vec<usize>) -> Result<bool, SimplexError> {
         self.step(&variables_to_avoid)
     }
@@ -101,7 +100,12 @@ impl OptimalTableau {
     }
     pub fn get_optimal_value(&self) -> f64 {
         let flip = if self.flip_result { -1.0 } else { 1.0 };
-        ((self.tableau.get_current_value()) + self.tableau.get_value_offset()) * flip
+        println!(
+            "{} {}",
+            self.tableau.get_current_value(),
+            self.tableau.get_value_offset()
+        );
+        ((self.tableau.get_current_value() + self.tableau.get_value_offset()) * -1.0) * flip
     }
     pub fn get_tableau(&self) -> &Tableau {
         &self.tableau
@@ -150,7 +154,6 @@ impl Display for SimplexError {
         f.write_str(s)
     }
 }
-
 
 impl Tableau {
     pub fn new(

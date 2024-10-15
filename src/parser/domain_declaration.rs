@@ -3,16 +3,16 @@ use std::fmt::Display;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
+use crate::parser::il::il_problem::CompoundVariable;
+use crate::parser::il::iterable_set::IterableSet;
+use crate::parser::model_transformer::transform_error::TransformError;
+use crate::parser::model_transformer::transformer_context::TransformerContext;
 use crate::{
     math::math_enums::VariableType,
     traits::latex::{escape_latex, ToLatex},
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext},
     utils::{InputSpan, Spanned},
 };
-use crate::parser::il::il_problem::CompoundVariable;
-use crate::parser::il::iterable_set::IterableSet;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::TransformerContext;
 
 use super::recursive_set_resolver::recursive_set_resolver;
 

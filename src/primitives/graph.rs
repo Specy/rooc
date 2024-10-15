@@ -94,7 +94,7 @@ impl ToLatex for GraphNode {
             .collect::<Vec<_>>()
             .join(",\\ ");
         if edges.is_empty() {
-            return format!("{}", self.name);
+            self.name.clone()
         } else {
             format!("{}\\to\\left\\{{{}\\right\\}}", self.name, edges)
         }
@@ -223,10 +223,10 @@ impl ApplyOp for GraphNode {
             PrimitiveKind::GraphNode,
         ))
     }
-    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+    fn can_apply_binary_op(_: BinOp, _: Self::TargetType) -> bool {
         false
     }
-    fn can_apply_unary_op(op: UnOp) -> bool {
+    fn can_apply_unary_op(_: UnOp) -> bool {
         false
     }
 }
@@ -247,10 +247,10 @@ impl ApplyOp for GraphEdge {
             PrimitiveKind::GraphEdge,
         ))
     }
-    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+    fn can_apply_binary_op(_: BinOp, _: Self::TargetType) -> bool {
         false
     }
-    fn can_apply_unary_op(op: UnOp) -> bool {
+    fn can_apply_unary_op(_: UnOp) -> bool {
         false
     }
 }
@@ -271,10 +271,10 @@ impl ApplyOp for Graph {
             PrimitiveKind::Graph,
         ))
     }
-    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+    fn can_apply_binary_op(_: BinOp, _: Self::TargetType) -> bool {
         false
     }
-    fn can_apply_unary_op(op: UnOp) -> bool {
+    fn can_apply_unary_op(_: UnOp) -> bool {
         false
     }
 }
