@@ -3,6 +3,7 @@
     import Page from '$cmp/layout/Page.svelte';
     import {Monaco} from '$src/lib/Monaco';
     import {onMount} from 'svelte';
+    import { goto } from '$app/navigation';
     import {type Project, projectStore, validateProject} from '$stores/userProjectsStore';
     import {page} from '$app/stores';
     import Row from '$cmp/layout/Row.svelte';
@@ -57,6 +58,7 @@
                 const newProject = await projectStore.createNewProject(project.name, project.description);
                 project.id = newProject.id;
                 toast.logPill('Project added to your projects');
+                goto(`/projects/${project.id}`)
             }
             await projectStore.updateProject(project.id, project);
         } catch (e) {
@@ -64,7 +66,6 @@
             console.error(e);
         }
     }
-
 
     function share() {
         if (!project) return;

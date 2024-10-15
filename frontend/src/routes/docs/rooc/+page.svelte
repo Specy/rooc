@@ -3,7 +3,11 @@
     import Page from '$cmp/layout/Page.svelte';
     import RoocFunctionsDocs from '$cmp/roocDocs/RoocFunctionsDocs.svelte';
     import RoocSyntaxDocs from '$cmp/roocDocs/RoocSyntaxDocs.svelte';
-    const url = `/projects/share?project=N4IgbgpgTgzglgewHYgFwEYA0I4BM0gwAWAhlBCNkiQLYWogCiAHrQA4A2F2uEMAxlDhsALohQMAgkgAEEVjU4QZNBLw6UQgiCRERckkWnQB2AAwnLAVhMAmdAE4AbFhABXNrl37Dx85ZMbe2dXfmQ9JCMGGjhZZgAdJBgAOhFkxJlMmQB6ACoZAHchPRkRImUwpJEoEliRGBly8hlc7Iys5hkAPgBeGQBPRIKmiHbM7OzC4uUyiuQYERJIhpGxmS4RAZk+9DNE3gAzWNHZLImZQ+PS8pU1CA4AcgawMjgSACMuFegTrJlOkgNABKOg0AF8gA`
+    import lzstring from "lz-string";
+    import {createProject} from "$stores/userProjectsStore";
+
+    const code = lzstring.compressToEncodedURIComponent(JSON.stringify(createProject()));
+    const url = `/projects/share?project=${code}`;
 </script>
 
 <svelte:head>
