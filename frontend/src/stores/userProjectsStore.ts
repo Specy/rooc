@@ -4,6 +4,11 @@ import type {Pipes} from "@specy/rooc";
 import {defaultPipe} from "$lib/pipePresets";
 
 
+export type ProjectPipe = {
+    pipe: Pipes
+    open: boolean
+}
+
 export type Project = {
     version: number,
     id: string,
@@ -12,16 +17,22 @@ export type Project = {
     createdAt: number,
     updatedAt: number
     content: string
-    pipes: Pipes[]
+    pipes: ProjectPipe[]
 }
 
 export function validateProject(project: Project): Project {
-    return {...createProject(), ...project}
+    const p = {...createProject(), ...project}
+    if(project.version === 1){
+        //@ts-expect-error using new format
+        p.pipes = p.pipes.map(p => ({pipe: p, open: false}))
+        p.version = 2
+    }
+    return p
 }
 
 export function createProject(): Project {
     return {
-        version: 1,
+        version: 2,
         id: "",
         name: "Unnamed",
         description: "",
@@ -37,9 +48,9 @@ where
     let y = 10
 define
     // define the model's variables here
-    x as Real`
+    x as PositiveReal`
         ,
-        pipes: [...defaultPipe]
+        pipes: [...defaultPipe].map((p,i,arr) => ({pipe: p, open: i === (arr.length - 1)}))
     }
 }
 
@@ -65,6 +76,7 @@ export function createProjectStore() {
     async function createNewProject(name: string, description: string): Promise<Project> {
         await ensureInit()
         const project = createProject()
+        console.log(project.pipes)
         project.name = name || "Unnamed"
         project.description = description
         const pr = await db.saveProject(project)

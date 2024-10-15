@@ -9,8 +9,9 @@
     import Button from "$cmp/inputs/Button.svelte";
     import Delete from '~icons/fa/Trash.svelte';
     import FaPlus from "~icons/fa/plus";
+    import type {ProjectPipe} from "$stores/userProjectsStore";
 
-    export let pipe: Pipes
+    export let pipe: ProjectPipe
     export let previousType: PipeDataType
 
     const dispatcher = createEventDispatcher<{
@@ -25,7 +26,7 @@
 </script>
 
 <div class="pipe-input">
-    <div class="pipe-line-in" style={pipeDescriptions[pipe].input !== previousType ? "background-color: var(--danger)" : ""}>
+    <div class="pipe-line-in" style={pipeDescriptions[pipe.pipe].input !== previousType ? "background-color: var(--danger)" : ""}>
 
     </div>
     <div class="pipe-line-out">
@@ -44,11 +45,11 @@
     <Column gap="0.1rem">
         <div
                 class="pipe"
-                class:wrong-pipe={pipeDescriptions[pipe].input !== previousType}>
+                class:wrong-pipe={pipeDescriptions[pipe.pipe].input !== previousType}>
             <Row align="center" gap="1rem">
                 <PlugIn style="font-size: 1.2rem; margin-top: -0.3rem;"/>
                 <div class="pipe-type">
-                    {getNameOfPipeData(pipeDescriptions[pipe].input)}
+                    {getNameOfPipeData(pipeDescriptions[pipe.pipe].input)}
                 </div>
             </Row>
         </div>
@@ -57,7 +58,7 @@
                     style="border-bottom: solid 0.1rem var(--secondary-15);"
             >
                 <select
-                        bind:value={pipe}
+                        bind:value={pipe.pipe}
                         class="pipe-select"
                 >
                     {#each Object.values(pipeDescriptions) as p}
@@ -73,13 +74,13 @@
             </Row>
 
             <div class="pipe-description">
-                {pipeDescriptions[pipe].description}
+                {pipeDescriptions[pipe.pipe].description}
             </div>
         </Card>
         <Row align="center" gap="1rem">
             <PlugOut style="font-size: 1.2rem; margin-bottom: -0.3rem; color: var(--border-color)"/>
             <div class="pipe-type">
-                {getNameOfPipeData(pipeDescriptions[pipe].output)}
+                {getNameOfPipeData(pipeDescriptions[pipe.pipe].output)}
             </div>
         </Row>
     </Column>

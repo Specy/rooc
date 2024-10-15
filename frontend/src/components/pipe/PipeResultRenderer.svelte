@@ -9,6 +9,7 @@
     export let data: RoocData
     export let pipeStep: Pipes | string
     export let expanded: boolean = false
+
 </script>
 
 <ExpandableContainer

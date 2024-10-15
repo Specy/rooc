@@ -9,10 +9,12 @@
 	export let active = false;
 	export let title = '';
 	export let href: string;
+	export let blank: boolean = false
 </script>
 
 <a
 	{href}
+	target={blank ? "_blank" : undefined}
 	{title}
 	on:click={(e) => {
 		if (disabled) {

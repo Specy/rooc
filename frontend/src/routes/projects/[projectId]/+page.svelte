@@ -1,14 +1,10 @@
 <script lang="ts">
-    import Editor from '$cmp/editor/Editor.svelte';
     import Button from '$cmp/inputs/Button.svelte';
     import Page from '$cmp/layout/Page.svelte';
     import {Monaco} from '$src/lib/Monaco';
     import {onMount} from 'svelte';
-    import {projectStore, type Project, createProject, validateProject} from '$stores/userProjectsStore';
+    import {type Project, projectStore, validateProject} from '$stores/userProjectsStore';
     import {page} from '$app/stores';
-    import Floppy from '~icons/fa/floppy-o';
-    import Book from '~icons/fa/book';
-    import Share from '~icons/fa/share-alt';
     import Row from '$cmp/layout/Row.svelte';
     import ButtonLink from '$cmp/inputs/ButtonLink.svelte';
     import {toast} from '$src/stores/toastStore';
@@ -19,7 +15,11 @@
     import ProjectEditor from '$cmp/projects/ProjectEditor.svelte';
     import lzstring from 'lz-string';
     import {prompter} from '$src/stores/promptStore';
-
+    import Github from "~icons/fa-brands/Github.svelte";
+    import Floppy from '~icons/fa/floppy-o';
+    import Book from '~icons/fa/book';
+    import Share from '~icons/fa/share-alt';
+    import FaDonate from '~icons/fa6-solid/hand-holding-dollar.svelte';
     let showDocs = false;
     let project: Project | undefined;
     onMount(() => {
@@ -55,14 +55,15 @@
                 delete project.id;
                 const newProject = await projectStore.createNewProject(project.name, project.description);
                 project.id = newProject.id;
+                toast.logPill('Project added to your projects');
             }
             await projectStore.updateProject(project.id, project);
-            toast.logPill('Saved');
         } catch (e) {
             toast.error("Couldn't save project");
             console.error(e);
         }
     }
+
 
     function share() {
         if (!project) return;
@@ -72,6 +73,20 @@
         const url = `${window.location.origin}/projects/share?project=${code}`;
         navigator.clipboard.writeText(url);
         toast.logPill('Copied to clipboard');
+    }
+    function createDebouncer() {
+        let timeout: number;
+        return (fn: () => void, delay: number) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(fn, delay);
+        };
+    }
+    const debouncer = createDebouncer();
+    $: {
+        if(project && project?.id !== 'share'){
+            console.log('save')
+            debouncer(() => save(), 1000);
+        }
     }
 </script>
 
@@ -89,15 +104,43 @@
         </h3>
 
         <Row gap="0.5rem" style="margin-left: auto; height: 2.4rem">
-            <Button hasIcon on:click={share}>
+            <ButtonLink
+                    href="https://github.com/Specy/tokeko"
+                    hasIcon
+                    style="height: 100%; font-size: 1.2rem"
+                    blank
+                    title="Github"
+            >
+                <Github/>
+            </ButtonLink>
+            <ButtonLink
+                    href="https://specy.app/donate"
+                    hasIcon
+                    style="height: 100%; font-size: 1.2rem"
+                    blank
+                    title="Donate"
+            >
+                <FaDonate/>
+            </ButtonLink>
+            <Button
+                    hasIcon
+                    on:click={share}
+                    title="Share"
+            >
                 <Share/>
             </Button>
-            <Button hasIcon on:click={() => (showDocs = !showDocs)}>
+            <Button
+                    hasIcon
+                    on:click={() => (showDocs = !showDocs)}
+                    title="Documentation"
+            >
                 <Book/>
             </Button>
-            <Button on:click={save} hasIcon>
-                <Floppy/>
-            </Button>
+            {#if project?.id === 'share'}
+                <Button on:click={save} hasIcon color="accent">
+                    <Floppy/>
+                </Button>
+            {/if}
         </Row>
     </Row>
     {#if project}
@@ -126,7 +169,8 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    :global(html){
+
+    :global(html) {
         overflow-y: scroll;
     }
 </style>

@@ -46,7 +46,6 @@
 
     $: $store.source = project.content;
     $: $store.pipes = project.pipes;
-
     /*
             <Card style="flex: 1; position:relative; overflow: hidden; max-height: 42vh; height: 42vh">
             <LatexRenderer source={$store.latex} style="flex:1; overflow: auto; padding: 0.5rem 1rem;" />
@@ -97,8 +96,8 @@
                 <PipeInput
                         bind:pipe
                         on:delete={() => project.pipes  = project.pipes .filter((_, index) => index !== i)}
-                        on:insert-before={() => project.pipes  = [...project.pipes .slice(0, i), Pipes.CompilerPipe, project.pipes [i], ...project.pipes .slice(i + 1)]}
-                        previousType={i === 0 ? PipeDataType.String : pipeDescriptions[project.pipes[i - 1]].output}
+                        on:insert-before={() => project.pipes  = [...project.pipes .slice(0, i), {pipe: Pipes.CompilerPipe, open: false}, project.pipes [i], ...project.pipes .slice(i + 1)]}
+                        previousType={i === 0 ? PipeDataType.String : pipeDescriptions[project.pipes[i - 1].pipe].output}
                 />
             {/each}
             <Column gap="0.2rem">
@@ -110,7 +109,7 @@
                 </Row>
 
                 <button
-                        on:click={() => project.pipes = [...project.pipes, Pipes.CompilerPipe]}
+                        on:click={() => project.pipes = [...project.pipes, {pipe: Pipes.CompilerPipe, open: false}]}
                         class="add-more-btn"
                 >
                     <FaPlus/>
@@ -125,17 +124,17 @@
                         on:change={async (e) => {
                             if (e.target.value === 'custom') return;
                             if(await prompter.confirm('This will overwrite your current pipe. Are you sure?')){
-                                project.pipes = pipePresets.find(p => p.name === e.target.value)?.pipes ?? [];
+                                project.pipes = (pipePresets.find(p => p.name === e.target.value)?.pipes ?? []).map(p => ({pipe: p, open: false}))
                             }else {
                                 e.target.value = 'custom';
                             }
                         }}
-                        value={isPreset(project.pipes)?.name ?? "custom"}
+                        value={isPreset(project.pipes.map(p => p.pipe))?.name ?? "custom"}
                 >
                     <option
                             value="custom"
                             disabled
-                            selected={isPreset(project.pipes) !== null}
+                            selected={isPreset(project.pipes.map(p => p.pipe)) !== null}
                     >
                         Custom
                     </option>
@@ -188,8 +187,8 @@
                         />
                     {:else }
                         <PipeResultRenderer
-                                pipeStep={$store.result.pipes[i - 1]}
-                                expanded={i === $store.result.val.length - 1}
+                                pipeStep={project.pipes[i - 1].pipe}
+                                bind:expanded={project.pipes[i - 1].open}
                                 data={step}
                         />
                     {/if}
@@ -205,8 +204,9 @@
                         />
                     {:else }
                         <PipeResultRenderer
-                                pipeStep={$store.result.pipes[i - 1]}
+                                pipeStep={project.pipes[i - 1].pipe}
                                 data={step}
+                                bind:expanded={project.pipes[i - 1].open}
                         />
                     {/if}
                 {/each}
