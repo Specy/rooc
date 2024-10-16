@@ -4,6 +4,7 @@ use std::fmt::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
+use crate::math::math_utils::{float_eq, float_gt, float_lt, float_ne};
 use crate::solvers::simplex::{
     divide_matrix_row_by, CanonicalTransformError, IntoCanonicalTableau, Tableau, Tableauable,
 };
@@ -44,14 +45,14 @@ impl IntoCanonicalTableau for StandardLinearModel {
             let mut independent_value = 0.0;
             for (row, constraint) in self.constraints.iter().enumerate() {
                 let coeff = constraint.get_coefficient(column);
-                if coeff != 0.0 {
+                if float_ne(coeff, 0.0) {
                     independent_count += 1;
                     independent_row = row;
                     independent_value = constraint.get_coefficient(column);
                 }
             }
             //only positive values are allowed, as the B column must be all positive
-            if independent_count == 1 && independent_value > 0.0 {
+            if independent_count == 1 && float_gt(independent_value, 0.0) {
                 usable_independent_vars.push(IndependentVariable {
                     row: independent_row,
                     column,
@@ -136,7 +137,7 @@ impl IntoCanonicalTableau for StandardLinearModel {
             match tableau.solve_avoiding(10000, &artificial_variables) {
                 Ok(optimal_tableau) => {
                     let tableau = optimal_tableau.get_tableau();
-                    if tableau.get_current_value() != 0.0 {
+                    if float_ne(tableau.get_current_value(), 0.0) {
                         return Err(CanonicalTransformError::Infesible(
                             "Initial problem is infeasible".to_string(),
                         ));
@@ -192,7 +193,7 @@ impl IntoCanonicalTableau for StandardLinearModel {
 
 impl EqualityConstraint {
     pub fn new(coefficients: Vec<f64>, rhs: f64) -> EqualityConstraint {
-        match rhs < 0.0 {
+        match float_lt(rhs, 0.0) {
             true => EqualityConstraint {
                 coefficients: coefficients.iter().map(|c| c * -1.0).collect(),
                 rhs: -rhs,
@@ -278,7 +279,7 @@ impl Display for StandardLinearModel {
         let mut is_first = true;
         let offset = if self.objective_offset.is_zero() {
             "".to_string()
-        } else if self.objective_offset < 0.0 {
+        } else if float_lt(self.objective_offset, 0.0) {
             format!(" - {}", self.objective_offset.abs())
         } else {
             format!(" + {}", self.objective_offset)
@@ -307,7 +308,7 @@ impl Display for StandardLinearModel {
 }
 
 pub fn format_var(name: &str, value: f64, is_first: bool) -> String {
-    let sign = if value < 0.0 {
+    let sign = if float_lt(value, 0.0) {
         "- "
     } else if is_first {
         ""

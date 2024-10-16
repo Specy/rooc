@@ -12,7 +12,7 @@ use crate::{
     primitives::primitive_traits::ApplyOp,
     wrong_argument,
 };
-
+use crate::math::math_utils::{float_eq, float_lt, float_ne};
 use super::{
     graph::{Graph, GraphEdge, GraphNode},
     iterable::IterableKind,
@@ -215,7 +215,7 @@ impl Primitive {
             Primitive::PositiveInteger(n) => Ok(*n as i64),
             Primitive::Boolean(b) => Ok(*b as u8 as i64),
             Primitive::Number(n) => {
-                if n.fract() != 0.0 {
+                if float_ne(n.fract(),0.0) {
                     Err(wrong_argument!(PrimitiveKind::Integer, self))
                 } else {
                     Ok(*n as i64)
@@ -241,7 +241,7 @@ impl Primitive {
             }
             Primitive::Boolean(b) => Ok(*b as u8 as usize),
             Primitive::Number(n) => {
-                if n.fract() != 0.0 || *n < 0.0 {
+                if float_ne(n.fract(),0.0) || float_lt(*n, 0.0) {
                     Err(wrong_argument!(PrimitiveKind::PositiveInteger, self))
                 } else {
                     Ok(*n as usize)

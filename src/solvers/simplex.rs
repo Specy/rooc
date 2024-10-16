@@ -10,6 +10,7 @@ use term_table::table_cell::TableCell;
 use term_table::Table;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
+use crate::math::math_utils::{float_ge, float_gt, float_le, float_lt};
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
@@ -220,12 +221,12 @@ impl Tableau {
     }
 
     fn is_optimal(&self) -> bool {
-        self.c.iter().all(|c| *c >= 0.0)
+        self.c.iter().all(|c| float_ge(*c , 0.0))
     }
 
     #[allow(unused)]
     fn is_unbounded(&self, h: usize) -> bool {
-        self.a.iter().all(|a| a[h] <= 0.0)
+        self.a.iter().all(|a| float_le(a[h], 0.0))
     }
 
     //finds the variable that will enter the basis
@@ -236,7 +237,7 @@ impl Tableau {
             .c
             .iter()
             .enumerate()
-            .filter(|(i, c)| !self.in_basis.contains(i) && **c < 0.0)
+            .filter(|(i, c)| !self.in_basis.contains(i) && float_lt(**c , 0.0))
             .min_by(|(_, c1), (_, c2)| c1.partial_cmp(c2).unwrap());
         min.map(|(i, _)| i)
     }
@@ -249,7 +250,7 @@ impl Tableau {
             .a
             .iter()
             .enumerate()
-            .filter(|(_, a)| a[h] > 0.0)
+            .filter(|(_, a)|  float_gt(a[h], 0.0))
             .map(|(i, a)| (i, self.b[i] / a[h]));
         let basis = &self.in_basis;
         match valid.next() {

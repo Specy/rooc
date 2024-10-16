@@ -2,6 +2,7 @@ use std::collections::{HashMap, VecDeque};
 use std::fmt::Display;
 
 use crate::math::math_enums::{Comparison, VariableType};
+use crate::math::math_utils::float_lt;
 use crate::math::operators::{BinOp, UnOp};
 use crate::parser::model_transformer::model::{Constraint, Exp, Model};
 use crate::parser::model_transformer::transformer_context::DomainVariable;
@@ -159,7 +160,7 @@ impl Display for MidLinearConstraint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut lhs = String::new();
         for (name, val) in self.lhs.iter() {
-            if *val < 0.0 {
+            if float_lt(*val, 0.0) {
                 lhs.push_str(&format!(" - {}{}", val.abs(), name));
             } else {
                 lhs.push_str(&format!(" + {}{}", val, name));

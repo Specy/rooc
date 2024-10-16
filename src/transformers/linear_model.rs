@@ -8,6 +8,7 @@ use crate::{
     math::math_enums::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
 };
+use crate::math::math_utils::float_lt;
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
@@ -165,7 +166,7 @@ impl Display for LinearModel {
             .join(" ");
         let offset = if self.objective_offset.is_zero() {
             "".to_string()
-        } else if self.objective_offset < 0.0 {
+        } else if float_lt(self.objective_offset, 0.0) {
             format!(" - {}", self.objective_offset.abs())
         } else {
             format!(" + {}", self.objective_offset)
