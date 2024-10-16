@@ -21,7 +21,7 @@
     import {toast} from "$stores/toastStore";
 
     export let project: Project;
-    let store = createCompilerStore(project);
+    let {rooc, source, result} = createCompilerStore(project);
     onMount(() => {
         Monaco.load();
         return () => {
@@ -30,7 +30,7 @@
     });
 
     function run() {
-        store?.run();
+        rooc?.run();
         setTimeout(() => {
             const element = document.getElementById('jump-to');
             if (element) {
@@ -40,12 +40,12 @@
     }
 
     function reset() {
-        store?.reset();
+        rooc?.reset();
     }
 
 
-    $: $store.source = project.content;
-    $: $store.pipes = project.pipes;
+    $: $source.source = project.content;
+    $: $source.pipes = project.pipes;
     /*
             <Card style="flex: 1; position:relative; overflow: hidden; max-height: 42vh; height: 42vh">
             <LatexRenderer source={$store.latex} style="flex:1; overflow: auto; padding: 0.5rem 1rem;" />
@@ -144,7 +144,7 @@
                 </select>
             </Row>
             <Row gap="0.5rem">
-                {#if $store.result}
+                {#if $result}
                     <Button on:click={reset} border="secondary" color="primary">Reset</Button>
                 {/if}
                 <Button on:click={run} border="secondary" color="primary">Run</Button>
@@ -153,23 +153,23 @@
 
     </div>
 </div>
-{#if $store.result}
+{#if $result}
     <Column padding="0.5rem" gap="0.5rem">
         <h1 id="jump-to">
-            {$store.result.ok ? "Execution successful" : "Execution failed"}
+            {$result.ok ? "Execution successful" : "Execution failed"}
         </h1>
-        {#if $store.result.latex}
+        {#if $result.latex}
             <ExpandableContainer>
                 <h2 slot="title">
                     LaTeX
                 </h2>
                 <Column style="position: relative;" gap="0.5rem">
                     <LatexRenderer
-                            source={$store.result.latex}
+                            source={$result.latex}
                             style="overflow-y: auto; overflow-x: auto; max-height: 50vh"
                     />
                     <Button on:click={() => {
-                        navigator.clipboard.writeText($store.result.latex);
+                        navigator.clipboard.writeText($result.latex);
                         toast.logPill('LaTeX source copied to clipboard')
                     }}>
                         Copy
@@ -177,37 +177,54 @@
                 </Column>
             </ExpandableContainer>
         {/if}
-        {#if $store.result.ok}
+        {#if $result.ok}
             <Column gap="0.5rem">
-                {#each $store.result.val as step, i}
+                {#each $result.val as step, i}
                     {#if i === 0}
                         <PipeResultRenderer
-                                data={{type: PipeDataType.String, data: $store.source}}
+                                data={{type: PipeDataType.String, data: $source.source}}
                                 pipeStep="Source"
                         />
                     {:else }
-                        <PipeResultRenderer
-                                pipeStep={project.pipes[i - 1].pipe}
-                                bind:expanded={project.pipes[i - 1].open}
-                                data={step}
-                        />
+                        {#if project.pipes[i - 1]}
+                            <PipeResultRenderer
+                                    pipeStep={project.pipes[i - 1].pipe}
+                                    bind:expanded={project.pipes[i - 1].open}
+                                    data={step}
+                            />
+                        {:else}
+                            <PipeResultRenderer
+                                    pipeStep={"Unknown"}
+                                    expanded={false}
+                                    data={step}
+                            />
+                        {/if}
+
                     {/if}
                 {/each}
             </Column>
         {:else}
             <Column gap="0.5rem">
-                {#each $store.result.context as step, i}
+                {#each $result.context as step, i}
                     {#if i === 0}
                         <PipeResultRenderer
-                                data={{type: PipeDataType.String, data: $store.source}}
+                                data={{type: PipeDataType.String, data: $source.source}}
                                 pipeStep="Source"
                         />
                     {:else }
-                        <PipeResultRenderer
-                                pipeStep={project.pipes[i - 1].pipe}
-                                data={step}
-                                bind:expanded={project.pipes[i - 1].open}
-                        />
+                        {#if project.pipes[i - 1]}
+                            <PipeResultRenderer
+                                    pipeStep={project.pipes[i - 1].pipe}
+                                    data={step}
+                                    bind:expanded={project.pipes[i - 1].open}
+                            />
+                        {:else}
+                            <PipeResultRenderer
+                                    pipeStep={"Unknown"}
+                                    expanded={false}
+                                    data={step}
+                            />
+                        {/if}
                     {/if}
                 {/each}
             </Column>
@@ -216,7 +233,7 @@
                     style="background-color: rgba(var(--danger-rgb), 0.2); border: solid 0.2rem rgba(var(--danger-rgb), 0.5);"
                     padding="1rem"
             >
-                <pre style="overflow-x: auto">{$store.result.error}</pre>
+                <pre style="overflow-x: auto">{$result.error}</pre>
             </Card>
         {/if}
     </Column>

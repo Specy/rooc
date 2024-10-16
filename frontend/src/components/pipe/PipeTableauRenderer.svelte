@@ -10,6 +10,7 @@
     $: currentVal = tableau.getCurrentValue()
     $: vars = tableau.getVariableNames()
     $: basis = new Map(tableau.getIndexesOfVarsInBasis().map((i) => [vars[i], true]))
+
 </script>
 
 
