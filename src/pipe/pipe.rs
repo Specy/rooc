@@ -13,6 +13,7 @@ use crate::transformers::linearizer::LinearizationError;
 use crate::transformers::standard_linear_model::StandardLinearModel;
 use crate::utils::CompilationError;
 use crate::{match_pipe_data_to, RoocParser};
+use crate::solvers::binary::{BinaryLpSolution, BinarySolverError};
 
 #[derive(Debug, Clone)]
 pub enum PipeableData {
@@ -25,6 +26,7 @@ pub enum PipeableData {
     Tableau(Tableau),
     OptimalTableau(OptimalTableau),
     OptimalTableauWithSteps(OptimalTableauWithSteps),
+    BinarySolution(BinaryLpSolution)
 }
 
 impl PipeableData {
@@ -39,6 +41,7 @@ impl PipeableData {
             PipeableData::PreModel(_) => PipeDataType::PreModel,
             PipeableData::OptimalTableau(_) => PipeDataType::OptimalTableau,
             PipeableData::OptimalTableauWithSteps(_) => PipeDataType::OptimalTableauWithSteps,
+            PipeableData::BinarySolution(_) => PipeDataType::BinarySolution,
         }
     }
     //TODO make this macros
@@ -69,9 +72,16 @@ impl PipeableData {
     pub fn to_optimal_tableau_with_steps(self) -> Result<OptimalTableauWithSteps, PipeError> {
         match_pipe_data_to!(self, OptimalTableauWithSteps, OptimalTableauWithSteps)
     }
+    pub fn to_binary_solution(self) -> Result<BinaryLpSolution, PipeError> {
+        match_pipe_data_to!(self, BinarySolution, BinarySolution)
+    }
     pub fn as_string_data(&self) -> Result<&String, PipeError> {
         match_pipe_data_to!(self, String, String)
     }
+    pub fn as_binary_solution(&self) -> Result<&BinaryLpSolution, PipeError> {
+        match_pipe_data_to!(self, BinarySolution, BinarySolution)
+    }
+    
     pub fn as_parser(&self) -> Result<&RoocParser, PipeError> {
         match_pipe_data_to!(self, Parser, Parser)
     }
@@ -107,6 +117,7 @@ impl Display for PipeableData {
             PipeableData::Tableau(t) => write!(f, "{}", t),
             PipeableData::OptimalTableau(t) => write!(f, "{}", t),
             PipeableData::OptimalTableauWithSteps(t) => write!(f, "{:?}", t),
+            PipeableData::BinarySolution(s) => write!(f, "{:?}", s),
         }
     }
 }
@@ -123,6 +134,7 @@ pub enum PipeDataType {
     Tableau,
     OptimalTableau,
     OptimalTableauWithSteps,
+    BinarySolution
 }
 impl Display for PipeDataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -136,6 +148,7 @@ impl Display for PipeDataType {
             PipeDataType::Tableau => "Tableau".to_string(),
             PipeDataType::OptimalTableau => "OptimalTableau".to_string(),
             PipeDataType::OptimalTableauWithSteps => "OptimalTableauWithSteps".to_string(),
+            PipeDataType::BinarySolution => "BinarySolution".to_string(),
         };
 
         f.write_str(&s)
@@ -161,6 +174,7 @@ pub enum PipeError {
     StandardizationError(()),
     CanonicalizationError(CanonicalTransformError),
     SimplexError(SimplexError, Tableau),
+    BinarySolverError(BinarySolverError)
 }
 impl Display for PipeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -186,6 +200,7 @@ impl Display for PipeError {
             PipeError::StandardizationError(_) => write!(f, "Standardization error"),
             PipeError::CanonicalizationError(e) => write!(f, "{}", e),
             PipeError::SimplexError(e, _) => write!(f, "{}", e),
+            PipeError::BinarySolverError(e) => write!(f, "{}", e)
         }
     }
 }

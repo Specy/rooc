@@ -28,7 +28,14 @@ export const pipePresets = [
         Pipes.TableauPipe,
         Pipes.SimplexPipe
     ]),
-        makePipePreset("To standard form", [
+    makePipePreset("Binary solver", [
+        Pipes.CompilerPipe,
+        Pipes.PreModelPipe,
+        Pipes.ModelPipe,
+        Pipes.LinearModelPipe,
+        Pipes.BinarySolverPipe,
+    ]),
+    makePipePreset("To standard form", [
         Pipes.CompilerPipe,
         Pipes.PreModelPipe,
         Pipes.ModelPipe,

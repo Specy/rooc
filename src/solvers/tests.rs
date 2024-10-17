@@ -1,10 +1,8 @@
 use crate::math::math_utils::{float_eq, float_ne};
 use crate::pipe::pipe::{PipeDataType, PipeError, PipeableData};
-use crate::pipe::pipe_executors::{
-    CompilerPipe, LinearModelPipe, ModelPipe, PreModelPipe, SimplexPipe, StandardLinearModelPipe,
-    TableauPipe,
-};
+use crate::pipe::pipe_executors::{BinarySolverPipe, CompilerPipe, LinearModelPipe, ModelPipe, PreModelPipe, SimplexPipe, StandardLinearModelPipe, TableauPipe};
 use crate::pipe::pipe_runner::PipeRunner;
+use crate::solvers::binary::BinaryLpSolution;
 use crate::solvers::simplex::{CanonicalTransformError, OptimalTableau, SimplexError};
 
 #[allow(dead_code)]
@@ -44,6 +42,42 @@ fn solve(source: &str) -> Result<OptimalTableau, PipeError> {
     }
 }
 
+fn solve_binary(source: &str) -> Result<BinaryLpSolution, PipeError> {
+    let pipe_runner = PipeRunner::new(vec![
+        Box::new(CompilerPipe::new()),
+        Box::new(PreModelPipe::new()),
+        Box::new(ModelPipe::new()),
+        Box::new(LinearModelPipe::new()),
+        Box::new(BinarySolverPipe::new()),
+    ]);
+
+    let result = pipe_runner.run(PipeableData::String(source.to_string()));
+    match result {
+        Ok(data) => {
+            let last = data.last().unwrap();
+            match last {
+                PipeableData::BinarySolution(data) => Ok(data.clone()),
+                _ => Err(PipeError::InvalidData {
+                    expected: PipeDataType::BinarySolution,
+                    got: last.get_type(),
+                }),
+            }
+        }
+        Err((error, _context)) => {
+            /*
+            let context = context
+                .iter()
+                .map(|data| format!("//--------{}--------//\n\n{}", data.get_type(), data))
+                .collect::<Vec<String>>()
+                .join("\n\n");
+             */
+            Err(error)
+        }
+    }
+}
+
+
+
 #[allow(dead_code)]
 fn assert_variables(variables: &Vec<f64>, expected: &Vec<f64>, lax_var_num: bool) {
     if variables.len() != expected.len() && !lax_var_num {
@@ -61,9 +95,30 @@ fn assert_variables(variables: &Vec<f64>, expected: &Vec<f64>, lax_var_num: bool
         }
     }
 }
+fn assert_variables_binary(variables: &Vec<bool>, expected: &Vec<bool>, lax_var_num: bool) {
+    if variables.len() != expected.len() && !lax_var_num {
+        panic!(
+            "Different length, expected {:?} but got {:?}",
+            expected, variables
+        );
+    }
+    for (v, e) in variables.iter().zip(expected.iter()) {
+        if *v != *e {
+            panic!(
+                "{:?}!={:?} Expected  {:?} but got {:?}",
+                v, e, expected, variables
+            );
+        }
+    }
+}
+
 
 fn assert_precision(a: f64, b: f64) -> bool {
-    float_eq(a, b)
+    if float_eq(a, b) {
+        true
+    } else {
+        panic!("{} != {}", a, b);
+    }
 }
 
 #[test]
@@ -292,7 +347,7 @@ fn should_solve_diet() {
         x_i as PositiveReal for i in 0..N
     "#;
     let solution = solve(source).unwrap();
-    assert_precision(solution.get_optimal_value(), 6.0);
+    assert_precision(solution.get_optimal_value(), 6.04444);
     let variables = solution.get_variables_values();
     assert_variables(variables, &vec![1.32592, 4.11111, 1.0], true);
 }
@@ -310,7 +365,27 @@ define
     x_2, x_3 as PositiveReal
     "#;
     let solution = solve(source).unwrap();
-    assert_precision(solution.get_optimal_value(), 3.0);
+    assert_precision(solution.get_optimal_value(), 34.0);
     let variables = solution.get_variables_values();
     assert_variables(variables, &vec![13.0, 0.0, 8.0, 0.0, 0.0], false);
+}
+
+
+#[test]
+fn should_solve_binary_problem(){
+    let source = r#"
+    //knapsack problem
+    max sum((value, i) in enumerate(values)) { value * x_i }
+    s.t.
+        sum((weight, i) in enumerate(weights)) { weight * x_i } <= capacity
+    where
+        let weights = [10, 60, 30, 40, 30, 20, 20, 2]
+        let values = [1, 10, 15, 40, 60, 90, 100, 15]
+        let capacity = 102
+    define
+        x_i as Boolean for i in 0..len(weights)
+    "#;
+    let solution = solve_binary(source).unwrap();
+    assert_precision(solution.get_value(), 280.0);
+    assert_variables_binary(&solution.get_assignment_values(), &vec![false, false, true, false, true, true, true, true], true);
 }

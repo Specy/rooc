@@ -8,6 +8,7 @@
 	export let padding: string | undefined = undefined;
 	export let background: ColorName | undefined = undefined;
     export let style: string | undefined = undefined;
+	export let wrap: boolean = false;
 </script>
 
 <div
@@ -18,6 +19,7 @@
     {gap ? `gap: ${gap};` : ''}
     {padding ? `padding: ${padding};` : ''}
     {background ? `background-color: var(--${background}); color: var(--${background}-text);` : ''}
+    {wrap ? 'flex-wrap: wrap;' : ''}
     {style}
     "
 >

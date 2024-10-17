@@ -29,14 +29,16 @@ The library is compiled as a wasm module to be used in the [web editor](https://
   - [x] Primitives Operator overloading (for example, `+` for strings)
   - [x] Definition of variable bounds
 - [ ] Simplex resolution
-  - [ ] Linearization of a generic problem
+  - [] Linearization of a generic problem
   - [x] Transformation of a linear problem into the standard form
   - [x] Two step method using artifical variables to find a valid basis for the standard form problem
   - [x] Simplex to find the optimal solution of a standard form linear problem
 - [ ] Integer and binary problems resolution
-  - [x] Integer problem definitions (bounds)
+  - [x] Integer and binary problem definitions (bounds)
   - [ ] Branch & Bound method to solve integer problems
   - [ ] Other integer solution algorithms
+  - [x] Binary problem solution
+  - [ ] Logic constraints
 - [ ] UI
   - [x] Compilation to WASM
   - [x] Create and manage your models
@@ -47,7 +49,7 @@ The library is compiled as a wasm module to be used in the [web editor](https://
     - [x] Type errors
     - [x] Code completion
   - [x] Language documentation 
-  - [ ] Show the different steps of solving the problem
+  - [x] Show the different steps of solving the problem
   - [x] List of modifications from the start of the problem to the end of the solution
 
 

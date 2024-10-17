@@ -119,11 +119,10 @@
                 </button>
             </Column>
         </div>
-        <Row justify="between">
-            <Row>
-                <select
-                        class="pipe-preset-select"
-                        on:change={async (e) => {
+        <Row justify="between" gap="0.5rem" wrap>
+            <select
+                    class="pipe-preset-select"
+                    on:change={async (e) => {
                             if (e.target.value === 'custom') return;
 
                             if(isPresetPipe || await prompter.confirm('This will overwrite your current pipe. Are you sure?')){
@@ -134,20 +133,19 @@
                                 e.target.value = 'custom';
                             }
                         }}
-                        value={isPresetPipe?.name ?? "custom"}
+                    value={isPresetPipe?.name ?? "custom"}
+            >
+                <option
+                        value="custom"
+                        disabled
+                        selected={!isPresetPipe}
                 >
-                    <option
-                            value="custom"
-                            disabled
-                            selected={!isPresetPipe}
-                    >
-                        Custom
-                    </option>
-                    {#each pipePresets as preset}
-                        <option value={preset.name}>{preset.name}</option>
-                    {/each}
-                </select>
-            </Row>
+                    Custom
+                </option>
+                {#each pipePresets as preset}
+                    <option value={preset.name}>{preset.name}</option>
+                {/each}
+            </select>
             <Row gap="0.5rem">
                 {#if $result}
                     <Button on:click={reset} border="secondary" color="primary">Reset</Button>

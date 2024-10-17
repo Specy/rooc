@@ -156,7 +156,8 @@ export type RoocData =
     RoocType<PipeDataType.StandardLinearModel, StandardLinearModel> |
     RoocType<PipeDataType.Tableau, SimplexTableau> |
     RoocType<PipeDataType.OptimalTableau, OptimalTableau> |
-    RoocType<PipeDataType.OptimalTableauWithSteps, OptimalTableauWithSteps>
+    RoocType<PipeDataType.OptimalTableauWithSteps, OptimalTableauWithSteps> |
+    RoocType<PipeDataType.BinarySolution, BinarySolution>
 
 function toRoocData(data: WasmPipableData): RoocData {
     switch (data.wasm_get_type()) {
@@ -184,7 +185,11 @@ function toRoocData(data: WasmPipableData): RoocData {
                 type: PipeDataType.OptimalTableauWithSteps,
                 data: new OptimalTableauWithSteps(data.to_optimal_tableau_with_steps())
             }
-
+        case PipeDataType.BinarySolution:
+            return {
+                type: PipeDataType.BinarySolution,
+                data: data.to_binary_solution()
+            }
     }
 }
 
@@ -548,6 +553,18 @@ export class Model {
     }
 }
 
+export type BinaryAssignment = {
+    name: string
+    value: boolean
+}
+
+export type BinarySolution = {
+    assignment: BinaryAssignment[]
+    value: number
+}
+
+
+
 export * from './runtime'
 
 
@@ -593,4 +610,5 @@ export {
     BinOp,
     Comparison,
     OptimizationType,
+
 } from './pkg/rooc'

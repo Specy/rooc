@@ -12,6 +12,7 @@ export enum PipeDataType {
   Tableau = 6,
   OptimalTableau = 7,
   OptimalTableauWithSteps = 8,
+  BinarySolution = 9,
 }
 export enum Pipes {
   CompilerPipe = 0,
@@ -22,6 +23,7 @@ export enum Pipes {
   TableauPipe = 5,
   SimplexPipe = 6,
   StepByStepSimplexPipe = 7,
+  BinarySolverPipe = 8,
 }
 export type NamedParameter = {
     name: string;
@@ -321,6 +323,13 @@ export const pipeDescriptions = {
         PipeDataType.Tableau,
         PipeDataType.OptimalTableauWithSteps
     ),
+    [Pipes.BinarySolverPipe]: makePipeDescriptionEntry(
+        Pipes.BinarySolverPipe,
+        "Binary solver",
+        "Runs a binary solver to find the optimal solution, the variables must be binary",
+        PipeDataType.LinearModel,
+        PipeDataType.BinarySolution
+    )
 } satisfies Record<Pipes, PipeDescription>
 
 function makePipeDataEntry(type: PipeDataType, name: string, description: string) {
@@ -346,5 +355,6 @@ export const  pipeDataDescriptions = {
     [PipeDataType.StandardLinearModel]: makePipeDataEntry(PipeDataType.StandardLinearModel, "Standard Linear Model", "The linear model in standard form"),
     [PipeDataType.Tableau]: makePipeDataEntry(PipeDataType.Tableau, "Tableau", "The tableau for the simplex algorithm"),
     [PipeDataType.OptimalTableau]: makePipeDataEntry(PipeDataType.OptimalTableau, "Optimal Tableau", "The tableau after running the simplex algorithm"),
-    [PipeDataType.OptimalTableauWithSteps]: makePipeDataEntry(PipeDataType.OptimalTableauWithSteps, "Optimal Tableau with Steps", "The tableau at each step of the simplex algorithm")
+    [PipeDataType.OptimalTableauWithSteps]: makePipeDataEntry(PipeDataType.OptimalTableauWithSteps, "Optimal Tableau with Steps", "The tableau at each step of the simplex algorithm"),
+    [PipeDataType.BinarySolution]: makePipeDataEntry(PipeDataType.BinarySolution, "Binary Solution", "The optimal solution of a binary model")
 } satisfies Record<PipeDataType, PipeDataDescription>

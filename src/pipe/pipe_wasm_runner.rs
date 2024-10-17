@@ -5,15 +5,13 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
 use crate::pipe::pipe::{PipeDataType, PipeError, Pipeable, PipeableData};
-use crate::pipe::pipe_executors::{
-    CompilerPipe, LinearModelPipe, ModelPipe, Pipes, PreModelPipe, SimplexPipe,
-    StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe,
-};
+use crate::pipe::pipe_executors::{BinarySolverPipe, CompilerPipe, LinearModelPipe, ModelPipe, Pipes, PreModelPipe, SimplexPipe, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe};
 use crate::pipe::pipe_runner::PipeRunner;
 use crate::solvers::simplex::{OptimalTableau, OptimalTableauWithSteps, Tableau};
 use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standard_linear_model::StandardLinearModel;
 use crate::RoocParser;
+use crate::solvers::binary::BinaryLpSolution;
 
 #[wasm_bindgen]
 struct WasmPipeRunner {
@@ -35,6 +33,7 @@ impl WasmPipeRunner {
                     Pipes::TableauPipe => Box::new(TableauPipe::new()),
                     Pipes::SimplexPipe => Box::new(SimplexPipe::new()),
                     Pipes::StepByStepSimplexPipe => Box::new(StepByStepSimplexPipe::new()),
+                    Pipes::BinarySolverPipe => Box::new(BinarySolverPipe::new()),
                 };
                 item
             })
@@ -150,6 +149,12 @@ impl WasmPipableData {
     pub fn to_optimal_tableau_with_steps(self) -> Result<OptimalTableauWithSteps, JsValue> {
         self.data
             .to_optimal_tableau_with_steps()
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+    pub fn to_binary_solution(self) -> Result<JsValue, JsValue> {
+        self.data
+            .to_binary_solution()
+            .map(|s| serde_wasm_bindgen::to_value(&s).unwrap())
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
 }
