@@ -9,6 +9,7 @@
 	export let background: ColorName | undefined = undefined;
     export let style: string | undefined = undefined;
 	export let wrap: boolean = false;
+	export let flex1: boolean = false;
 </script>
 
 <div
@@ -20,6 +21,7 @@
     {padding ? `padding: ${padding};` : ''}
     {background ? `background-color: var(--${background}); color: var(--${background}-text);` : ''}
     {wrap ? 'flex-wrap: wrap;' : ''}
+    {flex1 ? 'flex: 1;' : ''}
     {style}
     "
 >

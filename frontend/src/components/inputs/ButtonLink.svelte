@@ -11,6 +11,7 @@
 	export let title = '';
 	export let href: string;
 	export let blank: boolean = false
+	export let iconLeft: boolean = false
 </script>
 
 <a
@@ -23,7 +24,9 @@
 		}
 	}}
 >
-	<Button {disabled} {style} {hasIcon} {color} {active} {title} {border}>
+	<Button {disabled} {style} {hasIcon} {color} {active} {title} {border} {iconLeft}>
 		<slot />
 	</Button>
 </a>
+
+

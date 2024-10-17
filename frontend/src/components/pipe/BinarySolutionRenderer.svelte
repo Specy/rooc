@@ -4,7 +4,6 @@
 
     export let binarySolution: BinarySolution
 
-    $: console.log(binarySolution)
 </script>
 
 <Column gap="1rem">

@@ -58,9 +58,9 @@
         </div>
     {/if}
 
-    <h1>
+    <div style="font-size: 1.5rem">
         Optimal tableau
-    </h1>
+    </div>
     <PipeOptimalTableauRenderer tableau={result}/>
 </Column>
 
