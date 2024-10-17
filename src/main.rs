@@ -1,8 +1,5 @@
 use rooc::pipe::pipe::PipeableData;
-use rooc::pipe::pipe_executors::{
-    CompilerPipe, LinearModelPipe, ModelPipe, OptimalTableauPipe, PreModelPipe,
-    StandardLinearModelPipe, TableauPipe,
-};
+use rooc::pipe::pipe_executors::{CompilerPipe, LinearModelPipe, ModelPipe, PreModelPipe, SimplexPipe, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe};
 use rooc::pipe::pipe_runner::PipeRunner;
 
 #[allow(unused)]
@@ -35,7 +32,7 @@ define
         Box::new(LinearModelPipe::new()),
         Box::new(StandardLinearModelPipe::new()),
         Box::new(TableauPipe::new()),
-        Box::new(OptimalTableauPipe::new()),
+        Box::new(StepByStepSimplexPipe::new()),
     ]);
 
     let (result) = pipe_runner.run(PipeableData::String(source));

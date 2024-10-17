@@ -1,8 +1,8 @@
 use crate::math::math_utils::{float_eq, float_ne};
 use crate::pipe::pipe::{PipeDataType, PipeError, PipeableData};
 use crate::pipe::pipe_executors::{
-    CompilerPipe, LinearModelPipe, ModelPipe, OptimalTableauPipe, PreModelPipe,
-    StandardLinearModelPipe, TableauPipe,
+    CompilerPipe, LinearModelPipe, ModelPipe, PreModelPipe, SimplexPipe, StandardLinearModelPipe,
+    TableauPipe,
 };
 use crate::pipe::pipe_runner::PipeRunner;
 use crate::solvers::simplex::{CanonicalTransformError, OptimalTableau, SimplexError};
@@ -16,7 +16,7 @@ fn solve(source: &str) -> Result<OptimalTableau, PipeError> {
         Box::new(LinearModelPipe::new()),
         Box::new(StandardLinearModelPipe::new()),
         Box::new(TableauPipe::new()),
-        Box::new(OptimalTableauPipe::new()),
+        Box::new(SimplexPipe::new()),
     ]);
 
     let result = pipe_runner.run(PipeableData::String(source.to_string()));
@@ -54,7 +54,10 @@ fn assert_variables(variables: &Vec<f64>, expected: &Vec<f64>, lax_var_num: bool
     }
     for (v, e) in variables.iter().zip(expected.iter()) {
         if float_ne(*v, *e) {
-            panic!("{:?}!={:?} Expected  {:?} but got {:?}",v, e,  expected, variables);
+            panic!(
+                "{:?}!={:?} Expected  {:?} but got {:?}",
+                v, e, expected, variables
+            );
         }
     }
 }
@@ -62,7 +65,6 @@ fn assert_variables(variables: &Vec<f64>, expected: &Vec<f64>, lax_var_num: bool
 fn assert_precision(a: f64, b: f64) -> bool {
     float_eq(a, b)
 }
-
 
 #[test]
 fn should_solve_correctly() {
@@ -134,13 +136,13 @@ fn should_find_unbounded_2d() {
             match e {
                 PipeError::SimplexError(SimplexError::Unbounded, _tableau) => {
                     //TODO
-                            /*
+                    /*
 
-                            let variables = tableau.get_b();
-                            let solution = tableau.get_current_value();
-                            assert_precision(solution, 1.0);
-                            assert_variables(variables, &vec![0.0, 1.0, 3.0, 0.0]);
-                             */
+                    let variables = tableau.get_b();
+                    let solution = tableau.get_current_value();
+                    assert_precision(solution, 1.0);
+                    assert_variables(variables, &vec![0.0, 1.0, 3.0, 0.0]);
+                     */
                 }
                 _ => panic!("Should be unbounded"),
             }
@@ -213,7 +215,11 @@ fn should_solve_degen_4d() {
     let solution = solve(source).unwrap();
     assert_precision(solution.get_optimal_value(), 84.0);
     let variables = solution.get_variables_values();
-    assert_variables(variables, &vec![0.0, 8.0, 0.0, 10.0, 0.0, 4.0, 0.0, 0.0], false);
+    assert_variables(
+        variables,
+        &vec![0.0, 8.0, 0.0, 10.0, 0.0, 4.0, 0.0, 0.0],
+        false,
+    );
 }
 
 #[test]
@@ -231,7 +237,11 @@ fn should_solve_multiple_solutions() {
     assert_precision(solution.get_optimal_value(), 18.0);
     let variables = solution.get_variables_values();
     // assert_variables(variables, &vec![14.0/3.0, 26.0/3.0, 0.0, 0.0, 8.0]); alternative solution
-    assert_variables(variables, &vec![22.0 / 3.0, 10.0 / 3.0, 0.0, 8.0, 0.0], false);
+    assert_variables(
+        variables,
+        &vec![22.0 / 3.0, 10.0 / 3.0, 0.0, 8.0, 0.0],
+        false,
+    );
 }
 
 #[test]
@@ -255,10 +265,9 @@ fn infeasible_starting_basis() {
     }
 }
 
-
 //TODO make this work :(
 #[test]
-fn should_solve_diet(){
+fn should_solve_diet() {
     let source = r#"
     min sum((cost, i) in enumerate(C)) { cost * x_i }
     s.t.
@@ -286,5 +295,4 @@ fn should_solve_diet(){
     assert_precision(solution.get_optimal_value(), 6.0);
     let variables = solution.get_variables_values();
     assert_variables(variables, &vec![1.32592, 4.11111, 1.0], true);
-
 }

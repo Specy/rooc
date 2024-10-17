@@ -231,3 +231,12 @@ impl fmt::Display for ParseError {
         f.write_str(&s)
     }
 }
+
+pub fn remove_many<T>(vec: &mut Vec<T>, indices: &[usize]) {
+    let mut i = 0; // ugh
+    vec.retain(|_| {
+        let keep = !indices.contains(&i);
+        i += 1;
+        keep
+    });
+}

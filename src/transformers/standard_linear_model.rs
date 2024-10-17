@@ -10,6 +10,7 @@ use crate::solvers::simplex::{
 };
 use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standardizer::to_standard_form;
+use crate::utils::remove_many;
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
@@ -204,6 +205,14 @@ impl EqualityConstraint {
     pub fn get_coefficients(&self) -> &Vec<f64> {
         &self.coefficients
     }
+    pub fn get_coefficients_mut(&mut self) -> &mut Vec<f64> {
+        &mut self.coefficients
+    }
+
+    pub fn remove_coefficients_by_index(&mut self, indexes: &[usize]) {
+        remove_many(self.coefficients.as_mut(), indexes);
+    }
+
     pub fn get_coefficient(&self, index: usize) -> f64 {
         self.coefficients[index]
     }

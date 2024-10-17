@@ -15,7 +15,8 @@ pub enum Pipes {
     LinearModelPipe,
     StandardLinearModelPipe,
     TableauPipe,
-    OptimalTableauPipe,
+    SimplexPipe,
+    StepByStepSimplexPipe,
 }
 
 //-------------------- Source Compiler --------------------
@@ -128,14 +129,14 @@ impl Pipeable for TableauPipe {
         }
     }
 }
-//-------------------- Optimal Tableau --------------------
-pub struct OptimalTableauPipe {}
-impl OptimalTableauPipe {
-    pub fn new() -> OptimalTableauPipe {
-        OptimalTableauPipe {}
+//-------------------- Simplex --------------------
+pub struct SimplexPipe {}
+impl SimplexPipe {
+    pub fn new() -> SimplexPipe {
+        SimplexPipe {}
     }
 }
-impl Pipeable for OptimalTableauPipe {
+impl Pipeable for SimplexPipe {
     fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
         let mut tableau = data.as_tableau()?.clone();
         let optimal_tableau = tableau.solve(1000);
@@ -143,5 +144,40 @@ impl Pipeable for OptimalTableauPipe {
             Ok(optimal_tableau) => Ok(PipeableData::OptimalTableau(optimal_tableau)),
             Err(e) => Err(PipeError::SimplexError(e, tableau)),
         }
+    }
+}
+//-------------------- Step by step Simplex  --------------------
+pub struct StepByStepSimplexPipe {}
+impl StepByStepSimplexPipe {
+    pub fn new() -> StepByStepSimplexPipe {
+        StepByStepSimplexPipe {}
+    }
+}
+impl Pipeable for StepByStepSimplexPipe {
+    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+        let mut tableau = data.as_tableau()?.clone();
+        let optimal_tableau = tableau.solve_step_by_step(1000);
+        match optimal_tableau {
+            Ok(optimal_tableau) => {
+                Ok(PipeableData::OptimalTableauWithSteps(optimal_tableau))
+            },
+            Err(e) => Err(PipeError::SimplexError(e, tableau)),
+        }
+    }
+}
+
+//-------------------- Dual --------------------
+
+pub struct DualPipe {}
+impl DualPipe {
+    pub fn new() -> DualPipe {
+        DualPipe {}
+    }
+}
+impl Pipeable for DualPipe {
+    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+        let model = data.as_linear_model()?.clone();
+        let dual = model.into_dual();
+        Ok(PipeableData::LinearModel(dual))
     }
 }

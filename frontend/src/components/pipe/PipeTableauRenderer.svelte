@@ -3,14 +3,15 @@
     import {formatNum} from "$cmp/pipe/utils";
 
     export let tableau: SimplexTableau
-
+    export let outIndex: number | undefined = undefined
+    export let inIndex: number | undefined = undefined
     $: a = tableau.getAMatrix()
     $: b = tableau.getBVector()
     $: c = tableau.getCVector()
     $: currentVal = tableau.getCurrentValue()
     $: vars = tableau.getVariableNames()
-    $: basis = new Map(tableau.getIndexesOfVarsInBasis().map((i) => [vars[i], true]))
-
+    $: basis = tableau.getIndexesOfVarsInBasis()
+    $: basisMap = new Map(basis.map((i) => [vars[i], true]))
 </script>
 
 
@@ -19,14 +20,18 @@
     <table>
         <thead>
         <tr>
-
-            {#each vars as varName (varName)}
+            {#each vars as varName,i (varName)}
                 <th
-                        style={basis.has(varName) ? 'color: var(--danger)' : ''}
+                        class:in-basis={basisMap.has(varName)}
+                        class:entering={inIndex === i}
+                        class:exiting={outIndex === i}
                 >
                     {varName}
                 </th>
             {/each}
+            <th>
+
+            </th>
             <th>
 
             </th>
@@ -36,19 +41,27 @@
                 <th>{formatNum(value)}</th>
             {/each}
             <th style="background-color: var(--accent); color: var(--accent-text)">{formatNum(currentVal)}</th>
+            <th>
+                Basis
+            </th>
         </tr>
         </thead>
         <tbody>
 
         {#each a as row, i}
             <tr>
-                {#each row as value}
-                    <td>{formatNum(value)}</td>
+                {#each row as value, j}
+                    <td
+                        class:pivoting-row={inIndex === basis[i] }
+                    >{formatNum(value)}</td>
                 {/each}
                 <td
                         style="background-color: var(--secondary-10); color: var(--secondary-text)"
                 >
                     {formatNum(b[i])}
+                </td>
+                <td>
+                    {vars[basis[i]]}
                 </td>
             </tr>
         {/each}
@@ -89,4 +102,26 @@
   th {
     font-weight: bold;
   }
+
+
+  .in-basis {
+    color: var(--warn);
+  }
+
+  .entering {
+    background-color: var(--success);
+    color: var(--success-text)
+  }
+
+
+  .exiting {
+    background-color: var(--danger);
+    color: var(--danger-text)
+
+  }
+  .pivoting-row{
+    background-color: var(--success);
+    color: var(--success-text)
+  }
+
 </style>

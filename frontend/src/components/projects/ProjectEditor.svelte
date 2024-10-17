@@ -12,7 +12,7 @@
     import PlugOut from "$cmp/icons/PlugOut.svelte";
     import PlugIn from "$cmp/icons/PlugIn.svelte";
     import Column from "$cmp/layout/Column.svelte";
-    import {isPreset, pipePresets} from "$lib/pipePresets";
+    import {findPreset, pipePresets} from "$lib/pipePresets";
     import {prompter} from '$stores/promptStore'
     import PipeResultRenderer from "$cmp/pipe/PipeResultRenderer.svelte";
     import FaPlus from '~icons/fa/plus.svelte'
@@ -71,6 +71,8 @@
 
 
      */
+
+    $: isPresetPipe = findPreset(project.pipes.map(p => p.pipe))
 </script>
 
 <div class="wrapper">
@@ -123,18 +125,21 @@
                         class="pipe-preset-select"
                         on:change={async (e) => {
                             if (e.target.value === 'custom') return;
-                            if(await prompter.confirm('This will overwrite your current pipe. Are you sure?')){
-                                project.pipes = (pipePresets.find(p => p.name === e.target.value)?.pipes ?? []).map(p => ({pipe: p, open: false}))
+
+                            if(isPresetPipe || await prompter.confirm('This will overwrite your current pipe. Are you sure?')){
+                                project.pipes = (pipePresets
+                                    .find(p => p.name === e.target.value)?.pipes ?? [])
+                                    .map((p, i, arr) => ({pipe: p, open: i === arr.length - 1}))
                             }else {
                                 e.target.value = 'custom';
                             }
                         }}
-                        value={isPreset(project.pipes.map(p => p.pipe))?.name ?? "custom"}
+                        value={isPresetPipe?.name ?? "custom"}
                 >
                     <option
                             value="custom"
                             disabled
-                            selected={isPreset(project.pipes.map(p => p.pipe)) !== null}
+                            selected={!isPresetPipe}
                     >
                         Custom
                     </option>

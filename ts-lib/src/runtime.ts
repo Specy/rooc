@@ -1,4 +1,4 @@
-import { type SerializedPrimitiveKind} from "./pkg/rooc";
+import type { SerializedPrimitiveKind} from "./pkg/rooc";
 import Fuse from 'fuse.js'
 
 //TODO remember to put this back in whenever they are updated, the runtime is supposed to not import anything from the compiler
@@ -11,6 +11,7 @@ export enum PipeDataType {
   StandardLinearModel = 5,
   Tableau = 6,
   OptimalTableau = 7,
+  OptimalTableauWithSteps = 8,
 }
 export enum Pipes {
   CompilerPipe = 0,
@@ -19,7 +20,8 @@ export enum Pipes {
   LinearModelPipe = 3,
   StandardLinearModelPipe = 4,
   TableauPipe = 5,
-  OptimalTableauPipe = 6,
+  SimplexPipe = 6,
+  StepByStepSimplexPipe = 7,
 }
 export type NamedParameter = {
     name: string;
@@ -305,13 +307,20 @@ export const pipeDescriptions = {
         PipeDataType.StandardLinearModel,
         PipeDataType.Tableau
     ),
-    [Pipes.OptimalTableauPipe]: makePipeDescriptionEntry(
-        Pipes.OptimalTableauPipe,
+    [Pipes.SimplexPipe]: makePipeDescriptionEntry(
+        Pipes.SimplexPipe,
         "Simplex algorithm",
         "Runs the simplex algorithm to find the optimal solution",
         PipeDataType.Tableau,
         PipeDataType.OptimalTableau
-    )
+    ),
+    [Pipes.StepByStepSimplexPipe]: makePipeDescriptionEntry(
+        Pipes.StepByStepSimplexPipe,
+        "Simplex algorithm with steps",
+        "Runs the simplex algorithm to find the optimal solution and returns the tableau at each step",
+        PipeDataType.Tableau,
+        PipeDataType.OptimalTableauWithSteps
+    ),
 } satisfies Record<Pipes, PipeDescription>
 
 function makePipeDataEntry(type: PipeDataType, name: string, description: string) {
@@ -336,5 +345,6 @@ export const  pipeDataDescriptions = {
     [PipeDataType.LinearModel]: makePipeDataEntry(PipeDataType.LinearModel, "Linear Model", "The linear model"),
     [PipeDataType.StandardLinearModel]: makePipeDataEntry(PipeDataType.StandardLinearModel, "Standard Linear Model", "The linear model in standard form"),
     [PipeDataType.Tableau]: makePipeDataEntry(PipeDataType.Tableau, "Tableau", "The tableau for the simplex algorithm"),
-    [PipeDataType.OptimalTableau]: makePipeDataEntry(PipeDataType.OptimalTableau, "Optimal Tableau", "The tableau after running the simplex algorithm")
+    [PipeDataType.OptimalTableau]: makePipeDataEntry(PipeDataType.OptimalTableau, "Optimal Tableau", "The tableau after running the simplex algorithm"),
+    [PipeDataType.OptimalTableauWithSteps]: makePipeDataEntry(PipeDataType.OptimalTableauWithSteps, "Optimal Tableau with Steps", "The tableau at each step of the simplex algorithm")
 } satisfies Record<PipeDataType, PipeDataDescription>

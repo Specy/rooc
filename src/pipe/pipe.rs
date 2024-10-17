@@ -5,7 +5,9 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::parser::model_transformer::model::Model;
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::parser::PreModel;
-use crate::solvers::simplex::{CanonicalTransformError, OptimalTableau, SimplexError, Tableau};
+use crate::solvers::simplex::{
+    CanonicalTransformError, OptimalTableau, SimplexError, OptimalTableauWithSteps, Tableau,
+};
 use crate::transformers::linear_model::LinearModel;
 use crate::transformers::linearizer::LinearizationError;
 use crate::transformers::standard_linear_model::StandardLinearModel;
@@ -22,6 +24,7 @@ pub enum PipeableData {
     StandardLinearModel(StandardLinearModel),
     Tableau(Tableau),
     OptimalTableau(OptimalTableau),
+    OptimalTableauWithSteps(OptimalTableauWithSteps),
 }
 
 impl PipeableData {
@@ -33,8 +36,9 @@ impl PipeableData {
             PipeableData::LinearModel(_) => PipeDataType::LinearModel,
             PipeableData::StandardLinearModel(_) => PipeDataType::StandardLinearModel,
             PipeableData::Tableau(_) => PipeDataType::Tableau,
-            PipeableData::OptimalTableau(_) => PipeDataType::OptimalTableau,
             PipeableData::PreModel(_) => PipeDataType::PreModel,
+            PipeableData::OptimalTableau(_) => PipeDataType::OptimalTableau,
+            PipeableData::OptimalTableauWithSteps(_) => PipeDataType::OptimalTableauWithSteps,
         }
     }
     //TODO make this macros
@@ -62,7 +66,9 @@ impl PipeableData {
     pub fn to_optimal_tableau(self) -> Result<OptimalTableau, PipeError> {
         match_pipe_data_to!(self, OptimalTableau, OptimalTableau)
     }
-
+    pub fn to_optimal_tableau_with_steps(self) -> Result<OptimalTableauWithSteps, PipeError> {
+        match_pipe_data_to!(self, OptimalTableauWithSteps, OptimalTableauWithSteps)
+    }
     pub fn as_string_data(&self) -> Result<&String, PipeError> {
         match_pipe_data_to!(self, String, String)
     }
@@ -100,6 +106,7 @@ impl Display for PipeableData {
             PipeableData::StandardLinearModel(m) => write!(f, "{}", m),
             PipeableData::Tableau(t) => write!(f, "{}", t),
             PipeableData::OptimalTableau(t) => write!(f, "{}", t),
+            PipeableData::OptimalTableauWithSteps(t) => write!(f, "{:?}", t),
         }
     }
 }
@@ -115,6 +122,7 @@ pub enum PipeDataType {
     StandardLinearModel,
     Tableau,
     OptimalTableau,
+    OptimalTableauWithSteps,
 }
 impl Display for PipeDataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -127,6 +135,7 @@ impl Display for PipeDataType {
             PipeDataType::StandardLinearModel => "StandardLinearModel".to_string(),
             PipeDataType::Tableau => "Tableau".to_string(),
             PipeDataType::OptimalTableau => "OptimalTableau".to_string(),
+            PipeDataType::OptimalTableauWithSteps => "OptimalTableauWithSteps".to_string(),
         };
 
         f.write_str(&s)

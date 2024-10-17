@@ -241,6 +241,11 @@ impl Linearizer {
         }
         let mut vars = context.get_used_variables();
         vars.sort();
+        let domain = context
+            .domain
+            .into_iter()
+            .filter(|(name, _)| vars.contains(name))
+            .collect::<HashMap<String, DomainVariable>>();
         let vars_indexes: HashMap<String, usize> = vars
             .iter()
             .enumerate()
@@ -258,6 +263,7 @@ impl Linearizer {
             objective_offset,
             linear_constraints,
             vars,
+            domain,
         ))
     }
 }

@@ -1,14 +1,16 @@
 use num_traits::Zero;
+use std::collections::HashMap;
 use std::fmt::Display;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
+use crate::math::math_utils::float_lt;
+use crate::parser::model_transformer::transformer_context::DomainVariable;
 use crate::transformers::standard_linear_model::{format_var, StandardLinearModel};
 use crate::{
     math::math_enums::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
 };
-use crate::math::math_utils::float_lt;
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
@@ -60,6 +62,7 @@ impl LinearConstraint {
 #[wasm_bindgen]
 pub struct LinearModel {
     variables: Vec<String>,
+    domain: HashMap<String, DomainVariable>,
     objective_offset: f64,
     optimization_type: OptimizationType,
     objective: Vec<f64>,
@@ -73,6 +76,7 @@ impl LinearModel {
         objective_offset: f64,
         constraints: Vec<LinearConstraint>,
         variables: Vec<String>,
+        domain: HashMap<String, DomainVariable>,
     ) -> LinearModel {
         LinearModel {
             objective,
@@ -80,6 +84,7 @@ impl LinearModel {
             optimization_type,
             variables,
             objective_offset,
+            domain,
         }
     }
 
@@ -91,6 +96,7 @@ impl LinearModel {
         f64,
         Vec<LinearConstraint>,
         Vec<String>,
+        HashMap<String, DomainVariable>,
     ) {
         (
             self.objective,
@@ -98,6 +104,7 @@ impl LinearModel {
             self.objective_offset,
             self.constraints,
             self.variables,
+            self.domain,
         )
     }
     pub fn get_optimization_type(&self) -> &OptimizationType {
@@ -117,6 +124,13 @@ impl LinearModel {
     }
     pub fn get_objective_offset(&self) -> f64 {
         self.objective_offset
+    }
+    pub fn get_domain(&self) -> &HashMap<String, DomainVariable> {
+        &self.domain
+    }
+
+    pub fn into_dual(self) -> LinearModel {
+        todo!()
     }
 }
 

@@ -1,3 +1,4 @@
+use std::iter::StepBy;
 use crate::parser::model_transformer::model::Model;
 use crate::parser::parser::PreModel;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -5,11 +6,11 @@ use wasm_bindgen::JsValue;
 
 use crate::pipe::pipe::{PipeDataType, PipeError, Pipeable, PipeableData};
 use crate::pipe::pipe_executors::{
-    CompilerPipe, LinearModelPipe, ModelPipe, OptimalTableauPipe, Pipes, PreModelPipe,
-    StandardLinearModelPipe, TableauPipe,
+    CompilerPipe, LinearModelPipe, ModelPipe, Pipes, PreModelPipe, SimplexPipe,
+    StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe,
 };
 use crate::pipe::pipe_runner::PipeRunner;
-use crate::solvers::simplex::{OptimalTableau, Tableau};
+use crate::solvers::simplex::{OptimalTableau, OptimalTableauWithSteps, Tableau};
 use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standard_linear_model::StandardLinearModel;
 use crate::RoocParser;
@@ -32,7 +33,8 @@ impl WasmPipeRunner {
                     Pipes::LinearModelPipe => Box::new(LinearModelPipe::new()),
                     Pipes::StandardLinearModelPipe => Box::new(StandardLinearModelPipe::new()),
                     Pipes::TableauPipe => Box::new(TableauPipe::new()),
-                    Pipes::OptimalTableauPipe => Box::new(OptimalTableauPipe::new()),
+                    Pipes::SimplexPipe => Box::new(SimplexPipe::new()),
+                    Pipes::StepByStepSimplexPipe => Box::new(StepByStepSimplexPipe::new()),
                 };
                 item
             })
@@ -143,6 +145,11 @@ impl WasmPipableData {
     pub fn to_optimal_tableau(self) -> Result<OptimalTableau, JsValue> {
         self.data
             .to_optimal_tableau()
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+    pub fn to_optimal_tableau_with_steps(self) -> Result<OptimalTableauWithSteps, JsValue> {
+        self.data
+            .to_optimal_tableau_with_steps()
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
 }

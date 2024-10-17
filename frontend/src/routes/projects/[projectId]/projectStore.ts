@@ -33,25 +33,33 @@ export function createCompilerStore(project: Project) {
         const s = get({subscribe: sourceSubscribe})
         s.source = override ?? s.source;
         resultSet(undefined)
-        const pipe = new RoocRunnablePipe(s.pipes.map(p => p.pipe))
-        const res = pipe.run(s.source)
-        const latex = new RoocParser(s.source)
-            .compile()
-            .map(x => x.toLatex())
-            .unwrapOr("")
-        if (res.ok) {
-            resultSet({
-                ok: true,
-                latex: latex || undefined,
-                val: res.val,
-            })
-        } else {
-            const error = res.val as { context: RoocData[], error: string }
+        try {
+            const pipe = new RoocRunnablePipe(s.pipes.map(p => p.pipe))
+            const res = pipe.run(s.source)
+            const latex = new RoocParser(s.source)
+                .compile()
+                .map(x => x.toLatex())
+                .unwrapOr("")
+            if (res.ok) {
+                resultSet({
+                    ok: true,
+                    latex: latex || undefined,
+                    val: res.val,
+                })
+            } else {
+                const error = res.val as { context: RoocData[], error: string }
+                resultSet({
+                    ok: false,
+                    latex: latex || undefined,
+                    context: error?.context ?? [],
+                    error: error?.error ?? "",
+                })
+            }
+        } catch (e) {
             resultSet({
                 ok: false,
-                latex: latex || undefined,
-                context: error?.context ?? [],
-                error: error?.error ?? "",
+                error: e.toString(),
+                context: []
             })
         }
         sourceSet(s)

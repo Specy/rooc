@@ -78,7 +78,7 @@ const baseDarkTheme = {
             cssProp: 'hint'
         },
         warn: {
-            hex: '#ed4f4f',
+            hex: '#eda34f',
             name: 'warn',
             cssProp: 'warn'
         },

@@ -4,6 +4,8 @@
     import ExpandableContainer from "$cmp/layout/ExpandableContainer.svelte";
     import PipeOptimalTableauRenderer from "$cmp/pipe/PipeOptimalTableauRenderer.svelte";
     import PipeTableauRenderer from "$cmp/pipe/PipeTableauRenderer.svelte";
+    import PipeOptimalTableauWithSteps from "$cmp/pipe/PipeOptimalTableauWithStepsRenderer.svelte";
+    import PipeOptimalTableauWithStepsRenderer from "$cmp/pipe/PipeOptimalTableauWithStepsRenderer.svelte";
 
     export let data: RoocData
     export let pipeStep: Pipes | string
@@ -43,6 +45,8 @@
         <PipeTableauRenderer tableau={data.data}/>
     {:else if data.type === PipeDataType.OptimalTableau}
         <PipeOptimalTableauRenderer tableau={data.data}/>
+        {:else if data.type === PipeDataType.OptimalTableauWithSteps}
+        <PipeOptimalTableauWithStepsRenderer data={data.data} />
     {/if}
 </ExpandableContainer>
 

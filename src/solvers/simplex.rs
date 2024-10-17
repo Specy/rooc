@@ -3,14 +3,15 @@ use std::fmt::Display;
 
 //TODO make the implementation use row vectors with a trait so that i can implement fraction and float versions
 //togehter with overriding the operators, so that i can use the same code for both versions
+use crate::math::math_utils::{float_ge, float_gt, float_le, float_lt};
 use num_rational::Rational64;
 use num_traits::cast::FromPrimitive;
+use serde::Serialize;
 use term_table::row::Row;
 use term_table::table_cell::TableCell;
 use term_table::Table;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
-use crate::math::math_utils::{float_ge, float_gt, float_le, float_lt};
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
@@ -71,8 +72,9 @@ impl Tableau {
         self.value_offset
     }
 
-    pub fn wasm_step(&mut self, variables_to_avoid: Vec<usize>) -> Result<bool, SimplexError> {
+    pub fn wasm_step(&mut self, variables_to_avoid: Vec<usize>) -> Result<JsValue, SimplexError> {
         self.step(&variables_to_avoid)
+            .map(|action| serde_wasm_bindgen::to_value(&action).unwrap())
     }
     pub fn wasm_to_string(&self) -> String {
         self.to_string()
@@ -133,6 +135,54 @@ impl Display for OptimalTableau {
     }
 }
 
+#[derive(Debug, Clone)]
+#[wasm_bindgen]
+pub struct SimplexStep {
+    tableau: Tableau,
+    entering: usize,
+    leaving: usize,
+    ratio: f64,
+}
+
+#[wasm_bindgen]
+impl SimplexStep {
+    pub fn wasm_get_tableau(&self) -> Tableau {
+        self.tableau.clone()
+    }
+    pub fn wasm_get_entering(&self) -> usize {
+        self.entering
+    }
+    pub fn wasm_get_leaving(&self) -> usize {
+        self.leaving
+    }
+}
+
+
+#[derive(Debug, Clone)]
+#[wasm_bindgen]
+pub struct OptimalTableauWithSteps {
+    result: OptimalTableau,
+    steps: Vec<SimplexStep>,
+}
+
+#[wasm_bindgen]
+impl OptimalTableauWithSteps {
+    pub fn wasm_get_result(&self) -> OptimalTableau {
+        self.result.clone()
+    }
+    pub fn wasm_get_steps(&self) -> Vec<SimplexStep> {
+        self.steps.clone()
+    }
+}
+
+
+
+#[derive(Serialize)]
+pub enum StepAction {
+    Pivot { entering: usize, leaving: usize, ratio: f64 },
+    Finished,
+}
+
 #[derive(Debug)]
 #[wasm_bindgen]
 pub enum SimplexError {
@@ -177,6 +227,36 @@ impl Tableau {
         self.solve_avoiding(limit, &vec![])
     }
 
+    pub fn solve_step_by_step(&mut self, limit: i64) -> Result<OptimalTableauWithSteps, SimplexError> {
+        let mut iteration = 0;
+        let empty = vec![];
+        let mut steps = vec![];
+        while iteration <= limit {
+            let prev = self.clone();
+            match self.step(&empty) {
+                Ok(StepAction::Pivot { entering, leaving, ratio }) => {
+                    iteration += 1;
+                    steps.push(SimplexStep {
+                        tableau: prev,
+                        entering,
+                        leaving,
+                        ratio
+                    });
+                }
+                Ok(StepAction::Finished) => {
+                    return Ok(OptimalTableauWithSteps {
+                        result: OptimalTableau::new(self.get_variables_values(), self.clone()),
+                        steps,
+                    });
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            }
+        }
+        Err(SimplexError::IterationLimitReached)
+    }
+
     pub fn solve_avoiding(
         &mut self,
         limit: i64,
@@ -185,10 +265,10 @@ impl Tableau {
         let mut iteration = 0;
         while iteration <= limit {
             match self.step(variables_to_avoid) {
-                Ok(false) => {
+                Ok(StepAction::Pivot { .. }) => {
                     iteration += 1;
                 }
-                Ok(true) => {
+                Ok(StepAction::Finished) => {
                     return Ok(OptimalTableau::new(
                         self.get_variables_values(),
                         self.clone(),
@@ -201,9 +281,9 @@ impl Tableau {
         }
         Err(SimplexError::IterationLimitReached)
     }
-    pub fn step(&mut self, variables_to_avoid: &Vec<usize>) -> Result<bool, SimplexError> {
+    pub fn step(&mut self, variables_to_avoid: &Vec<usize>) -> Result<StepAction, SimplexError> {
         if self.is_optimal() {
-            return Ok(true);
+            return Ok(StepAction::Finished);
         }
         match self.find_h(variables_to_avoid) {
             None => Err(SimplexError::Unbounded),
@@ -211,8 +291,12 @@ impl Tableau {
                 let t = self.find_t(h, variables_to_avoid);
                 match t {
                     None => Err(SimplexError::Unbounded),
-                    Some(t) => match self.pivot(t, h) {
-                        Ok(()) => Ok(false),
+                    Some((t, ratio)) => match self.pivot(t, h) {
+                        Ok(()) => Ok(StepAction::Pivot {
+                            entering: h,
+                            leaving: t,
+                            ratio,
+                        }),
                         Err(_) => Err(SimplexError::Other),
                     },
                 }
@@ -221,7 +305,7 @@ impl Tableau {
     }
 
     fn is_optimal(&self) -> bool {
-        self.c.iter().all(|c| float_ge(*c , 0.0))
+        self.c.iter().all(|c| float_ge(*c, 0.0))
     }
 
     #[allow(unused)]
@@ -237,20 +321,20 @@ impl Tableau {
             .c
             .iter()
             .enumerate()
-            .filter(|(i, c)| !self.in_basis.contains(i) && float_lt(**c , 0.0))
+            .filter(|(i, c)| !self.in_basis.contains(i) && float_lt(**c, 0.0))
             .min_by(|(_, c1), (_, c2)| c1.partial_cmp(c2).unwrap());
         min.map(|(i, _)| i)
     }
 
     //finds the variable that will leave the basis, prioritize variabls_to_prefer
-    fn find_t(&self, h: usize, variables_to_prefer: &Vec<usize>) -> Option<usize> {
+    fn find_t(&self, h: usize, variables_to_prefer: &Vec<usize>) -> Option<(usize, f64)> {
         //use the Bland's rule for anti-cycling
         //gets the index of the row with the minimum ratio
         let mut valid = self
             .a
             .iter()
             .enumerate()
-            .filter(|(_, a)|  float_gt(a[h], 0.0))
+            .filter(|(_, a)| float_gt(a[h], 0.0))
             .map(|(i, a)| (i, self.b[i] / a[h]));
         let basis = &self.in_basis;
         match valid.next() {
@@ -268,7 +352,7 @@ impl Tableau {
                         min = (i, ratio);
                     }
                 }
-                Some(min.0)
+                Some(min)
             }
             None => None,
         }
