@@ -13,13 +13,12 @@
     $: steps = data.getSteps()
     $: result = data.getResult()
     let current = 0
-    $: currentStep = steps[current]
-    $: variables = currentStep.getTableau().getVariableNames()
-    $: pivot = currentStep.getPivot()
     $: if (current > steps.length - 1) {
         current = steps.length - 1
     }
-
+    $: currentStep = steps[current]
+    $: variables = currentStep?.getTableau().getVariableNames()
+    $: pivot = currentStep?.getPivot()
 
     function increment() {
         current = Math.min(current + 1, steps.length - 1)
