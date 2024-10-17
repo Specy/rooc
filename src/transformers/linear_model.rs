@@ -11,6 +11,7 @@ use crate::{
     math::math_enums::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
 };
+use crate::utils::remove_many;
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
@@ -30,6 +31,12 @@ impl LinearConstraint {
     }
     pub fn get_coefficients(&self) -> &Vec<f64> {
         &self.coefficients
+    }
+    pub fn get_coefficients_mut(&mut self) -> &mut Vec<f64> {
+        &mut self.coefficients
+    }
+    pub fn remove_coefficients_by_index(&mut self, indices: &[usize]) {
+        remove_many(&mut self.coefficients, indices);
     }
     pub fn get_rhs(&self) -> f64 {
         self.rhs

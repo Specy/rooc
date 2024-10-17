@@ -296,3 +296,21 @@ fn should_solve_diet() {
     let variables = solution.get_variables_values();
     assert_variables(variables, &vec![1.32592, 4.11111, 1.0], true);
 }
+
+
+#[test]
+fn should_solve_free_variables(){
+    let source = r#"
+    min x_1 + 2x_2 - x_3
+s.t. 
+    -x_1 + x_2 = 5
+    2x_1 - x_2 - x_3 <= 3
+define 
+    x_1 as Real
+    x_2, x_3 as PositiveReal
+    "#;
+    let solution = solve(source).unwrap();
+    assert_precision(solution.get_optimal_value(), 3.0);
+    let variables = solution.get_variables_values();
+    assert_variables(variables, &vec![13.0, 0.0, 8.0, 0.0, 0.0], false);
+}

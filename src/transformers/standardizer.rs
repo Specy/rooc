@@ -1,33 +1,19 @@
 use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
+use crate::math::math_utils::float_eq;
 use crate::parser::model_transformer::transformer_context::DomainVariable;
 use crate::transformers::linear_model::{LinearConstraint, LinearModel};
 use crate::transformers::standard_linear_model::{EqualityConstraint, StandardLinearModel};
 use crate::utils::{remove_many, InputSpan};
 
 pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, ()> {
-    let (objective, optimization_type, objective_offset, constraints, mut variables, mut domain) =
+    let (mut objective, optimization_type, objective_offset, mut constraints, mut variables, mut domain) =
         problem.into_parts();
     let mut context = NormalizationContext {
         surplus_index: 0,
         slack_index: 0,
         total_variables: variables.len(),
     };
-    //we first normalize the constraints
-    let mut constraints: Vec<EqualityConstraint> = constraints
-        .into_iter()
-        .map(|c| {
-            let (equality_constraint, added_variable) = normalize_constraint(c, &mut context);
-            if let Some(variable) = added_variable {
-                variables.push(variable.clone());
-                domain.insert(
-                    variable,
-                    DomainVariable::new(VariableType::PositiveReal, InputSpan::default()),
-                );
-                context.total_variables += 1;
-            };
-            equality_constraint
-        })
-        .collect();
+
     //we now need to replace all free variables with positive variables
     let free_variables = variables
         .iter()
@@ -59,10 +45,20 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, ()>
         context.total_variables += 2;
         constraints.iter_mut().for_each(|c| {
             let original_coefficient = c.get_coefficients()[*i];
-            c.get_coefficients_mut().insert(*i, original_coefficient);
+            if float_eq(original_coefficient, 0.0) {
+                return;
+            }
+            c.get_coefficients_mut().push(original_coefficient);
             c.get_coefficients_mut().push(original_coefficient * -1.0);
         });
+        if float_eq(objective[*i], 0.0) {
+            continue;
+        }
+        objective.push(objective[*i]);
+        objective.push(objective[*i] * -1.0);
     }
+    
+    
     //we now remove the free variables from the constraints
     for c in constraints.iter_mut() {
         c.remove_coefficients_by_index(&free_variables);
@@ -74,6 +70,26 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, ()>
     }
     //and remove them from the variables
     remove_many(&mut variables, &free_variables);
+
+    //and from the objective
+    remove_many(&mut objective, &free_variables);
+
+    //we first normalize the constraints
+    let mut constraints: Vec<EqualityConstraint> = constraints
+        .into_iter()
+        .map(|c| {
+            let (equality_constraint, added_variable) = normalize_constraint(c, &mut context);
+            if let Some(variable) = added_variable {
+                variables.push(variable.clone());
+                domain.insert(
+                    variable,
+                    DomainVariable::new(VariableType::PositiveReal, InputSpan::default()),
+                );
+                context.total_variables += 1;
+            };
+            equality_constraint
+        })
+        .collect();
 
     constraints
         .iter_mut()
