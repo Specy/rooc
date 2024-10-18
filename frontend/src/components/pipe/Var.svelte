@@ -9,7 +9,7 @@
     <msub>
         <mi>{varName}</mi>
         <mn>
-            {rest.join('_')}
+            {rest.join(', ')}
         </mn>
     </msub>
 {/if}
