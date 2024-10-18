@@ -158,7 +158,7 @@ export type RoocData =
     RoocType<PipeDataType.OptimalTableau, OptimalTableau> |
     RoocType<PipeDataType.OptimalTableauWithSteps, OptimalTableauWithSteps> |
     RoocType<PipeDataType.BinarySolution, BinaryIntegerSolution<boolean>> | 
-    RoocType<PipeDataType.BinarySolution, BinaryIntegerSolution<VarValue>>
+    RoocType<PipeDataType.IntegerBinarySolution, BinaryIntegerSolution<VarValue>>
 
 function toRoocData(data: WasmPipableData): RoocData {
     switch (data.wasm_get_type()) {
@@ -190,6 +190,11 @@ function toRoocData(data: WasmPipableData): RoocData {
             return {
                 type: PipeDataType.BinarySolution,
                 data: data.to_binary_solution()
+            }
+        case PipeDataType.IntegerBinarySolution:
+            return {
+                type: PipeDataType.IntegerBinarySolution,
+                data: data.to_integer_binary_solution()
             }
     }
 }
@@ -555,10 +560,10 @@ export class Model {
 }
 
 export type VarValue = {
-    type: 'integer'
+    type: 'Int'
     value: number
 } | {
-    type: 'binary'
+    type: 'Int'
     value: boolean
 }
 

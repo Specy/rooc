@@ -208,7 +208,7 @@ define
         the
         constraints to define compound variables.
         <br />
-        The domains are "Real", "PositiveReal", "Integer", "Boolean"
+        The domains are "Real", "PositiveReal", "Integer", "PositiveInteger", "Boolean"
     </p>
 
     <Card padding="0.8rem 1rem">

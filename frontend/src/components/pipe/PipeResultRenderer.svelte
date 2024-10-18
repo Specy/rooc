@@ -7,6 +7,7 @@
     import PipeOptimalTableauWithSteps from "$cmp/pipe/PipeOptimalTableauWithStepsRenderer.svelte";
     import PipeOptimalTableauWithStepsRenderer from "$cmp/pipe/PipeOptimalTableauWithStepsRenderer.svelte";
     import BinarySolutionRenderer from "$cmp/pipe/BinarySolutionRenderer.svelte";
+    import IntegerBinarySolutionRenderer from "$cmp/pipe/IntegerBinarySolutionRenderer.svelte";
 
     export let data: RoocData
     export let pipeStep: Pipes | string
@@ -50,6 +51,8 @@
         <PipeOptimalTableauWithStepsRenderer data={data.data} />
         {:else if data.type === PipeDataType.BinarySolution}
         <BinarySolutionRenderer binarySolution={data.data} />
+        {:else if data.type === PipeDataType.IntegerBinarySolution}
+        <IntegerBinarySolutionRenderer binarySolution={data.data} />
     {/if}
 </ExpandableContainer>
 

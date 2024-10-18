@@ -38,6 +38,7 @@ The library is compiled as a wasm module to be used in the [web editor](https://
   - [ ] Branch & Bound method to solve integer problems
   - [ ] Other integer solution algorithms
   - [x] Binary problem solution
+  - [x] Integer/Binary problem solution
   - [ ] Logic constraints
 - [ ] UI
   - [x] Compilation to WASM

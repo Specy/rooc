@@ -1,9 +1,9 @@
 <script lang="ts">
-    import type {BinaryIntegerSolution} from "@specy/rooc";
+    import type {BinaryIntegerSolution, VarValue} from "@specy/rooc";
     import Column from "$cmp/layout/Column.svelte";
     import Var from "$cmp/pipe/Var.svelte";
 
-    export let binarySolution: BinaryIntegerSolution<boolean>
+    export let binarySolution: BinaryIntegerSolution<VarValue>
 
 </script>
 
@@ -24,9 +24,9 @@
             <tr>
                 {#each binarySolution.assignment as assignment}
                     <td
-                        class={assignment.value ? 'T' : 'F'}
+                        class={assignment.value.type === 'Bool' ? assignment.value.value ? 'T' : 'F' : "int"}
                     >
-                        {assignment.value ? 'T' : 'F'}
+                        {assignment.value.type === 'Bool' ? assignment.value.value ? 'T' : 'F' : assignment.value.value}
                     </td>
                 {/each}
             </tr>

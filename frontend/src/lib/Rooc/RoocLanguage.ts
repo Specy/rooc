@@ -136,7 +136,8 @@ const domainTypes = {
 	'Boolean': 'A boolean value {0,1}',
 	'Real': 'A real number ',
 	'Integer': 'An integer number',
-	'PositiveReal': 'A positive real number',
+	'PositiveReal': 'A positive real number between -32768 and 32768',
+	'PositiveInteger':  'A positive integer number between 0 and 32768'
 }
 
 

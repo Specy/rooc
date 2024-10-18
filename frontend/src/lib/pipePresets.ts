@@ -35,6 +35,13 @@ export const pipePresets = [
         Pipes.LinearModelPipe,
         Pipes.BinarySolverPipe,
     ]),
+        makePipePreset("Integer binary solver", [
+        Pipes.CompilerPipe,
+        Pipes.PreModelPipe,
+        Pipes.ModelPipe,
+        Pipes.LinearModelPipe,
+        Pipes.IntegerBinarySolverPipe
+    ]),
     makePipePreset("To standard form", [
         Pipes.CompilerPipe,
         Pipes.PreModelPipe,
@@ -42,6 +49,7 @@ export const pipePresets = [
         Pipes.LinearModelPipe,
         Pipes.StandardLinearModelPipe,
     ]),
+
 ] as const
 export const defaultPipe = pipePresets[0].pipes
 
