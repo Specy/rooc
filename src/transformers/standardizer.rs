@@ -6,8 +6,14 @@ use crate::transformers::standard_linear_model::{EqualityConstraint, StandardLin
 use crate::utils::{remove_many, InputSpan};
 
 pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, ()> {
-    let (mut objective, optimization_type, objective_offset, mut constraints, mut variables, mut domain) =
-        problem.into_parts();
+    let (
+        mut objective,
+        optimization_type,
+        objective_offset,
+        mut constraints,
+        mut variables,
+        mut domain,
+    ) = problem.into_parts();
     let mut context = NormalizationContext {
         surplus_index: 0,
         slack_index: 0,
@@ -57,8 +63,7 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, ()>
         objective.push(objective[*i]);
         objective.push(objective[*i] * -1.0);
     }
-    
-    
+
     //we now remove the free variables from the constraints
     for c in constraints.iter_mut() {
         c.remove_coefficients_by_index(&free_variables);
@@ -101,6 +106,7 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, ()>
             true,
         ),
         OptimizationType::Min => (objective_offset, objective.clone(), false),
+        _ => return Err(()),
     };
     Ok(StandardLinearModel::new(
         objective,

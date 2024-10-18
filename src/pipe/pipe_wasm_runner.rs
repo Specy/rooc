@@ -1,17 +1,19 @@
-use std::iter::StepBy;
 use crate::parser::model_transformer::model::Model;
 use crate::parser::parser::PreModel;
+use std::iter::StepBy;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
 use crate::pipe::pipe::{PipeDataType, PipeError, Pipeable, PipeableData};
-use crate::pipe::pipe_executors::{BinarySolverPipe, CompilerPipe, LinearModelPipe, ModelPipe, Pipes, PreModelPipe, SimplexPipe, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe};
+use crate::pipe::pipe_executors::{
+    BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe, Pipes,
+    PreModelPipe, SimplexPipe, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe,
+};
 use crate::pipe::pipe_runner::PipeRunner;
 use crate::solvers::simplex::{OptimalTableau, OptimalTableauWithSteps, Tableau};
 use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standard_linear_model::StandardLinearModel;
 use crate::RoocParser;
-use crate::solvers::binary::BinaryLpSolution;
 
 #[wasm_bindgen]
 struct WasmPipeRunner {
@@ -34,6 +36,7 @@ impl WasmPipeRunner {
                     Pipes::SimplexPipe => Box::new(SimplexPipe::new()),
                     Pipes::StepByStepSimplexPipe => Box::new(StepByStepSimplexPipe::new()),
                     Pipes::BinarySolverPipe => Box::new(BinarySolverPipe::new()),
+                    Pipes::IntegerBinarySolverPipe => Box::new(IntegerBinarySolverPipe::new()),
                 };
                 item
             })

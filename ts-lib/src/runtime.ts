@@ -1,30 +1,34 @@
-import type { SerializedPrimitiveKind} from "./pkg/rooc";
+import type {SerializedPrimitiveKind} from "./pkg/rooc";
 import Fuse from 'fuse.js'
 
 //TODO remember to put this back in whenever they are updated, the runtime is supposed to not import anything from the compiler
 export enum PipeDataType {
-  String = 0,
-  Parser = 1,
-  PreModel = 2,
-  Model = 3,
-  LinearModel = 4,
-  StandardLinearModel = 5,
-  Tableau = 6,
-  OptimalTableau = 7,
-  OptimalTableauWithSteps = 8,
-  BinarySolution = 9,
+    String = 0,
+    Parser = 1,
+    PreModel = 2,
+    Model = 3,
+    LinearModel = 4,
+    StandardLinearModel = 5,
+    Tableau = 6,
+    OptimalTableau = 7,
+    OptimalTableauWithSteps = 8,
+    BinarySolution = 9,
+    IntegerBinarySolution = 10,
 }
+
 export enum Pipes {
-  CompilerPipe = 0,
-  PreModelPipe = 1,
-  ModelPipe = 2,
-  LinearModelPipe = 3,
-  StandardLinearModelPipe = 4,
-  TableauPipe = 5,
-  SimplexPipe = 6,
-  StepByStepSimplexPipe = 7,
-  BinarySolverPipe = 8,
+    CompilerPipe = 0,
+    PreModelPipe = 1,
+    ModelPipe = 2,
+    LinearModelPipe = 3,
+    StandardLinearModelPipe = 4,
+    TableauPipe = 5,
+    SimplexPipe = 6,
+    StepByStepSimplexPipe = 7,
+    BinarySolverPipe = 8,
+    IntegerBinarySolverPipe = 9,
 }
+
 export type NamedParameter = {
     name: string;
     value: SerializedPrimitiveKind;
@@ -259,6 +263,7 @@ function makePipeDescriptionEntry(type: Pipes, name: string, description: string
         output
     } as PipeDescription
 }
+
 type PipeDescription = {
     type: Pipes;
     name: string;
@@ -329,7 +334,14 @@ export const pipeDescriptions = {
         "Runs a binary solver to find the optimal solution, the variables must be binary",
         PipeDataType.LinearModel,
         PipeDataType.BinarySolution
-    )
+    ),
+    [Pipes.IntegerBinarySolverPipe]: makePipeDescriptionEntry(
+        Pipes.IntegerBinarySolverPipe,
+        "Integer binary solver",
+        "Runs a binary and integer solver to find the optimal solution, the variables must be binary or integer",
+        PipeDataType.LinearModel,
+        PipeDataType.IntegerBinarySolution
+    ),
 } satisfies Record<Pipes, PipeDescription>
 
 function makePipeDataEntry(type: PipeDataType, name: string, description: string) {
@@ -346,7 +358,7 @@ type PipeDataDescription = {
     name: string;
     description: string;
 }
-export const  pipeDataDescriptions = {
+export const pipeDataDescriptions = {
     [PipeDataType.String]: makePipeDataEntry(PipeDataType.String, "String", "A string"),
     [PipeDataType.Parser]: makePipeDataEntry(PipeDataType.Parser, "Parser", "The ROOC parser"),
     [PipeDataType.PreModel]: makePipeDataEntry(PipeDataType.PreModel, "Pre Model", "The parsed model"),
@@ -356,5 +368,6 @@ export const  pipeDataDescriptions = {
     [PipeDataType.Tableau]: makePipeDataEntry(PipeDataType.Tableau, "Tableau", "The tableau for the simplex algorithm"),
     [PipeDataType.OptimalTableau]: makePipeDataEntry(PipeDataType.OptimalTableau, "Optimal Tableau", "The tableau after running the simplex algorithm"),
     [PipeDataType.OptimalTableauWithSteps]: makePipeDataEntry(PipeDataType.OptimalTableauWithSteps, "Optimal Tableau with Steps", "The tableau at each step of the simplex algorithm"),
-    [PipeDataType.BinarySolution]: makePipeDataEntry(PipeDataType.BinarySolution, "Binary Solution", "The optimal solution of a binary model")
+    [PipeDataType.BinarySolution]: makePipeDataEntry(PipeDataType.BinarySolution, "Binary Solution", "The optimal solution of a binary model"),
+    [PipeDataType.IntegerBinarySolution]: makePipeDataEntry(PipeDataType.IntegerBinarySolution, "Integer Binary Solution", "The optimal solution of a binary or integer model"),
 } satisfies Record<PipeDataType, PipeDataDescription>

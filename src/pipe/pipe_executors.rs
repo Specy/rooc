@@ -3,6 +3,7 @@ use std::fmt::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::pipe::pipe::{PipeError, Pipeable, PipeableData};
+use crate::solvers::linear_integer_binary::solve_integer_binary_lp_problem;
 use crate::solvers::simplex::IntoCanonicalTableau;
 use crate::transformers::linearizer::Linearizer;
 use crate::RoocParser;
@@ -18,6 +19,7 @@ pub enum Pipes {
     SimplexPipe,
     StepByStepSimplexPipe,
     BinarySolverPipe,
+    IntegerBinarySolverPipe,
 }
 
 //-------------------- Source Compiler --------------------
@@ -159,9 +161,7 @@ impl Pipeable for StepByStepSimplexPipe {
         let mut tableau = data.as_tableau()?.clone();
         let optimal_tableau = tableau.solve_step_by_step(1000);
         match optimal_tableau {
-            Ok(optimal_tableau) => {
-                Ok(PipeableData::OptimalTableauWithSteps(optimal_tableau))
-            },
+            Ok(optimal_tableau) => Ok(PipeableData::OptimalTableauWithSteps(optimal_tableau)),
             Err(e) => Err(PipeError::SimplexError(e, tableau)),
         }
     }
@@ -196,7 +196,24 @@ impl Pipeable for BinarySolverPipe {
         let binary_solution = crate::solvers::binary::solve_binary_lp_problem(linear_model);
         match binary_solution {
             Ok(solution) => Ok(PipeableData::BinarySolution(solution)),
-            Err(e) => Err(PipeError::BinarySolverError(e)),
+            Err(e) => Err(PipeError::IntegerBinarySolverError(e)),
+        }
+    }
+}
+//-------------------- Integer Binary solver --------------------
+pub struct IntegerBinarySolverPipe {}
+impl IntegerBinarySolverPipe {
+    pub fn new() -> IntegerBinarySolverPipe {
+        IntegerBinarySolverPipe {}
+    }
+}
+impl Pipeable for IntegerBinarySolverPipe {
+    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+        let linear_model = data.as_linear_model()?;
+        let integer_binary_solution = solve_integer_binary_lp_problem(linear_model);
+        match integer_binary_solution {
+            Ok(solution) => Ok(PipeableData::IntegerBinarySolution(solution)),
+            Err(e) => Err(PipeError::IntegerBinarySolverError(e)),
         }
     }
 }

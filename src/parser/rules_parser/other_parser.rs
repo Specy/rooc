@@ -51,7 +51,26 @@ pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, Compilatio
                     }
                     Ok(PreObjective::new(obj_type.unwrap(), parse_exp(body)?))
                 }
-                _ => bail_missing_token!("Missing objective", objective),
+                (None, Some(objective_type)) => {
+                    let obj_type = objective_type.as_str().parse::<OptimizationType>();
+                    match obj_type {
+                        Ok(OptimizationType::Satisfy) => Ok(PreObjective::new(
+                            obj_type.unwrap(),
+                            PreExp::Primitive(Spanned::new(
+                                Primitive::Boolean(true),
+                                InputSpan::from_pair(&objective_type),
+                            )),
+                        )),
+                        _ => {
+                            err_unexpected_token!(
+                                "Unknown objective type \"{}\", expected one of \"{}\"",
+                                objective_type,
+                                OptimizationType::kinds_to_string().join(", ")
+                            )
+                        }
+                    }
+                }
+                _ => bail_missing_token!("Missing or wrong objective", objective),
             }
         }
         _ => {

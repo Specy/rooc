@@ -1,8 +1,9 @@
 use crate::math::math_utils::{float_eq, float_ne};
 use crate::pipe::pipe::{PipeDataType, PipeError, PipeableData};
-use crate::pipe::pipe_executors::{BinarySolverPipe, CompilerPipe, LinearModelPipe, ModelPipe, PreModelPipe, SimplexPipe, StandardLinearModelPipe, TableauPipe};
+use crate::pipe::pipe_executors::{BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe, PreModelPipe, SimplexPipe, StandardLinearModelPipe, TableauPipe};
 use crate::pipe::pipe_runner::PipeRunner;
-use crate::solvers::binary::BinaryLpSolution;
+use crate::solvers::common::IntegerBinaryLpSolution;
+use crate::solvers::linear_integer_binary::VarValue;
 use crate::solvers::simplex::{CanonicalTransformError, OptimalTableau, SimplexError};
 
 #[allow(dead_code)]
@@ -30,19 +31,12 @@ fn solve(source: &str) -> Result<OptimalTableau, PipeError> {
             }
         }
         Err((error, _context)) => {
-            /*
-            let context = context
-                .iter()
-                .map(|data| format!("//--------{}--------//\n\n{}", data.get_type(), data))
-                .collect::<Vec<String>>()
-                .join("\n\n");
-             */
             Err(error)
         }
     }
 }
 
-fn solve_binary(source: &str) -> Result<BinaryLpSolution, PipeError> {
+fn solve_binary(source: &str) -> Result<IntegerBinaryLpSolution<bool>, PipeError> {
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
         Box::new(PreModelPipe::new()),
@@ -64,13 +58,33 @@ fn solve_binary(source: &str) -> Result<BinaryLpSolution, PipeError> {
             }
         }
         Err((error, _context)) => {
-            /*
-            let context = context
-                .iter()
-                .map(|data| format!("//--------{}--------//\n\n{}", data.get_type(), data))
-                .collect::<Vec<String>>()
-                .join("\n\n");
-             */
+            Err(error)
+        }
+    }
+}
+
+fn solve_integer_binary(source: &str) -> Result<IntegerBinaryLpSolution<VarValue>, PipeError> {
+    let pipe_runner = PipeRunner::new(vec![
+        Box::new(CompilerPipe::new()),
+        Box::new(PreModelPipe::new()),
+        Box::new(ModelPipe::new()),
+        Box::new(LinearModelPipe::new()),
+        Box::new(IntegerBinarySolverPipe::new()),
+    ]);
+
+    let result = pipe_runner.run(PipeableData::String(source.to_string()));
+    match result {
+        Ok(data) => {
+            let last = data.last().unwrap();
+            match last {
+                PipeableData::IntegerBinarySolution(data) => Ok(data.clone()),
+                _ => Err(PipeError::InvalidData {
+                    expected: PipeDataType::IntegerBinarySolution,
+                    got: last.get_type(),
+                }),
+            }
+        }
+        Err((error, _context)) => {
             Err(error)
         }
     }
@@ -108,6 +122,35 @@ fn assert_variables_binary(variables: &Vec<bool>, expected: &Vec<bool>, lax_var_
                 "{:?}!={:?} Expected  {:?} but got {:?}",
                 v, e, expected, variables
             );
+        }
+    }
+}
+fn assert_variables_integer(variables: &Vec<VarValue>, expected: &Vec<VarValue>, lax_var_num: bool) {
+    if variables.len() != expected.len() && !lax_var_num {
+        panic!(
+            "Different length, expected {:?} but got {:?}",
+            expected, variables
+        );
+    }
+    for (v, e) in variables.iter().zip(expected.iter()) {
+        match (v, e) {
+            (VarValue::Bool(v), VarValue::Bool(e)) => {
+                if *v != *e {
+                    panic!(
+                        "{:?}!={:?} Expected  {:?} but got {:?}",
+                        v, e, expected, variables
+                    );
+                }
+            }
+            (VarValue::Int(v), VarValue::Int(e)) => {
+                if *v != *e {
+                    panic!(
+                        "{:?}!={:?} Expected  {:?} but got {:?}",
+                        v, e, expected, variables
+                    );
+                }
+            }
+            _ => panic!("Different types"),
         }
     }
 }
@@ -352,9 +395,8 @@ fn should_solve_diet() {
     assert_variables(variables, &vec![1.32592, 4.11111, 1.0], true);
 }
 
-
 #[test]
-fn should_solve_free_variables(){
+fn should_solve_free_variables() {
     let source = r#"
     min x_1 + 2x_2 - x_3
 s.t. 
@@ -370,9 +412,8 @@ define
     assert_variables(variables, &vec![13.0, 0.0, 8.0, 0.0, 0.0], false);
 }
 
-
 #[test]
-fn should_solve_binary_problem(){
+fn should_solve_binary_problem() {
     let source = r#"
     //knapsack problem
     max sum((value, i) in enumerate(values)) { value * x_i }
@@ -387,5 +428,27 @@ fn should_solve_binary_problem(){
     "#;
     let solution = solve_binary(source).unwrap();
     assert_precision(solution.get_value(), 280.0);
-    assert_variables_binary(&solution.get_assignment_values(), &vec![false, false, true, false, true, true, true, true], true);
+    assert_variables_binary(
+        &solution.get_assignment_values(),
+        &vec![false, false, true, false, true, true, true, true],
+        true,
+    );
+}
+
+
+#[test]
+fn should_solve_integer_problem(){
+    let source = r#"
+    max 2x_1 + 3x_2 
+    s.t.
+        x_1 + x_2 <= 7
+        2x_1 + 3x_2 <= 21
+    define
+        x_1, x_2, x_3, x_4 as PositiveInteger
+    "#;
+    let solution = solve_integer_binary(source).unwrap();
+    assert_precision(solution.get_value(), 21.0);
+    let assignment = solution.get_assignment_values();
+    assert_variables_integer(&assignment, &vec![VarValue::Int(0), VarValue::Int(7)], false);
+    
 }

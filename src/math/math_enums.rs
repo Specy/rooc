@@ -54,6 +54,7 @@ enum_with_variants_to_string! {
     pub enum OptimizationType derives[Debug, PartialEq, Clone] with_wasm {
         Min,
         Max,
+        Satisfy
     }
 }
 impl ToLatex for OptimizationType {
@@ -61,6 +62,7 @@ impl ToLatex for OptimizationType {
         match self {
             OptimizationType::Min => "\\min".to_string(),
             OptimizationType::Max => "\\max".to_string(),
+            OptimizationType::Satisfy => "\\solve".to_string(),
         }
     }
 }
@@ -70,6 +72,7 @@ impl fmt::Display for OptimizationType {
         let s = match self {
             OptimizationType::Min => "min".to_string(),
             OptimizationType::Max => "max".to_string(),
+            OptimizationType::Satisfy => "solve".to_string(),
         };
 
         f.write_str(&s)
@@ -82,6 +85,7 @@ impl FromStr for OptimizationType {
         match s {
             "min" => Ok(OptimizationType::Min),
             "max" => Ok(OptimizationType::Max),
+            "solve" => Ok(OptimizationType::Satisfy),
             _ => Err(()),
         }
     }
@@ -90,6 +94,7 @@ impl FromStr for OptimizationType {
 enum_with_variants_to_string! {
     pub enum VariableType derives[Debug, PartialEq, Clone] with_wasm{
         Integer,
+        PositiveInteger,
         Boolean,
         PositiveReal,
         Real,
@@ -100,6 +105,7 @@ impl fmt::Display for VariableType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             VariableType::Integer => "Integer".to_string(),
+            VariableType::PositiveInteger => "PositiveInteger".to_string(),
             VariableType::Boolean => "Boolean".to_string(),
             VariableType::PositiveReal => "PositiveReal".to_string(),
             VariableType::Real => "Real".to_string(),
@@ -117,6 +123,7 @@ impl FromStr for VariableType {
             "Boolean" => Ok(VariableType::Boolean),
             "PositiveReal" => Ok(VariableType::PositiveReal),
             "Real" => Ok(VariableType::Real),
+            "PositiveInteger" => Ok(VariableType::PositiveInteger),
             _ => Err(()),
         }
     }
@@ -129,6 +136,7 @@ impl ToLatex for VariableType {
             VariableType::Boolean => "\\{0,1\\}".to_string(),
             VariableType::PositiveReal => "\\mathbb{R}^+_0".to_string(),
             VariableType::Real => "\\mathbb{R}".to_string(),
+            VariableType::PositiveInteger => "\\mathbb{N}".to_string(),
         }
     }
 }

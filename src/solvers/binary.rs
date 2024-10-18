@@ -1,64 +1,15 @@
 use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
 use crate::parser::model_transformer::transformer_context::DomainVariable;
+use crate::solvers::common::{Assignment, IntegerBinaryLpSolution, IntegerBinarySolverError};
 use crate::transformers::linear_model::LinearModel;
 use copper::views::ViewExt;
 use copper::*;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 
-#[derive(Debug)]
-pub enum BinarySolverError {
-    InvalidDomain(Vec<(String, DomainVariable)>),
-    TooLarge { name: String, value: f64 },
-    DidNotSolve,
-}
-
-impl std::fmt::Display for BinarySolverError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            BinarySolverError::InvalidDomain(vars) => {
-                let vars = vars
-                    .iter()
-                    .map(|(name, domain)| format!("    {}: {}", name, domain.get_type()))
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                write!(f, "Invalid domain, the following variables are non binary: \n{}", vars)
-            }
-            BinarySolverError::TooLarge { name, value } => {
-                write!(f, "The value of variable {} is too large: {}", name, value)
-            }
-            BinarySolverError::DidNotSolve => {
-                write!(f, "The problem was able to be solved")
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct Assignment {
-    pub name: String,
-    pub value: bool,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct BinaryLpSolution {
-    assignment: Vec<Assignment>,
-    value: f64,
-}
-
-impl BinaryLpSolution {
-    pub fn get_assignment(&self) -> &Vec<Assignment> {
-        &self.assignment
-    }
-    pub fn get_assignment_values(&self) -> Vec<bool> {
-        self.assignment.iter().map(|a| a.value).collect()
-    }
-    pub fn get_value(&self) -> f64 {
-        self.value
-    }
-}
-
-pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<BinaryLpSolution, BinarySolverError> {
+pub fn solve_binary_lp_problem(
+    lp: &LinearModel,
+) -> Result<IntegerBinaryLpSolution<bool>, IntegerBinarySolverError> {
     let non_binary_variables = lp
         .get_domain()
         .iter()
@@ -71,7 +22,10 @@ pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<BinaryLpSolution, Bin
         })
         .collect::<Vec<_>>();
     if non_binary_variables.len() > 0 {
-        return Err(BinarySolverError::InvalidDomain(non_binary_variables));
+        return Err(IntegerBinarySolverError::InvalidDomain {
+            expected: vec![VariableType::Boolean],
+            got: non_binary_variables
+        });
     }
     let mut m = Model::default();
     let vars: Vec<_> = m.new_vars_binary(lp.get_domain().len()).collect();
@@ -84,7 +38,7 @@ pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<BinaryLpSolution, Bin
             .map(|(c, v)| c.to_i32().map(|c| v.times(c)))
             .collect::<Option<Vec<_>>>();
         if lhs.is_none() {
-            return Err(BinarySolverError::TooLarge {
+            return Err(IntegerBinarySolverError::TooLarge {
                 name: format!("variable in constraint {}", i + 1),
                 value: *constraint
                     .get_coefficients()
@@ -96,7 +50,7 @@ pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<BinaryLpSolution, Bin
         let lhs = m.sum_iter(lhs.unwrap());
         let rhs = constraint.get_rhs().to_i32();
         if rhs.is_none() {
-            return Err(BinarySolverError::TooLarge {
+            return Err(IntegerBinarySolverError::TooLarge {
                 name: format!("right hand side of constraint {}", i + 1),
                 value: constraint.get_rhs(),
             });
@@ -120,7 +74,7 @@ pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<BinaryLpSolution, Bin
         .map(|(c, v)| c.to_i32().map(|c| v.times(c)))
         .collect::<Option<Vec<_>>>();
     if objective.is_none() {
-        return Err(BinarySolverError::TooLarge {
+        return Err(IntegerBinarySolverError::TooLarge {
             name: "objective function variable".to_string(),
             value: *lp
                 .get_objective()
@@ -133,10 +87,11 @@ pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<BinaryLpSolution, Bin
     let solution = match lp.get_optimization_type() {
         OptimizationType::Max => m.maximize(objective),
         OptimizationType::Min => m.minimize(objective),
+        OptimizationType::Satisfy => m.solve(),
     };
     match solution {
         None => {
-            return Err(BinarySolverError::DidNotSolve);
+            return Err(IntegerBinarySolverError::DidNotSolve);
         }
         Some(solution) => {
             let var_names = lp.get_variables();
@@ -149,11 +104,9 @@ pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<BinaryLpSolution, Bin
                     value: *v,
                 })
                 .collect();
-            let value = solution[objective];
-            Ok(BinaryLpSolution {
-                assignment,
-                value: value.to_f64().unwrap() + lp.get_objective_offset(),
-            })
+            let value = solution[objective] as f64 + lp.get_objective_offset();
+            let sol = IntegerBinaryLpSolution::new(assignment, value);
+            Ok(sol)
         }
     }
 }

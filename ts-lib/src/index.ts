@@ -157,7 +157,8 @@ export type RoocData =
     RoocType<PipeDataType.Tableau, SimplexTableau> |
     RoocType<PipeDataType.OptimalTableau, OptimalTableau> |
     RoocType<PipeDataType.OptimalTableauWithSteps, OptimalTableauWithSteps> |
-    RoocType<PipeDataType.BinarySolution, BinarySolution>
+    RoocType<PipeDataType.BinarySolution, BinaryIntegerSolution<boolean>> | 
+    RoocType<PipeDataType.BinarySolution, BinaryIntegerSolution<VarValue>>
 
 function toRoocData(data: WasmPipableData): RoocData {
     switch (data.wasm_get_type()) {
@@ -553,16 +554,23 @@ export class Model {
     }
 }
 
-export type BinaryAssignment = {
-    name: string
+export type VarValue = {
+    type: 'integer'
+    value: number
+} | {
+    type: 'binary'
     value: boolean
 }
 
-export type BinarySolution = {
-    assignment: BinaryAssignment[]
-    value: number
+export type BinaryAssignment<T> = {
+    name: string
+    value: T
 }
 
+export type BinaryIntegerSolution<T> = {
+    assignment: BinaryAssignment<T>[]
+    value: number
+}
 
 
 export * from './runtime'

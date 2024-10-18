@@ -157,7 +157,6 @@ impl SimplexStep {
     }
 }
 
-
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
 pub struct OptimalTableauWithSteps {
@@ -175,11 +174,13 @@ impl OptimalTableauWithSteps {
     }
 }
 
-
-
 #[derive(Serialize)]
 pub enum StepAction {
-    Pivot { entering: usize, leaving: usize, ratio: f64 },
+    Pivot {
+        entering: usize,
+        leaving: usize,
+        ratio: f64,
+    },
     Finished,
 }
 
@@ -227,20 +228,27 @@ impl Tableau {
         self.solve_avoiding(limit, &vec![])
     }
 
-    pub fn solve_step_by_step(&mut self, limit: i64) -> Result<OptimalTableauWithSteps, SimplexError> {
+    pub fn solve_step_by_step(
+        &mut self,
+        limit: i64,
+    ) -> Result<OptimalTableauWithSteps, SimplexError> {
         let mut iteration = 0;
         let empty = vec![];
         let mut steps = vec![];
         while iteration <= limit {
             let prev = self.clone();
             match self.step(&empty) {
-                Ok(StepAction::Pivot { entering, leaving, ratio }) => {
+                Ok(StepAction::Pivot {
+                    entering,
+                    leaving,
+                    ratio,
+                }) => {
                     iteration += 1;
                     steps.push(SimplexStep {
                         tableau: prev,
                         entering,
                         leaving,
-                        ratio
+                        ratio,
                     });
                 }
                 Ok(StepAction::Finished) => {

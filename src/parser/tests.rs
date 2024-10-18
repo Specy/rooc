@@ -166,6 +166,23 @@ define
     }
 
     #[test]
+    fn test_satisfiability() {
+        let input = "
+        solve
+        s.t.
+            x + y + z = 3
+        define
+            x, y, z as Boolean
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect("Failed to type check problem");
+    }
+
+    #[test]
     fn test_parser_errors1() {
         let input = "
             min 1

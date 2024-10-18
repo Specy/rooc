@@ -1,6 +1,6 @@
 problem = {
     SOI ~ nl* ~
-    #objective = objective ~ nl+ ~
+    #objective = objective  ~ nl+ ~
     ^"s.t." ~ nl+ ~
     #constraints = constraint_list ~
     (
@@ -17,10 +17,14 @@ problem = {
     EOI
 }
 // required problem body
-objective = {
+objective = { (
   #objective_type = objective_type ~
   #objective_body = tagged_exp
+  ) | (
+  #objective_type = solve
+  )
 }
+solve = @{ ^"solve" }
 constraint_list = { (constraint ~ (nl* ~constraint)*)?}
 // constraint
 constraint = {

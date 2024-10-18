@@ -7,11 +7,11 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::math::math_utils::float_lt;
 use crate::parser::model_transformer::transformer_context::DomainVariable;
 use crate::transformers::standard_linear_model::{format_var, StandardLinearModel};
+use crate::utils::remove_many;
 use crate::{
     math::math_enums::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
 };
-use crate::utils::remove_many;
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
