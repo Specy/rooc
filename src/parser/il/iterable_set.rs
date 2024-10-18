@@ -133,11 +133,6 @@ impl IterableSet {
 
 impl fmt::Display for IterableSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} in {}",
-            self.var.to_string(),
-            self.iterator.to_string()
-        )
+        write!(f, "{} in {}", self.var, *self.iterator)
     }
 }

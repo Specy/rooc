@@ -186,7 +186,7 @@ impl ToLatex for Graph {
             .collect::<Vec<_>>()
             .join("\\\\ ");
         if nodes.is_empty() {
-            return format!("\\emptyset");
+            return "\\emptyset".to_string();
         }
         format!("\\begin{{Bmatrix*}}[l] {} \\end{{Bmatrix*}}", nodes)
     }
@@ -197,7 +197,7 @@ impl fmt::Display for Graph {
         let nodes = self
             .vertices
             .iter()
-            .map(|node| format!("    {}", node.to_string()))
+            .map(|node| format!("    {}", node))
             .collect::<Vec<_>>()
             .join(",\n");
         if nodes.is_empty() {

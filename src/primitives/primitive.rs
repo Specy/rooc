@@ -9,7 +9,7 @@ use super::{
     iterable::IterableKind,
     tuple::Tuple,
 };
-use crate::math::math_utils::{float_eq, float_lt, float_ne};
+use crate::math::math_utils::{float_lt, float_ne};
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::traits::latex::ToLatex;
 use crate::{
@@ -164,7 +164,7 @@ impl Display for PrimitiveKind {
             PrimitiveKind::String => "String".to_string(),
             PrimitiveKind::Integer => "Integer".to_string(),
             PrimitiveKind::PositiveInteger => "PositiveInteger".to_string(),
-            PrimitiveKind::Iterable(i) => format!("{}[]", i.to_string()),
+            PrimitiveKind::Iterable(i) => format!("{}[]", i),
             PrimitiveKind::Graph => "Graph".to_string(),
             PrimitiveKind::GraphEdge => "GraphEdge".to_string(),
             PrimitiveKind::GraphNode => "GraphNode".to_string(),

@@ -131,11 +131,11 @@ impl VariablesDomainDeclaration {
             .iter()
             .map(|v| {
                 match v.get_span_value() {
-                    VariableToAssert::Variable(name) => Ok((name.clone(), self.as_type.clone())),
+                    VariableToAssert::Variable(name) => Ok((name.clone(), self.as_type)),
                     VariableToAssert::CompoundVariable(c) => {
                         let indexes = &c.compute_indexes(context)?;
-                        let name = context.flatten_compound_variable(&c.name, &indexes)?;
-                        Ok((name, self.as_type.clone()))
+                        let name = context.flatten_compound_variable(&c.name, indexes)?;
+                        Ok((name, self.as_type))
                     }
                 }
                 .map(|(name, t)| (name, Spanned::new(t, v.get_span().clone())))
@@ -178,7 +178,7 @@ impl TypeCheckable for VariablesDomainDeclaration {
         for variable in &self.variables {
             match &variable.get_span_value() {
                 VariableToAssert::Variable(name) => {
-                    if let Some(_) = context.get_value(name) {
+                    if context.get_value(name).is_some() {
                         return Err(TransformError::Other(format!(
                             "Variable {} already declared as static",
                             name

@@ -97,14 +97,14 @@ impl ToLatex for CompoundVariable {
             .map(|i| match i {
                 PreExp::Primitive(p) => {
                     if p.get_type().is_numeric() {
-                        format!("{}", i.to_latex())
+                        i.to_latex().to_string()
                     } else {
                         format!("({})", i.to_latex())
                     }
                 }
                 PreExp::Variable(name) => {
                     let name = name.get_span_value().clone();
-                    format!("{}", name)
+                    name.to_string()
                 }
                 _ => format!("({})", i.to_latex()),
             })
@@ -248,9 +248,7 @@ impl TypeCheckable for PreConstraint {
         if !lhs_type.is_numeric() || !rhs_type.is_numeric() {
             let err = TransformError::Other(format!(
                 "Expected comparison of \"Number\", got \"{}\" {} \"{}\"",
-                lhs_type.to_string(),
-                self.constraint_type,
-                rhs_type.to_string()
+                lhs_type, self.constraint_type, rhs_type
             ))
             .add_span(&self.span);
             return Err(err);

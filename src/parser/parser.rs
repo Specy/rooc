@@ -87,7 +87,7 @@ impl PreModel {
             .flat_map(|d| {
                 d.get_static_variables().into_iter().map(|v| {
                     let (name, span) = v.into_tuple();
-                    (name, Spanned::new(d.get_type().clone(), span))
+                    (name, Spanned::new(*d.get_type(), span))
                 })
             })
             .collect::<Vec<_>>()
@@ -242,7 +242,7 @@ impl fmt::Display for PreModel {
         let mut s = self.objective.to_string();
         s.push_str("\ns.t.\n");
         for cond in &self.constraints {
-            s.push_str(&format!("    {}\n", cond.to_string()));
+            s.push_str(&format!("    {}\n", cond));
         }
         if !self.constants.is_empty() {
             s.push_str("where\n");
@@ -271,7 +271,7 @@ impl fmt::Display for PreModel {
 }
 
 pub fn parse_problem_source(source: &String) -> Result<PreModel, CompilationError> {
-    let problem = PLParser::parse(Rule::problem, &source);
+    let problem = PLParser::parse(Rule::problem, source);
     match problem {
         Ok(mut problem) => {
             let problem = problem.next();

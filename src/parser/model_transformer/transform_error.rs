@@ -163,7 +163,7 @@ impl fmt::Display for TransformError {
                     "[WrongFunctionSignature] Wrong number of arguments, expected \"{}\", got \"{}\"",
                     signature
                         .iter()
-                        .map(|x| format!("{}: {}", x.0, x.1.to_string()))
+                        .map(|x| format!("{}: {}", x.0, x.1))
                         .collect::<Vec<_>>()
                         .join(", "),
                     got.iter()
@@ -177,7 +177,7 @@ impl fmt::Display for TransformError {
                     "[WrongNumberOfArguments] Wrong number of arguments, expected signature \"{}\", got parameters \"{}\"",
                     signature
                         .iter()
-                        .map(|x| format!("{}: {}", x.0, x.1.to_string()))
+                        .map(|x| format!("{}: {}", x.0, x.1))
                         .collect::<Vec<_>>()
                         .join(", "),
                     args
@@ -189,11 +189,7 @@ impl fmt::Display for TransformError {
             }
             TransformError::OutOfBounds(name) => format!("[OutOfBounds] {}", name),
             TransformError::WrongArgument { expected, got } => {
-                format!(
-                    "[WrongArgument] expected \"{}\", got \"{}\"",
-                    expected.to_string(),
-                    got.to_string()
-                )
+                format!("[WrongArgument] expected \"{}\", got \"{}\"", expected, got)
             }
             TransformError::WrongExpectedArgument { got, one_of } => {
                 format!(
@@ -203,7 +199,7 @@ impl fmt::Display for TransformError {
                         .map(|x| x.to_string())
                         .collect::<Vec<_>>()
                         .join(", "),
-                    got.to_string()
+                    got
                 )
             }
             TransformError::AlreadyDefined { name, kind } => {
@@ -217,7 +213,7 @@ impl fmt::Display for TransformError {
                     "[AlreadyDeclaredDomainVariable] There are some variables whose domain is already declared:\n    {}",
                     variables
                         .iter()
-                        .map(|(name, kind)| format!("{}: {} ({} duplicates)", name, kind.1.to_string(), kind.0))
+                        .map(|(name, kind)| format!("{}: {} ({} duplicates)", name, *kind.1, kind.0))
                         .collect::<Vec<_>>()
                         .join(", ")
                 )
@@ -227,7 +223,7 @@ impl fmt::Display for TransformError {
                 in_variables,
             } => format!(
                 "[SpreadError] type \"{}\" cannot be spread in \"{}\"",
-                to_spread.to_string(),
+                to_spread,
                 in_variables
                     .iter()
                     .map(|x| x.to_string())
@@ -235,10 +231,9 @@ impl fmt::Display for TransformError {
                     .join(", ")
             ),
             TransformError::Other(name) => format!("[Other] {}", name),
-            TransformError::Unspreadable(kind) => format!(
-                "[Unspreadable] type \"{}\" is not spreadable",
-                kind.to_string()
-            ),
+            TransformError::Unspreadable(kind) => {
+                format!("[Unspreadable] type \"{}\" is not spreadable", kind)
+            }
             TransformError::SpannedError {
                 spanned_error: span,
                 ..
@@ -246,16 +241,13 @@ impl fmt::Display for TransformError {
             TransformError::BinOpError { operator, lhs, rhs } => {
                 format!(
                     "[BinOpError] operator \"{}\" cannot be applied to \"{}\" and \"{}\"",
-                    operator.to_string(),
-                    lhs.to_string(),
-                    rhs.to_string()
+                    operator, lhs, rhs
                 )
             }
             TransformError::UnOpError { operator, exp } => {
                 format!(
                     "[UnOpError] operator \"{}\" cannot be applied to \"{}\"",
-                    operator.to_string(),
-                    exp.to_string()
+                    operator, exp
                 )
             }
         };
@@ -336,10 +328,7 @@ impl TransformError {
     }
     pub fn get_origin_span(&self) -> Option<InputSpan> {
         let trace = self.get_trace();
-        match trace.first() {
-            Some((span, _)) => Some(span.clone()),
-            None => None,
-        }
+        trace.first().map(|(span, _)| span.clone())
     }
     pub fn get_base_error(&self) -> &TransformError {
         match self {

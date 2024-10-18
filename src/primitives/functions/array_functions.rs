@@ -53,7 +53,7 @@ impl WithType for EnumerateArray {
     fn get_type(&self, context: &TypeCheckerContext) -> PrimitiveKind {
         let arg_type = self
             .args
-            .get(0)
+            .first()
             .map(|a| a.get_type(context))
             .unwrap_or(PrimitiveKind::Undefined);
         let arg_type = match arg_type {

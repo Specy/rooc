@@ -46,11 +46,7 @@ impl Tuple {
         PrimitiveKind::Tuple(self.get_inner_types())
     }
     pub fn get_inner_types(&self) -> Vec<PrimitiveKind> {
-        self.0
-            .iter()
-            .map(|p| p.get_type())
-            .collect::<Vec<_>>()
-            .into()
+        self.0.iter().map(|p| p.get_type()).collect::<Vec<_>>()
     }
 }
 

@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::pipe::pipe::{PipeError, Pipeable, PipeableData};
@@ -24,6 +22,12 @@ pub enum Pipes {
 
 //-------------------- Source Compiler --------------------
 pub struct CompilerPipe {}
+impl Default for CompilerPipe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CompilerPipe {
     pub fn new() -> CompilerPipe {
         CompilerPipe {}
@@ -39,6 +43,12 @@ impl Pipeable for CompilerPipe {
 }
 //-------------------- Pre Model --------------------
 pub struct PreModelPipe {}
+impl Default for PreModelPipe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PreModelPipe {
     pub fn new() -> PreModelPipe {
         PreModelPipe {}
@@ -58,6 +68,12 @@ impl Pipeable for PreModelPipe {
 }
 //-------------------- Model --------------------
 pub struct ModelPipe {}
+impl Default for ModelPipe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ModelPipe {
     pub fn new() -> ModelPipe {
         ModelPipe {}
@@ -83,6 +99,12 @@ impl Pipeable for ModelPipe {
 }
 //-------------------- Linear Model --------------------
 pub struct LinearModelPipe {}
+impl Default for LinearModelPipe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LinearModelPipe {
     pub fn new() -> LinearModelPipe {
         LinearModelPipe {}
@@ -100,6 +122,12 @@ impl Pipeable for LinearModelPipe {
 }
 //-------------------- Standard Linear Model --------------------
 pub struct StandardLinearModelPipe {}
+impl Default for StandardLinearModelPipe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StandardLinearModelPipe {
     pub fn new() -> StandardLinearModelPipe {
         StandardLinearModelPipe {}
@@ -117,6 +145,12 @@ impl Pipeable for StandardLinearModelPipe {
 }
 //-------------------- Tableau --------------------
 pub struct TableauPipe {}
+impl Default for TableauPipe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TableauPipe {
     pub fn new() -> TableauPipe {
         TableauPipe {}
@@ -134,6 +168,12 @@ impl Pipeable for TableauPipe {
 }
 //-------------------- Simplex --------------------
 pub struct SimplexPipe {}
+impl Default for SimplexPipe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SimplexPipe {
     pub fn new() -> SimplexPipe {
         SimplexPipe {}
@@ -151,6 +191,12 @@ impl Pipeable for SimplexPipe {
 }
 //-------------------- Step by step Simplex  --------------------
 pub struct StepByStepSimplexPipe {}
+impl Default for StepByStepSimplexPipe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StepByStepSimplexPipe {
     pub fn new() -> StepByStepSimplexPipe {
         StepByStepSimplexPipe {}
@@ -170,6 +216,12 @@ impl Pipeable for StepByStepSimplexPipe {
 //-------------------- Dual --------------------
 
 pub struct DualPipe {}
+impl Default for DualPipe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DualPipe {
     pub fn new() -> DualPipe {
         DualPipe {}
@@ -185,6 +237,12 @@ impl Pipeable for DualPipe {
 
 //-------------------- Binary solver --------------------
 pub struct BinarySolverPipe {}
+impl Default for BinarySolverPipe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BinarySolverPipe {
     pub fn new() -> BinarySolverPipe {
         BinarySolverPipe {}
@@ -202,6 +260,12 @@ impl Pipeable for BinarySolverPipe {
 }
 //-------------------- Integer Binary solver --------------------
 pub struct IntegerBinarySolverPipe {}
+impl Default for IntegerBinarySolverPipe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IntegerBinarySolverPipe {
     pub fn new() -> IntegerBinarySolverPipe {
         IntegerBinarySolverPipe {}

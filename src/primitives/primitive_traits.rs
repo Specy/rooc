@@ -67,19 +67,15 @@ impl fmt::Display for OperatorError {
                 operator,
             } => format!(
                 "Incompatible types for operator \"{}\", expected \"{}\", found \"{}\"",
-                operator,
-                expected.to_string(),
-                found.to_string()
+                operator, expected, found
             ),
             OperatorError::UnsupportedBinOperation { operator, found } => format!(
                 "Unsupported binary operation \"{}\" for type \"{}\"",
-                operator,
-                found.to_string()
+                operator, found
             ),
             OperatorError::UnsupportedUnOperation { operator, found } => format!(
                 "Unsupported unary operation \"{}\" for type \"{}\"",
-                operator,
-                found.to_string()
+                operator, found
             ),
             OperatorError::UndefinedUse => "Used \"Undefined\" in operation".to_string(),
         };

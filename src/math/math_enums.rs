@@ -111,7 +111,6 @@ export type VariableType = {
 }
 "#;
 
-
 impl VariableType {
     pub fn kinds_to_string() -> Vec<String> {
         vec![

@@ -1,11 +1,9 @@
 use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
-use crate::parser::model_transformer::transformer_context::DomainVariable;
 use crate::solvers::common::{Assignment, IntegerBinaryLpSolution, IntegerBinarySolverError};
 use crate::transformers::linear_model::LinearModel;
 use copper::views::ViewExt;
 use copper::*;
 use num_traits::ToPrimitive;
-use serde::Serialize;
 
 pub fn solve_binary_lp_problem(
     lp: &LinearModel,
@@ -21,7 +19,7 @@ pub fn solve_binary_lp_problem(
             }
         })
         .collect::<Vec<_>>();
-    if non_binary_variables.len() > 0 {
+    if !non_binary_variables.is_empty() {
         return Err(IntegerBinarySolverError::InvalidDomain {
             expected: vec![VariableType::Boolean],
             got: non_binary_variables,
@@ -90,9 +88,7 @@ pub fn solve_binary_lp_problem(
         OptimizationType::Satisfy => m.solve(),
     };
     match solution {
-        None => {
-            return Err(IntegerBinarySolverError::DidNotSolve);
-        }
+        None => Err(IntegerBinarySolverError::DidNotSolve),
         Some(solution) => {
             let var_names = lp.get_variables();
             let assignment = solution

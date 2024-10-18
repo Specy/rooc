@@ -303,6 +303,12 @@ pub struct LinearizationContext {
     current_rhs: f64,
 }
 
+impl Default for LinearizationContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LinearizationContext {
     pub fn new() -> Self {
         LinearizationContext {
@@ -320,6 +326,7 @@ impl LinearizationContext {
         context.add_rhs(rhs);
         context
     }
+    #[allow(clippy::all)]
     pub fn add_var(&mut self, name: String, multiplier: f64) {
         if self.current_vars.contains_key(&name) {
             let val = self.current_vars.get_mut(&name).unwrap();

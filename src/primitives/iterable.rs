@@ -60,13 +60,13 @@ impl IterableKind {
             IterableKind::Edges(_) => PrimitiveKind::GraphEdge,
             IterableKind::Nodes(_) => PrimitiveKind::GraphNode,
             IterableKind::Tuple(t) => t
-                .get(0)
+                .first()
                 .map(|e| e.get_type())
                 .unwrap_or(PrimitiveKind::Undefined),
             IterableKind::Booleans(_) => PrimitiveKind::Boolean,
             IterableKind::Graphs(_) => PrimitiveKind::Graph,
             IterableKind::Iterable(i) => PrimitiveKind::Iterable(
-                i.get(0)
+                i.first()
                     .map(|e| e.get_inner_type())
                     .unwrap_or(PrimitiveKind::Undefined)
                     .into(),
@@ -187,7 +187,7 @@ impl IterableKind {
         let mut depth = 1;
         while let IterableKind::Iterable(v) = current {
             depth += 1;
-            match v.get(0) {
+            match v.first() {
                 Some(i) => current = i,
                 None => break,
             }
@@ -204,7 +204,7 @@ impl IterableKind {
                     .join(", ");
                 format!("{}[\n{}\n]", "    ".repeat(depth), s)
             }
-            _ => format!("{}{}", "    ".repeat(depth), self.to_string()),
+            _ => format!("{}{}", "    ".repeat(depth), self),
         }
     }
     pub fn latexify(&self, include_block: bool) -> String {
@@ -227,7 +227,7 @@ impl IterableKind {
                 if include_block {
                     format!("\\begin{{bmatrix}} {} \\end{{bmatrix}}", s)
                 } else {
-                    format!("{}", s)
+                    s.to_string()
                 }
             }
         }
@@ -246,7 +246,7 @@ where
     if include_block {
         format!("\\begin{{bmatrix}} {} \\end{{bmatrix}}", values)
     } else {
-        format!("{}", values)
+        values.to_string()
     }
 }
 

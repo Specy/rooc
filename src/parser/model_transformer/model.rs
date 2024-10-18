@@ -1,6 +1,5 @@
 use core::fmt;
 use std::collections::HashMap;
-use std::hash::Hash;
 
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -110,7 +109,7 @@ impl Exp {
                         let inner_rhs = inner_rhs.simplify();
                         if *op != op2 {
                             return Exp::BinOp(
-                                op.clone(),
+                                *op,
                                 Exp::Number(lhs).to_box(),
                                 Exp::BinOp(op2, inner_lhs.to_box(), inner_rhs.to_box()).to_box(),
                             )

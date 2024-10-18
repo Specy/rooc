@@ -109,7 +109,7 @@ impl TypeCheckerContext {
     ) -> Result<(), TransformError> {
         let start = span.start;
         if let Some(val) = &identifier {
-            self.declare_variable(&val, value.clone(), true)
+            self.declare_variable(val, value.clone(), true)
                 .map_err(|e| e.add_span(&span))?;
         }
         let token = TypedToken::new(span, value, identifier);
@@ -124,7 +124,7 @@ impl TypeCheckerContext {
     ) {
         let start = span.start;
         if let Some(val) = &identifier {
-            self.declare_variable(&val, value.clone(), true)
+            self.declare_variable(val, value.clone(), true)
                 .unwrap_or(());
         }
         let token = TypedToken::new(span, value, identifier);
@@ -161,7 +161,7 @@ impl TypeCheckerContext {
         for index in compound_indexes {
             index.type_check(self)?;
             let value = match index {
-                PreExp::Variable(v) => self.get_value(v).map(|v| v.clone()),
+                PreExp::Variable(v) => self.get_value(v).cloned(),
                 PreExp::Primitive(p) => Some(p.value.get_type()),
                 _ => Some(index.get_type(self)),
             };
@@ -221,8 +221,8 @@ impl TypeCheckerContext {
                         //TODO this is a relaxed check, the runtime will check for the exact type
                         return Err(TransformError::Other(format!(
                             "Expected value of type \"Number\" to index array, got \"{}\", check the definition of \"{}\"",
-                            access.get_type(self).to_string(),
-                            access.to_string()
+                            access.get_type(self),
+                            access
                         )));
                     }
                     match last_value {
@@ -231,8 +231,8 @@ impl TypeCheckerContext {
                         }
                         _ => return Err(TransformError::Other(format!(
                             "Expected value of type \"Iterable\" to index array, got \"{}\", check the definition of \"{}\"",
-                            last_value.to_string(),
-                            access.to_string()
+                            last_value,
+                            access
                         )).add_span(access.get_span()))
                     }
                 }

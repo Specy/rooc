@@ -7,9 +7,10 @@ use crate::pipe::pipe_executors::{
 use crate::pipe::pipe_runner::PipeRunner;
 use crate::solvers::common::IntegerBinaryLpSolution;
 use crate::solvers::linear_integer_binary::VarValue;
+#[allow(unused_imports)]
 use crate::solvers::simplex::{CanonicalTransformError, OptimalTableau, SimplexError};
 
-#[allow(dead_code)]
+#[allow(unused)]
 fn solve(source: &str) -> Result<OptimalTableau, PipeError> {
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
@@ -37,6 +38,7 @@ fn solve(source: &str) -> Result<OptimalTableau, PipeError> {
     }
 }
 
+#[allow(unused)]
 fn solve_binary(source: &str) -> Result<IntegerBinaryLpSolution<bool>, PipeError> {
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
@@ -62,6 +64,7 @@ fn solve_binary(source: &str) -> Result<IntegerBinaryLpSolution<bool>, PipeError
     }
 }
 
+#[allow(unused)]
 fn solve_integer_binary(source: &str) -> Result<IntegerBinaryLpSolution<VarValue>, PipeError> {
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
@@ -87,7 +90,7 @@ fn solve_integer_binary(source: &str) -> Result<IntegerBinaryLpSolution<VarValue
     }
 }
 
-#[allow(dead_code)]
+#[allow(unused)]
 fn assert_variables(variables: &Vec<f64>, expected: &Vec<f64>, lax_var_num: bool) {
     if variables.len() != expected.len() && !lax_var_num {
         panic!(
@@ -104,6 +107,8 @@ fn assert_variables(variables: &Vec<f64>, expected: &Vec<f64>, lax_var_num: bool
         }
     }
 }
+
+#[allow(unused)]
 fn assert_variables_binary(variables: &Vec<bool>, expected: &Vec<bool>, lax_var_num: bool) {
     if variables.len() != expected.len() && !lax_var_num {
         panic!(
@@ -120,6 +125,8 @@ fn assert_variables_binary(variables: &Vec<bool>, expected: &Vec<bool>, lax_var_
         }
     }
 }
+
+#[allow(unused)]
 fn assert_variables_integer(
     variables: &Vec<VarValue>,
     expected: &Vec<VarValue>,
@@ -154,6 +161,7 @@ fn assert_variables_integer(
     }
 }
 
+#[allow(unused)]
 fn assert_precision(a: f64, b: f64) -> bool {
     if float_eq(a, b) {
         true
@@ -228,21 +236,10 @@ fn should_find_unbounded_2d() {
     let solution = solve(source);
     match solution {
         Ok(_) => panic!("Should not reach here"),
-        Err(e) => {
-            match e {
-                PipeError::SimplexError(SimplexError::Unbounded, _tableau) => {
-                    //TODO
-                    /*
-
-                    let variables = tableau.get_b();
-                    let solution = tableau.get_current_value();
-                    assert_precision(solution, 1.0);
-                    assert_variables(variables, &vec![0.0, 1.0, 3.0, 0.0]);
-                     */
-                }
-                _ => panic!("Should be unbounded"),
-            }
-        }
+        Err(e) => match e {
+            PipeError::SimplexError(SimplexError::Unbounded, _tableau) => {}
+            _ => panic!("Should be unbounded"),
+        },
     }
 }
 
@@ -260,21 +257,10 @@ fn should_find_unbounded_4d() {
     let solution = solve(source);
     match solution {
         Ok(_) => panic!("Should not reach here"),
-        Err(e) => {
-            match e {
-                PipeError::SimplexError(SimplexError::Unbounded, _tableau) => {
-                    //TODO
-                    /*
-                    let variables = tableau.get_b();
-                    println!("{}", tableau.to_string());
-                    let solution = tableau.get_current_value();
-                    assert_precision(solution, 10.0);
-                    assert_variables(variables, &vec![0.0, 10.0, 0.0, 0.0, 0.0, 38.0, 17.0]);
-                     */
-                }
-                _ => panic!("Should be unbounded"),
-            }
-        }
+        Err(e) => match e {
+            PipeError::SimplexError(SimplexError::Unbounded, _tableau) => {}
+            _ => panic!("Should be unbounded"),
+        },
     }
 }
 

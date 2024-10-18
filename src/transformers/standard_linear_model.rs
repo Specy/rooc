@@ -4,7 +4,7 @@ use std::fmt::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
-use crate::math::math_utils::{float_eq, float_gt, float_lt, float_ne};
+use crate::math::math_utils::{float_gt, float_lt, float_ne};
 use crate::solvers::simplex::{
     divide_matrix_row_by, CanonicalTransformError, IntoCanonicalTableau, Tableau, Tableauable,
 };

@@ -1,6 +1,6 @@
 use rooc::pipe::pipe::PipeableData;
 use rooc::pipe::pipe_executors::{
-    CompilerPipe, LinearModelPipe, ModelPipe, PreModelPipe, SimplexPipe, StandardLinearModelPipe,
+    CompilerPipe, LinearModelPipe, ModelPipe, PreModelPipe, StandardLinearModelPipe,
     StepByStepSimplexPipe, TableauPipe,
 };
 use rooc::pipe::pipe_runner::PipeRunner;

@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 
 use dyn_clone::DynClone;
 use erased_serde::serialize_trait_object;

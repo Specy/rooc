@@ -1,6 +1,5 @@
 use crate::parser::model_transformer::model::Model;
 use crate::parser::parser::PreModel;
-use std::iter::StepBy;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 

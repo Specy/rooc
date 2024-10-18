@@ -85,18 +85,15 @@ impl TypeCheckable for NumericRange {
 
 impl WithType for NumericRange {
     fn get_type(&self, context: &TypeCheckerContext) -> PrimitiveKind {
-        match self.args[..] {
-            [ref from, ref to] => {
-                let from_type = from.get_type(context);
-                let to_type = to.get_type(context);
-                //if we know that the numbers are positive, we can return a positive integer range
-                if matches!(from_type, PrimitiveKind::PositiveInteger)
-                    && matches!(to_type, PrimitiveKind::PositiveInteger)
-                {
-                    return PrimitiveKind::Iterable(Box::new(PrimitiveKind::PositiveInteger));
-                }
+        if let [ref from, ref to] = self.args[..] {
+            let from_type = from.get_type(context);
+            let to_type = to.get_type(context);
+            //if we know that the numbers are positive, we can return a positive integer range
+            if matches!(from_type, PrimitiveKind::PositiveInteger)
+                && matches!(to_type, PrimitiveKind::PositiveInteger)
+            {
+                return PrimitiveKind::Iterable(Box::new(PrimitiveKind::PositiveInteger));
             }
-            _ => {}
         }
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::Integer))
     }
@@ -133,9 +130,9 @@ impl FunctionCall for NumericRange {
                     return Ok(Primitive::Iterable(IterableKind::PositiveIntegers(range)));
                 }
                 let range = if to_inclusive {
-                    (from..=to).map(|i| i as i64).collect()
+                    (from..=to).collect()
                 } else {
-                    (from..to).map(|i| i as i64).collect()
+                    (from..to).collect()
                 };
                 Ok(Primitive::Iterable(IterableKind::Integers(range)))
             }
@@ -143,28 +140,25 @@ impl FunctionCall for NumericRange {
         }
     }
     fn to_latex(&self) -> String {
-        match self.args[..] {
-            [ref from, ref to, _] => {
-                if let Some(inclusive) = self.known_inclusive {
-                    let range = if inclusive {
-                        "\\dots\\text{=}"
-                    } else {
-                        "\\dots"
-                    };
-                    let from = if from.is_leaf() {
-                        from.to_latex()
-                    } else {
-                        format!("({})", from.to_latex())
-                    };
-                    let to = if to.is_leaf() {
-                        to.to_latex()
-                    } else {
-                        format!("({})", to.to_latex())
-                    };
-                    return format!("\\left\\{{{},{},{}\\right\\}}", from, range, to);
-                }
+        if let [ref from, ref to, _] = self.args[..] {
+            if let Some(inclusive) = self.known_inclusive {
+                let range = if inclusive {
+                    "\\dots\\text{=}"
+                } else {
+                    "\\dots"
+                };
+                let from = if from.is_leaf() {
+                    from.to_latex()
+                } else {
+                    format!("({})", from.to_latex())
+                };
+                let to = if to.is_leaf() {
+                    to.to_latex()
+                } else {
+                    format!("({})", to.to_latex())
+                };
+                return format!("\\left\\{{{},{},{}\\right\\}}", from, range, to);
             }
-            _ => {}
         }
         format!(
             "{}({})",
@@ -177,24 +171,21 @@ impl FunctionCall for NumericRange {
         )
     }
     fn to_string(&self) -> String {
-        match self.args[..] {
-            [ref from, ref to, _] => {
-                if let Some(inclusive) = self.known_inclusive {
-                    let range = if inclusive { "..=" } else { ".." };
-                    let from = if from.is_leaf() {
-                        from.to_string()
-                    } else {
-                        format!("({})", from.to_string())
-                    };
-                    let to = if to.is_leaf() {
-                        to.to_string()
-                    } else {
-                        format!("({})", to.to_string())
-                    };
-                    return format!("{}{}{}", from, range, to);
-                }
+        if let [ref from, ref to, _] = self.args[..] {
+            if let Some(inclusive) = self.known_inclusive {
+                let range = if inclusive { "..=" } else { ".." };
+                let from = if from.is_leaf() {
+                    from.to_string()
+                } else {
+                    format!("({})", from)
+                };
+                let to = if to.is_leaf() {
+                    to.to_string()
+                } else {
+                    format!("({})", to)
+                };
+                return format!("{}{}{}", from, range, to);
             }
-            _ => {}
         }
         format!(
             "{}({})",

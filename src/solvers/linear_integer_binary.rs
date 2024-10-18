@@ -34,7 +34,7 @@ pub fn solve_integer_binary_lp_problem(
             }
         })
         .collect::<Vec<_>>();
-    if invalid_variables.len() > 0 {
+    if !invalid_variables.is_empty() {
         return Err(IntegerBinarySolverError::InvalidDomain {
             expected: vec![
                 VariableType::Integer,
@@ -55,7 +55,6 @@ pub fn solve_integer_binary_lp_problem(
                 None
             }
         })
-        .into_iter()
         .enumerate()
         .map(|(i, name)| (name, i))
         .collect::<HashMap<_, _>>();
@@ -125,7 +124,7 @@ pub fn solve_integer_binary_lp_problem(
         }
         let lhs_binary = m.sum_iter(lhs_binary.unwrap());
         let lhs_integer = m.sum_iter(lhs_integer.unwrap());
-        let lhs = m.sum(&vec![lhs_binary, lhs_integer]);
+        let lhs = m.sum(&[lhs_binary, lhs_integer]);
         let rhs = constraint.get_rhs().to_i32();
         if rhs.is_none() {
             return Err(IntegerBinarySolverError::TooLarge {
@@ -165,7 +164,7 @@ pub fn solve_integer_binary_lp_problem(
     }
     let objective_binary = m.sum_iter(objective_binary.unwrap());
     let objective_integer = m.sum_iter(objective_integer.unwrap());
-    let objective = m.sum(&vec![objective_binary, objective_integer]);
+    let objective = m.sum(&[objective_binary, objective_integer]);
     let solution = match lp.get_optimization_type() {
         OptimizationType::Max => m.maximize(objective),
         OptimizationType::Min => m.minimize(objective),
@@ -181,9 +180,7 @@ pub fn solve_integer_binary_lp_problem(
         .map(|(name, i)| (i, name))
         .collect::<HashMap<_, _>>();
     match solution {
-        None => {
-            return Err(IntegerBinarySolverError::DidNotSolve);
-        }
+        None => Err(IntegerBinarySolverError::DidNotSolve),
         Some(solution) => {
             let assignment = solution
                 .get_values_binary(&vars_binary)
