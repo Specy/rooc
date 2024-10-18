@@ -8,7 +8,7 @@ export const RoocLanguage = {
 	defaultToken: 'invalid',
 	ignoreCase: true,
 	tokenPostfix: '.rooc',
-	keywords: ["where", "for", "min", "max", "in", "s.t.", "as", "define", "let"],
+	keywords: ["where", "for", "min", "max", "in", "s.t.", "as", "define", "let", 'solve'],
 	literals: ["true", "false"],
 	operators: ["+", "-", "/", "*", "!", "&", "|", "=", "<=", "=>"],
 	symbols: /[=><!~?:&|+\-*\/\^%]+/,
@@ -130,7 +130,8 @@ const keywords = {
 	'in': 'Iterate over a range',
 	'as': 'Assert that the domain of variable is of a certain type',
 	'define': 'Define the domain of the variables in your model, all variables must be defined',
-	'let': 'Define a variable in the model'
+	'let': 'Define a variable in the model',
+	'solve': 'Define the model as a satisfiability problem and not an optimization problem'
 }
 const domainTypes = {
 	'Boolean': 'A boolean value {0,1}',
@@ -178,6 +179,14 @@ export function createRoocHoverProvider() {
 						range,
 						contents: [
 							{ value: `Objective function` }
+						]
+					}
+				}
+				if(word?.word === 'solve'){
+					return {
+						range,
+						contents: [
+							{ value: `Solve the model as a satisfiability problem` }
 						]
 					}
 				}
@@ -288,7 +297,7 @@ function makeRoocCompletionToken(entry: PossibleCompletionToken) {
 }
 
 const suggestedKeywords = [
-	'where', 'for', 'in', 's.t.', 'as', 'define', 'let'
+	'where', 'for', 'in', 's.t.', 'as', 'define', 'let', 'solve'
 ].map(k => ({
 	label: k,
 	kind: languages.CompletionItemKind.Keyword,
@@ -297,7 +306,7 @@ const suggestedKeywords = [
 	detail: keywords[k]
 }))
 const suggestedTypes = [
-	"Boolean", "Real", "Integer", "PositiveReal"
+	"Boolean", "Real", "Integer", "PositiveReal", "PositiveInteger"
 ].map(k => ({
 	label: k,
 	kind: languages.CompletionItemKind.Class,
