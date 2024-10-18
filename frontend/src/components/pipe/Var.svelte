@@ -15,8 +15,6 @@
 {/if}
 
 <style>
-    msub, mtext{
-    }
     mn{
         line-height: 0.8;
     }

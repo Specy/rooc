@@ -29,7 +29,7 @@ The library is compiled as a wasm module to be used in the [web editor](https://
   - [x] Primitives Operator overloading (for example, `+` for strings)
   - [x] Definition of variable bounds
 - [ ] Simplex resolution
-  - [] Linearization of a generic problem
+  - [ ] Linearization of a generic problem
   - [x] Transformation of a linear problem into the standard form
   - [x] Two step method using artifical variables to find a valid basis for the standard form problem
   - [x] Simplex to find the optimal solution of a standard form linear problem
@@ -54,13 +54,13 @@ The library is compiled as a wasm module to be used in the [web editor](https://
 
 
 # Example
-Given the formal problem of the [Dominating set](https://en.wikipedia.org/wiki/Dominating_set) problem, which shows most of the features of the language:
+Given the formal model of the [Dominating set](https://en.wikipedia.org/wiki/Dominating_set) problem, which shows most of the features of the language:
 ```rust
 min sum(u in nodes(G)) { x_u }
 s.t. 
     x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1    for v in nodes(G)
 where
-    G = Graph {
+    let G = Graph {
         A -> [B, C, D, E, F],
         B -> [A, E, C, D, J],
         C -> [A, B, D, E, I],
@@ -99,13 +99,9 @@ Wrong argument Expected argument of type "Number", got "Graph" evaluating "D"
         at 3:9  sum(j in enumerate(C[D])) { j }
         at 3:9  sum(j in enumerate(C[D])) { j } <= x_i for i in 0..len(C)
 ```
-If there were no errors during compilation, it will be then be converted into the standard form:
+The model can then be solved using the `Binary solver` pipeline, which will solve the compiled model and find the optimal solution which has value `3` with assignment:
 ```
-TODO
-```
-To then be solved using the simplex method:
-```
-TODO
+F	F	F	F	T	F	F	F	T	T
 ```
 # Notes
 This project is purely educational, it shouldn't be used to solve serious problems as it won't be optimized for big calculations
