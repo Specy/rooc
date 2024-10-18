@@ -1,0 +1,23 @@
+<script lang="ts">
+    export let value: string;
+
+
+    $: [varName, ...rest] = value.split('_')
+</script>
+
+{#if rest.length}
+    <msub>
+        <mi>{varName}</mi>
+        <mn>
+            {rest.join('_')}
+        </mn>
+    </msub>
+{/if}
+
+<style>
+    msub, mtext{
+    }
+    mn{
+        line-height: 0.8;
+    }
+</style>

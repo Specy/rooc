@@ -1,6 +1,7 @@
 <script lang="ts">
     import type {BinarySolution} from "@specy/rooc";
     import Column from "$cmp/layout/Column.svelte";
+    import Var from "$cmp/pipe/Var.svelte";
 
     export let binarySolution: BinarySolution
 
@@ -14,7 +15,7 @@
             <tr>
                 {#each binarySolution.assignment as assignment}
                     <th>
-                        {assignment.name}
+                        <Var value={assignment.name} />
                     </th>
                 {/each}
             </tr>

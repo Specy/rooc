@@ -7,7 +7,7 @@ type ProjectStoreData = {
     source: string,
     pipes: ProjectPipe[],
 }
-type RoocResult = {
+type RoocResult = ({
     ok: boolean,
     latex?: string,
     val: RoocData[]
@@ -16,24 +16,27 @@ type RoocResult = {
     latex?: string
     context: RoocData[]
     error: string
-}
+})
 
 export function createCompilerStore(project: Project) {
     const {subscribe: sourceSubscribe, set: sourceSet} = writable<ProjectStoreData>({
         source: project.content,
         pipes: project.pipes,
     })
+    const {subscribe:compilingSubscribe, set: setCompiling} = writable(false)
     const {
         subscribe: resultSubscribe,
         set: resultSet
     } = writable<RoocResult | undefined>(undefined)
 
 
-    function run(override?: string) {
+    async function run(override?: string) {
         const s = get({subscribe: sourceSubscribe})
         s.source = override ?? s.source;
         resultSet(undefined)
         try {
+            setCompiling(true)
+            await new Promise(resolve => setTimeout(resolve, 100))
             const pipe = new RoocRunnablePipe(s.pipes.map(p => p.pipe))
             const res = pipe.run(s.source)
             const latex = new RoocParser(s.source)
@@ -63,6 +66,7 @@ export function createCompilerStore(project: Project) {
             })
         }
         sourceSet(s)
+        setCompiling(false)
     }
 
     function reset() {
@@ -83,7 +87,11 @@ export function createCompilerStore(project: Project) {
         result: {
             subscribe: resultSubscribe,
 
+        },
+        compiling: {
+            subscribe: compilingSubscribe
         }
+
     }
 }
 

@@ -1,6 +1,7 @@
 <script lang="ts">
     import type {SimplexTableau} from "@specy/rooc";
     import {formatNum} from "$cmp/pipe/utils";
+    import Var from "$cmp/pipe/Var.svelte";
 
     export let tableau: SimplexTableau
     export let outIndex: number | undefined = undefined
@@ -26,7 +27,7 @@
                         class:entering={inIndex === i}
                         class:exiting={outIndex === i}
                 >
-                    {varName}
+                    <Var value={varName}/>
                 </th>
             {/each}
             <th>
@@ -61,7 +62,7 @@
                     {formatNum(b[i])}
                 </td>
                 <td>
-                    {vars[basis[i]]}
+                    <Var value={vars[basis[i]]} />
                 </td>
             </tr>
         {/each}

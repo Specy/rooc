@@ -1,6 +1,7 @@
 <script lang="ts">
     import type {OptimalTableau} from "@specy/rooc";
     import {formatNum} from "$cmp/pipe/utils";
+    import Var from "$cmp/pipe/Var.svelte";
 
     export let tableau: OptimalTableau
     $: baseTableau = tableau.getTableau()
@@ -21,13 +22,12 @@
                 <th
                         class:slack-surplus={varName.startsWith("$")}
                 >
-                    {varName}
+                    <Var value={varName}/>
                 </th>
             {/each}
             <th class="slack-surplus">
                 <div style="opacity: 0;">
                     {formatNum(biggestRhs)}
-
                 </div>
             </th>
         </tr>

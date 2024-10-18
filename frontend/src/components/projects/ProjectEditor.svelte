@@ -21,7 +21,7 @@
     import {toast} from "$stores/toastStore";
 
     export let project: Project;
-    let {rooc, source, result} = createCompilerStore(project);
+    let {rooc, source, result, compiling} = createCompilerStore(project);
     onMount(() => {
         Monaco.load();
         return () => {
@@ -150,7 +150,14 @@
                 {#if $result}
                     <Button on:click={reset} border="secondary" color="primary">Reset</Button>
                 {/if}
-                <Button on:click={run} border="secondary" color="primary">Run</Button>
+                <Button
+                        on:click={run}
+                        border="secondary"
+                        color="primary"
+                        disabled={$compiling}
+                >
+                    {$compiling ? 'Running...' : 'Run'}
+                </Button>
             </Row>
         </Row>
 

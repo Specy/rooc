@@ -7,6 +7,7 @@
     import PipeTableauRenderer from "$cmp/pipe/PipeTableauRenderer.svelte";
     import ChevronRight from '~icons/fa6-solid/chevron-right.svelte';
     import ChevronLeft from '~icons/fa6-solid/chevron-left.svelte';
+    import Var from "$cmp/pipe/Var.svelte";
 
     export let data: OptimalTableauWithSteps
 
@@ -51,9 +52,9 @@
         />
         <div>
             Pivoting: variable
-            <code style="--bg: var(--danger)">{variables[pivot.leaving]}</code>
+            <code style="--bg: var(--danger)"><Var value={variables[pivot.leaving]} /></code>
             exits and
-            <code style="--bg: var(--success)">{variables[pivot.entering]}</code>
+            <code style="--bg: var(--success)"><Var value={variables[pivot.entering]} /></code>
             enters
         </div>
     {/if}
