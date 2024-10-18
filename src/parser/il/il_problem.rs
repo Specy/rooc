@@ -1,5 +1,5 @@
 use core::fmt;
-
+use std::fmt::format;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
@@ -120,7 +120,10 @@ impl fmt::Display for CompoundVariable {
             .iter()
             .map(|i| match i {
                 PreExp::Primitive(p) => match p.get_span_value() {
-                    Primitive::Number(n) => format!("{}", n),
+                    Primitive::Number(n) => n.to_string(),
+                    Primitive::PositiveInteger(n) => n.to_string(),
+                    Primitive::Integer(n) => n.to_string(),
+                    
                     _ => format!("{{{}}}", i),
                 },
                 PreExp::Variable(name) => name.get_span_value().clone(),

@@ -31,11 +31,6 @@ define
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
         Box::new(PreModelPipe::new()),
-        Box::new(ModelPipe::new()),
-        Box::new(LinearModelPipe::new()),
-        Box::new(StandardLinearModelPipe::new()),
-        Box::new(TableauPipe::new()),
-        Box::new(StepByStepSimplexPipe::new()),
     ]);
 
     let (result) = pipe_runner.run(PipeableData::String(source));
