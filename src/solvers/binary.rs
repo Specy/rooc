@@ -24,7 +24,7 @@ pub fn solve_binary_lp_problem(
     if non_binary_variables.len() > 0 {
         return Err(IntegerBinarySolverError::InvalidDomain {
             expected: vec![VariableType::Boolean],
-            got: non_binary_variables
+            got: non_binary_variables,
         });
     }
     let mut m = Model::default();

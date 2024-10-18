@@ -21,8 +21,13 @@ pub fn solve_integer_binary_lp_problem(
         .get_domain()
         .iter()
         .filter_map(|(name, var)| {
-            if !matches!(var.get_type(), VariableType::Integer | VariableType::Boolean | VariableType::PositiveInteger)
-            {
+            if !matches!(
+                var.get_type(),
+                VariableType::Integer
+                    | VariableType::Boolean
+                    | VariableType::PositiveInteger
+                    | VariableType::IntegerRange(_, _)
+            ) {
                 Some((name.clone(), var.clone()))
             } else {
                 None
@@ -30,9 +35,14 @@ pub fn solve_integer_binary_lp_problem(
         })
         .collect::<Vec<_>>();
     if invalid_variables.len() > 0 {
-        return Err(IntegerBinarySolverError::InvalidDomain{
-            expected: vec![VariableType::Integer, VariableType::Boolean, VariableType::PositiveInteger],
-            got: invalid_variables
+        return Err(IntegerBinarySolverError::InvalidDomain {
+            expected: vec![
+                VariableType::Integer,
+                VariableType::Boolean,
+                VariableType::PositiveInteger,
+                VariableType::IntegerRange(i32::MIN, i32::MAX),
+            ],
+            got: invalid_variables,
         });
     }
     let binary_variables = lp
@@ -53,46 +63,40 @@ pub fn solve_integer_binary_lp_problem(
         .get_domain()
         .iter()
         .filter_map(|(name, var)| {
-            if matches!(var.get_type(), VariableType::Integer) {
+            if matches!(
+                var.get_type(),
+                VariableType::Integer
+                    | VariableType::IntegerRange(_, _)
+                    | VariableType::PositiveInteger
+            ) {
                 Some(name.clone())
             } else {
                 None
             }
         })
-        .into_iter()
-        .enumerate()
-        .map(|(i, name)| (name, i))
-        .collect::<HashMap<_, _>>();
-    let positive_integer_variables = lp
-        .get_domain()
-        .iter()
-        .filter_map(|(name, var)| {
-            if matches!(var.get_type(), VariableType::PositiveInteger) {
-                Some(name.clone())
-            } else {
-                None
-            }
-        })
-        .into_iter()
         .enumerate()
         .map(|(i, name)| (name, i))
         .collect::<HashMap<_, _>>();
     let mut m = Model::default();
     let vars_binary: Vec<_> = m.new_vars_binary(binary_variables.len()).collect();
-    let vars_integer: Vec<_> = match m.new_vars(integer_variables.len(), -32768, 32768) {
-        Some(vars) => vars.collect(),
+    let vars_integer: Option<Vec<_>> = integer_variables
+        .iter()
+        .map(|(k, v)| {
+            let domain = lp.get_domain().get(k).unwrap();
+            let (min, max) = match domain.get_type() {
+                VariableType::Integer => (-32768, 32768),
+                VariableType::IntegerRange(min, max) => (*min, *max),
+                VariableType::PositiveInteger => (0, 32768),
+                _ => unreachable!(),
+            };
+            m.new_var(min, max)
+        })
+        .collect();
+    let vars_integer = match vars_integer {
+        Some(vars) => vars,
         None => {
             return Err(IntegerBinarySolverError::TooLarge {
                 name: "integer variable".to_string(),
-                value: i32::MAX as f64,
-            })
-        }
-    };
-    let vars_positive_integer: Vec<_> = match m.new_vars(positive_integer_variables.len(), 0, 32768) {
-        Some(vars) => vars.collect(),
-        None => {
-            return Err(IntegerBinarySolverError::TooLarge {
-                name: "positive integer variable".to_string(),
                 value: i32::MAX as f64,
             })
         }
@@ -109,12 +113,7 @@ pub fn solve_integer_binary_lp_problem(
             vars_integer.iter(),
             |i| integer_variables.get(&vars[i]).is_some(),
         );
-        let lhs_positive_integer = process_variables(
-            constraint.get_coefficients().iter(),
-            vars_positive_integer.iter(),
-            |i| positive_integer_variables.get(&vars[i]).is_some(),
-        );
-        if lhs_binary.is_none() || lhs_integer.is_none() || lhs_positive_integer.is_none() {
+        if lhs_binary.is_none() || lhs_integer.is_none() {
             return Err(IntegerBinarySolverError::TooLarge {
                 name: format!("variable in constraint {}", i + 1),
                 value: *constraint
@@ -126,8 +125,7 @@ pub fn solve_integer_binary_lp_problem(
         }
         let lhs_binary = m.sum_iter(lhs_binary.unwrap());
         let lhs_integer = m.sum_iter(lhs_integer.unwrap());
-        let lhs_positive_integer = m.sum_iter(lhs_positive_integer.unwrap());
-        let lhs = m.sum(&vec![lhs_binary, lhs_integer, lhs_positive_integer]);
+        let lhs = m.sum(&vec![lhs_binary, lhs_integer]);
         let rhs = constraint.get_rhs().to_i32();
         if rhs.is_none() {
             return Err(IntegerBinarySolverError::TooLarge {
@@ -155,10 +153,6 @@ pub fn solve_integer_binary_lp_problem(
         process_variables(lp.get_objective().iter(), vars_integer.iter(), |i| {
             integer_variables.get(&vars[i]).is_some()
         });
-    let objective_positive_integer =
-        process_variables(lp.get_objective().iter(), vars_positive_integer.iter(), |i| {
-            positive_integer_variables.get(&vars[i]).is_some()
-        });
     if objective_binary.is_none() || objective_integer.is_none() {
         return Err(IntegerBinarySolverError::TooLarge {
             name: "objective function variable".to_string(),
@@ -171,8 +165,7 @@ pub fn solve_integer_binary_lp_problem(
     }
     let objective_binary = m.sum_iter(objective_binary.unwrap());
     let objective_integer = m.sum_iter(objective_integer.unwrap());
-    let objective_positive_integer = m.sum_iter(objective_positive_integer.unwrap());
-    let objective = m.sum(&vec![objective_binary, objective_integer, objective_positive_integer]);
+    let objective = m.sum(&vec![objective_binary, objective_integer]);
     let solution = match lp.get_optimization_type() {
         OptimizationType::Max => m.maximize(objective),
         OptimizationType::Min => m.minimize(objective),
@@ -184,10 +177,6 @@ pub fn solve_integer_binary_lp_problem(
         .map(|(name, i)| (i, name))
         .collect::<HashMap<_, _>>();
     let rev_integer_variables = integer_variables
-        .iter()
-        .map(|(name, i)| (i, name))
-        .collect::<HashMap<_, _>>();
-    let rev_positive_integer_variables = positive_integer_variables
         .iter()
         .map(|(name, i)| (i, name))
         .collect::<HashMap<_, _>>();
@@ -214,19 +203,6 @@ pub fn solve_integer_binary_lp_problem(
                         .enumerate()
                         .map(|(v, n)| {
                             let name = *rev_integer_variables.get(&v).unwrap();
-                            Assignment {
-                                name: name.clone(),
-                                value: VarValue::Int(*n),
-                            }
-                        }),
-                )
-                .chain(
-                    solution
-                        .get_values(&vars_positive_integer)
-                        .iter()
-                        .enumerate()
-                        .map(|(v, n)| {
-                            let name = *rev_positive_integer_variables.get(&v).unwrap();
                             Assignment {
                                 name: name.clone(),
                                 value: VarValue::Int(*n),

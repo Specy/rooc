@@ -91,13 +91,37 @@ impl FromStr for OptimizationType {
     }
 }
 
-enum_with_variants_to_string! {
-    pub enum VariableType derives[Debug, PartialEq, Clone] with_wasm{
-        Integer,
-        PositiveInteger,
-        Boolean,
-        PositiveReal,
-        Real,
+#[derive(Debug, PartialEq, Clone, Copy, Serialize)]
+#[serde(tag = "type", content = "value")]
+pub enum VariableType {
+    Integer,
+    PositiveInteger,
+    Boolean,
+    PositiveReal,
+    Real,
+    IntegerRange(i32, i32),
+}
+#[wasm_bindgen(typescript_custom_section)]
+const IVariablesDomainDeclaration: &'static str = r#"
+export type VariableType = {
+    type: "Integer" | "PositiveInteger" | "Boolean" | "PositiveReal" | "Real"
+} | {
+    type: "IntegerRange"
+    value: [number, number]
+}
+"#;
+
+
+impl VariableType {
+    pub fn kinds_to_string() -> Vec<String> {
+        vec![
+            "Integer".to_string(),
+            "PositiveInteger".to_string(),
+            "Boolean".to_string(),
+            "PositiveReal".to_string(),
+            "Real".to_string(),
+            "IntegerRange(min, max)".to_string(),
+        ]
     }
 }
 
@@ -109,6 +133,7 @@ impl fmt::Display for VariableType {
             VariableType::Boolean => "Boolean".to_string(),
             VariableType::PositiveReal => "PositiveReal".to_string(),
             VariableType::Real => "Real".to_string(),
+            VariableType::IntegerRange(min, max) => format!("IntegerRange({}, {})", min, max),
         };
 
         f.write_str(&s)
@@ -137,6 +162,10 @@ impl ToLatex for VariableType {
             VariableType::PositiveReal => "\\mathbb{R}^+_0".to_string(),
             VariableType::Real => "\\mathbb{R}".to_string(),
             VariableType::PositiveInteger => "\\mathbb{N}".to_string(),
+            VariableType::IntegerRange(min, max) => format!(
+                "\\{{{} \\in \\mathbb{{Z}} | {} \\leq {} \\leq {}\\}}",
+                min, min, "x", max
+            ),
         }
     }
 }

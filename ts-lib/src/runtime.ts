@@ -223,8 +223,8 @@ function makeBuiltinTypeEntry(type: SerializedPrimitiveKind, description: string
 
 export const BUILTIN_TYPES_MAP = new Map([
     makeBuiltinTypeEntry({type: "Boolean"}, "A boolean value. can be defiend by `true` or `false`"),
-    makeBuiltinTypeEntry({type: "Integer"}, "A integer between -32768 and 32768"),
-    makeBuiltinTypeEntry({type: "PositiveInteger"}, "A integer between 0 and 32768"),
+    makeBuiltinTypeEntry({type: "Integer"}, "A integer"),
+    makeBuiltinTypeEntry({type: "PositiveInteger"}, "A positive integer"),
     makeBuiltinTypeEntry({type: "Number"}, "A floating point number"),
     makeBuiltinTypeEntry({type: "String"}, "A string, can be defined by `\"...\"`"),
     makeBuiltinTypeEntry({type: "Any"}, "Any value"),

@@ -1,21 +1,24 @@
+use crate::math::math_enums::VariableType;
 use crate::parser::model_transformer::transformer_context::DomainVariable;
 use serde::Serialize;
-use crate::math::math_enums::VariableType;
 
 #[derive(Debug)]
 pub enum IntegerBinarySolverError {
-    InvalidDomain{
+    InvalidDomain {
         expected: Vec<VariableType>,
-        got: Vec<(String, DomainVariable)>
+        got: Vec<(String, DomainVariable)>,
     },
-    TooLarge { name: String, value: f64 },
+    TooLarge {
+        name: String,
+        value: f64,
+    },
     DidNotSolve,
 }
 
 impl std::fmt::Display for IntegerBinarySolverError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            IntegerBinarySolverError::InvalidDomain{expected, got} => {
+            IntegerBinarySolverError::InvalidDomain { expected, got } => {
                 let vars = got
                     .iter()
                     .map(|(name, domain)| format!("    {}: {}", name, domain.get_type()))
@@ -24,7 +27,11 @@ impl std::fmt::Display for IntegerBinarySolverError {
                 write!(
                     f,
                     "Invalid domain, the following variables are not {}: \n{}",
-                    expected.iter().map(|t| t.to_string()).collect::<Vec<_>>().join(" or "),
+                    expected
+                        .iter()
+                        .map(|t| t.to_string())
+                        .collect::<Vec<_>>()
+                        .join(" or "),
                     vars
                 )
             }

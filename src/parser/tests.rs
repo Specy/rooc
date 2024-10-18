@@ -393,6 +393,25 @@ define
     }
 
     #[test]
+    fn test_as_assertions() {
+        let input = r"
+        min 1
+        s.t.
+            x <= 2
+        define
+            a as Real
+            b as Boolean
+            c as Integer
+            d as PositiveInteger
+            e as PositiveReal
+            x as IntegerRange(10, 20)
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform()
+            .expect("Failed to parse and transform problem");
+    }
+
+    #[test]
     fn test_comments() {
         let input = "
         //aaaa

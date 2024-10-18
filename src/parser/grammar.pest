@@ -50,7 +50,11 @@ domain_declaration = {
   (nl* ~ #iteration = for_iteration)?
 }
 domain_variables = { (variable ~ comma ~ nl*)* ~ variable }
-as_assertion = {(!keyword ~ as_type) } 
+as_assertion = {
+    #type = (!keyword ~ as_type) ~
+    #values = (as_value?)
+} 
+as_value = { "(" ~ (number ~ comma)* ~ number ~ ")" }
 as_type = @{  LETTER ~ (LETTER | NUMBER)* }
 // iterations
 for_iteration          = _{ ^"for" ~ iteration_declaration_list }
@@ -127,7 +131,7 @@ number    = _{ float | integer }
 integer = @{ '0'..'9'+ }
 float    = @{ '0'..'9'+ ~ "." ~ ('0'..'9')+ }
 signed_number = @{ "-"? ~ number}
-keyword = { "for" | "min" | "max" | "where" | "true" | "false" | "in" | "s.t." | "as" | "define" | "let"}
+keyword = { "for" | "min" | "max" | "where" | "true" | "false" | "in" | "s.t." | "as" | "define" | "let" | "solve"}
 binary_op = _{ mul | add | sub | div }
 mul = { "*" }
 add = { "+" }

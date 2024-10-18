@@ -177,7 +177,37 @@ pub fn parse_variables_assertion(
 }
 
 pub fn parse_as_assertion_type(pair: &Pair<Rule>) -> Result<VariableType, CompilationError> {
-    match pair.as_str().parse() {
+    let as_type = pair.clone().into_inner();
+    let (as_type, as_data) = (
+        as_type.find_first_tagged("type"),
+        as_type.find_first_tagged("values"),
+    );
+    if as_type.is_none() {
+        return err_unexpected_token!("Expected type assertion but got: {}", pair);
+    }
+    let as_type = as_type.unwrap();
+    if as_type.as_str() == "IntegerRange" {
+        if as_data.is_none() {
+            return err_unexpected_token!("Expected values for IntegerRange but got: {}", pair);
+        }
+        let as_data = as_data.unwrap();
+        let mut values = as_data.clone().into_inner();
+        let min = values.next();
+        let max = values.next();
+        if min.is_none() || max.is_none() {
+            return err_unexpected_token!(
+                "Expected min and max for IntegerRange but got: {}",
+                pair
+            );
+        }
+        let min = min.unwrap().as_str().parse::<i32>();
+        let max = max.unwrap().as_str().parse::<i32>();
+        if min.is_err() || max.is_err() {
+            return err_unexpected_token!("Expected integer for IntegerRange but got: {}", pair);
+        }
+        return Ok(VariableType::IntegerRange(min.unwrap(), max.unwrap()));
+    }
+    match as_type.as_str().parse() {
         Ok(kind) => Ok(kind),
         Err(_) => err_unexpected_token!(
             "Unknown variable type \"{}\", expected one of \"{}\"",

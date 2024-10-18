@@ -5,6 +5,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::parser::model_transformer::model::Model;
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::parser::PreModel;
+use crate::solvers::common::{IntegerBinaryLpSolution, IntegerBinarySolverError};
 use crate::solvers::linear_integer_binary::VarValue;
 use crate::solvers::simplex::{
     CanonicalTransformError, OptimalTableau, OptimalTableauWithSteps, SimplexError, Tableau,
@@ -14,7 +15,6 @@ use crate::transformers::linearizer::LinearizationError;
 use crate::transformers::standard_linear_model::StandardLinearModel;
 use crate::utils::CompilationError;
 use crate::{match_pipe_data_to, RoocParser};
-use crate::solvers::common::{IntegerBinaryLpSolution, IntegerBinarySolverError};
 
 #[derive(Debug, Clone)]
 pub enum PipeableData {

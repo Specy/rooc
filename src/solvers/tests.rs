@@ -1,6 +1,9 @@
 use crate::math::math_utils::{float_eq, float_ne};
 use crate::pipe::pipe::{PipeDataType, PipeError, PipeableData};
-use crate::pipe::pipe_executors::{BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe, PreModelPipe, SimplexPipe, StandardLinearModelPipe, TableauPipe};
+use crate::pipe::pipe_executors::{
+    BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe,
+    PreModelPipe, SimplexPipe, StandardLinearModelPipe, TableauPipe,
+};
 use crate::pipe::pipe_runner::PipeRunner;
 use crate::solvers::common::IntegerBinaryLpSolution;
 use crate::solvers::linear_integer_binary::VarValue;
@@ -30,9 +33,7 @@ fn solve(source: &str) -> Result<OptimalTableau, PipeError> {
                 }),
             }
         }
-        Err((error, _context)) => {
-            Err(error)
-        }
+        Err((error, _context)) => Err(error),
     }
 }
 
@@ -57,9 +58,7 @@ fn solve_binary(source: &str) -> Result<IntegerBinaryLpSolution<bool>, PipeError
                 }),
             }
         }
-        Err((error, _context)) => {
-            Err(error)
-        }
+        Err((error, _context)) => Err(error),
     }
 }
 
@@ -84,13 +83,9 @@ fn solve_integer_binary(source: &str) -> Result<IntegerBinaryLpSolution<VarValue
                 }),
             }
         }
-        Err((error, _context)) => {
-            Err(error)
-        }
+        Err((error, _context)) => Err(error),
     }
 }
-
-
 
 #[allow(dead_code)]
 fn assert_variables(variables: &Vec<f64>, expected: &Vec<f64>, lax_var_num: bool) {
@@ -125,7 +120,11 @@ fn assert_variables_binary(variables: &Vec<bool>, expected: &Vec<bool>, lax_var_
         }
     }
 }
-fn assert_variables_integer(variables: &Vec<VarValue>, expected: &Vec<VarValue>, lax_var_num: bool) {
+fn assert_variables_integer(
+    variables: &Vec<VarValue>,
+    expected: &Vec<VarValue>,
+    lax_var_num: bool,
+) {
     if variables.len() != expected.len() && !lax_var_num {
         panic!(
             "Different length, expected {:?} but got {:?}",
@@ -154,7 +153,6 @@ fn assert_variables_integer(variables: &Vec<VarValue>, expected: &Vec<VarValue>,
         }
     }
 }
-
 
 fn assert_precision(a: f64, b: f64) -> bool {
     if float_eq(a, b) {
@@ -435,20 +433,23 @@ fn should_solve_binary_problem() {
     );
 }
 
-
 #[test]
-fn should_solve_integer_problem(){
+fn should_solve_integer_problem() {
     let source = r#"
     max 2x_1 + 3x_2 
     s.t.
         x_1 + x_2 <= 7
         2x_1 + 3x_2 <= 21
     define
-        x_1, x_2, x_3, x_4 as PositiveInteger
+        x_1 as PositiveInteger
+        x_2 as IntegerRange(0, 10)
     "#;
     let solution = solve_integer_binary(source).unwrap();
     assert_precision(solution.get_value(), 21.0);
     let assignment = solution.get_assignment_values();
-    assert_variables_integer(&assignment, &vec![VarValue::Int(0), VarValue::Int(7)], false);
-    
+    assert_variables_integer(
+        &assignment,
+        &vec![VarValue::Int(0), VarValue::Int(7)],
+        false,
+    );
 }
