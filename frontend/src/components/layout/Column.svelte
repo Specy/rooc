@@ -2,12 +2,25 @@
 	import type { ColorName } from '$src/stores/themeStore';
 	import { justifyMap, type Justify } from './layoutUtils';
 
-	export let justify: Justify | undefined = undefined
-	export let align: Justify | undefined = undefined;
-	export let gap: string | undefined = undefined;
-	export let padding: string | undefined = undefined;
-	export let background: ColorName | undefined = undefined;
-    export let style: string | undefined = undefined;
+	interface Props {
+		justify?: Justify | undefined;
+		align?: Justify | undefined;
+		gap?: string | undefined;
+		padding?: string | undefined;
+		background?: ColorName | undefined;
+		style?: string | undefined;
+		children?: import('svelte').Snippet;
+	}
+
+	let {
+		justify = undefined,
+		align = undefined,
+		gap = undefined,
+		padding = undefined,
+		background = undefined,
+		style = undefined,
+		children
+	}: Props = $props();
 </script>
 
 <div
@@ -21,5 +34,5 @@
     {style}
     "
 >
-	<slot />
+	{@render children?.()}
 </div>

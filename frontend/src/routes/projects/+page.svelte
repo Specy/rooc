@@ -5,7 +5,7 @@
     import Row from '$cmp/layout/Row.svelte';
     import ProjectCard from '$cmp/projects/ProjectCard.svelte';
     import {textDownloader} from '$src/lib/utils';
-    import {type Project, projectStore} from '$stores/userProjectsStore';
+    import {type Project, projectStore} from '$stores/userProjectsStore.svelte';
     import {prompter} from '$src/stores/promptStore';
     import {toast} from '$src/stores/toastStore';
     import {onMount} from 'svelte';
@@ -17,7 +17,8 @@
 
     onMount(() => {
         if ('launchQueue' in window) {
-            // @ts-ignore
+            // @ts-expect-error chrome only API
+            // eslint-disable-next-line no-undef
             launchQueue.setConsumer(async (launchParams) => {
                 for (const file of launchParams.files) {
                     try {
@@ -33,7 +34,8 @@
                     }
                 }
                 toast.logPill(
-                    // @ts-ignore
+                    // @ts-expect-error chrome only API
+                    // eslint-disable-next-line no-undef
                     `Imported ${launchQueue.files.length} project${launchQueue.files.length > 1 ? 's' : ''}`
                 );
             });
@@ -53,7 +55,7 @@
     }
 
     function updateProject(project: Project) {
-        projectStore.updateProject(project.id, project);
+        projectStore.updateProject(project.id, $state.snapshot(project));
     }
 
     function onDownload(project: Project) {
@@ -102,8 +104,7 @@
         </Row>
     </Row>
     <div class="projects-wrapper">
-
-        {#each $projectStore.projects as project, i (project.id)}
+        {#each projectStore.projects as project, i (project.id)}
             <div
                     in:scale|global={{ duration: 200, delay: i * 50 + 150, start: 0.9 }}
                     out:scale={{ duration: 300, start: 0.8 }}
@@ -117,10 +118,10 @@
             </div>
         {/each}
     </div>
-    {#if !$projectStore.initialized}
+    {#if !projectStore.initialized}
         <h2>Loading...</h2>
     {/if}
-    {#if !$projectStore.projects.length && $projectStore.initialized}
+    {#if !projectStore.projects.length && projectStore.initialized}
         <p style="width:100%; text-align:center;">No projects yet, create one!</p>
     {/if}
 </Page>

@@ -3,10 +3,15 @@
 	import { fly } from 'svelte/transition'
 	import Icon from '$cmp/layout/Icon.svelte'
     import FaTimes from "~icons/fa/times"
+	interface Props {
+		children?: import('svelte').Snippet;
+	}
+
+	let { children }: Props = $props();
 
 </script>
 
-<slot />
+{@render children?.()}
 {#key $toast.id}
 	{#if $toast.type === ToastType.Toast}
 		<div 
@@ -31,7 +36,7 @@
 					animation-duration: ${$toast.duration}ms; 
 					background-color: ${$toast.color};
 				`}
-				/>
+				></div>
 			</div>
 		</div>
 		{:else}

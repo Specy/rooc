@@ -3,7 +3,11 @@
     import Column from "$cmp/layout/Column.svelte";
     import Var from "$cmp/pipe/Var.svelte";
 
-    export let binarySolution: BinaryIntegerSolution<VarValue>
+    interface Props {
+        binarySolution: BinaryIntegerSolution<VarValue>;
+    }
+
+    let { binarySolution }: Props = $props();
 
 </script>
 

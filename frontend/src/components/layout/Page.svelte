@@ -1,12 +1,25 @@
 <script lang="ts">
 	import { navigationStore } from '$stores/navigationStore';
 	import { fly } from 'svelte/transition';
-	export let cropped: boolean | string = false;
-	export let style = '';
-	export let contentStyle = '';
-	export let padding = '0';
-	export let mobilePadding = '0';
-	export let gap = '0';
+	interface Props {
+		cropped?: boolean | string;
+		style?: string;
+		contentStyle?: string;
+		padding?: string;
+		mobilePadding?: string;
+		gap?: string;
+		children?: import('svelte').Snippet;
+	}
+
+	let {
+		cropped = false,
+		style = '',
+		contentStyle = '',
+		padding = '0',
+		mobilePadding = '0',
+		gap = '0',
+		children
+	}: Props = $props();
 </script>
 
 <main
@@ -25,7 +38,7 @@
 	gap:{gap}; 
 	{contentStyle};"
 	>
-		<slot />
+		{@render children?.()}
 	</div>
 </main>
 

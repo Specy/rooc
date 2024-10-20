@@ -1,13 +1,17 @@
 <script lang='ts'>
-    export let source: string;
-    export let style: string = ""
     import katex from 'katex'
-    $: html = katex.renderToString(source ?? "", {
+    interface Props {
+        source: string;
+        style?: string;
+    }
+
+    let { source, style = "" }: Props = $props();
+    let html = $derived(katex.renderToString(source ?? "", {
         throwOnError: false,
         fleqn: true,
         displayMode: true,
         output: "htmlAndMathml"
-    }) 
+    })) 
 </script>
 
 

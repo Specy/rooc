@@ -9,6 +9,11 @@
 	import NoiseOverlay from '$cmp/layout/NoiseOverlay.svelte';
 	import PromptProvider from '$cmp/PromptProvider.svelte';
 	import { registerServiceWorker } from '$src/lib/register-sw';
+	interface Props {
+		children?: import('svelte').Snippet;
+	}
+
+	let { children }: Props = $props();
 	onMount(() => {
 		registerServiceWorker();
 		themeStorage.load();
@@ -22,7 +27,7 @@
 	<ErrorLogger>
 		<PromptProvider>
 			<PageTransition refresh={$page.url.pathname} />
-			<slot />
+			{@render children?.()}
 		</PromptProvider>
 	</ErrorLogger>
 	<NoiseOverlay opacity={0.08} />

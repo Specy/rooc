@@ -330,8 +330,21 @@ export function createRoocCompletion() {
             const elements = findRoocCompletionTokens(word.word).map(makeRoocCompletionToken).filter(e => !!e) as languages.CompletionItem[]
             const keywords = suggestedKeywords.filter(e => e.label.startsWith(word.word)) as languages.CompletionItem[]
             const types = suggestedTypes.filter(e => e.label.startsWith(word.word)) as languages.CompletionItem[]
+            const parsed = new RoocParser(model.getValue()).compile()
+            const suggestions = [...elements, ...keywords, ...types] as languages.CompletionItem[]
+            if(parsed.ok){
+                const identifiers = [...parsed.val.createTypeMap().values()].filter(e => e.identifier)
+                const unique = [...new Set(identifiers.map(e => e.identifier))]
+                suggestions.push(...unique.map(e => ({
+                    label: e,
+                    kind: languages.CompletionItemKind.Variable,
+                    insertText: e,
+                    insertTextRules: languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    detail: e
+                }) as languages.CompletionItem))
+            }
             return {
-                suggestions: [...elements, ...keywords, ...types]
+                suggestions
             }
         }
     } satisfies languages.CompletionItemProvider

@@ -3,9 +3,9 @@
     import Button from '$cmp/inputs/Button.svelte';
     import {Monaco} from '$src/lib/Monaco';
     import {onMount} from 'svelte';
-    import {type Project} from '$stores/userProjectsStore';
+    import {type Project} from '$stores/userProjectsStore.svelte';
     import Row from '$cmp/layout/Row.svelte';
-    import {createCompilerStore} from '$src/routes/projects/[projectId]/projectStore';
+    import {createCompilerStore} from '$src/routes/projects/[projectId]/projectStore.svelte';
     import {PipeDataType, pipeDescriptions, Pipes} from "@specy/rooc";
     import PipeInput from "$cmp/pipe/PipeInput.svelte";
     import Card from "$cmp/layout/Card.svelte";
@@ -20,8 +20,12 @@
     import ExpandableContainer from "$cmp/layout/ExpandableContainer.svelte";
     import {toast} from "$stores/toastStore";
 
-    export let project: Project;
-    let {rooc, source, result, compiling} = createCompilerStore(project);
+    interface Props {
+        project: Project;
+    }
+
+    let { project = $bindable() }: Props = $props();
+    let rooc = createCompilerStore(project);
     onMount(() => {
         Monaco.load();
         return () => {
@@ -44,35 +48,8 @@
     }
 
 
-    $: $source.source = project.content;
-    $: $source.pipes = project.pipes;
-    /*
-            <Card style="flex: 1; position:relative; overflow: hidden; max-height: 42vh; height: 42vh">
-            <LatexRenderer source={$store.latex} style="flex:1; overflow: auto; padding: 0.5rem 1rem;" />
-            <Button
-                hasIcon
-                style="position:absolute; top: 0.5rem; right: 0.5rem; width: 2.4rem; height: 2.4rem; padding: 0"
-                on:click={copy}
-            >
-                <FaCopy />
-            </Button>
-        </Card>
-        <Editor
-            style="flex: 1;"
-            language="rooc"
-            code={$store.compilationError ?? $store.compiled ?? ''}
-            config={{
-                readOnly: true,
-                lineNumbers: 'off'
-            }}
-            disabled
-            highlightedLine={-1}
-        />
+    let isPresetPipe = $derived(findPreset(project.pipes.map(p => p.pipe)))
 
-
-     */
-
-    $: isPresetPipe = findPreset(project.pipes.map(p => p.pipe))
 </script>
 
 <div class="wrapper">
@@ -94,9 +71,9 @@
                     String
                 </div>
             </Row>
-            {#each project.pipes as pipe, i}
+            {#each project.pipes as _, i}
                 <PipeInput
-                        bind:pipe
+                        bind:pipe={project.pipes[i]}
                         on:delete={() => project.pipes  = project.pipes .filter((_, index) => index !== i)}
                         on:insert-before={() => project.pipes  = [...project.pipes .slice(0, i), {pipe: Pipes.CompilerPipe, open: false}, project.pipes [i], ...project.pipes .slice(i + 1)]}
                         previousType={i === 0 ? PipeDataType.String : pipeDescriptions[project.pipes[i - 1].pipe].output}
@@ -111,7 +88,7 @@
                 </Row>
 
                 <button
-                        on:click={() => project.pipes = [...project.pipes, {pipe: Pipes.CompilerPipe, open: false}]}
+                        onclick={() => project.pipes = [...project.pipes, {pipe: Pipes.CompilerPipe, open: false}]}
                         class="add-more-btn"
                 >
                     <FaPlus/>
@@ -122,7 +99,7 @@
         <Row justify="between" gap="0.5rem" wrap>
             <select
                     class="pipe-preset-select"
-                    on:change={async (e) => {
+                    onchange={async (e) => {
                             if (e.target.value === 'custom') return;
 
                             if(isPresetPipe || await prompter.confirm('This will overwrite your current pipe. Are you sure?')){
@@ -147,39 +124,41 @@
                 {/each}
             </select>
             <Row gap="0.5rem">
-                {#if $result}
+                {#if rooc.result}
                     <Button on:click={reset} border="secondary" color="primary">Reset</Button>
                 {/if}
                 <Button
                         on:click={run}
                         border="secondary"
                         color="primary"
-                        disabled={$compiling}
+                        disabled={rooc.compiling}
                 >
-                    {$compiling ? 'Running...' : 'Run'}
+                    {rooc.compiling ? 'Running...' : 'Run'}
                 </Button>
             </Row>
         </Row>
 
     </div>
 </div>
-{#if $result}
+{#if rooc.result}
     <Column padding="0.5rem" gap="0.5rem">
         <h1 id="jump-to">
-            {$result.ok ? "Execution successful" : "Execution failed"}
+            {rooc.result.ok ? "Execution successful" : "Execution failed"}
         </h1>
-        {#if $result.latex}
+        {#if rooc.result.latex}
             <ExpandableContainer>
-                <h2 slot="title">
-                    LaTeX
-                </h2>
+                {#snippet title()}
+                                <h2 >
+                        LaTeX
+                    </h2>
+                            {/snippet}
                 <Column style="position: relative;" gap="0.5rem">
                     <LatexRenderer
-                            source={$result.latex}
+                            source={rooc.result.latex}
                             style="overflow-y: auto; overflow-x: auto; max-height: 50vh"
                     />
                     <Button on:click={() => {
-                        navigator.clipboard.writeText($result.latex);
+                        navigator.clipboard.writeText(rooc.result.latex);
                         toast.logPill('LaTeX source copied to clipboard')
                     }}>
                         Copy
@@ -187,12 +166,12 @@
                 </Column>
             </ExpandableContainer>
         {/if}
-        {#if $result.ok}
+        {#if rooc.result.ok}
             <Column gap="0.5rem">
-                {#each $result.val as step, i}
+                {#each rooc.result.val as step, i}
                     {#if i === 0}
                         <PipeResultRenderer
-                                data={{type: PipeDataType.String, data: $source.source}}
+                                data={{type: PipeDataType.String, data: project.content}}
                                 pipeStep="Source"
                         />
                     {:else }
@@ -215,10 +194,10 @@
             </Column>
         {:else}
             <Column gap="0.5rem">
-                {#each $result.context as step, i}
+                {#each rooc.result.context as step, i}
                     {#if i === 0}
                         <PipeResultRenderer
-                                data={{type: PipeDataType.String, data: $source.source}}
+                                data={{type: PipeDataType.String, data: project.content}}
                                 pipeStep="Source"
                         />
                     {:else }
@@ -243,7 +222,7 @@
                     style="background-color: rgba(var(--danger-rgb), 0.2); border: solid 0.2rem rgba(var(--danger-rgb), 0.5);"
                     padding="1rem"
             >
-                <pre style="overflow-x: auto">{$result.error}</pre>
+                <pre style="overflow-x: auto">{rooc.result.error}</pre>
             </Card>
         {/if}
     </Column>

@@ -1,5 +1,4 @@
 import {db} from "$src/lib/db"
-import {get, writable} from "svelte/store"
 import type {Pipes} from "@specy/rooc";
 import {defaultPipe} from "$lib/pipePresets";
 
@@ -44,25 +43,18 @@ define
     // define the model's variables here
     x as PositiveReal`
         ,
-        pipes: [...defaultPipe].map((p,i,arr) => ({pipe: p, open: i === (arr.length - 1)}))
+        pipes: [...defaultPipe].map((p, i, arr) => ({pipe: p, open: i === (arr.length - 1)}))
     }
 }
 
 
-type UserProjectsStore = {
-    initialized: boolean,
-    projects: Project[],
-}
 
 export function createProjectStore() {
-    const {subscribe, update} = writable<UserProjectsStore>({
-        initialized: false,
-        projects: []
-    })
+    let initialized = $state(false)
+    let projects = $state<Project[]>([])
 
     async function ensureInit() {
-        const isInit = get({subscribe}).initialized
-        if (!isInit) {
+        if (!initialized) {
             await syncProjectsWithStore()
         }
     }
@@ -73,58 +65,46 @@ export function createProjectStore() {
         project.name = name || "Unnamed"
         project.description = description
         const pr = await db.saveProject(project)
-        update(store => {
-            store.projects.push(pr)
-            return store
-        })
+        projects.unshift(pr)
         return pr
     }
 
     async function updateProject(id: string, fields: Partial<Project>): Promise<Project> {
         await ensureInit()
+
         const project = await getProject(id)
         const toUpdate = {...project, ...fields}
         delete toUpdate.id
         const pr = await db.updateProject(id, toUpdate)
-
-        update(store => {
-            const index = store.projects.findIndex(p => p.id === pr.id)
-            if (index === -1) {
-                throw new Error("Project not found")
-            }
-            store.projects[index] = pr
-            return store
-        })
+        const index = projects.findIndex(p => p.id === pr.id)
+        if (index === -1) {
+            throw new Error("Project not found")
+        }
+        projects[index] = pr
         return pr
     }
 
     async function deleteProject(id: string) {
         await ensureInit()
         await db.deleteProject(id)
-        update(store => {
-            store.projects = store.projects.filter(p => p.id !== id)
-            return store
-        })
+        projects = projects.filter(p => p.id !== id)
     }
 
     async function syncProjectsWithStore() {
         const promise = await db.loadProjects()
-        const projects = promise.sort((a, b) => b.updatedAt - a.updatedAt)
+        projects = promise.sort((a, b) => b.updatedAt - a.updatedAt)
             .map(validateProject)
-        update(store => {
-            store.projects = projects
-            store.initialized = true
-            return store
-        })
+        initialized = true
     }
 
     async function getProject(id: string): Promise<Project | undefined> {
         await ensureInit()
-        return get({subscribe}).projects.find(p => p.id === id)
+        return projects.find(p => p.id === id)
     }
 
     return {
-        subscribe,
+        get projects(){ return projects},
+        get initialized(){ return initialized},
         createNewProject,
         updateProject,
         syncProjectsWithStore,

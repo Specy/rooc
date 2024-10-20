@@ -1,9 +1,13 @@
 <script lang="ts">
 	import { afterNavigate, beforeNavigate } from '$app/navigation'
 	import type { Timer } from '$lib/utils'
-	export let refresh = ''
+	interface Props {
+		refresh?: string;
+	}
 
-	let status = ''
+	let { refresh = '' }: Props = $props();
+
+	let status = $state('')
 	let timeout: Timer
 	let timeout2: Timer
 	function handleProgress(s: string) {

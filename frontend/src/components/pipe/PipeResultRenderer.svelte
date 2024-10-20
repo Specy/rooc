@@ -9,9 +9,13 @@
     import BinarySolutionRenderer from "$cmp/pipe/BinarySolutionRenderer.svelte";
     import IntegerBinarySolutionRenderer from "$cmp/pipe/IntegerBinarySolutionRenderer.svelte";
 
-    export let data: RoocData
-    export let pipeStep: Pipes | string
-    export let expanded: boolean = false
+    interface Props {
+        data: RoocData;
+        pipeStep: Pipes | string;
+        expanded?: boolean;
+    }
+
+    let { data, pipeStep, expanded = $bindable(false) }: Props = $props();
 
 
 </script>
@@ -20,10 +24,12 @@
         bind:expanded
         disabled={data.type === PipeDataType.Parser || data.type === PipeDataType.PreModel}
 >
-    <h2 slot="title">
-        {typeof pipeStep === "string" ? pipeStep : pipeDescriptions[pipeStep].name}
-        ({pipeDataDescriptions[data.type].name})
-    </h2>
+    {#snippet title()}
+        <h2 >
+            {typeof pipeStep === "string" ? pipeStep : pipeDescriptions[pipeStep].name}
+            ({pipeDataDescriptions[data.type].name})
+        </h2>
+    {/snippet}
     <div style="margin: 0.5rem 0">
         {pipeDataDescriptions[data.type].description}
     </div>

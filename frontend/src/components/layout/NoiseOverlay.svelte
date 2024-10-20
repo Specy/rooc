@@ -1,5 +1,9 @@
 <script lang="ts">
-	export let opacity = 0.05;
+	interface Props {
+		opacity?: number;
+	}
+
+	let { opacity = 0.05 }: Props = $props();
 </script>
 
 <div
@@ -8,7 +12,7 @@
 		background-image: url('/images/noise2.png');
 		opacity: {opacity}
     "
-/>
+></div>
 
 <style>
 	.overlay {

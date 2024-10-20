@@ -3,16 +3,20 @@
     import {formatNum} from "$cmp/pipe/utils";
     import Var from "$cmp/pipe/Var.svelte";
 
-    export let tableau: SimplexTableau
-    export let outIndex: number | undefined = undefined
-    export let inIndex: number | undefined = undefined
-    $: a = tableau.getAMatrix()
-    $: b = tableau.getBVector()
-    $: c = tableau.getCVector()
-    $: currentVal = tableau.getCurrentValue()
-    $: vars = tableau.getVariableNames()
-    $: basis = tableau.getIndexesOfVarsInBasis()
-    $: basisMap = new Map(basis.map((i) => [vars[i], true]))
+    interface Props {
+        tableau: SimplexTableau;
+        outIndex?: number | undefined;
+        inIndex?: number | undefined;
+    }
+
+    let { tableau, outIndex = undefined, inIndex = undefined }: Props = $props();
+    let a = $derived(tableau.getAMatrix())
+    let b = $derived(tableau.getBVector())
+    let c = $derived(tableau.getCVector())
+    let currentVal = $derived(tableau.getCurrentValue())
+    let vars = $derived(tableau.getVariableNames())
+    let basis = $derived(tableau.getIndexesOfVarsInBasis())
+    let basisMap = $derived(new Map(basis.map((i) => [vars[i], true])))
 </script>
 
 

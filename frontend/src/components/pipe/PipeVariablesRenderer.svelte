@@ -3,13 +3,17 @@
     import {formatNum} from "$cmp/pipe/utils";
     import Var from "$cmp/pipe/Var.svelte";
 
-    export let tableau: OptimalTableau
-    $: baseTableau = tableau.getTableau()
+    interface Props {
+        tableau: OptimalTableau;
+    }
 
-    $: vars = baseTableau.getVariableNames()
-    $: values = tableau.getVariablesValues()
+    let { tableau }: Props = $props();
+    let baseTableau = $derived(tableau.getTableau())
 
-    $: biggestRhs = Math.max(tableau.getOptimalValue(), ...baseTableau.getBVector())
+    let vars = $derived(baseTableau.getVariableNames())
+    let values = $derived(tableau.getVariablesValues())
+
+    let biggestRhs = $derived(Math.max(tableau.getOptimalValue(), ...baseTableau.getBVector()))
 </script>
 
 

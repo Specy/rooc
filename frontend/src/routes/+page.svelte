@@ -11,7 +11,7 @@
     import Column from "$cmp/layout/Column.svelte";
     import Row from "$cmp/layout/Row.svelte";
 
-    let installEvent: Event | null = null
+    let installEvent: Event | null = $state(null)
     onMount(() => {
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault()
@@ -29,7 +29,7 @@
 <Nav/>
 <Page padding="0" gap="1rem">
     <div class="content row">
-        <div class="preview-image"/>
+        <div class="preview-image"></div>
         <div class="presentation">
             <div class="presentation-content">
                 <Column gap="1rem">
@@ -165,30 +165,9 @@
     background-size: cover;
   }
 
-  .container {
-    max-width: 20rem;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-  }
-
-  .logo {
-    width: 100%;
-    border-radius: 0.8rem;
-    aspect-ratio: 1;
-  }
 
   .textShadow {
     text-shadow: 2px 2px 12px rgb(36 36 36);
-  }
-
-  .sections-wrapper {
-    padding: 4rem 0;
-    background-color: var(--primary);
-    color: var(--primary-text);
   }
 
   @media screen and (max-width: 650px) {

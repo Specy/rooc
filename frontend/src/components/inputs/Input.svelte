@@ -2,12 +2,23 @@
 	import type { ColorName } from '$src/stores/themeStore';
 	import { onMount } from 'svelte';
 
-	export let value: string;
-	export let placeholder = '';
-	export let color: ColorName = 'secondary';
-	export let el:HTMLInputElement = null
-	export let style = ''
-	export let focus = false
+	interface Props {
+		value: string;
+		placeholder?: string;
+		color?: ColorName;
+		el?: HTMLInputElement;
+		style?: string;
+		focus?: boolean;
+	}
+
+	let {
+		value = $bindable(),
+		placeholder = '',
+		color = 'secondary',
+		el = $bindable(null),
+		style = '',
+		focus = false
+	}: Props = $props();
 	onMount(() => {
 		if(focus) el?.focus()
 	})

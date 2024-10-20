@@ -9,10 +9,14 @@
     import Button from "$cmp/inputs/Button.svelte";
     import Delete from '~icons/fa/Trash.svelte';
     import FaPlus from "~icons/fa/plus";
-    import type {ProjectPipe} from "$stores/userProjectsStore";
+    import type {ProjectPipe} from "$stores/userProjectsStore.svelte";
 
-    export let pipe: ProjectPipe
-    export let previousType: PipeDataType
+    interface Props {
+        pipe: ProjectPipe;
+        previousType: PipeDataType;
+    }
+
+    let { pipe = $bindable(), previousType }: Props = $props();
 
     const dispatcher = createEventDispatcher<{
         delete: void,

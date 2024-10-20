@@ -1,9 +1,13 @@
 <script lang="ts">
 	import type { ColorName } from '$src/stores/themeStore';
 
-	export let color: ColorName = 'secondary';
-	export let value: string;
-    export let placeholder = '';
+	interface Props {
+		color?: ColorName;
+		value: string;
+		placeholder?: string;
+	}
+
+	let { color = 'secondary', value = $bindable(), placeholder = '' }: Props = $props();
 </script>
 
 <textarea

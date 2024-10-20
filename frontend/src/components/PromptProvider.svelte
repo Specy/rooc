@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import { prompter, PromptType } from '$stores/promptStore'
 	import { fade } from 'svelte/transition'
 
@@ -6,20 +8,27 @@
     import Input from './inputs/Input.svelte';
 	import { onMount } from 'svelte';
 	import { toast } from '$src/stores/toastStore';
-	let input: HTMLInputElement
-	let value = ''
-	$: if (!$prompter.promise) {
-		value = ''
-		if (input) input.value = ''
+	interface Props {
+		children?: import('svelte').Snippet;
 	}
+
+	let { children }: Props = $props();
+	let input: HTMLInputElement = $state()
+	let value = $state('')
+	$effect(() => {
+		if (!$prompter.promise) {
+			value = ''
+			if (input) input.value = ''
+		}
+	});
 </script>
 
-<slot />
+{@render children?.()}
 {#if $prompter.promise}
 	<form
 		class="prompt-wrapper"
 		out:fade|global={{ duration: 150 }}
-		on:submit={(e) => {
+		onsubmit={(e) => {
 			e.preventDefault()
 			prompter.answer(value)
 		}}

@@ -2,15 +2,27 @@
 	import Button from '$cmp/inputs/Button.svelte';
 import Icon from '$cmp/layout/Icon.svelte'
 	import FaTimes from '~icons/fa/times.svelte'
-	export let visible: boolean
-    export let title: string
-    export let style: string = ""
+	interface Props {
+		visible: boolean;
+		title: string;
+		style?: string;
+		header?: import('svelte').Snippet;
+		children?: import('svelte').Snippet;
+	}
+
+	let {
+		visible = $bindable(),
+		title,
+		style = "",
+		header,
+		children
+	}: Props = $props();
 </script>
 
 <div class="floating-container" class:hidden={!visible} {style}>
 	<div class="row floating-container-header">
 		<div style="white-space: nowrap;">{title}</div>
-        <slot name="header"/>
+        {@render header?.()}
 		<Button 
             style="padding: 0.5rem" 
             hasIcon 
@@ -24,7 +36,7 @@ import Icon from '$cmp/layout/Icon.svelte'
 			</Icon>
 		</Button>
 	</div>
-    <slot />
+    {@render children?.()}
 </div>
 
 <style lang="scss">

@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { run } from 'svelte/legacy';
+
     import type {OptimalTableauWithSteps} from "@specy/rooc";
     import Column from "$cmp/layout/Column.svelte";
     import Row from "$cmp/layout/Row.svelte";
@@ -9,17 +11,23 @@
     import ChevronLeft from '~icons/fa6-solid/chevron-left.svelte';
     import Var from "$cmp/pipe/Var.svelte";
 
-    export let data: OptimalTableauWithSteps
-
-    $: steps = data.getSteps()
-    $: result = data.getResult()
-    let current = 0
-    $: if (current > steps.length - 1) {
-        current = steps.length - 1
+    interface Props {
+        data: OptimalTableauWithSteps;
     }
-    $: currentStep = steps[current]
-    $: variables = currentStep?.getTableau().getVariableNames()
-    $: pivot = currentStep?.getPivot()
+
+    let { data }: Props = $props();
+
+    let steps = $derived(data.getSteps())
+    let result = $derived(data.getResult())
+    let current = $state(0)
+    $effect(() => {
+        if (current > steps.length - 1) {
+            current = steps.length - 1
+        }
+    });
+    let currentStep = $derived(steps[current])
+    let variables = $derived(currentStep?.getTableau().getVariableNames())
+    let pivot = $derived(currentStep?.getPivot())
 
     function increment() {
         current = Math.min(current + 1, steps.length - 1)

@@ -2,30 +2,47 @@
 	import type {ColorName} from '$src/stores/themeStore';
 	import Button from './Button.svelte';
 
-	export let disabled = false;
-	export let style = '';
-	export let hasIcon = false;
-	export let color: ColorName | undefined = undefined;
-	export let border: ColorName | undefined = undefined;
-	export let active = false;
-	export let title = '';
-	export let href: string;
-	export let blank: boolean = false
-	export let iconLeft: boolean = false
+	interface Props {
+		disabled?: boolean;
+		style?: string;
+		hasIcon?: boolean;
+		color?: ColorName | undefined;
+		border?: ColorName | undefined;
+		active?: boolean;
+		title?: string;
+		href: string;
+		blank?: boolean;
+		iconLeft?: boolean;
+		children?: import('svelte').Snippet;
+	}
+
+	let {
+		disabled = false,
+		style = '',
+		hasIcon = false,
+		color = undefined,
+		border = undefined,
+		active = false,
+		title = '',
+		href,
+		blank = false,
+		iconLeft = false,
+		children
+	}: Props = $props();
 </script>
 
 <a
 	{href}
 	target={blank ? "_blank" : undefined}
 	{title}
-	on:click={(e) => {
+	onclick={(e) => {
 		if (disabled) {
 			e.preventDefault();
 		}
 	}}
 >
 	<Button {disabled} {style} {hasIcon} {color} {active} {title} {border} {iconLeft}>
-		<slot />
+		{@render children?.()}
 	</Button>
 </a>
 

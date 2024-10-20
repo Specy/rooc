@@ -3,21 +3,25 @@
 	import Card from '$cmp/layout/Card.svelte';
 	import Column from '$cmp/layout/Column.svelte';
 	import Row from '$cmp/layout/Row.svelte';
-	import type { Project } from '$stores/userProjectsStore';
+	import type { Project } from '$stores/userProjectsStore.svelte';
 	import { createEventDispatcher } from 'svelte';
-	export let project: Project;
 	import sago from 's-ago';
 	import Delete from '~icons/fa/Trash.svelte';
 	import Download from '~icons/fa/Download.svelte';
 	import Button from '$cmp/inputs/Button.svelte';
 	import SyntaxHighlighter from '$cmp/SyntaxHighlighter.svelte';
+	interface Props {
+		project: Project;
+	}
+
+	let { project }: Props = $props();
 	const dispatcher = createEventDispatcher<{
 		onUpdate: { project: Project };
 		onDownload: { project: Project };
 		onDelete: { project: Project };
 	}>();
-	let name = project.name;
-	let description = project.description;
+	let name = $state(project.name);
+	let description = $state(project.description);
 
 	function save() {
 		dispatcher('onUpdate', { project: { ...project, name, description } });
@@ -39,15 +43,15 @@
 				contenteditable
 				bind:textContent={name}
 				spellcheck="false"
-				on:blur={save}
-			/>
+				onblur={save}
+			></div>
 			<div
 				class="description"
 				contenteditable
 				bind:textContent={description}
 				spellcheck="false"
-				on:blur={save}
-			/>
+				onblur={save}
+			></div>
 			<div class="project-dates">
 				<span>Last update </span> <span>{sago(new Date(project.updatedAt))}</span>
 				<span>Created </span> <span>{sago(new Date(project.createdAt))}</span>

@@ -5,9 +5,13 @@
     import PipeVariablesRenderer from "$cmp/pipe/PipeVariablesRenderer.svelte";
     import {formatNum} from "$cmp/pipe/utils";
 
-    export let tableau: OptimalTableau
+    interface Props {
+        tableau: OptimalTableau;
+    }
 
-    $: baseTableau = tableau.getTableau()
+    let { tableau }: Props = $props();
+
+    let baseTableau = $derived(tableau.getTableau())
 </script>
 
 

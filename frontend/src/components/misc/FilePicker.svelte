@@ -1,8 +1,13 @@
 <script lang="ts">
-	export let accept = '*'
 	type inputTypes = 'text' | 'buffer' | 'dataUrl'
-	export let as: inputTypes = 'text'
 	import { createEventDispatcher } from 'svelte'
+	interface Props {
+		accept?: string;
+		as?: inputTypes;
+		children?: import('svelte').Snippet;
+	}
+
+	let { accept = '*', as = 'text', children }: Props = $props();
 
 	type FileResult = {
 			
@@ -10,7 +15,7 @@
 		file: File
 	}
 	const dispatch = createEventDispatcher<{import: FileResult}>()
-	let input: HTMLInputElement | null = null
+	let input: HTMLInputElement | null = $state(null)
 	function onChange(event: any) {
 		if (event.target.files.length === 0) return
 		const file = event.target.files[0]
@@ -33,7 +38,7 @@
 	}
 </script>
 
-<input type="file" bind:this={input} {accept} style="display: none;" on:change={onChange} />
-<div on:click={() => input?.click()} style='cursor:pointer; width:fit-content'>
-	<slot />
+<input type="file" bind:this={input} {accept} style="display: none;" onchange={onChange} />
+<div onclick={() => input?.click()} style='cursor:pointer; width:fit-content'>
+	{@render children?.()}
 </div>

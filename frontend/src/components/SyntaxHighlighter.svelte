@@ -1,14 +1,20 @@
 <script lang="ts">
+    import { run } from 'svelte/legacy';
+
     import {onMount} from 'svelte';
     import hljs from 'highlight.js/lib/core';
     import "highlight.js/styles/atom-one-dark.css"
     import typescript from 'highlight.js/lib/languages/typescript';
     import {highlightJsGrammar} from '$src/lib/Rooc/hljsLanguage';
 
-    export let style: string = ""
-    export let source: string;
-    export let language: "rooc" | "typescript"
-    let code: HTMLElement;
+    interface Props {
+        style?: string;
+        source: string;
+        language: "rooc" | "typescript";
+    }
+
+    let { style = "", source, language }: Props = $props();
+    let code: HTMLElement = $state();
     onMount(() => {
         hljs.registerLanguage('rooc', () => highlightJsGrammar);
         hljs.registerLanguage('typescript', typescript);
@@ -20,7 +26,9 @@
         el.innerHTML = highlighted;
     }
 
-    $: highlight(source, code, language);
+    $effect(() => {
+        highlight(source, code, language);
+    });
 </script>
 
 <pre class="my_hljs" {style}><code bind:this={code}></code></pre>

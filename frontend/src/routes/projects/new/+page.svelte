@@ -4,12 +4,12 @@
 	import Textarea from '$cmp/inputs/Textarea.svelte';
 	import Card from '$cmp/layout/Card.svelte';
 	import Page from '$cmp/layout/Page.svelte';
-	import { projectStore } from '$stores/userProjectsStore';
+	import { projectStore } from '$stores/userProjectsStore.svelte';
 	import { toast } from '$src/stores/toastStore';
 	import { goto } from '$app/navigation';
 	import Nav from '$cmp/layout/Nav.svelte';
-	let name = '';
-	let description = '';
+	let name = $state('');
+	let description = $state('');
 
 	async function create() {
 		try {

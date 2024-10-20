@@ -8,7 +8,7 @@
     import Row from "$cmp/layout/Row.svelte";
     import Button from "$cmp/inputs/Button.svelte";
 
-    let open = false;
+    let open = $state(false);
 </script>
 
 <div class="nav">
@@ -56,6 +56,9 @@
 
     </div>
 </div>
+<div class="nav-mock">
+
+</div>
 <div class="mobile-menu" class:mobile-menu-open={open}>
     <a href="/projects" title="Go to your projects"> Projects </a>
     <a href="/docs/rooc" title="Go to the docs" class="link-icon"> <Book /> Docs </a>
@@ -93,16 +96,23 @@
     --nav-height: 3rem;
     display: flex;
     height: $nav-height;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    left: 0;
     gap: 1rem;
     z-index: 5;
-    background-color: var(--primary);
+    background-color: rgba(var(--primary-rgb), 0.9);
+    backdrop-filter: blur(0.2rem);
     color: var(--primary-text);
     padding: 0.5rem;
     border-bottom-left-radius: 0.4rem;
     border-bottom-right-radius: 0.4rem;
     align-items: center;
   }
-
+    .nav-mock{
+        height: $nav-height;
+    }
   .link-icon {
     display: flex;
     align-items: center;

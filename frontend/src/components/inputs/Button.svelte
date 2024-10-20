@@ -1,15 +1,34 @@
 <script lang="ts">
+    import { createBubbler } from 'svelte/legacy';
+
+    const bubble = createBubbler();
 	import type {ColorName} from '$src/stores/themeStore';
 
-	export let disabled = false;
-    export let style = '';
-    export let hasIcon = false;
-    export let color: ColorName = 'secondary';
-    export let hoverColor: ColorName | undefined = undefined;
-    export let border: ColorName | undefined = undefined;
-    export let active = false;
-    export let title = '';
-    export let iconLeft = false;
+    interface Props {
+        disabled?: boolean;
+        style?: string;
+        hasIcon?: boolean;
+        color?: ColorName;
+        hoverColor?: ColorName | undefined;
+        border?: ColorName | undefined;
+        active?: boolean;
+        title?: string;
+        iconLeft?: boolean;
+        children?: import('svelte').Snippet;
+    }
+
+    let {
+        disabled = false,
+        style = '',
+        hasIcon = false,
+        color = 'secondary',
+        hoverColor = undefined,
+        border = undefined,
+        active = false,
+        title = '',
+        iconLeft = false,
+        children
+    }: Props = $props();
 </script>
 
 <button
@@ -26,10 +45,10 @@
 	{style};
 	"
         {disabled}
-        on:click
+        onclick={bubble('click')}
         class:active
 >
-    <slot/>
+    {@render children?.()}
 </button>
 
 <style lang="scss">

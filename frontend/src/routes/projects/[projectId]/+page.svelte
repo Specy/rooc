@@ -3,8 +3,8 @@
     import Page from '$cmp/layout/Page.svelte';
     import {Monaco} from '$src/lib/Monaco';
     import {onMount} from 'svelte';
-    import { goto } from '$app/navigation';
-    import {type Project, projectStore, validateProject} from '$stores/userProjectsStore';
+    import {goto} from '$app/navigation';
+    import {type Project, projectStore, validateProject} from '$stores/userProjectsStore.svelte';
     import {page} from '$app/stores';
     import Row from '$cmp/layout/Row.svelte';
     import ButtonLink from '$cmp/inputs/ButtonLink.svelte';
@@ -21,9 +21,10 @@
     import Book from '~icons/fa/book';
     import Share from '~icons/fa/share-alt';
     import FaDonate from '~icons/fa6-solid/hand-holding-dollar.svelte';
+    import {registerDeep} from "$lib/runes/anyof.svelte";
 
-    let showDocs = false;
-    let project: Project | undefined;
+    let showDocs = $state(false);
+    let project: Project | undefined = $state(undefined);
     onMount(() => {
         Monaco.load();
         loadProject();
@@ -60,7 +61,7 @@
                 toast.logPill('Project added to your projects');
                 goto(`/projects/${project.id}`)
             }
-            await projectStore.updateProject(project.id, project);
+            await projectStore.updateProject(project.id, $state.snapshot(project));
         } catch (e) {
             toast.error("Couldn't save project");
             console.error(e);
@@ -76,6 +77,7 @@
         navigator.clipboard.writeText(url);
         toast.logPill('Copied to clipboard');
     }
+
     function createDebouncer() {
         let timeout: number;
         return (fn: () => void, delay: number) => {
@@ -83,12 +85,15 @@
             timeout = setTimeout(fn, delay);
         };
     }
+
     const debouncer = createDebouncer();
-    $: {
-        if(project && project?.id !== 'share'){
-            debouncer(() => save(), 1000);
+    $effect(() => {
+        registerDeep(project);
+        if (project && project?.id !== 'share') {
+            debouncer(() => save(), 100)
         }
-    }
+    })
+
 </script>
 
 <svelte:head>

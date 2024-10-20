@@ -1,27 +1,42 @@
 <script lang="ts">
+    import { run } from 'svelte/legacy';
+
     import {createEventDispatcher, onDestroy, onMount} from 'svelte';
     import type monaco from 'monaco-editor';
     import {Monaco} from '$lib/Monaco';
     import type {MonacoType} from '$lib/Monaco';
     import {generateTheme} from '$lib/theme/editorTheme';
 
-    export let disabled = false;
-    export let code: string;
-    export let highlightedLine: number;
-    export let hasError = false;
-    export let language: 'rooc';
-    export let style = '';
-    export let editor: monaco.editor.IStandaloneCodeEditor | null = null;
-    export let config: monaco.editor.IStandaloneEditorConstructionOptions = {};
-    let mockEditor: HTMLDivElement | null;
-    let monacoInstance: MonacoType | null;
-    let decorations = [];
+    interface Props {
+        disabled?: boolean;
+        code: string;
+        highlightedLine: number;
+        hasError?: boolean;
+        language: 'rooc';
+        style?: string;
+        editor?: monaco.editor.IStandaloneCodeEditor | null;
+        config?: monaco.editor.IStandaloneEditorConstructionOptions;
+    }
+
+    let {
+        disabled = false,
+        code = $bindable(),
+        highlightedLine,
+        hasError = false,
+        language,
+        style = '',
+        editor = $bindable(null),
+        config = {}
+    }: Props = $props();
+    let mockEditor: HTMLDivElement | null = $state();
+    let monacoInstance: MonacoType | null = $state();
+    let decorations = $state([]);
     const toDispose = [];
     const dispatcher = createEventDispatcher<{
         change: string;
         breakpointPress: number;
     }>();
-    let el: HTMLDivElement;
+    let el: HTMLDivElement = $state();
 
     onMount(async () => {
         monacoInstance = await Monaco.get();
@@ -69,11 +84,11 @@
 		}, 1000)
 		toDispose.push(() => clearTimeout(id));
     });
-    $: {
+    $effect(() => {
         if (editor && code !== editor.getValue()) {
             editor.setValue(code);
         }
-    }
+    });
     onDestroy(() => {
         toDispose.forEach((d) => {
             if (typeof d === 'function') return d();
@@ -81,7 +96,7 @@
         });
         editor?.dispose();
     });
-    $: {
+    $effect(() => {
         if (editor) {
             decorations = editor.deltaDecorations(decorations, [
                 ...(highlightedLine >= 0
@@ -98,21 +113,23 @@
                     : [])
             ]);
         }
-    }
+    });
 
-    $: {
+    $effect(() => {
         if (editor && highlightedLine > 0) {
             editor.revealLineInCenter(highlightedLine);
         }
-    }
-    $: editor?.updateOptions({readOnly: disabled});
+    });
+    $effect(() => {
+        editor?.updateOptions({readOnly: disabled});
+    });
 </script>
 
 <div bind:this={mockEditor} class="mock-editor" {style}>
     {#if !editor}
         <h1 class="loading">Loading editor...</h1>
     {/if}
-    <div bind:this={el} class="editor"/>
+    <div bind:this={el} class="editor"></div>
 </div>
 
 <style lang="scss">

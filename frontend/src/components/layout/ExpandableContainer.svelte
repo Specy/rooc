@@ -1,14 +1,25 @@
 <script lang="ts">
     import FaChevronDown from "~icons/fa/chevron-down.svelte";
-    export let expanded: boolean = false
-    export let disabled: boolean = false
+    interface Props {
+        expanded?: boolean;
+        disabled?: boolean;
+        title?: import('svelte').Snippet;
+        children?: import('svelte').Snippet;
+    }
+
+    let {
+        expanded = $bindable(false),
+        disabled = false,
+        title,
+        children
+    }: Props = $props();
 </script>
 
 
 <div class="expandable-container" class:expandable-container-open={expanded} class:disabled>
     <button
             {disabled}
-            on:click={() => expanded = !expanded}
+            onclick={() => expanded = !expanded}
             class="expandable-container-expand"
     >
         <div class="chevron-icon"
@@ -17,10 +28,10 @@
         >
             <FaChevronDown/>
         </div>
-        <slot name="title"/>
+        {@render title?.()}
     </button>
     <div class="expandable-container-content">
-        <slot />
+        {@render children?.()}
     </div>
 </div>
 

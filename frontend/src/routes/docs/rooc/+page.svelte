@@ -4,7 +4,7 @@
     import RoocFunctionsDocs from '$cmp/roocDocs/RoocFunctionsDocs.svelte';
     import RoocSyntaxDocs from '$cmp/roocDocs/RoocSyntaxDocs.svelte';
     import lzstring from "lz-string";
-    import {createProject} from "$stores/userProjectsStore";
+    import {createProject} from "$stores/userProjectsStore.svelte";
 
     const code = lzstring.compressToEncodedURIComponent(JSON.stringify(createProject()));
     const url = `/projects/share?project=${code}`;

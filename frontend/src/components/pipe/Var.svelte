@@ -1,8 +1,12 @@
 <script lang="ts">
-    export let value: string;
+    interface Props {
+        value: string;
+    }
+
+    let { value }: Props = $props();
 
 
-    $: [varName, ...rest] = value.split('_')
+    let [varName, ...rest] = $derived(value.split('_'))
 </script>
 
 {#if rest.length}
