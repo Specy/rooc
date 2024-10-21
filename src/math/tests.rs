@@ -26,8 +26,8 @@ mod math_tests {
     fn test_math_enums_parse() {
         let comparisons = ["<=", ">=", "="];
         let comparisons_enum = [
-            Comparison::LowerOrEqual,
-            Comparison::UpperOrEqual,
+            Comparison::LessOrEqual,
+            Comparison::GreaterOrEqual,
             Comparison::Equal,
         ];
         for (i, op) in comparisons.iter().enumerate() {

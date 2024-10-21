@@ -5,6 +5,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
 use crate::math::math_utils::{float_gt, float_lt, float_ne};
+use crate::solvers::common::{find_invalid_variables, SolverError};
 use crate::solvers::simplex::{
     divide_matrix_row_by, CanonicalTransformError, IntoCanonicalTableau, Tableau, Tableauable,
 };
@@ -38,6 +39,7 @@ struct IndependentVariable {
 
 impl IntoCanonicalTableau for StandardLinearModel {
     fn into_canonical(&self) -> Result<Tableau, CanonicalTransformError> {
+        
         let mut usable_independent_vars: Vec<IndependentVariable> = Vec::new();
         //find independent variables by checking if the column has a single value, and if so, add it to the independent list
         for column in 0..self.variables.len() {
@@ -254,7 +256,7 @@ impl StandardLinearModel {
             flip_objective,
         }
     }
-    pub fn from_linear_problem(linear_problem: LinearModel) -> Result<StandardLinearModel, ()> {
+    pub fn from_linear_problem(linear_problem: LinearModel) -> Result<StandardLinearModel, SolverError> {
         to_standard_form(linear_problem)
     }
 }

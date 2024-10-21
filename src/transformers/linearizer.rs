@@ -95,7 +95,7 @@ impl Exp {
                 for exp in exps {
                     let constraint = Constraint::new(
                         Exp::Variable(var_name.clone()).clone(),
-                        Comparison::LowerOrEqual,
+                        Comparison::LessOrEqual,
                         exp.clone(),
                     );
                     linearizer_context.add_constraint(constraint)
@@ -109,7 +109,7 @@ impl Exp {
                 for exp in exps {
                     let constraint = Constraint::new(
                         Exp::Variable(var_name.clone()).clone(),
-                        Comparison::UpperOrEqual,
+                        Comparison::GreaterOrEqual,
                         exp.clone(),
                     );
                     linearizer_context.add_constraint(constraint)

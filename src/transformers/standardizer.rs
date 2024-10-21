@@ -1,11 +1,14 @@
 use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
 use crate::math::math_utils::float_eq;
 use crate::parser::model_transformer::transformer_context::DomainVariable;
+use crate::solvers::common::{find_invalid_variables, SolverError};
 use crate::transformers::linear_model::{LinearConstraint, LinearModel};
 use crate::transformers::standard_linear_model::{EqualityConstraint, StandardLinearModel};
 use crate::utils::{remove_many, InputSpan};
 
-pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, ()> {
+
+
+pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, SolverError> {
     let (
         mut objective,
         optimization_type,
@@ -19,7 +22,19 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, ()>
         slack_index: 0,
         total_variables: variables.len(),
     };
-
+    let invalid_variables = find_invalid_variables(&domain, |var| {
+        matches!(
+            var,
+            VariableType::Real | VariableType::PositiveReal
+        )
+    });
+    if !invalid_variables.is_empty() {
+        return Err(SolverError::InvalidDomain {
+            expected: vec![VariableType::Real, VariableType::PositiveReal],
+            got: invalid_variables,
+        });
+    }
+    
     //we now need to replace all free variables with positive variables
     let free_variables = variables
         .iter()
@@ -106,7 +121,10 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, ()>
             true,
         ),
         OptimizationType::Min => (objective_offset, objective.clone(), false),
-        _ => return Err(()),
+        _ => return Err(SolverError::UnimplementedOptimizationType{
+            expected: vec![OptimizationType::Max, OptimizationType::Min],
+            got: optimization_type
+        }),
     };
     Ok(StandardLinearModel::new(
         objective,
@@ -133,7 +151,7 @@ pub fn normalize_constraint(
             let equality_constraint = EqualityConstraint::new(coefficients, rhs);
             (equality_constraint, None)
         }
-        Comparison::LowerOrEqual => {
+        Comparison::LessOrEqual => {
             coefficients.resize(context.total_variables, 0.0);
             coefficients.push(1.0);
             context.surplus_index += 1;
@@ -143,7 +161,7 @@ pub fn normalize_constraint(
                 Some(format!("$su_{}", context.surplus_index)),
             )
         }
-        Comparison::UpperOrEqual => {
+        Comparison::GreaterOrEqual => {
             coefficients.resize(context.total_variables, 0.0);
             coefficients.push(-1.0);
             context.slack_index += 1;

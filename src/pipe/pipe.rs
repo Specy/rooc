@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::parser::model_transformer::model::Model;
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::parser::PreModel;
-use crate::solvers::common::{IntegerBinaryLpSolution, IntegerBinarySolverError};
+use crate::solvers::common::{IntegerBinaryLpSolution, SolverError};
 use crate::solvers::linear_integer_binary::VarValue;
 use crate::solvers::simplex::{
     CanonicalTransformError, OptimalTableau, OptimalTableauWithSteps, SimplexError, Tableau,
@@ -188,10 +188,10 @@ pub enum PipeError {
         source: String,
     },
     LinearizationError(LinearizationError),
-    StandardizationError(()),
+    StandardizationError(SolverError),
     CanonicalizationError(CanonicalTransformError),
     SimplexError(SimplexError, Tableau),
-    IntegerBinarySolverError(IntegerBinarySolverError),
+    IntegerBinarySolverError(SolverError),
 }
 impl Display for PipeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -214,7 +214,7 @@ impl Display for PipeError {
                 }
             }
             PipeError::LinearizationError(e) => write!(f, "{}", e),
-            PipeError::StandardizationError(_) => write!(f, "Standardization error"),
+            PipeError::StandardizationError(e) => write!(f, "{}", e.to_string()),
             PipeError::CanonicalizationError(e) => write!(f, "{}", e),
             PipeError::SimplexError(e, _) => write!(f, "{}", e),
             PipeError::IntegerBinarySolverError(e) => write!(f, "{}", e),

@@ -1,7 +1,6 @@
 use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
-use crate::solvers::common::{Assignment, IntegerBinaryLpSolution, IntegerBinarySolverError};
+use crate::solvers::common::{find_invalid_variables, process_variables, process_variables_binary, Assignment, IntegerBinaryLpSolution, SolverError};
 use crate::transformers::linear_model::LinearModel;
-use copper::views::{Times, ViewExt};
 use copper::*;
 use num_traits::ToPrimitive;
 use serde::Serialize;
@@ -16,30 +15,17 @@ pub enum VarValue {
 
 pub fn solve_integer_binary_lp_problem(
     lp: &LinearModel,
-) -> Result<IntegerBinaryLpSolution<VarValue>, IntegerBinarySolverError> {
-    let invalid_variables = lp
-        .get_domain()
-        .iter()
-        .filter_map(|(name, var)| {
-            if !matches!(
-                var.get_type(),
-                VariableType::Integer
-                    | VariableType::Boolean
-                    | VariableType::PositiveInteger
-                    | VariableType::IntegerRange(_, _)
-            ) {
-                Some((name.clone(), var.clone()))
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>();
+) -> Result<IntegerBinaryLpSolution<VarValue>, SolverError> {
+    let invalid_variables = find_invalid_variables(lp.get_domain(), |var| {
+        matches!(
+            var,
+            VariableType::Boolean | VariableType::IntegerRange(_, _)
+        )
+    });
     if !invalid_variables.is_empty() {
-        return Err(IntegerBinarySolverError::InvalidDomain {
+        return Err(SolverError::InvalidDomain {
             expected: vec![
-                VariableType::Integer,
                 VariableType::Boolean,
-                VariableType::PositiveInteger,
                 VariableType::IntegerRange(i32::MIN, i32::MAX),
             ],
             got: invalid_variables,
@@ -62,12 +48,7 @@ pub fn solve_integer_binary_lp_problem(
         .get_domain()
         .iter()
         .filter_map(|(name, var)| {
-            if matches!(
-                var.get_type(),
-                VariableType::Integer
-                    | VariableType::IntegerRange(_, _)
-                    | VariableType::PositiveInteger
-            ) {
+            if matches!(var.get_type(), VariableType::IntegerRange(_, _)) {
                 Some(name.clone())
             } else {
                 None
@@ -83,9 +64,7 @@ pub fn solve_integer_binary_lp_problem(
         .map(|(k, v)| {
             let domain = lp.get_domain().get(k).unwrap();
             let (min, max) = match domain.get_type() {
-                VariableType::Integer => (-32768, 32768),
                 VariableType::IntegerRange(min, max) => (*min, *max),
-                VariableType::PositiveInteger => (0, 32768),
                 _ => unreachable!(),
             };
             m.new_var(min, max)
@@ -94,7 +73,7 @@ pub fn solve_integer_binary_lp_problem(
     let vars_integer = match vars_integer {
         Some(vars) => vars,
         None => {
-            return Err(IntegerBinarySolverError::TooLarge {
+            return Err(SolverError::TooLarge {
                 name: "integer variable".to_string(),
                 value: i32::MAX as f64,
             })
@@ -113,7 +92,7 @@ pub fn solve_integer_binary_lp_problem(
             |i| integer_variables.get(&vars[i]).is_some(),
         );
         if lhs_binary.is_none() || lhs_integer.is_none() {
-            return Err(IntegerBinarySolverError::TooLarge {
+            return Err(SolverError::TooLarge {
                 name: format!("variable in constraint {}", i + 1),
                 value: *constraint
                     .get_coefficients()
@@ -127,19 +106,19 @@ pub fn solve_integer_binary_lp_problem(
         let lhs = m.sum(&[lhs_binary, lhs_integer]);
         let rhs = constraint.get_rhs().to_i32();
         if rhs.is_none() {
-            return Err(IntegerBinarySolverError::TooLarge {
+            return Err(SolverError::TooLarge {
                 name: format!("right hand side of constraint {}", i + 1),
                 value: constraint.get_rhs(),
             });
         }
         match constraint.get_constraint_type() {
-            Comparison::LowerOrEqual => {
+            Comparison::LessOrEqual => {
                 m.less_than_or_equals(lhs, rhs.unwrap());
             }
             Comparison::Equal => {
                 m.equals(lhs, rhs.unwrap());
             }
-            Comparison::UpperOrEqual => {
+            Comparison::GreaterOrEqual => {
                 m.greater_than_or_equals(lhs, rhs.unwrap());
             }
         }
@@ -153,7 +132,7 @@ pub fn solve_integer_binary_lp_problem(
             integer_variables.get(&vars[i]).is_some()
         });
     if objective_binary.is_none() || objective_integer.is_none() {
-        return Err(IntegerBinarySolverError::TooLarge {
+        return Err(SolverError::TooLarge {
             name: "objective function variable".to_string(),
             value: *lp
                 .get_objective()
@@ -180,7 +159,7 @@ pub fn solve_integer_binary_lp_problem(
         .map(|(name, i)| (i, name))
         .collect::<HashMap<_, _>>();
     match solution {
-        None => Err(IntegerBinarySolverError::DidNotSolve),
+        None => Err(SolverError::DidNotSolve),
         Some(solution) => {
             let assignment = solution
                 .get_values_binary(&vars_binary)
@@ -213,36 +192,4 @@ pub fn solve_integer_binary_lp_problem(
             Ok(sol)
         }
     }
-}
-
-fn process_variables<'a, F>(
-    coefficients: impl Iterator<Item = &'a f64>,
-    variables: impl Iterator<Item = &'a VarId>,
-    filter_fn: F,
-) -> Option<Vec<Times<VarId>>>
-where
-    F: Fn(usize) -> bool,
-{
-    coefficients
-        .enumerate()
-        .filter(|(i, _c)| filter_fn(*i))
-        .zip(variables)
-        .map(|((i, c), v)| c.to_i32().map(|c| v.times(c)))
-        .collect::<Option<Vec<_>>>()
-}
-
-fn process_variables_binary<'a, F>(
-    coefficients: impl Iterator<Item = &'a f64>,
-    variables: impl Iterator<Item = &'a VarIdBinary>,
-    filter_fn: F,
-) -> Option<Vec<Times<VarIdBinary>>>
-where
-    F: Fn(usize) -> bool,
-{
-    coefficients
-        .enumerate()
-        .filter(|(i, _c)| filter_fn(*i))
-        .zip(variables)
-        .map(|((i, c), v)| c.to_i32().map(|c| v.times(c)))
-        .collect::<Option<Vec<_>>>()
 }

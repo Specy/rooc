@@ -1,5 +1,5 @@
 use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
-use crate::solvers::common::{Assignment, IntegerBinaryLpSolution, IntegerBinarySolverError};
+use crate::solvers::common::{find_invalid_variables, Assignment, IntegerBinaryLpSolution, SolverError};
 use crate::transformers::linear_model::LinearModel;
 use copper::views::ViewExt;
 use copper::*;
@@ -7,20 +7,12 @@ use num_traits::ToPrimitive;
 
 pub fn solve_binary_lp_problem(
     lp: &LinearModel,
-) -> Result<IntegerBinaryLpSolution<bool>, IntegerBinarySolverError> {
-    let non_binary_variables = lp
-        .get_domain()
-        .iter()
-        .filter_map(|(name, var)| {
-            if *var.get_type() != VariableType::Boolean {
-                Some((name.clone(), var.clone()))
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>();
+) -> Result<IntegerBinaryLpSolution<bool>, SolverError> {
+    let non_binary_variables = find_invalid_variables(lp.get_domain(), |var| {
+        matches!(var, VariableType::Boolean)
+    });
     if !non_binary_variables.is_empty() {
-        return Err(IntegerBinarySolverError::InvalidDomain {
+        return Err(SolverError::InvalidDomain {
             expected: vec![VariableType::Boolean],
             got: non_binary_variables,
         });
@@ -36,7 +28,7 @@ pub fn solve_binary_lp_problem(
             .map(|(c, v)| c.to_i32().map(|c| v.times(c)))
             .collect::<Option<Vec<_>>>();
         if lhs.is_none() {
-            return Err(IntegerBinarySolverError::TooLarge {
+            return Err(SolverError::TooLarge {
                 name: format!("variable in constraint {}", i + 1),
                 value: *constraint
                     .get_coefficients()
@@ -48,19 +40,19 @@ pub fn solve_binary_lp_problem(
         let lhs = m.sum_iter(lhs.unwrap());
         let rhs = constraint.get_rhs().to_i32();
         if rhs.is_none() {
-            return Err(IntegerBinarySolverError::TooLarge {
+            return Err(SolverError::TooLarge {
                 name: format!("right hand side of constraint {}", i + 1),
                 value: constraint.get_rhs(),
             });
         }
         match constraint.get_constraint_type() {
-            Comparison::LowerOrEqual => {
+            Comparison::LessOrEqual => {
                 m.less_than_or_equals(lhs, rhs.unwrap());
             }
             Comparison::Equal => {
                 m.equals(lhs, rhs.unwrap());
             }
-            Comparison::UpperOrEqual => {
+            Comparison::GreaterOrEqual => {
                 m.greater_than_or_equals(lhs, rhs.unwrap());
             }
         }
@@ -72,7 +64,7 @@ pub fn solve_binary_lp_problem(
         .map(|(c, v)| c.to_i32().map(|c| v.times(c)))
         .collect::<Option<Vec<_>>>();
     if objective.is_none() {
-        return Err(IntegerBinarySolverError::TooLarge {
+        return Err(SolverError::TooLarge {
             name: "objective function variable".to_string(),
             value: *lp
                 .get_objective()
@@ -88,7 +80,7 @@ pub fn solve_binary_lp_problem(
         OptimizationType::Satisfy => m.solve(),
     };
     match solution {
-        None => Err(IntegerBinarySolverError::DidNotSolve),
+        None => Err(SolverError::DidNotSolve),
         Some(solution) => {
             let var_names = lp.get_variables();
             let assignment = solution

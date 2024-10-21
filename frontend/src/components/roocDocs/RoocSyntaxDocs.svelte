@@ -208,11 +208,11 @@ define
         the
         constraints to define compound variables.
         <br />
-        The domains are "Real", "PositiveReal", "Integer", "PositiveInteger", "Boolean"
+        The domains are "Real", "PositiveReal", "Boolean"
     </p>
 
     <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`y, x_u as Integer for u in 0..5`} style="overflow-x: auto;"/>
+        <SyntaxHighlighter language="rooc" source={`y, x_u as IntegerRange(0,20) for u in 0..5`} style="overflow-x: auto;"/>
     </Card>
     <h1 id="rooc_functions_and_tuples">
         Functions and tuples

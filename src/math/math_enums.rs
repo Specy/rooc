@@ -11,8 +11,8 @@ use crate::traits::latex::ToLatex;
 
 enum_with_variants_to_string! {
     pub enum Comparison derives[Debug, PartialEq, Clone, Copy] with_wasm {
-        LowerOrEqual,
-        UpperOrEqual,
+        LessOrEqual,
+        GreaterOrEqual,
         Equal,
     }
 }
@@ -20,8 +20,8 @@ enum_with_variants_to_string! {
 impl ToLatex for Comparison {
     fn to_latex(&self) -> String {
         match self {
-            Comparison::LowerOrEqual => "\\leq".to_string(),
-            Comparison::UpperOrEqual => "\\geq".to_string(),
+            Comparison::LessOrEqual => "\\leq".to_string(),
+            Comparison::GreaterOrEqual => "\\geq".to_string(),
             Comparison::Equal => "=".to_string(),
         }
     }
@@ -30,8 +30,8 @@ impl ToLatex for Comparison {
 impl fmt::Display for Comparison {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Comparison::LowerOrEqual => "<=".to_string(),
-            Comparison::UpperOrEqual => ">=".to_string(),
+            Comparison::LessOrEqual => "<=".to_string(),
+            Comparison::GreaterOrEqual => ">=".to_string(),
             Comparison::Equal => "=".to_string(),
         };
 
@@ -43,8 +43,8 @@ impl FromStr for Comparison {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "<=" => Ok(Comparison::LowerOrEqual),
-            ">=" => Ok(Comparison::UpperOrEqual),
+            "<=" => Ok(Comparison::LessOrEqual),
+            ">=" => Ok(Comparison::GreaterOrEqual),
             "=" => Ok(Comparison::Equal),
             _ => Err(()),
         }
@@ -94,8 +94,6 @@ impl FromStr for OptimizationType {
 #[derive(Debug, PartialEq, Clone, Copy, Serialize)]
 #[serde(tag = "type", content = "value")]
 pub enum VariableType {
-    Integer,
-    PositiveInteger,
     Boolean,
     PositiveReal,
     Real,
@@ -104,7 +102,7 @@ pub enum VariableType {
 #[wasm_bindgen(typescript_custom_section)]
 const IVariablesDomainDeclaration: &'static str = r#"
 export type VariableType = {
-    type: "Integer" | "PositiveInteger" | "Boolean" | "PositiveReal" | "Real"
+    type: "Boolean" | "PositiveReal" | "Real"
 } | {
     type: "IntegerRange"
     value: [number, number]
@@ -114,8 +112,6 @@ export type VariableType = {
 impl VariableType {
     pub fn kinds_to_string() -> Vec<String> {
         vec![
-            "Integer".to_string(),
-            "PositiveInteger".to_string(),
             "Boolean".to_string(),
             "PositiveReal".to_string(),
             "Real".to_string(),
@@ -127,8 +123,6 @@ impl VariableType {
 impl fmt::Display for VariableType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
-            VariableType::Integer => "Integer".to_string(),
-            VariableType::PositiveInteger => "PositiveInteger".to_string(),
             VariableType::Boolean => "Boolean".to_string(),
             VariableType::PositiveReal => "PositiveReal".to_string(),
             VariableType::Real => "Real".to_string(),
@@ -143,11 +137,9 @@ impl FromStr for VariableType {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Integer" => Ok(VariableType::Integer),
             "Boolean" => Ok(VariableType::Boolean),
             "PositiveReal" => Ok(VariableType::PositiveReal),
             "Real" => Ok(VariableType::Real),
-            "PositiveInteger" => Ok(VariableType::PositiveInteger),
             _ => Err(()),
         }
     }
@@ -156,11 +148,9 @@ impl FromStr for VariableType {
 impl ToLatex for VariableType {
     fn to_latex(&self) -> String {
         match self {
-            VariableType::Integer => "\\mathbb{Z}".to_string(),
             VariableType::Boolean => "\\{0,1\\}".to_string(),
             VariableType::PositiveReal => "\\mathbb{R}^+_0".to_string(),
             VariableType::Real => "\\mathbb{R}".to_string(),
-            VariableType::PositiveInteger => "\\mathbb{N}".to_string(),
             VariableType::IntegerRange(min, max) => format!(
                 "\\{{{} \\in \\mathbb{{Z}} | {} \\leq {} \\leq {}\\}}",
                 min, min, "x", max

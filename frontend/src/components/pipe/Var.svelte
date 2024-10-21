@@ -21,5 +21,11 @@
 <style>
     mn{
         line-height: 0.8;
+        margin-left: 1px;
+    }
+    mi{
+        min-height: 0.9rem;
+        display: flex;
+        align-items: flex-end;
     }
 </style>

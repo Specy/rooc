@@ -316,14 +316,14 @@ export const pipeDescriptions = {
     ),
     [Pipes.SimplexPipe]: makePipeDescriptionEntry(
         Pipes.SimplexPipe,
-        "Simplex algorithm",
+        "Simplex solver",
         "Runs the simplex algorithm to find the optimal solution",
         PipeDataType.Tableau,
         PipeDataType.OptimalTableau
     ),
     [Pipes.StepByStepSimplexPipe]: makePipeDescriptionEntry(
         Pipes.StepByStepSimplexPipe,
-        "Simplex algorithm with steps",
+        "Simplex solver with steps",
         "Runs the simplex algorithm to find the optimal solution and returns the tableau at each step",
         PipeDataType.Tableau,
         PipeDataType.OptimalTableauWithSteps

@@ -6,7 +6,7 @@ use crate::pipe::pipe_executors::{
 };
 use crate::pipe::pipe_runner::PipeRunner;
 use crate::solvers::common::IntegerBinaryLpSolution;
-use crate::solvers::linear_integer_binary::VarValue;
+use crate::solvers::linear_integer_binary::{solve_integer_binary_lp_problem, VarValue};
 #[allow(unused_imports)]
 use crate::solvers::simplex::{CanonicalTransformError, OptimalTableau, SimplexError};
 
@@ -427,8 +427,7 @@ fn should_solve_integer_problem() {
         x_1 + x_2 <= 7
         2x_1 + 3x_2 <= 21
     define
-        x_1 as PositiveInteger
-        x_2 as IntegerRange(0, 10)
+        x_1, x_2 as IntegerRange(0, 10)
     "#;
     let solution = solve_integer_binary(source).unwrap();
     assert_precision(solution.get_value(), 21.0);
@@ -438,4 +437,48 @@ fn should_solve_integer_problem() {
         &vec![VarValue::Int(0), VarValue::Int(7)],
         false,
     );
+}
+
+
+#[test]
+#[should_panic]
+fn should_detect_invalid_domain() {
+    let source = r#"
+    max 2x_1 + 3x_2
+    s.t.
+        x_1 + x_2 <= 7
+        2x_1 + 3x_2 <= 21
+    define
+        x_1 as Real
+        x_2 as IntegerRange(0, 10)
+    "#; //here only Real and PositiveReal are allowed
+    solve(source).unwrap();
+}
+#[test]
+#[should_panic]
+fn should_detect_invalid_domain_2() {
+    let source = r#"
+    max 2x_1 + 3x_2
+    s.t.
+        x_1 + x_2 <= 7
+        2x_1 + 3x_2 <= 21
+    define
+        x_1 as Real
+        x_2 as IntegerRange(0, 10)
+    "#; //here only IntegerRange and boolean are allowed
+    solve_integer_binary(source).unwrap();
+}
+#[test]
+#[should_panic]
+fn should_detect_invalid_domain_3() {
+    let source = r#"
+    max 2x_1 + 3x_2
+    s.t.
+        x_1 + x_2 <= 7
+        2x_1 + 3x_2 <= 21
+    define
+        x_1 as Boolean
+        x_2 as IntegerRange(0, 10)
+    "#; //here only Boolean is allowed
+    solve_binary(source).unwrap();
 }

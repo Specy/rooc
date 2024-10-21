@@ -12,6 +12,7 @@ use crate::{
     math::math_enums::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
 };
+use crate::solvers::common::SolverError;
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
@@ -117,7 +118,7 @@ impl LinearModel {
     pub fn get_optimization_type(&self) -> &OptimizationType {
         &self.optimization_type
     }
-    pub fn into_standard_form(self) -> Result<StandardLinearModel, ()> {
+    pub fn into_standard_form(self) -> Result<StandardLinearModel, SolverError> {
         to_standard_form(self)
     }
     pub fn get_objective(&self) -> &Vec<f64> {
@@ -136,9 +137,7 @@ impl LinearModel {
         &self.domain
     }
 
-    pub fn into_dual(self) -> LinearModel {
-        todo!()
-    }
+  
 }
 
 impl Display for LinearModel {

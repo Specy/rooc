@@ -138,9 +138,7 @@ const keywords = {
 const domainTypes = {
     'Boolean': 'A boolean value {0,1}',
     'Real': 'A real number ',
-    'Integer': 'An integer number',
     'PositiveReal': 'A positive real number between -32768 and 32768',
-    'PositiveInteger': 'A positive integer number between 0 and 32768',
     'IntegerRange(0, 10)': 'An integer between min and max',
 }
 
@@ -314,7 +312,7 @@ const suggestedKeywords = [
     detail: keywords[k]
 }))
 const suggestedTypes = [
-    "Boolean", "Real", "Integer", "PositiveReal", "PositiveInteger", "IntegerRange(0, 10)"
+    "Boolean", "Real", "PositiveReal", "IntegerRange(0, 10)"
 ].map(k => ({
     label: k,
     kind: languages.CompletionItemKind.Class,

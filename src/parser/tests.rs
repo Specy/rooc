@@ -401,8 +401,6 @@ define
         define
             a as Real
             b as Boolean
-            c as Integer
-            d as PositiveInteger
             e as PositiveReal
             x as IntegerRange(10, 20)
         ";

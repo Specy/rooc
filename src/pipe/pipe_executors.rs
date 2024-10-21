@@ -230,7 +230,8 @@ impl DualPipe {
 impl Pipeable for DualPipe {
     fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
         let model = data.as_linear_model()?.clone();
-        let dual = model.into_dual();
+        //TODO: Implement dual
+        let dual = model;
         Ok(PipeableData::LinearModel(dual))
     }
 }
