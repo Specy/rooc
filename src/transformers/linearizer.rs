@@ -1,6 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::fmt::Display;
-
+use std::ops::Index;
+use indexmap::IndexMap;
 use crate::math::math_enums::{Comparison, VariableType};
 use crate::math::math_utils::float_lt;
 use crate::math::operators::{BinOp, UnOp};
@@ -126,12 +127,12 @@ impl Exp {
 
 #[derive(Debug)]
 pub struct MidLinearConstraint {
-    lhs: HashMap<String, f64>,
+    lhs: IndexMap<String, f64>,
     rhs: f64,
     comparison: Comparison,
 }
 impl MidLinearConstraint {
-    pub fn new(lhs: HashMap<String, f64>, rhs: f64, comparison: Comparison) -> Self {
+    pub fn new(lhs: IndexMap<String, f64>, rhs: f64, comparison: Comparison) -> Self {
         MidLinearConstraint {
             lhs,
             rhs,
@@ -148,10 +149,10 @@ impl MidLinearConstraint {
             comparison,
         }
     }
-    pub fn to_coefficient_vector(&self, vars: &HashMap<String, usize>) -> Vec<f64> {
+    pub fn to_coefficient_vector(&self, vars: &IndexMap<String, usize>) -> Vec<f64> {
         extract_coeffs(&self.lhs, vars)
     }
-    pub fn to_linear_constraint(self, vars: &HashMap<String, usize>) -> LinearConstraint {
+    pub fn to_linear_constraint(self, vars: &IndexMap<String, usize>) -> LinearConstraint {
         let coeffs = self.to_coefficient_vector(vars);
         LinearConstraint::new(coeffs, self.comparison, self.rhs)
     }
@@ -180,14 +181,14 @@ pub struct Linearizer {
     slack_count: u32,
     min_count: u32,
     max_count: u32,
-    domain: HashMap<String, DomainVariable>,
+    domain: IndexMap<String, DomainVariable>,
 }
 
 impl Linearizer {
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn new_from(constraints: Vec<Constraint>, domain: HashMap<String, DomainVariable>) -> Self {
+    pub fn new_from(constraints: Vec<Constraint>, domain: IndexMap<String, DomainVariable>) -> Self {
         let mut context = Self::default();
         context.constraints = constraints.into_iter().collect();
         context.domain = domain;
@@ -245,8 +246,8 @@ impl Linearizer {
             .domain
             .into_iter()
             .filter(|(name, _)| vars.contains(name))
-            .collect::<HashMap<String, DomainVariable>>();
-        let vars_indexes: HashMap<String, usize> = vars
+            .collect::<IndexMap<String, DomainVariable>>();
+        let vars_indexes: IndexMap<String, usize> = vars
             .iter()
             .enumerate()
             .map(|(i, name)| (name.clone(), i))
@@ -268,7 +269,7 @@ impl Linearizer {
     }
 }
 
-fn extract_coeffs(exp: &HashMap<String, f64>, vars: &HashMap<String, usize>) -> Vec<f64> {
+fn extract_coeffs(exp: &IndexMap<String, f64>, vars: &IndexMap<String, usize>) -> Vec<f64> {
     let mut vec = vec![0.0; vars.len()];
     for (name, val) in exp.iter() {
         let index = vars.get(name).unwrap();
@@ -299,7 +300,7 @@ impl Display for LinearizationError {
     }
 }
 pub struct LinearizationContext {
-    current_vars: HashMap<String, f64>,
+    current_vars: IndexMap<String, f64>,
     current_rhs: f64,
 }
 
@@ -312,7 +313,7 @@ impl Default for LinearizationContext {
 impl LinearizationContext {
     pub fn new() -> Self {
         LinearizationContext {
-            current_vars: HashMap::new(),
+            current_vars: IndexMap::new(),
             current_rhs: 0.0,
         }
     }
@@ -351,7 +352,7 @@ impl LinearizationContext {
     pub fn add_rhs(&mut self, rhs: f64) {
         self.current_rhs += rhs;
     }
-    pub fn get_vars(&self) -> &HashMap<String, f64> {
+    pub fn get_vars(&self) -> &IndexMap<String, f64> {
         &self.current_vars
     }
     pub fn get_rhs(&self) -> f64 {

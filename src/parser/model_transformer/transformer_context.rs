@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-
+use indexmap::IndexMap;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -14,16 +14,16 @@ use crate::utils::{InputSpan, Spanned};
 
 #[derive(Debug)]
 pub struct Frame<T> {
-    pub variables: HashMap<String, T>,
+    pub variables: IndexMap<String, T>,
 }
 
 impl<T> Frame<T> {
     pub fn new() -> Self {
         Self {
-            variables: HashMap::new(),
+            variables: IndexMap::new(),
         }
     }
-    pub fn from_map(constants: HashMap<String, T>) -> Self {
+    pub fn from_map(constants: IndexMap<String, T>) -> Self {
         Self {
             variables: constants,
         }
@@ -107,21 +107,21 @@ impl DomainVariable {
 #[derive(Debug)]
 pub struct TransformerContext {
     frames: Vec<Frame<Primitive>>,
-    domain: HashMap<String, DomainVariable>,
+    domain: IndexMap<String, DomainVariable>,
 }
 
 impl Default for TransformerContext {
     fn default() -> Self {
-        let primitives = HashMap::new();
-        let domain = HashMap::new();
+        let primitives = IndexMap::new();
+        let domain = IndexMap::new();
         Self::new(primitives, domain)
     }
 }
 
 impl TransformerContext {
     pub fn new(
-        primitives: HashMap<String, Primitive>,
-        domain: HashMap<String, DomainVariable>,
+        primitives: IndexMap<String, Primitive>,
+        domain: IndexMap<String, DomainVariable>,
     ) -> Self {
         let frame = Frame::from_map(primitives);
         Self {
@@ -154,7 +154,7 @@ impl TransformerContext {
                 (name, DomainVariable::new(as_type, span))
             })
             .collect::<Vec<_>>();
-        context.domain = HashMap::from_iter(computed_domain);
+        context.domain = IndexMap::from_iter(computed_domain);
         Ok(context)
     }
 
@@ -320,7 +320,7 @@ impl TransformerContext {
             )),
         }
     }
-    pub fn into_components(self) -> HashMap<String, DomainVariable> {
+    pub fn into_components(self) -> IndexMap<String, DomainVariable> {
         self.domain
     }
 }
@@ -328,7 +328,7 @@ impl TransformerContext {
 pub fn assert_no_duplicates_in_domain(
     domain: &Vec<(String, Spanned<VariableType>)>,
 ) -> Result<(), TransformError> {
-    let acc: HashMap<String, (i32, Spanned<VariableType>)> = HashMap::new();
+    let acc: IndexMap<String, (i32, Spanned<VariableType>)> = IndexMap::new();
     let duplicates = domain
         .iter()
         .fold(acc, |mut acc, (name, as_type)| {

@@ -5,6 +5,7 @@ use copper::*;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use std::collections::HashMap;
+use indexmap::IndexMap;
 
 #[derive(Debug, Clone, Serialize, Copy)]
 #[serde(tag = "type", content = "value")]
@@ -43,8 +44,8 @@ pub fn solve_integer_binary_lp_problem(
         })
         .enumerate()
         .map(|(i, name)| (name, i))
-        .collect::<HashMap<_, _>>();
-    
+        .collect::<IndexMap<_, _>>();
+
     let integer_variables = lp
         .get_domain()
         .iter()
@@ -57,8 +58,8 @@ pub fn solve_integer_binary_lp_problem(
         })
         .enumerate()
         .map(|(i, name)| (name, i))
-        .collect::<HashMap<_, _>>();
-    
+        .collect::<IndexMap<_, _>>();
+
     let mut m = Model::default();
     let vars_binary: Vec<_> = m.new_vars_binary(binary_variables.len()).collect();
     let vars_integer: Option<Vec<_>> = integer_variables
@@ -152,15 +153,14 @@ pub fn solve_integer_binary_lp_problem(
         OptimizationType::Satisfy => m.solve(),
     };
 
-    //TODO this positional mapping is not safe, the index get messed up
     let rev_binary_variables = binary_variables
         .iter()
         .map(|(name, i)| (i, name))
-        .collect::<HashMap<_, _>>();
+        .collect::<IndexMap<_, _>>();
     let rev_integer_variables = integer_variables
         .iter()
         .map(|(name, i)| (i, name))
-        .collect::<HashMap<_, _>>();
+        .collect::<IndexMap<_, _>>();
     match solution {
         None => Err(SolverError::DidNotSolve),
         Some(solution) => {

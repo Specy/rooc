@@ -1,7 +1,7 @@
 use core::fmt;
 use std::collections::HashMap;
 use std::fmt::Debug;
-
+use indexmap::IndexMap;
 use pest::iterators::Pair;
 use pest::Parser;
 use serde::Serialize;
@@ -113,7 +113,7 @@ impl PreModel {
         }
         self.type_check(&mut context)
     }
-    pub fn create_token_type_map(&self) -> HashMap<u32, TypedToken> {
+    pub fn create_token_type_map(&self) -> IndexMap<u32, TypedToken> {
         let mut context = TypeCheckerContext::default();
         let domain = self.get_static_domain();
         context.set_static_domain(domain);

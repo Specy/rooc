@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-
+use indexmap::IndexMap;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -67,24 +67,24 @@ impl StaticVariableType {
 
 pub struct TypeCheckerContext {
     frames: Vec<Frame<PrimitiveKind>>,
-    static_domain: HashMap<String, StaticVariableType>,
-    token_map: HashMap<u32, TypedToken>,
+    static_domain: IndexMap<String, StaticVariableType>,
+    token_map: IndexMap<u32, TypedToken>,
 }
 
 impl Default for TypeCheckerContext {
     fn default() -> Self {
-        let primitives = HashMap::new();
-        let token_map = HashMap::new();
-        let static_domain = HashMap::new();
+        let primitives = IndexMap::new();
+        let token_map = IndexMap::new();
+        let static_domain = IndexMap::new();
         Self::new(primitives, token_map, static_domain)
     }
 }
 
 impl TypeCheckerContext {
     pub fn new(
-        primitives: HashMap<String, PrimitiveKind>,
-        token_map: HashMap<u32, TypedToken>,
-        static_domain: HashMap<String, StaticVariableType>,
+        primitives: IndexMap<String, PrimitiveKind>,
+        token_map: IndexMap<u32, TypedToken>,
+        static_domain: IndexMap<String, StaticVariableType>,
     ) -> Self {
         let frame = Frame::from_map(primitives);
         Self {
@@ -94,7 +94,7 @@ impl TypeCheckerContext {
         }
     }
 
-    pub fn into_token_map(self) -> HashMap<u32, TypedToken> {
+    pub fn into_token_map(self) -> IndexMap<u32, TypedToken> {
         self.token_map
     }
     pub fn add_scope(&mut self) {
@@ -131,7 +131,7 @@ impl TypeCheckerContext {
         self.token_map.insert(start, token);
     }
     pub fn set_static_domain(&mut self, domain: Vec<(String, Spanned<PreVariableType>)>) {
-        self.static_domain = HashMap::from_iter(domain.into_iter().map(|(k, v)| {
+        self.static_domain = IndexMap::from_iter(domain.into_iter().map(|(k, v)| {
             let (v, span) = v.into_tuple();
             (k, StaticVariableType::new(v, span))
         }));

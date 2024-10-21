@@ -5,6 +5,7 @@ use copper::{VarId, VarIdBinary};
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use std::collections::HashMap;
+use indexmap::IndexMap;
 
 #[derive(Debug)]
 pub enum SolverError {
@@ -89,7 +90,7 @@ impl<T: Clone + Serialize + Copy> IntegerBinaryLpSolution<T> {
 }
 
 pub fn find_invalid_variables<F>(
-    domain: &HashMap<String, DomainVariable>,
+    domain: &IndexMap<String, DomainVariable>,
     validator: F,
 ) -> Vec<(String, DomainVariable)>
 where

@@ -1,6 +1,7 @@
 use core::fmt;
 use std::collections::HashMap;
-
+use std::ops::Index;
+use indexmap::IndexMap;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
@@ -370,7 +371,7 @@ impl fmt::Display for Constraint {
 pub struct Model {
     objective: Objective,
     constraints: Vec<Constraint>,
-    domain: HashMap<String, DomainVariable>,
+    domain: IndexMap<String, DomainVariable>,
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -386,7 +387,7 @@ impl Model {
     pub fn new(
         objective: Objective,
         constraints: Vec<Constraint>,
-        domain: HashMap<String, DomainVariable>,
+        domain: IndexMap<String, DomainVariable>,
     ) -> Self {
         Self {
             objective,
@@ -394,7 +395,7 @@ impl Model {
             domain,
         }
     }
-    pub fn into_components(self) -> (Objective, Vec<Constraint>, HashMap<String, DomainVariable>) {
+    pub fn into_components(self) -> (Objective, Vec<Constraint>, IndexMap<String, DomainVariable>) {
         (self.objective, self.constraints, self.domain)
     }
     pub fn get_objective(&self) -> &Objective {
@@ -403,10 +404,10 @@ impl Model {
     pub fn get_constraints(&self) -> &Vec<Constraint> {
         &self.constraints
     }
-    pub fn get_domain(&self) -> &HashMap<String, DomainVariable> {
+    pub fn get_domain(&self) -> &IndexMap<String, DomainVariable> {
         &self.domain
     }
-    pub fn get_domain_mut(&mut self) -> &mut HashMap<String, DomainVariable> {
+    pub fn get_domain_mut(&mut self) -> &mut IndexMap<String, DomainVariable> {
         &mut self.domain
     }
 }

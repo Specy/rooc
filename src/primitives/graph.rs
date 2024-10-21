@@ -1,6 +1,6 @@
 use core::fmt;
 use std::collections::HashMap;
-
+use indexmap::IndexMap;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -58,7 +58,7 @@ impl fmt::Display for GraphEdge {
 #[derive(Debug, Clone, Serialize)]
 pub struct GraphNode {
     name: String,
-    edges: HashMap<String, GraphEdge>,
+    edges: IndexMap<String, GraphEdge>,
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -74,7 +74,7 @@ impl GraphNode {
         let edges = edges
             .into_iter()
             .map(|edge| (edge.to.clone(), edge))
-            .collect::<HashMap<String, GraphEdge>>();
+            .collect::<IndexMap<String, GraphEdge>>();
         Self { name, edges }
     }
     pub fn to_edges(self) -> Vec<GraphEdge> {

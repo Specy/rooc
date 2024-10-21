@@ -1,7 +1,7 @@
 use num_traits::Zero;
 use std::collections::HashMap;
 use std::fmt::Display;
-
+use indexmap::IndexMap;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::math::math_utils::float_lt;
@@ -70,7 +70,7 @@ impl LinearConstraint {
 #[wasm_bindgen]
 pub struct LinearModel {
     variables: Vec<String>,
-    domain: HashMap<String, DomainVariable>,
+    domain: IndexMap<String, DomainVariable>,
     objective_offset: f64,
     optimization_type: OptimizationType,
     objective: Vec<f64>,
@@ -84,7 +84,7 @@ impl LinearModel {
         objective_offset: f64,
         constraints: Vec<LinearConstraint>,
         variables: Vec<String>,
-        domain: HashMap<String, DomainVariable>,
+        domain: IndexMap<String, DomainVariable>,
     ) -> LinearModel {
         LinearModel {
             objective,
@@ -104,7 +104,7 @@ impl LinearModel {
         f64,
         Vec<LinearConstraint>,
         Vec<String>,
-        HashMap<String, DomainVariable>,
+        IndexMap<String, DomainVariable>,
     ) {
         (
             self.objective,
@@ -133,7 +133,7 @@ impl LinearModel {
     pub fn get_objective_offset(&self) -> f64 {
         self.objective_offset
     }
-    pub fn get_domain(&self) -> &HashMap<String, DomainVariable> {
+    pub fn get_domain(&self) -> &IndexMap<String, DomainVariable> {
         &self.domain
     }
 
