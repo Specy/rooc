@@ -39,7 +39,6 @@ struct IndependentVariable {
 
 impl IntoCanonicalTableau for StandardLinearModel {
     fn into_canonical(&self) -> Result<Tableau, CanonicalTransformError> {
-        
         let mut usable_independent_vars: Vec<IndependentVariable> = Vec::new();
         //find independent variables by checking if the column has a single value, and if so, add it to the independent list
         for column in 0..self.variables.len() {
@@ -256,7 +255,9 @@ impl StandardLinearModel {
             flip_objective,
         }
     }
-    pub fn from_linear_problem(linear_problem: LinearModel) -> Result<StandardLinearModel, SolverError> {
+    pub fn from_linear_problem(
+        linear_problem: LinearModel,
+    ) -> Result<StandardLinearModel, SolverError> {
         to_standard_form(linear_problem)
     }
 }

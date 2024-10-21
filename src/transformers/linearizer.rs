@@ -1,7 +1,3 @@
-use std::collections::{HashMap, VecDeque};
-use std::fmt::Display;
-use std::ops::Index;
-use indexmap::IndexMap;
 use crate::math::math_enums::{Comparison, VariableType};
 use crate::math::math_utils::float_lt;
 use crate::math::operators::{BinOp, UnOp};
@@ -9,6 +5,10 @@ use crate::parser::model_transformer::model::{Constraint, Exp, Model};
 use crate::parser::model_transformer::transformer_context::DomainVariable;
 use crate::transformers::linear_model::{LinearConstraint, LinearModel};
 use crate::utils::InputSpan;
+use indexmap::IndexMap;
+use std::collections::{HashMap, VecDeque};
+use std::fmt::Display;
+use std::ops::Index;
 
 /**TODO
 The linearizer module contains the code for attempting to linearize a problem into a linear problem
@@ -188,7 +188,10 @@ impl Linearizer {
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn new_from(constraints: Vec<Constraint>, domain: IndexMap<String, DomainVariable>) -> Self {
+    pub fn new_from(
+        constraints: Vec<Constraint>,
+        domain: IndexMap<String, DomainVariable>,
+    ) -> Self {
         let mut context = Self::default();
         context.constraints = constraints.into_iter().collect();
         context.domain = domain;

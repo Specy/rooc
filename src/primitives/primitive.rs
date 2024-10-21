@@ -36,21 +36,19 @@ pub enum Primitive {
     Undefined,
 }
 
-impl PartialEq for Primitive{
+impl PartialEq for Primitive {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other){
+        match (self, other) {
             (Primitive::Number(a), Primitive::Number(b)) => a == b,
             (Primitive::Integer(a), Primitive::Integer(b)) => a == b,
             (Primitive::PositiveInteger(a), Primitive::PositiveInteger(b)) => a == b,
             (Primitive::String(a), Primitive::String(b)) => a == b,
             (Primitive::Boolean(a), Primitive::Boolean(b)) => a == b,
             (Primitive::Undefined, Primitive::Undefined) => true,
-            _ => false //rest we can't compare
+            _ => false, //rest we can't compare
         }
     }
 }
-
-
 
 #[wasm_bindgen(typescript_custom_section)]
 const IPrimitive: &'static str = r#"

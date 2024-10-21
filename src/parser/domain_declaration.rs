@@ -3,6 +3,8 @@ use std::fmt::Display;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
+use super::recursive_set_resolver::recursive_set_resolver;
+use crate::math::math_enums::PreVariableType;
 use crate::parser::il::il_problem::CompoundVariable;
 use crate::parser::il::iterable_set::IterableSet;
 use crate::parser::model_transformer::transform_error::TransformError;
@@ -13,8 +15,6 @@ use crate::{
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext},
     utils::{InputSpan, Spanned},
 };
-use crate::math::math_enums::PreVariableType;
-use super::recursive_set_resolver::recursive_set_resolver;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "value")]
@@ -134,7 +134,7 @@ impl VariablesDomainDeclaration {
                     VariableToAssert::Variable(name) => {
                         let var_type = self.as_type.to_variable_type(context)?;
                         Ok((name.clone(), var_type))
-                    },
+                    }
                     VariableToAssert::CompoundVariable(c) => {
                         let indexes = &c.compute_indexes(context)?;
                         let name = context.flatten_compound_variable(&c.name, indexes)?;
@@ -146,7 +146,6 @@ impl VariablesDomainDeclaration {
             })
             .collect::<Result<Vec<(String, Spanned<VariableType>)>, TransformError>>()
             .map_err(|e| e.add_span(&self.span))
-        
     }
     pub fn compute_domain(
         &self,
@@ -198,6 +197,9 @@ impl TypeCheckable for VariablesDomainDeclaration {
                 }
             }
         }
+        self.as_type
+            .type_check(context)
+            .map_err(|e| e.add_span(&self.span))?;
         for _ in &self.iteration {
             context.pop_scope()?;
         }
@@ -208,7 +210,16 @@ impl TypeCheckable for VariablesDomainDeclaration {
             context.add_scope();
             iter.populate_token_type_map(context);
         }
-        //TODO should i also add the variables to the context?
+
+        self.as_type.populate_token_type_map(context);
+        for variable in &self.variables {
+            if let VariableToAssert::CompoundVariable(c) = variable.get_span_value() {
+                for index in &c.indexes {
+                    index.populate_token_type_map(context);
+                }
+            }
+        }
+
         for _ in &self.iteration {
             let _ = context.pop_scope();
         }

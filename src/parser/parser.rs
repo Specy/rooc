@@ -1,10 +1,10 @@
 use core::fmt;
-use std::collections::HashMap;
-use std::fmt::Debug;
 use indexmap::IndexMap;
 use pest::iterators::Pair;
 use pest::Parser;
 use serde::Serialize;
+use std::collections::HashMap;
+use std::fmt::Debug;
 use wasm_bindgen::prelude::*;
 
 use crate::bail_missing_token;
@@ -111,6 +111,9 @@ impl PreModel {
         for constants in &self.constants {
             constants.type_check(&mut context)?;
         }
+        for domain in &self.domains {
+            domain.type_check(&mut context)?;
+        }
         self.type_check(&mut context)
     }
     pub fn create_token_type_map(&self) -> IndexMap<u32, TypedToken> {
@@ -119,6 +122,9 @@ impl PreModel {
         context.set_static_domain(domain);
         for constants in &self.constants {
             constants.populate_token_type_map(&mut context);
+        }
+        for domain in &self.domains {
+            domain.populate_token_type_map(&mut context);
         }
         self.populate_token_type_map(&mut context);
         context.into_token_map()

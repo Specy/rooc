@@ -1,8 +1,8 @@
 use core::fmt;
-use std::collections::HashMap;
-use std::ops::Index;
 use indexmap::IndexMap;
 use serde::Serialize;
+use std::collections::HashMap;
+use std::ops::Index;
 use wasm_bindgen::prelude::*;
 
 use crate::math::math_enums::{Comparison, OptimizationType};

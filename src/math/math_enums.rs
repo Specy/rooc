@@ -1,9 +1,9 @@
 //TODO find a better name for this file
 
 use core::fmt;
-use std::fmt::Display;
 use num_traits::ToPrimitive;
 use serde::Serialize;
+use std::fmt::Display;
 use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 
@@ -104,7 +104,6 @@ pub enum PreVariableType {
     Real,
     IntegerRange(PreExp, PreExp),
 }
-
 
 impl PartialEq<Self> for PreVariableType {
     fn eq(&self, other: &Self) -> bool {

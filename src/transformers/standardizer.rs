@@ -6,8 +6,6 @@ use crate::transformers::linear_model::{LinearConstraint, LinearModel};
 use crate::transformers::standard_linear_model::{EqualityConstraint, StandardLinearModel};
 use crate::utils::{remove_many, InputSpan};
 
-
-
 pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, SolverError> {
     let (
         mut objective,
@@ -23,10 +21,7 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
         total_variables: variables.len(),
     };
     let invalid_variables = find_invalid_variables(&domain, |var| {
-        matches!(
-            var,
-            VariableType::Real | VariableType::PositiveReal
-        )
+        matches!(var, VariableType::Real | VariableType::PositiveReal)
     });
     if !invalid_variables.is_empty() {
         return Err(SolverError::InvalidDomain {
@@ -34,7 +29,7 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
             got: invalid_variables,
         });
     }
-    
+
     //we now need to replace all free variables with positive variables
     let free_variables = variables
         .iter()
@@ -121,10 +116,12 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
             true,
         ),
         OptimizationType::Min => (objective_offset, objective.clone(), false),
-        _ => return Err(SolverError::UnimplementedOptimizationType{
-            expected: vec![OptimizationType::Max, OptimizationType::Min],
-            got: optimization_type
-        }),
+        _ => {
+            return Err(SolverError::UnimplementedOptimizationType {
+                expected: vec![OptimizationType::Max, OptimizationType::Min],
+                got: optimization_type,
+            })
+        }
     };
     Ok(StandardLinearModel::new(
         objective,

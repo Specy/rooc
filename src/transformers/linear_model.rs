@@ -1,18 +1,18 @@
+use indexmap::IndexMap;
 use num_traits::Zero;
 use std::collections::HashMap;
 use std::fmt::Display;
-use indexmap::IndexMap;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::math::math_utils::float_lt;
 use crate::parser::model_transformer::transformer_context::DomainVariable;
+use crate::solvers::common::SolverError;
 use crate::transformers::standard_linear_model::{format_var, StandardLinearModel};
 use crate::utils::remove_many;
 use crate::{
     math::math_enums::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
 };
-use crate::solvers::common::SolverError;
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
@@ -136,8 +136,6 @@ impl LinearModel {
     pub fn get_domain(&self) -> &IndexMap<String, DomainVariable> {
         &self.domain
     }
-
-  
 }
 
 impl Display for LinearModel {

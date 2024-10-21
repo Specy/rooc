@@ -2,10 +2,10 @@ use crate::math::math_enums::{OptimizationType, VariableType};
 use crate::parser::model_transformer::transformer_context::DomainVariable;
 use copper::views::{Times, ViewExt};
 use copper::{VarId, VarIdBinary};
+use indexmap::IndexMap;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use std::collections::HashMap;
-use indexmap::IndexMap;
 
 #[derive(Debug)]
 pub enum SolverError {
@@ -21,7 +21,7 @@ pub enum SolverError {
     UnimplementedOptimizationType {
         expected: Vec<OptimizationType>,
         got: OptimizationType,
-    }
+    },
 }
 
 impl std::fmt::Display for SolverError {

@@ -58,8 +58,8 @@ pub enum TransformError {
     },
     TooLarge {
         message: String,
-        got: i64, 
-        max: i64
+        got: i64,
+        max: i64,
     },
     Other(String),
 }

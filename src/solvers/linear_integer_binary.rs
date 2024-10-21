@@ -1,11 +1,14 @@
 use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
-use crate::solvers::common::{find_invalid_variables, process_variables, process_variables_binary, Assignment, IntegerBinaryLpSolution, SolverError};
+use crate::solvers::common::{
+    find_invalid_variables, process_variables, process_variables_binary, Assignment,
+    IntegerBinaryLpSolution, SolverError,
+};
 use crate::transformers::linear_model::LinearModel;
 use copper::*;
+use indexmap::IndexMap;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use std::collections::HashMap;
-use indexmap::IndexMap;
 
 #[derive(Debug, Clone, Serialize, Copy)]
 #[serde(tag = "type", content = "value")]

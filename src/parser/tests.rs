@@ -499,8 +499,23 @@ define
             .type_check()
             .expect_err("Failed to typecheck duplicate");
     }
-    
-    
+
+    #[test]
+    fn should_find_domain_type_error() {
+        let input = "
+        min 1
+        s.t.
+            x <= 2
+        where
+            let a = [1,2,3]
+        define
+            x as IntegerRange(0, a)
+        ";
+        RoocParser::new(input.to_string())
+            .type_check()
+            .expect_err("Failed to find domain type error");
+    }
+
     #[test]
     fn test_dynamic_var_bounds() {
         let input = "
@@ -516,8 +531,8 @@ define
             y_2 as IntegerRange(0, 10)
             z_3 as IntegerRange(0, len(y))
         ";
-        //TODO should i add this to the compiler too?
         RoocParser::new(input.to_string())
-            .type_check().expect("Failed to typecheck");
+            .type_check()
+            .expect("Failed to typecheck");
     }
 }

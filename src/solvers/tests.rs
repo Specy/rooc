@@ -439,7 +439,6 @@ fn should_solve_integer_problem() {
     );
 }
 
-
 #[test]
 #[should_panic]
 fn should_detect_invalid_domain() {
@@ -499,8 +498,12 @@ fn should_solve_dynamic_domain() {
     let assignment = result.get_assignment_values();
     assert_variables_integer(
         &assignment,
-        &vec![VarValue::Int(1), VarValue::Int(2), VarValue::Int(3), VarValue::Int(4)],
+        &vec![
+            VarValue::Int(1),
+            VarValue::Int(2),
+            VarValue::Int(3),
+            VarValue::Int(4),
+        ],
         false,
     );
-    
 }
