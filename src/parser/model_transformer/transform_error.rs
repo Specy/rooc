@@ -3,7 +3,7 @@ use core::fmt;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::math::math_enums::VariableType;
+use crate::math::math_enums::{PreVariableType, VariableType};
 use crate::math::operators::{BinOp, UnOp};
 use crate::parser::il::il_exp::PreExp;
 use crate::primitives::primitive::PrimitiveKind;
@@ -55,6 +55,11 @@ pub enum TransformError {
     AlreadyDefined {
         name: String,
         kind: TokenType,
+    },
+    TooLarge {
+        message: String,
+        got: i64, 
+        max: i64
     },
     Other(String),
 }
@@ -136,7 +141,14 @@ export type SerializedTransformError = {
 } | {
     type: "UndeclaredVariableDomain",
     value: string
-}
+} | {
+    type: "TooLarge",
+    value: {
+        message: string,
+        got: number,
+        max: number
+    }
+};
 "#;
 
 impl fmt::Display for TransformError {
@@ -201,6 +213,9 @@ impl fmt::Display for TransformError {
                         .join(", "),
                     got
                 )
+            }
+            TransformError::TooLarge { message, got, max } => {
+                format!("[TooLarge] {}: got {}, max {}", message, got, max)
             }
             TransformError::AlreadyDefined { name, kind } => {
                 format!(

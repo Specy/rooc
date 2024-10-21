@@ -482,3 +482,25 @@ fn should_detect_invalid_domain_3() {
     "#; //here only Boolean is allowed
     solve_binary(source).unwrap();
 }
+
+#[test]
+fn should_solve_dynamic_domain() {
+    let source = r#"
+    max sum((value, i) in enumerate(arr)) { x_i }
+    s.t.
+        sum((value, i) in enumerate(arr)) { x_i } <= 1000
+    where
+        let arr = [1,2,3,4]
+    define
+        x_i as IntegerRange(0, arr[i]) for i in 0..len(arr)
+    "#; //here only Boolean is allowed
+    let result = solve_integer_binary(source).unwrap();
+    assert_precision(result.get_value(), 10.0);
+    let assignment = result.get_assignment_values();
+    assert_variables_integer(
+        &assignment,
+        &vec![VarValue::Int(1), VarValue::Int(2), VarValue::Int(3), VarValue::Int(4)],
+        false,
+    );
+    
+}

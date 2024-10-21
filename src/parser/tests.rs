@@ -499,4 +499,25 @@ define
             .type_check()
             .expect_err("Failed to typecheck duplicate");
     }
+    
+    
+    #[test]
+    fn test_dynamic_var_bounds() {
+        let input = "
+        min 1
+        s.t.
+            x_1 <= 2
+        where
+            let x = 2
+            let y = [1, 2, 3, 4]
+            let length = len(y)
+        define
+            x_1 as IntegerRange(0, length)
+            y_2 as IntegerRange(0, 10)
+            z_3 as IntegerRange(0, len(y))
+        ";
+        //TODO should i add this to the compiler too?
+        RoocParser::new(input.to_string())
+            .type_check().expect("Failed to typecheck");
+    }
 }

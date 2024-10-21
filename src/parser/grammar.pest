@@ -54,7 +54,7 @@ as_assertion = {
     #type = (!keyword ~ as_type) ~
     #values = (as_value?)
 } 
-as_value = { "(" ~ (number ~ comma)* ~ number ~ ")" }
+as_value = { "(" ~ (tagged_exp ~ comma)* ~ tagged_exp ~ ")" }
 as_type = @{  LETTER ~ (LETTER | NUMBER)* }
 // iterations
 for_iteration          = _{ ^"for" ~ iteration_declaration_list }
@@ -74,7 +74,6 @@ range_iterator = {
 }
 
 // expressions
-test_exp = { SOI ~ exp ~ EOI }
 tagged_exp = { exp }
 exp         = _{ unary_op? ~ exp_leaf ~ (binary_op ~ unary_op? ~ exp_leaf)* }
 exp_leaf    = _{  block_scoped_function | block_function | function | implicit_mul | parenthesis | modulo  | array_access | primitive | variable  }

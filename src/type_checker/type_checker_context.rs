@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::math::math_enums::VariableType;
+use crate::math::math_enums::{PreVariableType, VariableType};
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::il_problem::AddressableAccess;
 use crate::parser::model_transformer::transform_error::TransformError;
@@ -51,15 +51,15 @@ impl TypedToken {
 }
 
 pub struct StaticVariableType {
-    pub value: VariableType,
+    pub value: PreVariableType,
     pub span: InputSpan,
 }
 
 impl StaticVariableType {
-    pub fn new(value: VariableType, span: InputSpan) -> Self {
+    pub fn new(value: PreVariableType, span: InputSpan) -> Self {
         Self { value, span }
     }
-    pub fn new_spanned(value: Spanned<VariableType>) -> Self {
+    pub fn new_spanned(value: Spanned<PreVariableType>) -> Self {
         let (value, span) = value.into_tuple();
         Self { value, span }
     }
@@ -130,7 +130,7 @@ impl TypeCheckerContext {
         let token = TypedToken::new(span, value, identifier);
         self.token_map.insert(start, token);
     }
-    pub fn set_static_domain(&mut self, domain: Vec<(String, Spanned<VariableType>)>) {
+    pub fn set_static_domain(&mut self, domain: Vec<(String, Spanned<PreVariableType>)>) {
         self.static_domain = HashMap::from_iter(domain.into_iter().map(|(k, v)| {
             let (v, span) = v.into_tuple();
             (k, StaticVariableType::new(v, span))

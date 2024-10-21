@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::math::math_enums::VariableType;
+use crate::math::math_enums::{PreVariableType, VariableType};
 use crate::parser::domain_declaration::VariablesDomainDeclaration;
 use crate::parser::il::il_problem::AddressableAccess;
 use crate::parser::model_transformer::transform_error::TransformError;

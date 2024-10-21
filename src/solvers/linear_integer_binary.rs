@@ -44,6 +44,7 @@ pub fn solve_integer_binary_lp_problem(
         .enumerate()
         .map(|(i, name)| (name, i))
         .collect::<HashMap<_, _>>();
+    
     let integer_variables = lp
         .get_domain()
         .iter()
@@ -57,6 +58,7 @@ pub fn solve_integer_binary_lp_problem(
         .enumerate()
         .map(|(i, name)| (name, i))
         .collect::<HashMap<_, _>>();
+    
     let mut m = Model::default();
     let vars_binary: Vec<_> = m.new_vars_binary(binary_variables.len()).collect();
     let vars_integer: Option<Vec<_>> = integer_variables
@@ -150,6 +152,7 @@ pub fn solve_integer_binary_lp_problem(
         OptimizationType::Satisfy => m.solve(),
     };
 
+    //TODO this positional mapping is not safe, the index get messed up
     let rev_binary_variables = binary_variables
         .iter()
         .map(|(name, i)| (i, name))
@@ -161,7 +164,7 @@ pub fn solve_integer_binary_lp_problem(
     match solution {
         None => Err(SolverError::DidNotSolve),
         Some(solution) => {
-            let assignment = solution
+            let mut assignment = solution
                 .get_values_binary(&vars_binary)
                 .iter()
                 .enumerate()
@@ -185,8 +188,8 @@ pub fn solve_integer_binary_lp_problem(
                             }
                         }),
                 )
-                .collect();
-
+                .collect::<Vec<Assignment<VarValue>>>();
+            assignment.sort_by(|a, b| a.name.cmp(&b.name));
             let value = solution[objective] as f64 + lp.get_objective_offset();
             let sol = IntegerBinaryLpSolution::new(assignment, value);
             Ok(sol)

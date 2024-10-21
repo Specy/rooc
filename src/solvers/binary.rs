@@ -83,7 +83,7 @@ pub fn solve_binary_lp_problem(
         None => Err(SolverError::DidNotSolve),
         Some(solution) => {
             let var_names = lp.get_variables();
-            let assignment = solution
+            let mut assignment = solution
                 .get_values_binary(&vars)
                 .iter()
                 .zip(var_names.iter())
@@ -91,8 +91,9 @@ pub fn solve_binary_lp_problem(
                     name: n.clone(),
                     value: *v,
                 })
-                .collect();
+                .collect::<Vec<Assignment<bool>>>();
             let value = solution[objective] as f64 + lp.get_objective_offset();
+            assignment.sort_by(|a, b| a.name.cmp(&b.name));
             let sol = IntegerBinaryLpSolution::new(assignment, value);
             Ok(sol)
         }

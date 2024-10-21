@@ -8,7 +8,7 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 use crate::bail_missing_token;
-use crate::math::math_enums::VariableType;
+use crate::math::math_enums::PreVariableType;
 use crate::parser::il::il_problem::{PreConstraint, PreObjective};
 use crate::parser::model_transformer::model::{transform_parsed_problem, Model};
 use crate::parser::model_transformer::transform_error::TransformError;
@@ -81,13 +81,13 @@ impl PreModel {
     pub fn get_source(&self) -> Option<String> {
         self.source.clone()
     }
-    fn get_static_domain(&self) -> Vec<(String, Spanned<VariableType>)> {
+    fn get_static_domain(&self) -> Vec<(String, Spanned<PreVariableType>)> {
         self.domains
             .iter()
             .flat_map(|d| {
                 d.get_static_variables().into_iter().map(|v| {
                     let (name, span) = v.into_tuple();
-                    (name, Spanned::new(*d.get_type(), span))
+                    (name, Spanned::new(d.get_type().clone(), span))
                 })
             })
             .collect::<Vec<_>>()
@@ -96,7 +96,17 @@ impl PreModel {
         let mut context = TypeCheckerContext::default();
         let domain = self.get_static_domain();
         //TODO add span
-        assert_no_duplicates_in_domain(&domain)?;
+        assert_no_duplicates_in_domain(
+            &domain
+                .iter()
+                .map(|(k, v)| {
+                    (
+                        k.clone(),
+                        Spanned::new(v.to_variable_type_without_context(), v.get_span().clone()),
+                    )
+                })
+                .collect::<Vec<_>>(),
+        )?;
         context.set_static_domain(domain);
         for constants in &self.constants {
             constants.type_check(&mut context)?;

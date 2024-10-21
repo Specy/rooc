@@ -2,7 +2,7 @@ use std::vec;
 
 use pest::iterators::{Pair, Pairs};
 
-use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
+use crate::math::math_enums::{Comparison, OptimizationType, PreVariableType, VariableType};
 use crate::parser::domain_declaration::{VariableToAssert, VariablesDomainDeclaration};
 use crate::parser::il::block_functions::{
     BlockFunction, BlockFunctionKind, BlockScopedFunction, BlockScopedFunctionKind,
@@ -176,7 +176,7 @@ pub fn parse_variables_assertion(
     }
 }
 
-pub fn parse_as_assertion_type(pair: &Pair<Rule>) -> Result<VariableType, CompilationError> {
+pub fn parse_as_assertion_type(pair: &Pair<Rule>) -> Result<PreVariableType, CompilationError> {
     let as_type = pair.clone().into_inner();
     let (as_type, as_data) = (
         as_type.find_first_tagged("type"),
@@ -200,19 +200,19 @@ pub fn parse_as_assertion_type(pair: &Pair<Rule>) -> Result<VariableType, Compil
                 pair
             );
         }
-        let min = min.unwrap().as_str().parse::<i32>();
-        let max = max.unwrap().as_str().parse::<i32>();
+        let min = parse_exp(min.unwrap());
+        let max = parse_exp(max.unwrap());
         if min.is_err() || max.is_err() {
             return err_unexpected_token!("Expected integer for IntegerRange but got: {}", pair);
         }
-        return Ok(VariableType::IntegerRange(min.unwrap(), max.unwrap()));
+        return Ok(PreVariableType::IntegerRange(min.unwrap(), max.unwrap()));
     }
     match as_type.as_str().parse() {
         Ok(kind) => Ok(kind),
         Err(_) => err_unexpected_token!(
             "Unknown variable type \"{}\", expected one of \"{}\"",
             pair,
-            VariableType::kinds_to_string().join(", ")
+            PreVariableType::kinds_to_string().join(", ")
         ),
     }
 }

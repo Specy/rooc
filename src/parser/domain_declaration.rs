@@ -13,7 +13,7 @@ use crate::{
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext},
     utils::{InputSpan, Spanned},
 };
-
+use crate::math::math_enums::PreVariableType;
 use super::recursive_set_resolver::recursive_set_resolver;
 
 #[derive(Debug, Clone, Serialize)]
@@ -72,7 +72,7 @@ export type SerializedVariableToAssert = {
 #[derive(Debug, Clone, Serialize)]
 pub struct VariablesDomainDeclaration {
     variables: Vec<Spanned<VariableToAssert>>,
-    as_type: VariableType,
+    as_type: PreVariableType,
     iteration: Vec<IterableSet>,
     span: InputSpan,
 }
@@ -90,7 +90,7 @@ export type SerializedVariablesDomainDeclaration = {
 impl VariablesDomainDeclaration {
     pub fn new(
         variables: Vec<Spanned<VariableToAssert>>,
-        as_type: VariableType,
+        as_type: PreVariableType,
         iters: Vec<IterableSet>,
         span: InputSpan,
     ) -> Self {
@@ -105,7 +105,7 @@ impl VariablesDomainDeclaration {
     pub fn get_variables(&self) -> &Vec<Spanned<VariableToAssert>> {
         &self.variables
     }
-    pub fn get_type(&self) -> &VariableType {
+    pub fn get_type(&self) -> &PreVariableType {
         &self.as_type
     }
     pub fn get_static_variables(&self) -> Vec<Spanned<String>> {
@@ -131,17 +131,22 @@ impl VariablesDomainDeclaration {
             .iter()
             .map(|v| {
                 match v.get_span_value() {
-                    VariableToAssert::Variable(name) => Ok((name.clone(), self.as_type)),
+                    VariableToAssert::Variable(name) => {
+                        let var_type = self.as_type.to_variable_type(context)?;
+                        Ok((name.clone(), var_type))
+                    },
                     VariableToAssert::CompoundVariable(c) => {
                         let indexes = &c.compute_indexes(context)?;
                         let name = context.flatten_compound_variable(&c.name, indexes)?;
-                        Ok((name, self.as_type))
+                        let var_type = self.as_type.to_variable_type(context)?;
+                        Ok((name, var_type))
                     }
                 }
                 .map(|(name, t)| (name, Spanned::new(t, v.get_span().clone())))
             })
             .collect::<Result<Vec<(String, Spanned<VariableType>)>, TransformError>>()
             .map_err(|e| e.add_span(&self.span))
+        
     }
     pub fn compute_domain(
         &self,
