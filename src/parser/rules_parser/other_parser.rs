@@ -16,18 +16,13 @@ use crate::parser::iterable_utils::flatten_primitive_array_values;
 use crate::parser::model_transformer::model::VariableKind;
 use crate::parser::pre_model::Rule;
 use crate::primitives::consts::Constant;
-use crate::primitives::functions::array_functions::{EnumerateArray, LenOfIterableFn};
-use crate::primitives::functions::function_traits::FunctionCall;
-use crate::primitives::functions::graph_functions::{
-    EdgesOfGraphFn, NeighbourOfNodeFn, NeighboursOfNodeInGraphFn, NodesOfGraphFn,
-};
-use crate::primitives::functions::number_functions::NumericRange;
 use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
 use crate::primitives::primitive::Primitive;
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 
 use super::exp_parser::parse_exp;
 
+use crate::runtime_builtin::functions::function_traits::FunctionCall;
 use crate::{bail_missing_token, err_unexpected_token};
 
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {
@@ -557,59 +552,23 @@ pub fn parse_scoped_block_function_type(
     }
 }
 
-pub fn parse_function_call(
-    function_call: &Pair<Rule>,
-) -> Result<Box<dyn FunctionCall>, CompilationError> {
+pub fn parse_function_call(function_call: &Pair<Rule>) -> Result<FunctionCall, CompilationError> {
     match function_call.as_rule() {
         Rule::function => {
+            let span = function_call.as_span();
             let inner = function_call.clone().into_inner();
             let name = inner.find_first_tagged("function_name");
             let args = inner.find_first_tagged("function_pars");
             match (name, args) {
-                (Some(name), Some(args)) => Ok(parse_function(&name, args)?),
+                (Some(name), Some(args)) => Ok(FunctionCall::new(
+                    parse_parameters(&args)?,
+                    name.as_str().to_string(),
+                    span,
+                )),
                 _ => err_unexpected_token!("Expected function call but got: {}", function_call),
             }
         }
         _ => err_unexpected_token!("Expected function call but got: {}", function_call),
-    }
-}
-
-pub fn parse_function(
-    name: &Pair<Rule>,
-    pars: Pair<Rule>,
-) -> Result<Box<dyn FunctionCall>, CompilationError> {
-    let parsed_pars = parse_parameters(&pars)?;
-    match name.as_str() {
-        "edges" => Ok(Box::new(EdgesOfGraphFn::from_parameters(
-            parsed_pars,
-            &pars,
-        ))),
-        "len" => Ok(Box::new(LenOfIterableFn::from_parameters(
-            parsed_pars,
-            &pars,
-        ))),
-        "nodes" => Ok(Box::new(NodesOfGraphFn::from_parameters(
-            parsed_pars,
-            &pars,
-        ))),
-        "neigh_edges" => Ok(Box::new(NeighbourOfNodeFn::from_parameters(
-            parsed_pars,
-            &pars,
-        ))),
-        "neigh_edges_of" => Ok(Box::new(NeighboursOfNodeInGraphFn::from_parameters(
-            parsed_pars,
-            &pars,
-        ))),
-        "enumerate" => Ok(Box::new(EnumerateArray::from_parameters(
-            parsed_pars,
-            &pars,
-        ))),
-        "range" => Ok(Box::new(NumericRange::from_parameters(parsed_pars, &pars))),
-        str => Err(CompilationError::from_pair(
-            ParseError::SemanticError(format!("Unknown function {}", str)),
-            name,
-            true,
-        )),
     }
 }
 
@@ -711,9 +670,18 @@ pub fn parse_iterator(iterator: &Pair<Rule>) -> Result<PreExp, CompilationError>
                                 }
                             };
                             let span = InputSpan::from_pair(iterator);
-                            let function =
-                                NumericRange::new(from?, to?, to_inclusive, iterator.as_span());
-                            Ok(PreExp::FunctionCall(span, Box::new(function)))
+                            let to_inclusive = PreExp::Primitive(Spanned::new(
+                                Primitive::Boolean(to_inclusive),
+                                span.clone(),
+                            ));
+                            Ok(PreExp::FunctionCall(
+                                span,
+                                FunctionCall::new(
+                                    vec![from?, to?, to_inclusive],
+                                    "range".to_string(),
+                                    iterator.as_span(),
+                                ),
+                            ))
                         }
 
                         _ => err_unexpected_token!("Expected range iterator but got: {}", iterator),

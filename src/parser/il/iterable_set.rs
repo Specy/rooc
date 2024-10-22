@@ -8,7 +8,9 @@ use crate::parser::model_transformer::model::VariableKind;
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::primitives::primitive::PrimitiveKind;
 use crate::traits::latex::ToLatex;
-use crate::type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType};
+use crate::type_checker::type_checker_context::{
+    FunctionContext, TypeCheckable, TypeCheckerContext, WithType,
+};
 use crate::utils::{InputSpan, Spanned};
 
 #[derive(Debug, Serialize, Clone)]
@@ -43,9 +45,13 @@ impl IterableSet {
             span,
         }
     }
-    pub fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
-        self.iterator.populate_token_type_map(context);
-        let iter_type = self.iterator.get_type(context);
+    pub fn populate_token_type_map(
+        &self,
+        context: &mut TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) {
+        self.iterator.populate_token_type_map(context, fn_context);
+        let iter_type = self.iterator.get_type(context, fn_context);
         let iter_type = match iter_type {
             PrimitiveKind::Iterable(kind) => *kind,
             _ => PrimitiveKind::Undefined, //should this be undefined or any?
@@ -82,8 +88,9 @@ impl IterableSet {
     pub fn get_variable_types(
         &self,
         context: &TypeCheckerContext,
+        fn_context: &FunctionContext
     ) -> Result<Vec<(Spanned<String>, PrimitiveKind)>, TransformError> {
-        let iter_type = self.iterator.get_type(context);
+        let iter_type = self.iterator.get_type(context, fn_context);
 
         let iter_type = match iter_type {
             PrimitiveKind::Iterable(kind) => *kind,

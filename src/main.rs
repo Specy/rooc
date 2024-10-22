@@ -1,6 +1,7 @@
 use rooc::pipe::pipe_definitions::PipeableData;
 use rooc::pipe::pipe_executors::{CompilerPipe, PreModelPipe};
 use rooc::pipe::pipe_runner::PipeRunner;
+use rooc::traits::latex::ToLatex;
 
 #[allow(unused)]
 fn main() {
@@ -19,7 +20,7 @@ s.t.
     x_2 <= 2x_1 + 2
     x_1 + 3x_2 <= 27
     x_1 + x_2 <= 15
-    2x_1 <= x_2 + 18
+    2x_1 <= x_2 + len([1,2,3])
 define
     x_1, x_2 as PositiveReal
     "#
@@ -33,12 +34,14 @@ define
     let (result) = pipe_runner.run(PipeableData::String(source));
     match result {
         Ok(data) => {
+            let last = data.last().unwrap();
+            println!("{}",last.as_pre_model().unwrap().to_latex());
             let str = data
                 .iter()
                 .map(|data| format!("//--------{}--------//\n\n{}", data.get_type(), data))
                 .collect::<Vec<String>>()
                 .join("\n\n");
-            println!("{}", str)
+           // println!("{}", str)
         }
         Err((error, context)) => {
             return;

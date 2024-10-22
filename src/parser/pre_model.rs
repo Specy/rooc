@@ -14,7 +14,9 @@ use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::assert_no_duplicates_in_domain;
 use crate::primitives::consts::Constant;
 use crate::traits::latex::ToLatex;
-use crate::type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, TypedToken};
+use crate::type_checker::type_checker_context::{
+    FunctionContext, TypeCheckable, TypeCheckerContext, TypedToken,
+};
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 
 use super::domain_declaration::VariablesDomainDeclaration;
@@ -94,6 +96,7 @@ impl PreModel {
     pub fn create_type_checker(&self) -> Result<(), TransformError> {
         let mut context = TypeCheckerContext::default();
         let domain = self.get_static_domain();
+        let fn_context = FunctionContext::default();
         //TODO add span
         assert_no_duplicates_in_domain(
             &domain
@@ -108,46 +111,55 @@ impl PreModel {
         )?;
         context.set_static_domain(domain);
         for constants in &self.constants {
-            constants.type_check(&mut context)?;
+            constants.type_check(&mut context, &fn_context)?;
         }
         for domain in &self.domains {
-            domain.type_check(&mut context)?;
+            domain.type_check(&mut context, &fn_context)?;
         }
-        self.type_check(&mut context)
+        self.type_check(&mut context, &fn_context)
     }
     pub fn create_token_type_map(&self) -> IndexMap<u32, TypedToken> {
         let mut context = TypeCheckerContext::default();
         let domain = self.get_static_domain();
+        let fn_context = FunctionContext::default();
         context.set_static_domain(domain);
         for constants in &self.constants {
-            constants.populate_token_type_map(&mut context);
+            constants.populate_token_type_map(&mut context, &fn_context);
         }
         for domain in &self.domains {
-            domain.populate_token_type_map(&mut context);
+            domain.populate_token_type_map(&mut context, &fn_context);
         }
-        self.populate_token_type_map(&mut context);
+        self.populate_token_type_map(&mut context, &fn_context);
         context.into_token_map()
     }
 }
 
 impl TypeCheckable for PreModel {
-    fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
-        self.objective.type_check(context)?;
+    fn type_check(
+        &self,
+        context: &mut TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> Result<(), TransformError> {
+        self.objective.type_check(context, fn_context)?;
         for domain in &self.domains {
-            domain.type_check(context)?;
+            domain.type_check(context, fn_context)?;
         }
         for cond in &self.constraints {
-            cond.type_check(context)?;
+            cond.type_check(context, fn_context)?;
         }
         Ok(())
     }
-    fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
-        self.objective.populate_token_type_map(context);
+    fn populate_token_type_map(
+        &self,
+        context: &mut TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) {
+        self.objective.populate_token_type_map(context, fn_context);
         for domain in &self.domains {
-            domain.populate_token_type_map(context);
+            domain.populate_token_type_map(context, fn_context);
         }
         for cond in &self.constraints {
-            cond.populate_token_type_map(context);
+            cond.populate_token_type_map(context, fn_context);
         }
     }
 }

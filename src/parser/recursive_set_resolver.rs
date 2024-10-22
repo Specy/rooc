@@ -2,6 +2,7 @@ use crate::parser::il::iterable_set::IterableSet;
 use crate::parser::model_transformer::model::VariableKind;
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::TransformerContext;
+use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{
     primitives::{primitive::Primitive, primitive_traits::Spreadable},
     utils::Spanned,
@@ -11,6 +12,7 @@ use crate::{
 pub fn recursive_set_resolver<T>(
     sets: &[IterableSet],
     context: &mut TransformerContext,
+    fn_context: &FunctionContext,
     results: &mut Vec<T>,
     current_level: usize,
     on_leaf: &dyn Fn(&mut TransformerContext) -> Result<T, TransformError>,
@@ -37,7 +39,7 @@ pub fn recursive_set_resolver<T>(
             }
         }
     }
-    let values = range.iterator.as_iterator(context)?;
+    let values = range.iterator.as_iterator(context,fn_context)?;
     let values = values.to_primitives();
     for value in values.into_iter() {
         match &range.var {
@@ -55,7 +57,7 @@ pub fn recursive_set_resolver<T>(
             let value = on_leaf(context)?;
             results.push(value); //TODO should i do this? maybe it's best to leave it out to the caller
         } else {
-            recursive_set_resolver(sets, context, results, current_level + 1, on_leaf)
+            recursive_set_resolver(sets, context,fn_context, results, current_level + 1, on_leaf)
                 .map_err(|e| e.add_span(&range.span))?;
         }
     }

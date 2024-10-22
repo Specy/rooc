@@ -3,7 +3,7 @@ use core::fmt;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::math::math_enums::{VariableType};
+use crate::math::math_enums::VariableType;
 use crate::math::operators::{BinOp, UnOp};
 use crate::parser::il::il_exp::PreExp;
 use crate::primitives::primitive::PrimitiveKind;
@@ -30,6 +30,7 @@ pub enum TransformError {
         spanned_error: Spanned<Box<TransformError>>,
         value: Option<String>,
     },
+    NonExistentFunction(String),
     WrongFunctionSignature {
         signature: Vec<(String, PrimitiveKind)>,
         got: Vec<PrimitiveKind>,
@@ -148,6 +149,9 @@ export type SerializedTransformError = {
         got: number,
         max: number
     }
+} | {
+    type: "NonExistentFunction",
+    value: string
 }
 "#;
 
@@ -163,6 +167,9 @@ impl fmt::Display for TransformError {
                     "[AlreadyDeclaredVariable] Variable {} was already declared",
                     name
                 )
+            }
+            TransformError::NonExistentFunction(name) => {
+                format!("[NonExistentFunction] Function \"{}\" does not exist", name)
             }
             TransformError::UndeclaredVariableDomain(name) => {
                 format!(

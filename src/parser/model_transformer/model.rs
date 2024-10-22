@@ -11,7 +11,9 @@ use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::{DomainVariable, TransformerContext};
 use crate::parser::pre_model::PreModel;
 use crate::parser::recursive_set_resolver::recursive_set_resolver;
+use crate::runtime_builtin::rooc_std::ROOC_STD;
 use crate::traits::latex::{escape_latex, ToLatex};
+use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{primitives::primitive::Primitive, utils::Spanned};
 
 #[derive(Debug, Clone, Serialize)]
@@ -69,8 +71,9 @@ impl Exp {
     pub fn from_pre_exp(
         pre_exp: &PreExp,
         context: &mut TransformerContext,
+        fn_context: &FunctionContext
     ) -> Result<Self, TransformError> {
-        pre_exp.into_exp(context)
+        pre_exp.into_exp(context, fn_context)
     }
 
     pub fn simplify(&self) -> Exp {
@@ -436,8 +439,10 @@ pub fn transform_parsed_problem(pre_problem: PreModel) -> Result<Model, Transfor
     let context = TransformerContext::new_from_constants(
         pre_problem.get_constants().clone(),
         pre_problem.get_domains().clone(),
+        IndexMap::new(),
     )?;
-    transform_model(pre_problem, context)
+    let fn_context = FunctionContext::new(IndexMap::new(), &ROOC_STD);
+    transform_model(pre_problem, context, &fn_context)
 }
 
 /*
@@ -509,22 +514,24 @@ impl fmt::Display for VariableKind {
 pub fn transform_constraint(
     constraint: &PreConstraint,
     context: &mut TransformerContext,
+    fn_context: &FunctionContext
 ) -> Result<Constraint, TransformError> {
-    let lhs = constraint.lhs.into_exp(context)?;
-    let rhs = constraint.rhs.into_exp(context)?;
+    let lhs = constraint.lhs.into_exp(context, fn_context)?;
+    let rhs = constraint.rhs.into_exp(context, fn_context)?;
     Ok(Constraint::new(lhs, constraint.constraint_type, rhs))
 }
 
 pub fn transform_constraint_with_iteration(
     constraint: &PreConstraint,
     context: &mut TransformerContext,
+    fn_context: &FunctionContext
 ) -> Result<Vec<Constraint>, TransformError> {
     if constraint.iteration.is_empty() {
-        return Ok(vec![transform_constraint(constraint, context)?]);
+        return Ok(vec![transform_constraint(constraint, context, fn_context)?]);
     }
     let mut results: Vec<Constraint> = Vec::new();
-    recursive_set_resolver(&constraint.iteration, context, &mut results, 0, &|c| {
-        transform_constraint(constraint, c)
+    recursive_set_resolver(&constraint.iteration, context,fn_context, &mut results, 0, &|c| {
+        transform_constraint(constraint, c, fn_context)
     })
     .map_err(|e| e.add_span(&constraint.span))?;
     Ok(results)
@@ -533,19 +540,21 @@ pub fn transform_constraint_with_iteration(
 pub fn transform_objective(
     objective: &PreObjective,
     context: &mut TransformerContext,
+    fn_context: &FunctionContext
 ) -> Result<Objective, TransformError> {
-    let rhs = objective.rhs.into_exp(context)?;
+    let rhs = objective.rhs.into_exp(context, fn_context)?;
     Ok(Objective::new(objective.objective_type.clone(), rhs))
 }
 
 pub fn transform_model(
     problem: PreModel,
     mut context: TransformerContext,
+    fn_context: &FunctionContext
 ) -> Result<Model, TransformError> {
-    let objective = transform_objective(problem.get_objective(), &mut context)?;
+    let objective = transform_objective(problem.get_objective(), &mut context, fn_context)?;
     let mut constraints: Vec<Constraint> = Vec::new();
     for constraint in problem.get_constraints().iter() {
-        let transformed = transform_constraint_with_iteration(constraint, &mut context)?;
+        let transformed = transform_constraint_with_iteration(constraint, &mut context, fn_context)?;
         for transformed_constraint in transformed {
             constraints.push(transformed_constraint);
         }

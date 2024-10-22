@@ -8,7 +8,10 @@ use crate::parser::il::il_problem::AddressableAccess;
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::primitives::consts::Constant;
 use crate::primitives::primitive::{Primitive, PrimitiveKind};
+use crate::runtime_builtin::functions::function_traits::RoocFunction;
 use crate::runtime_builtin::reserved_tokens::check_if_reserved_token;
+use crate::runtime_builtin::rooc_std::ROOC_STD;
+use crate::type_checker::type_checker_context::FunctionContext;
 use crate::utils::{InputSpan, Spanned};
 
 #[derive(Debug)]
@@ -131,16 +134,19 @@ impl TransformerContext {
     pub fn new_from_constants(
         constants: Vec<Constant>,
         domain: Vec<VariablesDomainDeclaration>,
+        functions: IndexMap<String, Box<dyn RoocFunction>>,
     ) -> Result<Self, TransformError> {
         let mut context = Self::default();
+        let fn_context = FunctionContext::new(functions, &ROOC_STD);
+
         for constant in constants {
-            let value = constant.as_primitive(&context)?;
+            let value = constant.as_primitive(&context, &fn_context)?;
             let name = constant.name.get_span_value();
             context.declare_variable(name, value, true)?; //TODO should this be strict or allow for redeclaration?
         }
         let computed_domain = domain
             .into_iter()
-            .map(|d| d.compute_domain(&mut context))
+            .map(|d| d.compute_domain(&mut context, &fn_context))
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
             .flatten()
@@ -302,6 +308,7 @@ impl TransformerContext {
     pub fn get_addressable_value(
         &self,
         addressable_access: &AddressableAccess,
+        fn_context: &FunctionContext,
     ) -> Result<Primitive, TransformError> {
         //TODO add support for object access like G["a"] or g.a
         match self.get_value(&addressable_access.name) {
@@ -309,7 +316,7 @@ impl TransformerContext {
                 let accesses = addressable_access
                     .accesses
                     .iter()
-                    .map(|access| access.as_usize_cast(self))
+                    .map(|access| access.as_usize_cast(self, fn_context))
                     .collect::<Result<Vec<_>, TransformError>>()?;
                 let value = a.as_iterator()?.read(accesses)?;
                 Ok(value)

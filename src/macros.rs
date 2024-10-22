@@ -34,33 +34,6 @@ macro_rules! bail_incorrect_type_signature_of_fn {
 }
 
 #[macro_export]
-macro_rules! bail_incorrect_type_signature {
-    ($expected:expr, $current:expr, $span:expr) => {
-        Err((TransformError::WrongFunctionSignature {
-            signature: $expected,
-            got: $current,
-        })
-        .add_span($span))
-    };
-    ($expected:expr, $current:expr) => {
-        Err(TransformError::WrongFunctionSignature {
-            signature: $expected,
-            got: $current,
-        })
-    };
-}
-
-#[macro_export]
-macro_rules! bail_wrong_number_of_arguments {
-    ($function:expr) => {
-        Err(TransformError::WrongNumberOfArguments {
-            signature: $function.get_type_signature(),
-            args: $function.get_parameters().clone(),
-        })
-    };
-}
-
-#[macro_export]
 macro_rules! bail_wrong_argument {
     ($expected_type: expr, $current_arg:expr) => {
         Err(wrong_argument!($expected_type, $current_arg))

@@ -12,7 +12,9 @@ use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::TransformerContext;
 use crate::primitives::primitive::{Primitive, PrimitiveKind};
 use crate::traits::latex::ToLatex;
-use crate::type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType};
+use crate::type_checker::type_checker_context::{
+    FunctionContext, TypeCheckable, TypeCheckerContext, WithType,
+};
 
 enum_with_variants_to_string! {
     pub enum Comparison derives[Debug, PartialEq, Clone, Copy] with_wasm {
@@ -192,14 +194,15 @@ impl PreVariableType {
     pub fn to_variable_type(
         &self,
         context: &TransformerContext,
+        fn_context: &FunctionContext,
     ) -> Result<VariableType, TransformError> {
         match self {
             PreVariableType::Boolean => Ok(VariableType::Boolean),
             PreVariableType::PositiveReal => Ok(VariableType::PositiveReal),
             PreVariableType::Real => Ok(VariableType::Real),
             PreVariableType::IntegerRange(min, max) => {
-                let min_i64 = min.as_integer(context)?;
-                let max_i64 = max.as_integer(context)?;
+                let min_i64 = min.as_integer(context, fn_context)?;
+                let max_i64 = max.as_integer(context, fn_context)?;
                 let min_i32 = min_i64.to_i32();
                 let max_i32 = max_i64.to_i32();
                 if min_i32.is_none() {
@@ -253,16 +256,20 @@ impl ToLatex for PreVariableType {
 }
 
 impl TypeCheckable for PreVariableType {
-    fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
+    fn type_check(
+        &self,
+        context: &mut TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> Result<(), TransformError> {
         match self {
             PreVariableType::Boolean => Ok(()),
             PreVariableType::PositiveReal => Ok(()),
             PreVariableType::Real => Ok(()),
             PreVariableType::IntegerRange(min, max) => {
-                min.type_check(context)?;
-                max.type_check(context)?;
-                let lhs = min.get_type(context);
-                let rhs = max.get_type(context);
+                min.type_check(context, fn_context)?;
+                max.type_check(context, fn_context)?;
+                let lhs = min.get_type(context, fn_context);
+                let rhs = max.get_type(context, fn_context);
                 if !matches!(lhs, PrimitiveKind::Integer | PrimitiveKind::PositiveInteger) {
                     return Err(TransformError::from_wrong_type(
                         PrimitiveKind::Integer,
@@ -282,14 +289,18 @@ impl TypeCheckable for PreVariableType {
         }
     }
 
-    fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
+    fn populate_token_type_map(
+        &self,
+        context: &mut TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) {
         match self {
             PreVariableType::Boolean => {}
             PreVariableType::PositiveReal => {}
             PreVariableType::Real => {}
             PreVariableType::IntegerRange(min, max) => {
-                min.populate_token_type_map(context);
-                max.populate_token_type_map(context);
+                min.populate_token_type_map(context, fn_context);
+                max.populate_token_type_map(context, fn_context);
             }
         }
     }

@@ -7,6 +7,8 @@ use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::il_problem::AddressableAccess;
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::Frame;
+use crate::runtime_builtin::functions::function_traits::RoocFunction;
+use crate::runtime_builtin::rooc_std::ROOC_STD;
 use crate::utils::Spanned;
 use crate::{
     primitives::primitive::PrimitiveKind,
@@ -14,12 +16,21 @@ use crate::{
 };
 
 pub trait TypeCheckable {
-    fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError>;
-    fn populate_token_type_map(&self, context: &mut TypeCheckerContext);
+    fn type_check(
+        &self,
+        context: &mut TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> Result<(), TransformError>;
+    fn populate_token_type_map(
+        &self,
+        context: &mut TypeCheckerContext,
+        fn_context: &FunctionContext,
+    );
 }
 
 pub trait WithType {
-    fn get_type(&self, context: &TypeCheckerContext) -> PrimitiveKind;
+    fn get_type(&self, context: &TypeCheckerContext, fn_context: &FunctionContext)
+        -> PrimitiveKind;
 }
 
 #[derive(Debug, Serialize)]
@@ -64,13 +75,43 @@ impl StaticVariableType {
     }
 }
 
+pub struct FunctionContext<'a> {
+    functions: IndexMap<String, Box<dyn RoocFunction>>,
+    builtin_functions: &'a IndexMap<String, Box<dyn RoocFunction>>,
+}
+impl Default for FunctionContext<'_> {
+    fn default() -> Self {
+        Self {
+            functions: IndexMap::new(),
+            builtin_functions: &ROOC_STD,
+        }
+    }
+}
+impl<'a> FunctionContext<'a> {
+    pub fn new(
+        functions: IndexMap<String, Box<dyn RoocFunction>>,
+        builtin_functions: &'a IndexMap<String, Box<dyn RoocFunction>>,
+    ) -> Self {
+        Self {
+            functions,
+            builtin_functions,
+        }
+    }
+    pub fn get_function(&self, name: &str) -> Option<&dyn RoocFunction> {
+        match self.builtin_functions.get(name).map(|f| f.as_ref()) {
+            Some(f) => Some(f),
+            None => self.functions.get(name).map(|f| f.as_ref()),
+        }
+    }
+}
+
 pub struct TypeCheckerContext {
     frames: Vec<Frame<PrimitiveKind>>,
     static_domain: IndexMap<String, StaticVariableType>,
     token_map: IndexMap<u32, TypedToken>,
 }
 
-impl Default for TypeCheckerContext {
+impl<'a> Default for TypeCheckerContext {
     fn default() -> Self {
         let primitives = IndexMap::new();
         let token_map = IndexMap::new();
@@ -156,13 +197,14 @@ impl TypeCheckerContext {
     pub fn check_compound_variable(
         &mut self,
         compound_indexes: &[PreExp],
+        fn_context: &FunctionContext,
     ) -> Result<(), TransformError> {
         for index in compound_indexes {
-            index.type_check(self)?;
+            index.type_check(self, fn_context)?;
             let value = match index {
                 PreExp::Variable(v) => self.get_value(v).cloned(),
                 PreExp::Primitive(p) => Some(p.value.get_type()),
-                _ => Some(index.get_type(self)),
+                _ => Some(index.get_type(self, fn_context)),
             };
             if value.is_none() {
                 return Err(TransformError::UndeclaredVariable(index.to_string()));
@@ -191,6 +233,7 @@ impl TypeCheckerContext {
         }
         Ok(())
     }
+
     pub fn declare_variable(
         &mut self,
         name: &str,
@@ -210,17 +253,18 @@ impl TypeCheckerContext {
     pub fn get_addressable_value(
         &self,
         addressable_access: &AddressableAccess,
+        fn_context: &FunctionContext,
     ) -> Result<PrimitiveKind, TransformError> {
         //TODO add support for object access like G["a"] or g.a
         match self.get_value(&addressable_access.name) {
             Some(v) => {
                 let mut last_value = v;
                 for access in addressable_access.accesses.iter() {
-                    if !access.get_type(self).is_numeric() {
+                    if !access.get_type(self, fn_context).is_numeric() {
                         //TODO this is a relaxed check, the runtime will check for the exact type
                         return Err(TransformError::Other(format!(
                             "Expected value of type \"Number\" to index array, got \"{}\", check the definition of \"{}\"",
-                            access.get_type(self),
+                            access.get_type(self, fn_context),
                             access
                         )));
                     }

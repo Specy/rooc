@@ -6,6 +6,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::parser::il::block_functions::{BlockFunctionKind, BlockScopedFunctionKind};
 use crate::parser::model_transformer::transform_error::TransformError;
+use crate::runtime_builtin::rooc_std::ROOC_STD;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum TokenType {
@@ -45,7 +46,7 @@ lazy_static! {
         m.insert("as".to_string(), TokenType::Keyword);
         m.insert("if".to_string(), TokenType::Keyword);
         m.insert("else".to_string(), TokenType::Keyword);
-
+        m.insert("solve".to_string(), TokenType::Keyword);
         m.insert("true".to_string(), TokenType::Literal);
         m.insert("false".to_string(), TokenType::Literal);
 
@@ -57,14 +58,12 @@ lazy_static! {
         for v in BlockScopedFunctionKind::kinds_to_string() {
             m.insert(v, TokenType::Function);
         }
-
-        m.insert("nodes".to_string(), TokenType::Function);
-        m.insert("neigh_edges".to_string(), TokenType::Function);
-        m.insert("neigh_edges_of".to_string(), TokenType::Function);
-        m.insert("range".to_string(), TokenType::Function);
-        m.insert("edges".to_string(), TokenType::Function);
-        m.insert("len".to_string(), TokenType::Function);
-        m.insert("enumerate".to_string(), TokenType::Function);
+        
+        let builtin_fn = ROOC_STD.keys().map(|x| x.to_string()).collect::<Vec<String>>();
+        for v in builtin_fn {
+            m.insert(v, TokenType::Function);
+        }
+        
         m
     };
 }

@@ -7,6 +7,7 @@ use crate::parser::il::iterable_set::IterableSet;
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::TransformerContext;
 use crate::traits::latex::ToLatex;
+use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{
     math::math_enums::{Comparison, OptimizationType},
     primitives::primitive::Primitive,
@@ -80,10 +81,11 @@ impl CompoundVariable {
     pub fn compute_indexes(
         &self,
         context: &TransformerContext,
+        fn_context: &FunctionContext
     ) -> Result<Vec<Primitive>, TransformError> {
         self.indexes
             .iter()
-            .map(|i| i.as_primitive(context))
+            .map(|i| i.as_primitive(context, fn_context))
             .collect::<Result<Vec<Primitive>, TransformError>>()
     }
 }
@@ -156,11 +158,19 @@ export type SerializedPreObjective = {
 "#;
 
 impl TypeCheckable for PreObjective {
-    fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
-        self.rhs.type_check(context)
+    fn type_check(
+        &self,
+        context: &mut TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> Result<(), TransformError> {
+        self.rhs.type_check(context, fn_context)
     }
-    fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
-        self.rhs.populate_token_type_map(context)
+    fn populate_token_type_map(
+        &self,
+        context: &mut TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) {
+        self.rhs.populate_token_type_map(context, fn_context)
     }
 }
 
@@ -218,13 +228,17 @@ impl PreConstraint {
 }
 
 impl TypeCheckable for PreConstraint {
-    fn type_check(&self, context: &mut TypeCheckerContext) -> Result<(), TransformError> {
+    fn type_check(
+        &self,
+        context: &mut TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> Result<(), TransformError> {
         for iter in &self.iteration {
             iter.iterator
-                .type_check(context)
+                .type_check(context, fn_context)
                 .map_err(|e| e.add_span(iter.iterator.get_span()))?;
             context.add_scope();
-            let types = iter.get_variable_types(context)?;
+            let types = iter.get_variable_types(context, fn_context)?;
             for (name, t) in types {
                 context.add_token_type(
                     t,
@@ -233,7 +247,10 @@ impl TypeCheckable for PreConstraint {
                 )?;
             }
         }
-        match (self.lhs.type_check(context), self.rhs.type_check(context)) {
+        match (
+            self.lhs.type_check(context, fn_context),
+            self.rhs.type_check(context, fn_context),
+        ) {
             (Ok(()), Ok(())) => (),
             (Err(e), _) | (_, Err(e)) => {
                 for _ in &self.iteration {
@@ -242,8 +259,8 @@ impl TypeCheckable for PreConstraint {
                 return Err(e);
             }
         }
-        let lhs_type = self.lhs.get_type(context);
-        let rhs_type = self.rhs.get_type(context);
+        let lhs_type = self.lhs.get_type(context, fn_context);
+        let rhs_type = self.rhs.get_type(context, fn_context);
         for _ in &self.iteration {
             context.pop_scope()?;
         }
@@ -257,13 +274,17 @@ impl TypeCheckable for PreConstraint {
         }
         Ok(())
     }
-    fn populate_token_type_map(&self, context: &mut TypeCheckerContext) {
+    fn populate_token_type_map(
+        &self,
+        context: &mut TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) {
         for iter in &self.iteration {
             context.add_scope();
-            iter.populate_token_type_map(context);
+            iter.populate_token_type_map(context, fn_context);
         }
-        self.lhs.populate_token_type_map(context);
-        self.rhs.populate_token_type_map(context);
+        self.lhs.populate_token_type_map(context, fn_context);
+        self.rhs.populate_token_type_map(context, fn_context);
         for _ in &self.iteration {
             let _ = context.pop_scope();
         }
