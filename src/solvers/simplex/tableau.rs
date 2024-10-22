@@ -1,12 +1,10 @@
+use crate::math::{float_ge, float_gt, float_le, float_lt};
+use crate::solvers::{
+    FractionalTableau, OptimalTableau, OptimalTableauWithSteps, SimplexError, SimplexStep,
+    StepAction,
+};
 use core::fmt;
 use std::fmt::Display;
-
-//TODO make the implementation use row vectors with a trait so that i can implement fraction and float versions
-//togehter with overriding the operators, so that i can use the same code for both versions
-use crate::math::math_utils::{float_ge, float_gt, float_le, float_lt};
-use num_rational::Rational64;
-use num_traits::cast::FromPrimitive;
-use serde::Serialize;
 use term_table::row::Row;
 use term_table::table_cell::TableCell;
 use term_table::Table;
@@ -28,7 +26,7 @@ pub struct Tableau {
 
 impl Display for Tableau {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let pretty = self.clone().to_fractional_tableau();
+        let pretty = FractionalTableau::new(self.clone());
         let table = pretty.pretty_table();
         let mut cli_table = Table::new();
         let vars: Vec<String> = self
@@ -51,7 +49,7 @@ impl Display for Tableau {
 #[wasm_bindgen]
 impl Tableau {
     pub fn wasm_get_variables(&self) -> Vec<String> {
-        self.variables.clone()
+        self.get_variables().to_owned()
     }
     pub fn wasm_get_c(&self) -> Vec<f64> {
         self.c.clone()
@@ -81,128 +79,6 @@ impl Tableau {
     }
 }
 
-#[derive(Debug, Clone)]
-#[wasm_bindgen]
-pub struct OptimalTableau {
-    flip_result: bool,
-    values: Vec<f64>,
-    tableau: Tableau,
-}
-
-impl OptimalTableau {
-    fn new(values: Vec<f64>, tableau: Tableau) -> OptimalTableau {
-        OptimalTableau {
-            values,
-            flip_result: tableau.flip_result,
-            tableau,
-        }
-    }
-
-    pub fn get_variables_values(&self) -> &Vec<f64> {
-        &self.values
-    }
-    pub fn get_optimal_value(&self) -> f64 {
-        let flip = if self.flip_result { -1.0 } else { 1.0 };
-        ((self.tableau.get_current_value() + self.tableau.get_value_offset()) * -1.0) * flip
-    }
-    pub fn get_tableau(&self) -> &Tableau {
-        &self.tableau
-    }
-}
-
-#[wasm_bindgen]
-impl OptimalTableau {
-    pub fn wasm_get_variables_values(&self) -> Vec<f64> {
-        self.values.clone()
-    }
-    pub fn wasm_get_optimal_value(&self) -> f64 {
-        self.get_optimal_value()
-    }
-    pub fn wasm_get_tableau(&self) -> Tableau {
-        self.tableau.clone()
-    }
-}
-
-impl Display for OptimalTableau {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let tableau = self.tableau.to_string();
-        write!(
-            f,
-            "{}\n\nOptimal Value: {}",
-            tableau,
-            self.get_optimal_value(),
-        )
-    }
-}
-
-#[derive(Debug, Clone)]
-#[wasm_bindgen]
-pub struct SimplexStep {
-    tableau: Tableau,
-    entering: usize,
-    leaving: usize,
-    #[allow(unused)]
-    ratio: f64,
-}
-
-#[wasm_bindgen]
-impl SimplexStep {
-    pub fn wasm_get_tableau(&self) -> Tableau {
-        self.tableau.clone()
-    }
-    pub fn wasm_get_entering(&self) -> usize {
-        self.entering
-    }
-    pub fn wasm_get_leaving(&self) -> usize {
-        self.leaving
-    }
-}
-
-#[derive(Debug, Clone)]
-#[wasm_bindgen]
-pub struct OptimalTableauWithSteps {
-    result: OptimalTableau,
-    steps: Vec<SimplexStep>,
-}
-
-#[wasm_bindgen]
-impl OptimalTableauWithSteps {
-    pub fn wasm_get_result(&self) -> OptimalTableau {
-        self.result.clone()
-    }
-    pub fn wasm_get_steps(&self) -> Vec<SimplexStep> {
-        self.steps.clone()
-    }
-}
-
-#[derive(Serialize)]
-pub enum StepAction {
-    Pivot {
-        entering: usize,
-        leaving: usize,
-        ratio: f64,
-    },
-    Finished,
-}
-
-#[derive(Debug)]
-#[wasm_bindgen]
-pub enum SimplexError {
-    Unbounded,
-    IterationLimitReached,
-    Other,
-}
-impl Display for SimplexError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            SimplexError::Unbounded => "Unbounded Problem",
-            SimplexError::IterationLimitReached => "Iteration Limit Reached",
-            SimplexError::Other => "Other",
-        };
-        f.write_str(s)
-    }
-}
-
 impl Tableau {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -226,8 +102,15 @@ impl Tableau {
             flip_result,
         }
     }
+
+    pub fn flip_result(&self) -> bool {
+        self.flip_result
+    }
     pub fn solve(&mut self, limit: i64) -> Result<OptimalTableau, SimplexError> {
         self.solve_avoiding(limit, &[])
+    }
+    pub fn get_variables(&self) -> &Vec<String> {
+        &self.variables
     }
 
     pub fn solve_step_by_step(
@@ -246,18 +129,13 @@ impl Tableau {
                     ratio,
                 }) => {
                     iteration += 1;
-                    steps.push(SimplexStep {
-                        tableau: prev,
-                        entering,
-                        leaving,
-                        ratio,
-                    });
+                    steps.push(SimplexStep::new(prev, entering, leaving, ratio));
                 }
                 Ok(StepAction::Finished) => {
-                    return Ok(OptimalTableauWithSteps {
-                        result: OptimalTableau::new(self.get_variables_values(), self.clone()),
+                    return Ok(OptimalTableauWithSteps::new(
+                        OptimalTableau::new(self.get_variables_values(), self.clone()),
                         steps,
-                    });
+                    ));
                 }
                 Err(e) => {
                     return Err(e);
@@ -415,9 +293,6 @@ impl Tableau {
     pub fn get_value_offset(&self) -> f64 {
         self.value_offset
     }
-    pub fn to_fractional_tableau(self) -> FractionalTableau {
-        FractionalTableau::new(self)
-    }
     pub fn get_a(&self) -> &Vec<Vec<f64>> {
         &self.a
     }
@@ -429,124 +304,5 @@ impl Tableau {
     }
     pub fn get_in_basis(&self) -> &Vec<usize> {
         &self.in_basis
-    }
-}
-
-pub struct PrettyFraction {
-    numerator: i64,
-    denominator: i64,
-}
-
-impl PrettyFraction {
-    fn new(num: f64) -> PrettyFraction {
-        //TODO make it use precision for smaller numbers
-        let f = Rational64::from_f64(num).unwrap();
-
-        PrettyFraction {
-            numerator: *f.numer(),
-            denominator: *f.denom(),
-        }
-    }
-    #[allow(unused)]
-    fn to_f64(&self) -> f64 {
-        self.numerator as f64 / self.denominator as f64
-    }
-    fn pretty(&self) -> String {
-        match self.denominator {
-            1 => format!("{}", self.numerator),
-            _ => format!("{}/{}", self.numerator, self.denominator),
-        }
-    }
-}
-
-pub struct FractionalTableau {
-    c: Vec<PrettyFraction>,
-    a: Vec<Vec<PrettyFraction>>,
-    b: Vec<PrettyFraction>,
-    #[allow(unused)]
-    in_basis: Vec<usize>,
-    value: f64,
-}
-
-impl FractionalTableau {
-    pub fn new(tableau: Tableau) -> FractionalTableau {
-        FractionalTableau {
-            c: tableau.c.iter().map(|&c| PrettyFraction::new(c)).collect(),
-            a: tableau
-                .a
-                .iter()
-                .map(|a| a.iter().map(|&a| PrettyFraction::new(a)).collect())
-                .collect(),
-            b: tableau.b.iter().map(|&b| PrettyFraction::new(b)).collect(),
-            in_basis: tableau.in_basis.clone(),
-            value: tableau.get_current_value(),
-        }
-    }
-    pub fn pretty_table(&self) -> Vec<Vec<String>> {
-        let mut header: Vec<String> = self.c.iter().map(|c| c.pretty()).collect();
-        let a: Vec<Vec<String>> = self
-            .a
-            .iter()
-            .map(|a| a.iter().map(|a| a.pretty()).collect())
-            .collect();
-        let b: Vec<String> = self.b.iter().map(|b| b.pretty()).collect();
-        let v = PrettyFraction::new(self.value * -1.0).pretty();
-        header.push(v);
-        let mut table = vec![header];
-        for i in 0..a.len() {
-            let mut row = a[i].clone();
-            row.push(b[i].clone());
-            table.push(row);
-        }
-        table
-    }
-    pub fn pretty_string(&self) -> String {
-        let table = self.pretty_table();
-        let mut string = String::new();
-        for row in table {
-            for cell in row {
-                string.push_str(&format!("{: >5} ", cell));
-            }
-            string.push('\n');
-        }
-        string
-    }
-}
-
-pub trait Tableauable {
-    fn get_b(&self) -> Vec<f64>;
-    fn get_c(&self) -> Vec<f64>;
-    fn get_a(&self) -> Vec<Vec<f64>>;
-    fn get_variables(&self) -> Vec<String>;
-    fn get_objective_offset(&self) -> f64;
-}
-
-#[derive(Debug)]
-pub enum CanonicalTransformError {
-    Raw(String),
-    InvalidBasis(String),
-    Infesible(String),
-    SimplexError(String),
-}
-
-impl fmt::Display for CanonicalTransformError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            Self::Raw(s) => s.clone(),
-            Self::InvalidBasis(s) => format!("Invalid Basis: {}", s),
-            Self::Infesible(s) => format!("Infesible: {}", s),
-            Self::SimplexError(s) => format!("Simplex Error: {}", s),
-        };
-        f.write_str(&s)
-    }
-}
-
-pub trait IntoCanonicalTableau {
-    fn into_canonical(self) -> Result<Tableau, CanonicalTransformError>;
-}
-
-pub fn divide_matrix_row_by(matrix: &mut [Vec<f64>], row: usize, value: f64) {
-    for i in 0..matrix[row].len() {
-        matrix[row][i] /= value;
     }
 }
