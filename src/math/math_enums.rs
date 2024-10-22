@@ -19,6 +19,8 @@ enum_with_variants_to_string! {
         LessOrEqual,
         GreaterOrEqual,
         Equal,
+        Less,
+        Greater
     }
 }
 
@@ -28,6 +30,8 @@ impl ToLatex for Comparison {
             Comparison::LessOrEqual => "\\leq".to_string(),
             Comparison::GreaterOrEqual => "\\geq".to_string(),
             Comparison::Equal => "=".to_string(),
+            Comparison::Less => "<".to_string(),
+            Comparison::Greater => ">".to_string(),
         }
     }
 }
@@ -38,6 +42,8 @@ impl fmt::Display for Comparison {
             Comparison::LessOrEqual => "<=".to_string(),
             Comparison::GreaterOrEqual => ">=".to_string(),
             Comparison::Equal => "=".to_string(),
+            Comparison::Less => "<".to_string(),
+            Comparison::Greater => ">".to_string(),
         };
 
         f.write_str(&s)
@@ -51,6 +57,8 @@ impl FromStr for Comparison {
             "<=" => Ok(Comparison::LessOrEqual),
             ">=" => Ok(Comparison::GreaterOrEqual),
             "=" => Ok(Comparison::Equal),
+            "<" => Ok(Comparison::Less),
+            ">" => Ok(Comparison::Greater),
             _ => Err(()),
         }
     }

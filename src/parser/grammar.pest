@@ -120,7 +120,7 @@ nl = _{NEWLINE}
 variable       = _{ !keyword ~ (compound_variable | simple_variable | escaped_compound_variable) }
 // terminal characters
 objective_type = @{ ^"min" | ^"max" }
-comparison     = @{ "<=" | ">=" | "=" }
+comparison     = @{ "<=" | ">=" | "=" | "<" | ">" }
 simple_variable   = @{ "$"? ~ LETTER ~ (LETTER | NUMBER)* }
 
 escaped_compound_variable = { "\\" ~ compound_variable }

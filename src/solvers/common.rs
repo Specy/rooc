@@ -1,4 +1,4 @@
-use crate::math::math_enums::{OptimizationType, VariableType};
+use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
 use crate::parser::model_transformer::transformer_context::DomainVariable;
 use copper::views::{Times, ViewExt};
 use copper::{VarId, VarIdBinary};
@@ -21,6 +21,10 @@ pub enum SolverError {
         expected: Vec<OptimizationType>,
         got: OptimizationType,
     },
+    UnavailableComparison {
+        got: Comparison,
+        expected: Vec<Comparison>,
+    },
 }
 
 impl std::fmt::Display for SolverError {
@@ -41,6 +45,18 @@ impl std::fmt::Display for SolverError {
                         .collect::<Vec<_>>()
                         .join(" or "),
                     vars
+                )
+            }
+            SolverError::UnavailableComparison { got, expected } => {
+                write!(
+                    f,
+                    "The comparison \"{}\" is not available in this solver, expected one of {}",
+                    got,
+                    expected
+                        .iter()
+                        .map(|c| c.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 )
             }
             SolverError::TooLarge { name, value } => {

@@ -15,7 +15,7 @@ export const RoocLanguage = {
     tokenPostfix: '.rooc',
     keywords: ["where", "for", "min", "max", "in", "s.t.", "as", "define", "let", 'solve'],
     literals: ["true", "false"],
-    operators: ["+", "-", "/", "*", "!", "&", "|", "=", "<=", "=>"],
+    operators: ["+", "-", "/", "*", "!", "&", "|", "=", "<=", "=>", "<", ">"],
     symbols: /[=><!~?:&|+\-*\/\^%]+/,
     digits: /\d+(_+\d+)*/,
     tokenizer: {

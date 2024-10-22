@@ -283,6 +283,10 @@ define
         min 1
         s.t.
             1 <= sum(i in n){ x_i * num}
+            2 < sum(i in n){ x_i * numSquared}
+            3 > sum(i in n){ x_i * numSquared}
+            4 >= sum(i in n){ x_i * numSquared}
+            5 = sum(i in n){ x_i * numSquared}
         where
             let G = Graph {
                 A -> [B: 10, C],

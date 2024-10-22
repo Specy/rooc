@@ -61,7 +61,6 @@ impl RoocParser {
                 .unwrap_or(e.get_traced_error())),
         }
     }
-    pub fn hover_provider(&self, _line: usize, _column: usize, _offset: usize) {}
 }
 
 #[wasm_bindgen]
@@ -78,7 +77,6 @@ impl RoocParser {
     pub fn parse_and_transform_wasm(&self) -> Result<Model, String> {
         self.parse_and_transform()
     }
-
     pub fn wasm_get_source(&self) -> String {
         self.source.clone()
     }

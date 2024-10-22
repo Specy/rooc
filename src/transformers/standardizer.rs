@@ -93,7 +93,7 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
     let mut constraints: Vec<EqualityConstraint> = constraints
         .into_iter()
         .map(|c| {
-            let (equality_constraint, added_variable) = normalize_constraint(c, &mut context);
+            let (equality_constraint, added_variable) = normalize_constraint(c, &mut context)?;
             if let Some(variable) = added_variable {
                 variables.push(variable.clone());
                 domain.insert(
@@ -102,9 +102,9 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
                 );
                 context.total_variables += 1;
             };
-            equality_constraint
+            Ok(equality_constraint)
         })
-        .collect();
+        .collect::<Result<_, _>>()?;
 
     constraints
         .iter_mut()
@@ -141,32 +141,40 @@ pub struct NormalizationContext {
 pub fn normalize_constraint(
     constraint: LinearConstraint,
     context: &mut NormalizationContext,
-) -> (EqualityConstraint, Option<String>) {
+) -> Result<(EqualityConstraint, Option<String>), SolverError> {
     let (mut coefficients, constraint_type, rhs) = constraint.into_parts();
     match constraint_type {
         Comparison::Equal => {
             let equality_constraint = EqualityConstraint::new(coefficients, rhs);
-            (equality_constraint, None)
+            Ok((equality_constraint, None))
         }
         Comparison::LessOrEqual => {
             coefficients.resize(context.total_variables, 0.0);
             coefficients.push(1.0);
             context.surplus_index += 1;
             let equality_constraint = EqualityConstraint::new(coefficients, rhs);
-            (
+            Ok((
                 equality_constraint,
                 Some(format!("$su_{}", context.surplus_index)),
-            )
+            ))
         }
         Comparison::GreaterOrEqual => {
             coefficients.resize(context.total_variables, 0.0);
             coefficients.push(-1.0);
             context.slack_index += 1;
             let equality_constraint = EqualityConstraint::new(coefficients, rhs);
-            (
+            Ok((
                 equality_constraint,
                 Some(format!("$sl_{}", context.slack_index)),
-            )
+            ))
         }
+        _ => Err(SolverError::UnavailableComparison {
+            expected: vec![
+                Comparison::Equal,
+                Comparison::LessOrEqual,
+                Comparison::GreaterOrEqual,
+            ],
+            got: constraint_type,
+        }),
     }
 }

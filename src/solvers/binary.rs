@@ -46,15 +46,22 @@ pub fn solve_binary_lp_problem(
                 value: constraint.get_rhs(),
             });
         }
+        let rhs = rhs.unwrap();
         match constraint.get_constraint_type() {
             Comparison::LessOrEqual => {
-                m.less_than_or_equals(lhs, rhs.unwrap());
+                m.less_than_or_equals(lhs, rhs);
             }
             Comparison::Equal => {
-                m.equals(lhs, rhs.unwrap());
+                m.equals(lhs, rhs);
             }
             Comparison::GreaterOrEqual => {
-                m.greater_than_or_equals(lhs, rhs.unwrap());
+                m.greater_than_or_equals(lhs, rhs);
+            }
+            Comparison::Less => {
+                m.less_than(lhs, rhs);
+            }
+            Comparison::Greater => {
+                m.greater_than(lhs, rhs);
             }
         }
     }
