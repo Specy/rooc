@@ -5,7 +5,6 @@ use copper::{VarId, VarIdBinary};
 use indexmap::IndexMap;
 use num_traits::ToPrimitive;
 use serde::Serialize;
-use std::collections::HashMap;
 
 #[derive(Debug)]
 pub enum SolverError {
@@ -121,7 +120,7 @@ where
         .enumerate()
         .filter(|(i, _c)| filter_fn(*i))
         .zip(variables)
-        .map(|((i, c), v)| c.to_i32().map(|c| v.times(c)))
+        .map(|((_, c), v)| c.to_i32().map(|c| v.times(c)))
         .collect::<Option<Vec<_>>>()
 }
 
@@ -137,6 +136,6 @@ where
         .enumerate()
         .filter(|(i, _c)| filter_fn(*i))
         .zip(variables)
-        .map(|((i, c), v)| c.to_i32().map(|c| v.times(c)))
+        .map(|((_, c), v)| c.to_i32().map(|c| v.times(c)))
         .collect::<Option<Vec<_>>>()
 }

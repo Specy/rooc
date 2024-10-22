@@ -9,7 +9,7 @@ use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::TransformerContext;
 use crate::traits::latex::{escape_latex, ToLatex};
 use crate::{
-    parser::parser::Rule,
+    parser::pre_model::Rule,
     primitives::primitive::{Primitive, PrimitiveKind},
     type_checker::type_checker_context::{TypeCheckable, WithType},
     utils::InputSpan,

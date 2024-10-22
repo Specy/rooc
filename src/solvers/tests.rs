@@ -1,16 +1,17 @@
 use crate::math::math_utils::{float_eq, float_ne};
-use crate::pipe::pipe::{PipeDataType, PipeError, PipeableData};
+use crate::pipe::pipe_definitions::{PipeDataType, PipeError, PipeableData};
 use crate::pipe::pipe_executors::{
     BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe,
     PreModelPipe, SimplexPipe, StandardLinearModelPipe, TableauPipe,
 };
 use crate::pipe::pipe_runner::PipeRunner;
 use crate::solvers::common::IntegerBinaryLpSolution;
-use crate::solvers::linear_integer_binary::{solve_integer_binary_lp_problem, VarValue};
+use crate::solvers::linear_integer_binary::VarValue;
 #[allow(unused_imports)]
 use crate::solvers::simplex::{CanonicalTransformError, OptimalTableau, SimplexError};
 
 #[allow(unused)]
+#[allow(clippy::result_large_err)]
 fn solve(source: &str) -> Result<OptimalTableau, PipeError> {
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
@@ -39,6 +40,7 @@ fn solve(source: &str) -> Result<OptimalTableau, PipeError> {
 }
 
 #[allow(unused)]
+#[allow(clippy::result_large_err)]
 fn solve_binary(source: &str) -> Result<IntegerBinaryLpSolution<bool>, PipeError> {
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
@@ -65,6 +67,7 @@ fn solve_binary(source: &str) -> Result<IntegerBinaryLpSolution<bool>, PipeError
 }
 
 #[allow(unused)]
+#[allow(clippy::result_large_err)]
 fn solve_integer_binary(source: &str) -> Result<IntegerBinaryLpSolution<VarValue>, PipeError> {
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
@@ -127,11 +130,7 @@ fn assert_variables_binary(variables: &Vec<bool>, expected: &Vec<bool>, lax_var_
 }
 
 #[allow(unused)]
-fn assert_variables_integer(
-    variables: &Vec<VarValue>,
-    expected: &Vec<VarValue>,
-    lax_var_num: bool,
-) {
+fn assert_variables_integer(variables: &[VarValue], expected: &[VarValue], lax_var_num: bool) {
     if variables.len() != expected.len() && !lax_var_num {
         panic!(
             "Different length, expected {:?} but got {:?}",

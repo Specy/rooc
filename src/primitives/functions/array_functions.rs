@@ -7,7 +7,7 @@ use crate::parser::model_transformer::transformer_context::TransformerContext;
 use crate::{
     bail_incorrect_type_signature, bail_incorrect_type_signature_of_fn,
     bail_wrong_number_of_arguments,
-    parser::parser::Rule,
+    parser::pre_model::Rule,
     primitives::{
         iterable::IterableKind,
         primitive::{Primitive, PrimitiveKind},

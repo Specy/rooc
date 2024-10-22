@@ -1,9 +1,8 @@
 use indexmap::IndexMap;
 use serde::Serialize;
-use std::collections::HashMap;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::math::math_enums::{PreVariableType, VariableType};
+use crate::math::math_enums::PreVariableType;
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::il_problem::AddressableAccess;
 use crate::parser::model_transformer::transform_error::TransformError;

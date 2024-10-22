@@ -8,7 +8,6 @@ use copper::*;
 use indexmap::IndexMap;
 use num_traits::ToPrimitive;
 use serde::Serialize;
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Copy)]
 #[serde(tag = "type", content = "value")]
@@ -67,7 +66,7 @@ pub fn solve_integer_binary_lp_problem(
     let vars_binary: Vec<_> = m.new_vars_binary(binary_variables.len()).collect();
     let vars_integer: Option<Vec<_>> = integer_variables
         .iter()
-        .map(|(k, v)| {
+        .map(|(k, _)| {
             let domain = lp.get_domain().get(k).unwrap();
             let (min, max) = match domain.get_type() {
                 VariableType::IntegerRange(min, max) => (*min, *max),

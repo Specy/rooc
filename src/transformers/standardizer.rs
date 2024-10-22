@@ -81,7 +81,7 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
 
     //and remove them from the domain
     for i in &free_variables {
-        domain.remove(&variables[*i]);
+        domain.shift_remove(&variables[*i]);
     }
     //and remove them from the variables
     remove_many(&mut variables, &free_variables);

@@ -1,9 +1,8 @@
 use indexmap::IndexMap;
 use serde::Serialize;
-use std::collections::HashMap;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::math::math_enums::{PreVariableType, VariableType};
+use crate::math::math_enums::VariableType;
 use crate::parser::domain_declaration::VariablesDomainDeclaration;
 use crate::parser::il::il_problem::AddressableAccess;
 use crate::parser::model_transformer::transform_error::TransformError;
@@ -53,7 +52,7 @@ impl<T> Frame<T> {
         if !self.variables.contains_key(name) {
             return Err(TransformError::UndeclaredVariable(name.to_string()));
         }
-        let value = self.variables.remove(name).unwrap();
+        let value = self.variables.shift_remove(name).unwrap();
         Ok(value)
     }
 }
@@ -326,7 +325,7 @@ impl TransformerContext {
 }
 
 pub fn assert_no_duplicates_in_domain(
-    domain: &Vec<(String, Spanned<VariableType>)>,
+    domain: &[(String, Spanned<VariableType>)],
 ) -> Result<(), TransformError> {
     let acc: IndexMap<String, (i32, Spanned<VariableType>)> = IndexMap::new();
     let duplicates = domain

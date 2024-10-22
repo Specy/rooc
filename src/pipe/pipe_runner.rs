@@ -1,4 +1,4 @@
-use crate::pipe::pipe::{PipeError, Pipeable, PipeableData};
+use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
 
 pub struct PipeRunner {
     pipes: Vec<Box<dyn Pipeable>>,

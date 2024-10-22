@@ -117,13 +117,13 @@ impl PrimitiveKind {
         }
     }
     pub fn is_numeric(&self) -> bool {
-        match self {
-            PrimitiveKind::Number => true,
-            PrimitiveKind::Integer => true,
-            PrimitiveKind::PositiveInteger => true,
-            PrimitiveKind::Boolean => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            PrimitiveKind::Number
+                | PrimitiveKind::Integer
+                | PrimitiveKind::PositiveInteger
+                | PrimitiveKind::Boolean
+        )
     }
     pub fn can_spread_into(&self) -> Result<Vec<PrimitiveKind>, TransformError> {
         match self {

@@ -4,7 +4,7 @@ extern crate pest_derive;
 
 use wasm_bindgen::prelude::*;
 
-use parser::parser::{parse_problem_source, PreModel};
+use parser::pre_model::{parse_problem_source, PreModel};
 use utils::CompilationError;
 
 use crate::parser::model_transformer::model::{transform_parsed_problem, Model};
@@ -20,10 +20,6 @@ pub mod traits;
 pub mod transformers;
 pub mod type_checker;
 pub mod utils;
-
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
 #[derive(Debug, Clone)]

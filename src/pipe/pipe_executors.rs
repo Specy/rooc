@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::pipe::pipe::{PipeError, Pipeable, PipeableData};
+use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
 use crate::solvers::linear_integer_binary::solve_integer_binary_lp_problem;
 use crate::solvers::simplex::IntoCanonicalTableau;
 use crate::transformers::linearizer::Linearizer;
@@ -158,7 +158,7 @@ impl TableauPipe {
 }
 impl Pipeable for TableauPipe {
     fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
-        let standard_linear_model = data.as_standard_linear_model()?;
+        let standard_linear_model = data.as_standard_linear_model()?.clone();
         let tableau = standard_linear_model.into_canonical();
         match tableau {
             Ok(tableau) => Ok(PipeableData::Tableau(tableau)),

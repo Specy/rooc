@@ -5,7 +5,7 @@ use pest::{iterators::Pair, Span};
 use serde::Serialize;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
-use crate::parser::parser::Rule;
+use crate::parser::pre_model::Rule;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
 #[wasm_bindgen]

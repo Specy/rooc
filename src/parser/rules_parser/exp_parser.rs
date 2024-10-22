@@ -5,7 +5,7 @@ use crate::parser::il::il_exp::PreExp;
 use crate::{
     err_unexpected_token,
     math::operators::{BinOp, UnOp},
-    parser::parser::Rule,
+    parser::pre_model::Rule,
     utils::{CompilationError, InputSpan, ParseError, Spanned},
 };
 

@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
 use crate::math::math_utils::{float_gt, float_lt, float_ne};
-use crate::solvers::common::{find_invalid_variables, SolverError};
+use crate::solvers::common::SolverError;
 use crate::solvers::simplex::{
     divide_matrix_row_by, CanonicalTransformError, IntoCanonicalTableau, Tableau, Tableauable,
 };
@@ -38,7 +38,7 @@ struct IndependentVariable {
 }
 
 impl IntoCanonicalTableau for StandardLinearModel {
-    fn into_canonical(&self) -> Result<Tableau, CanonicalTransformError> {
+    fn into_canonical(self) -> Result<Tableau, CanonicalTransformError> {
         let mut usable_independent_vars: Vec<IndependentVariable> = Vec::new();
         //find independent variables by checking if the column has a single value, and if so, add it to the independent list
         for column in 0..self.variables.len() {
@@ -150,8 +150,8 @@ impl IntoCanonicalTableau for StandardLinearModel {
                         //restore the original objective function
                         let mut new_a = tableau.get_a().clone();
                         //remove the artificial variables from the tableau
-                        for row in 0..new_a.len() {
-                            new_a[row].resize(number_of_variables, 0.0);
+                        for row in new_a.iter_mut() {
+                            row.resize(number_of_variables, 0.0);
                         }
                         let mut value = 0.0;
                         let mut new_c = self.get_c();

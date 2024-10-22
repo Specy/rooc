@@ -9,7 +9,7 @@ use crate::{
 
 //TODO make this a iterator
 pub fn recursive_set_resolver<T>(
-    sets: &Vec<IterableSet>,
+    sets: &[IterableSet],
     context: &mut TransformerContext,
     results: &mut Vec<T>,
     current_level: usize,
@@ -65,7 +65,7 @@ pub fn recursive_set_resolver<T>(
 
 pub fn apply_tuple(
     context: &mut TransformerContext,
-    tuple: &Vec<Spanned<String>>,
+    tuple: &[Spanned<String>],
     spreadable: Vec<Primitive>,
 ) -> Result<(), TransformError> {
     if tuple.len() > spreadable.len() {

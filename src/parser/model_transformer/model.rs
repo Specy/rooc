@@ -1,8 +1,6 @@
 use core::fmt;
 use indexmap::IndexMap;
 use serde::Serialize;
-use std::collections::HashMap;
-use std::ops::Index;
 use wasm_bindgen::prelude::*;
 
 use crate::math::math_enums::{Comparison, OptimizationType};
@@ -11,7 +9,7 @@ use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::il_problem::{PreConstraint, PreObjective};
 use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::{DomainVariable, TransformerContext};
-use crate::parser::parser::PreModel;
+use crate::parser::pre_model::PreModel;
 use crate::parser::recursive_set_resolver::recursive_set_resolver;
 use crate::traits::latex::{escape_latex, ToLatex};
 use crate::{primitives::primitive::Primitive, utils::Spanned};

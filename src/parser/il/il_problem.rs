@@ -1,6 +1,5 @@
 use core::fmt;
 use serde::Serialize;
-use std::fmt::format;
 use wasm_bindgen::prelude::*;
 
 use crate::parser::il::il_exp::PreExp;

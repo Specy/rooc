@@ -3,7 +3,6 @@
 use core::fmt;
 use num_traits::ToPrimitive;
 use serde::Serialize;
-use std::fmt::Display;
 use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 

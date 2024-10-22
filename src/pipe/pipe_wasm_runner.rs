@@ -1,9 +1,9 @@
 use crate::parser::model_transformer::model::Model;
-use crate::parser::parser::PreModel;
+use crate::parser::pre_model::PreModel;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
-use crate::pipe::pipe::{PipeDataType, PipeError, Pipeable, PipeableData};
+use crate::pipe::pipe_definitions::{PipeDataType, PipeError, Pipeable, PipeableData};
 use crate::pipe::pipe_executors::{
     BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe, Pipes,
     PreModelPipe, SimplexPipe, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe,
@@ -15,11 +15,13 @@ use crate::transformers::standard_linear_model::StandardLinearModel;
 use crate::RoocParser;
 
 #[wasm_bindgen]
+#[allow(unused)]
 struct WasmPipeRunner {
     pipe: PipeRunner,
 }
 
 #[wasm_bindgen]
+#[allow(unused)]
 impl WasmPipeRunner {
     pub fn new_wasm(steps: Vec<Pipes>) -> Result<WasmPipeRunner, String> {
         let runners = steps
@@ -102,6 +104,7 @@ impl From<WasmPipableData> for PipeableData {
     }
 }
 #[wasm_bindgen]
+#[allow(clippy::wrong_self_convention)]
 impl WasmPipableData {
     pub fn wasm_get_type(&self) -> PipeDataType {
         self.data.get_type()

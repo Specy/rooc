@@ -2,7 +2,7 @@ use std::vec;
 
 use pest::iterators::{Pair, Pairs};
 
-use crate::math::math_enums::{Comparison, OptimizationType, PreVariableType, VariableType};
+use crate::math::math_enums::{Comparison, OptimizationType, PreVariableType};
 use crate::parser::domain_declaration::{VariableToAssert, VariablesDomainDeclaration};
 use crate::parser::il::block_functions::{
     BlockFunction, BlockFunctionKind, BlockScopedFunction, BlockScopedFunctionKind,
@@ -14,7 +14,7 @@ use crate::parser::il::il_problem::{
 use crate::parser::il::iterable_set::IterableSet;
 use crate::parser::iterable_utils::flatten_primitive_array_values;
 use crate::parser::model_transformer::model::VariableKind;
-use crate::parser::parser::Rule;
+use crate::parser::pre_model::Rule;
 use crate::primitives::consts::Constant;
 use crate::primitives::functions::array_functions::{EnumerateArray, LenOfIterableFn};
 use crate::primitives::functions::function_traits::FunctionCall;

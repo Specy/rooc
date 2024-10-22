@@ -1,7 +1,6 @@
 use core::fmt;
 use indexmap::IndexMap;
 use serde::Serialize;
-use std::collections::HashMap;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::math::operators::{BinOp, UnOp};

@@ -424,7 +424,7 @@ impl WithType for PreExp {
             Self::ArrayAccess(a) => context
                 .get_addressable_value(a)
                 .unwrap_or(PrimitiveKind::Undefined),
-            Self::BlockFunction(f) => PrimitiveKind::Number, //TODO check if this is true always
+            Self::BlockFunction(_) => PrimitiveKind::Number, //TODO check if this is true always
             Self::BlockScopedFunction(_) => PrimitiveKind::Number, //TODO check if this is true always
             Self::CompoundVariable(_) => PrimitiveKind::Number, //TODO check if this is true always
         }
@@ -637,7 +637,7 @@ impl PreExp {
                 let value = v.as_primitive(context)?;
                 match value.apply_unary_op(**op) {
                     Ok(value) => Ok(value),
-                    Err(e) => Err(TransformError::from_wrong_unop(
+                    Err(_) => Err(TransformError::from_wrong_unop(
                         **op,
                         value.get_type(),
                         op.get_span().clone(),
@@ -649,7 +649,7 @@ impl PreExp {
                 let rhs = rhs.as_primitive(context)?;
                 match lhs.apply_binary_op(**op, &rhs) {
                     Ok(value) => Ok(value),
-                    Err(e) => Err(TransformError::from_wrong_binop(
+                    Err(_) => Err(TransformError::from_wrong_binop(
                         **op,
                         lhs.get_type(),
                         rhs.get_type(),

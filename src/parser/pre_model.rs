@@ -3,7 +3,6 @@ use indexmap::IndexMap;
 use pest::iterators::Pair;
 use pest::Parser;
 use serde::Serialize;
-use std::collections::HashMap;
 use std::fmt::Debug;
 use wasm_bindgen::prelude::*;
 
@@ -325,7 +324,7 @@ pub fn parse_problem_source(source: &String) -> Result<PreModel, CompilationErro
     }
 }
 
-fn parse_problem(problem: Pair<Rule>, source: &String) -> Result<PreModel, CompilationError> {
+fn parse_problem(problem: Pair<Rule>, source: &str) -> Result<PreModel, CompilationError> {
     let pairs = problem.clone().into_inner();
     let objective = pairs.find_first_tagged("objective").map(parse_objective);
     let constraints = pairs
@@ -343,7 +342,7 @@ fn parse_problem(problem: Pair<Rule>, source: &String) -> Result<PreModel, Compi
             cond?,
             consts.unwrap_or(Ok(Vec::new()))?,
             domain.unwrap_or(Ok(Vec::new()))?,
-            Some(source.clone()),
+            Some(source.to_owned()),
         )),
         _ => bail_missing_token!("Objective and constraints are required", problem),
     }

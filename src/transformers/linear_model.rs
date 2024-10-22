@@ -1,6 +1,5 @@
 use indexmap::IndexMap;
 use num_traits::Zero;
-use std::collections::HashMap;
 use std::fmt::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -96,6 +95,7 @@ impl LinearModel {
         }
     }
 
+    #[allow(clippy::type_complexity)]
     pub fn into_parts(
         self,
     ) -> (

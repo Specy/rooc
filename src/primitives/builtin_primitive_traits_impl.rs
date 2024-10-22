@@ -164,7 +164,7 @@ impl ApplyOp for i64 {
             UnOp::Neg => Ok(Primitive::Integer(-self)),
         }
     }
-    fn can_apply_binary_op(op: BinOp, to: Self::TargetType) -> bool {
+    fn can_apply_binary_op(_op: BinOp, to: Self::TargetType) -> bool {
         matches!(
             to,
             PrimitiveKind::Number

@@ -1,8 +1,5 @@
-use rooc::pipe::pipe::PipeableData;
-use rooc::pipe::pipe_executors::{
-    CompilerPipe, LinearModelPipe, ModelPipe, PreModelPipe, StandardLinearModelPipe,
-    StepByStepSimplexPipe, TableauPipe,
-};
+use rooc::pipe::pipe_definitions::PipeableData;
+use rooc::pipe::pipe_executors::{CompilerPipe, PreModelPipe};
 use rooc::pipe::pipe_runner::PipeRunner;
 
 #[allow(unused)]

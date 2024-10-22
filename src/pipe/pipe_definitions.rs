@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::parser::model_transformer::model::Model;
 use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::parser::PreModel;
+use crate::parser::pre_model::PreModel;
 use crate::solvers::common::{IntegerBinaryLpSolution, SolverError};
 use crate::solvers::linear_integer_binary::VarValue;
 use crate::solvers::simplex::{
@@ -31,6 +31,8 @@ pub enum PipeableData {
     IntegerBinarySolution(IntegerBinaryLpSolution<VarValue>),
 }
 
+#[allow(clippy::result_large_err)]
+#[allow(clippy::wrong_self_convention)]
 impl PipeableData {
     pub fn get_type(&self) -> PipeDataType {
         match self {
@@ -214,7 +216,7 @@ impl Display for PipeError {
                 }
             }
             PipeError::LinearizationError(e) => write!(f, "{}", e),
-            PipeError::StandardizationError(e) => write!(f, "{}", e.to_string()),
+            PipeError::StandardizationError(e) => write!(f, "{}", e),
             PipeError::CanonicalizationError(e) => write!(f, "{}", e),
             PipeError::SimplexError(e, _) => write!(f, "{}", e),
             PipeError::IntegerBinarySolverError(e) => write!(f, "{}", e),
@@ -223,5 +225,6 @@ impl Display for PipeError {
 }
 
 pub trait Pipeable {
+    #[allow(clippy::result_large_err)]
     fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError>;
 }

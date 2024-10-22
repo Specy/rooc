@@ -141,6 +141,7 @@ pub struct SimplexStep {
     tableau: Tableau,
     entering: usize,
     leaving: usize,
+    #[allow(unused)]
     ratio: f64,
 }
 
@@ -203,6 +204,7 @@ impl Display for SimplexError {
 }
 
 impl Tableau {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         c: Vec<f64>,
         a: Vec<Vec<f64>>,
@@ -225,7 +227,7 @@ impl Tableau {
         }
     }
     pub fn solve(&mut self, limit: i64) -> Result<OptimalTableau, SimplexError> {
-        self.solve_avoiding(limit, &vec![])
+        self.solve_avoiding(limit, &[])
     }
 
     pub fn solve_step_by_step(
@@ -268,7 +270,7 @@ impl Tableau {
     pub fn solve_avoiding(
         &mut self,
         limit: i64,
-        variables_to_avoid: &Vec<usize>,
+        variables_to_avoid: &[usize],
     ) -> Result<OptimalTableau, SimplexError> {
         let mut iteration = 0;
         while iteration <= limit {
@@ -289,7 +291,7 @@ impl Tableau {
         }
         Err(SimplexError::IterationLimitReached)
     }
-    pub fn step(&mut self, variables_to_avoid: &Vec<usize>) -> Result<StepAction, SimplexError> {
+    pub fn step(&mut self, variables_to_avoid: &[usize]) -> Result<StepAction, SimplexError> {
         if self.is_optimal() {
             return Ok(StepAction::Finished);
         }
@@ -323,7 +325,7 @@ impl Tableau {
 
     //finds the variable that will enter the basis
     #[allow(unused)]
-    fn find_h(&self, variables_to_avoid: &Vec<usize>) -> Option<usize> {
+    fn find_h(&self, variables_to_avoid: &[usize]) -> Option<usize> {
         //uses the Bland's rule for anti-cycling
         let min = self
             .c
@@ -335,7 +337,7 @@ impl Tableau {
     }
 
     //finds the variable that will leave the basis, prioritize variabls_to_prefer
-    fn find_t(&self, h: usize, variables_to_prefer: &Vec<usize>) -> Option<(usize, f64)> {
+    fn find_t(&self, h: usize, variables_to_prefer: &[usize]) -> Option<(usize, f64)> {
         //use the Bland's rule for anti-cycling
         //gets the index of the row with the minimum ratio
         let mut valid = self
@@ -393,8 +395,8 @@ impl Tableau {
         }
         //normalize the objective function
         let factor = c[h] / pivot;
-        for i in 0..c.len() {
-            c[i] -= factor * a[t][i];
+        for (i, row) in c.iter_mut().enumerate() {
+            *row -= factor * a[t][i];
         }
         self.current_value -= factor * b[t];
         //normalize the pivot row
@@ -540,10 +542,10 @@ impl fmt::Display for CanonicalTransformError {
 }
 
 pub trait IntoCanonicalTableau {
-    fn into_canonical(&self) -> Result<Tableau, CanonicalTransformError>;
+    fn into_canonical(self) -> Result<Tableau, CanonicalTransformError>;
 }
 
-pub fn divide_matrix_row_by(matrix: &mut Vec<Vec<f64>>, row: usize, value: f64) {
+pub fn divide_matrix_row_by(matrix: &mut [Vec<f64>], row: usize, value: f64) {
     for i in 0..matrix[row].len() {
         matrix[row][i] /= value;
     }

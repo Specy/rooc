@@ -234,7 +234,7 @@ impl IterableKind {
     }
 }
 
-fn latexify_vec<T>(v: &Vec<T>, include_block: bool) -> String
+fn latexify_vec<T>(v: &[T], include_block: bool) -> String
 where
     T: ToLatex,
 {

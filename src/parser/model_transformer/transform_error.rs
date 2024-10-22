@@ -3,7 +3,7 @@ use core::fmt;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::math::math_enums::{PreVariableType, VariableType};
+use crate::math::math_enums::VariableType;
 use crate::math::operators::{BinOp, UnOp};
 use crate::parser::il::il_exp::PreExp;
 use crate::primitives::primitive::PrimitiveKind;
