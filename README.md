@@ -6,24 +6,26 @@
 
 [Go to the documentation (WIP)](https://rooc.specy.app/docs/rooc)
 
-The name ROOC stands for for the name of the courses i took at university (Ricerca Operativa, Ottimizzazione Combinatoria) that deals with finding solutions to mathematical optimization problems
+
+**ROOC** stands for the courses I took in university—*Ricerca Operativa* (Operational Research) and *Ottimizzazione Combinatoria* (Combinatorial Optimization)—which deal with solving optimization models.
+
 # What it is
-Rooc is a language compiler to parse and convert formal mathematical models into a static formulation. Static formulations can be fed to transformers to convert them to linear problems or linear problems in standard form.
-The "language" supports formal definitions of problems, with the ability to call functions, declare constants, arrays, graphs, tuples. It also supports builtin utility functions to iterate over graphs, edges, arrays, ranges, etc.
-The library is compiled as a wasm module to be used in the [web editor](https://rooc.specy.app) which supports a LSP for type checking, code completion and documentation
+**ROOC** is a compiler designed to parse and convert formal optimization models into static formulations. These static formulations can be transformed into linear models which can then be solved using optimization techniques. 
+
+The language provides support for defining formal models, including functions, constants, arrays, graphs, tuples, etc... It also includes built-in utility functions for iterating over graphs, edges, arrays, ranges, and more.
+
+The library is compiled as a WebAssembly (WASM) module and integrated into the [web editor](https://rooc.specy.app), which features Language Server Protocol (LSP) support for type checking, code completion, and documentation.
 
 # Implemented Features 
-- [x] Syntax and parsing
+- [x] Language
   - [x] Static block functions (min, max, mod, avg)
   - [x] Constant Graph definitions
   - [x] Iterators
   - [x] Tuples
   - [x] Iterators utility functions (for graphs, edges, etc)
   - [x] Primitive destructuring
-  - [x] Formal definition of a problem (sum function and generic variables)
   - [x] Constants and multi dimensional arrays in the formal definition of a problem
   - [x] Other utility functions
-  - [x] Expressions as function parameters
   - [x] Error logging and parameter validation 
   - [x] Error traces
   - [x] Primitives Operator overloading (for example, `+` for strings)
