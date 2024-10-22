@@ -1,18 +1,12 @@
 use serde::Serialize;
 
-use super::function_traits::{
-    default_wrong_number_of_arguments, default_wrong_type, RoocFunction,
-};
-use crate::parser::il::il_exp::PreExp;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::TransformerContext;
+use super::function_traits::{default_wrong_number_of_arguments, default_wrong_type, RoocFunction};
+use crate::parser::il::PreExp;
+use crate::parser::model_transformer::TransformError;
+use crate::parser::model_transformer::TransformerContext;
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{
-    primitives::{
-        iterable::IterableKind,
-        primitive::{Primitive, PrimitiveKind},
-        tuple::Tuple,
-    },
+    primitives::{IterableKind, Primitive, PrimitiveKind, Tuple},
     type_checker::type_checker_context::{TypeCheckerContext, WithType},
 };
 
@@ -24,7 +18,7 @@ impl RoocFunction for EnumerateArray {
         &self,
         args: &[PreExp],
         context: &TransformerContext,
-        fn_context: &FunctionContext
+        fn_context: &FunctionContext,
     ) -> Result<Primitive, TransformError> {
         match args[..] {
             [ref iterable] => {
@@ -102,7 +96,7 @@ impl RoocFunction for LenOfIterableFn {
         &self,
         args: &[PreExp],
         context: &TransformerContext,
-        fn_context: &FunctionContext
+        fn_context: &FunctionContext,
     ) -> Result<Primitive, TransformError> {
         match args[..] {
             [ref of_iterable] => {
@@ -122,9 +116,9 @@ impl RoocFunction for LenOfIterableFn {
 
     fn get_return_type(
         &self,
-        args: &[PreExp],
-        context: &TypeCheckerContext,
-        fn_context: &FunctionContext,
+        _args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
     ) -> PrimitiveKind {
         PrimitiveKind::PositiveInteger
     }

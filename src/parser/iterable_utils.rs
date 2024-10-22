@@ -1,7 +1,4 @@
-use crate::primitives::{
-    iterable::IterableKind,
-    primitive::{Primitive, PrimitiveKind},
-};
+use crate::primitives::{IterableKind, Primitive, PrimitiveKind};
 
 //TODO make this a macro
 pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitive, String> {

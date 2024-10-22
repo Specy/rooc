@@ -3,11 +3,11 @@ use core::fmt;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::math::math_enums::VariableType;
-use crate::math::operators::{BinOp, UnOp};
-use crate::parser::il::il_exp::PreExp;
-use crate::primitives::primitive::PrimitiveKind;
-use crate::runtime_builtin::reserved_tokens::TokenType;
+use crate::math::VariableType;
+use crate::math::{BinOp, UnOp};
+use crate::parser::il::PreExp;
+use crate::primitives::PrimitiveKind;
+use crate::runtime_builtin::TokenType;
 use crate::utils::{InputSpan, Spanned};
 
 #[derive(Debug, Clone, Serialize)]

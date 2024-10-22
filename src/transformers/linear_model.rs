@@ -3,13 +3,13 @@ use num_traits::Zero;
 use std::fmt::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::math::math_utils::float_lt;
-use crate::parser::model_transformer::transformer_context::DomainVariable;
-use crate::solvers::common::SolverError;
+use crate::math::float_lt;
+use crate::parser::model_transformer::DomainVariable;
+use crate::solvers::SolverError;
 use crate::transformers::standard_linear_model::{format_var, StandardLinearModel};
 use crate::utils::remove_many;
 use crate::{
-    math::math_enums::{Comparison, OptimizationType},
+    math::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
 };
 

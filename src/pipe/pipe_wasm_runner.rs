@@ -1,4 +1,4 @@
-use crate::parser::model_transformer::model::Model;
+use crate::parser::model_transformer::Model;
 use crate::parser::pre_model::PreModel;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
@@ -9,9 +9,9 @@ use crate::pipe::pipe_executors::{
     PreModelPipe, SimplexPipe, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe,
 };
 use crate::pipe::pipe_runner::PipeRunner;
-use crate::solvers::simplex::{OptimalTableau, OptimalTableauWithSteps, Tableau};
-use crate::transformers::linear_model::LinearModel;
-use crate::transformers::standard_linear_model::StandardLinearModel;
+use crate::solvers::{OptimalTableau, OptimalTableauWithSteps, Tableau};
+use crate::transformers::LinearModel;
+use crate::transformers::StandardLinearModel;
 use crate::RoocParser;
 
 #[wasm_bindgen]

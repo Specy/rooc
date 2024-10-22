@@ -4,11 +4,9 @@ use std::fmt::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
-use crate::math::math_utils::{float_gt, float_lt, float_ne};
-use crate::solvers::common::SolverError;
-use crate::solvers::simplex::{
-    divide_matrix_row_by, CanonicalTransformError, IntoCanonicalTableau, Tableau, Tableauable,
-};
+use crate::math::{float_gt, float_lt, float_ne};
+use crate::solvers::SolverError;
+use crate::solvers::{divide_matrix_row_by, CanonicalTransformError, Tableau};
 use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standardizer::to_standard_form;
 use crate::utils::remove_many;
@@ -37,8 +35,8 @@ struct IndependentVariable {
     value: f64,
 }
 
-impl IntoCanonicalTableau for StandardLinearModel {
-    fn into_canonical(self) -> Result<Tableau, CanonicalTransformError> {
+impl StandardLinearModel {
+    pub fn into_canonical(self) -> Result<Tableau, CanonicalTransformError> {
         let mut usable_independent_vars: Vec<IndependentVariable> = Vec::new();
         //find independent variables by checking if the column has a single value, and if so, add it to the independent list
         for column in 0..self.variables.len() {
@@ -335,7 +333,7 @@ pub fn format_var(name: &str, value: f64, is_first: bool) -> String {
     format!("{}{}{}", sign, num, name)
 }
 
-impl Tableauable for StandardLinearModel {
+impl StandardLinearModel {
     fn get_b(&self) -> Vec<f64> {
         self.constraints.iter().map(|c| c.rhs).collect()
     }

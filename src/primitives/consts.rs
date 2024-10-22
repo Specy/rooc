@@ -4,10 +4,10 @@ use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use super::primitive::{Primitive, PrimitiveKind};
-use crate::parser::il::il_exp::PreExp;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::TransformerContext;
-use crate::traits::latex::ToLatex;
+use crate::parser::il::PreExp;
+use crate::parser::model_transformer::TransformError;
+use crate::parser::model_transformer::TransformerContext;
+use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
@@ -43,7 +43,11 @@ impl Constant {
         Self { name, value }
     }
 
-    pub fn as_primitive(&self, context: &TransformerContext, fn_context: &FunctionContext) -> Result<Primitive, TransformError> {
+    pub fn as_primitive(
+        &self,
+        context: &TransformerContext,
+        fn_context: &FunctionContext,
+    ) -> Result<Primitive, TransformError> {
         self.value.as_primitive(context, fn_context)
     }
 }

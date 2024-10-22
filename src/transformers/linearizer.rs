@@ -1,8 +1,8 @@
-use crate::math::math_enums::{Comparison, VariableType};
-use crate::math::math_utils::float_lt;
-use crate::math::operators::{BinOp, UnOp};
-use crate::parser::model_transformer::model::{Constraint, Exp, Model};
-use crate::parser::model_transformer::transformer_context::DomainVariable;
+use crate::math::float_lt;
+use crate::math::{BinOp, UnOp};
+use crate::math::{Comparison, VariableType};
+use crate::parser::model_transformer::DomainVariable;
+use crate::parser::model_transformer::{Constraint, Exp, Model};
 use crate::transformers::linear_model::{LinearConstraint, LinearModel};
 use crate::utils::InputSpan;
 use indexmap::IndexMap;

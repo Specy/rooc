@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::*;
 use parser::pre_model::{parse_problem_source, PreModel};
 use utils::CompilationError;
 
-use crate::parser::model_transformer::model::{transform_parsed_problem, Model};
+use crate::parser::model_transformer::{transform_parsed_problem, Model};
 
 pub mod macros;
 pub mod math;

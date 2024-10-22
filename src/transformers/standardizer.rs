@@ -1,7 +1,7 @@
-use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
-use crate::math::math_utils::float_eq;
-use crate::parser::model_transformer::transformer_context::DomainVariable;
-use crate::solvers::common::{find_invalid_variables, SolverError};
+use crate::math::float_eq;
+use crate::math::{Comparison, OptimizationType, VariableType};
+use crate::parser::model_transformer::DomainVariable;
+use crate::solvers::{find_invalid_variables, SolverError};
 use crate::transformers::linear_model::{LinearConstraint, LinearModel};
 use crate::transformers::standard_linear_model::{EqualityConstraint, StandardLinearModel};
 use crate::utils::{remove_many, InputSpan};

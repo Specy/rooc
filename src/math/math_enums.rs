@@ -7,11 +7,11 @@ use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 
 use crate::enum_with_variants_to_string;
-use crate::parser::il::il_exp::PreExp;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::TransformerContext;
-use crate::primitives::primitive::{Primitive, PrimitiveKind};
-use crate::traits::latex::ToLatex;
+use crate::parser::il::PreExp;
+use crate::parser::model_transformer::TransformError;
+use crate::parser::model_transformer::TransformerContext;
+use crate::primitives::{Primitive, PrimitiveKind};
+use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, WithType,
 };

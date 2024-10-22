@@ -1,13 +1,13 @@
-use crate::parser::il::il_exp::PreExp;
-use crate::runtime_builtin::functions::array_functions::{EnumerateArray, LenOfIterableFn};
-use crate::runtime_builtin::functions::function_traits::{FunctionCall, RoocFunction};
-use crate::runtime_builtin::functions::graph_functions::{
+use crate::parser::il::PreExp;
+use crate::runtime_builtin::functions::NumericRange;
+use crate::runtime_builtin::functions::{
     EdgesOfGraphFn, NeighbourOfNodeFn, NeighboursOfNodeInGraphFn, NodesOfGraphFn,
 };
-use crate::runtime_builtin::functions::number_functions::NumericRange;
+use crate::runtime_builtin::functions::{EnumerateArray, LenOfIterableFn};
+use crate::runtime_builtin::functions::{FunctionCall, RoocFunction};
+use crate::traits::ToLatex;
 use indexmap::IndexMap;
 use lazy_static::lazy_static;
-use crate::traits::latex::ToLatex;
 
 lazy_static! {
     pub static ref ROOC_STD: IndexMap<String, Box<dyn RoocFunction>> = {
@@ -51,7 +51,7 @@ pub fn std_fn_to_latex(fun: &FunctionCall) -> Option<String> {
                     } else {
                         format!("({})", to.to_latex())
                     };
-                    return Some(format!("\\left\\{{{},{},{}\\right\\}}", from, range, to));
+                    Some(format!("\\left\\{{{},{},{}\\right\\}}", from, range, to))
                 } else {
                     None
                 }

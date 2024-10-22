@@ -1,9 +1,8 @@
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
-use crate::solvers::linear_integer_binary::solve_integer_binary_lp_problem;
-use crate::solvers::simplex::IntoCanonicalTableau;
-use crate::transformers::linearizer::Linearizer;
+use crate::solvers::{solve_binary_lp_problem, solve_integer_binary_lp_problem};
+use crate::transformers::Linearizer;
 use crate::RoocParser;
 
 #[wasm_bindgen]
@@ -252,7 +251,7 @@ impl BinarySolverPipe {
 impl Pipeable for BinarySolverPipe {
     fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
         let linear_model = data.as_linear_model()?;
-        let binary_solution = crate::solvers::binary::solve_binary_lp_problem(linear_model);
+        let binary_solution = solve_binary_lp_problem(linear_model);
         match binary_solution {
             Ok(solution) => Ok(PipeableData::BinarySolution(solution)),
             Err(e) => Err(PipeError::IntegerBinarySolverError(e)),

@@ -1,24 +1,23 @@
 use core::fmt;
 
-use serde::ser::SerializeStruct;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::math::operators::{BinOp, UnOp};
+use crate::math::{BinOp, UnOp};
 use crate::parser::il::block_functions::{
     BlockFunction, BlockFunctionKind, BlockScopedFunction, BlockScopedFunctionKind,
 };
 use crate::parser::il::il_problem::{AddressableAccess, CompoundVariable};
-use crate::parser::model_transformer::model::Exp;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::TransformerContext;
+use crate::parser::model_transformer::Exp;
+use crate::parser::model_transformer::TransformError;
+use crate::parser::model_transformer::TransformerContext;
 use crate::parser::recursive_set_resolver::recursive_set_resolver;
-use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
-use crate::primitives::iterable::IterableKind;
-use crate::primitives::primitive::{Primitive, PrimitiveKind};
-use crate::primitives::primitive_traits::ApplyOp;
-use crate::runtime_builtin::functions::function_traits::FunctionCall;
-use crate::traits::latex::{escape_latex, ToLatex};
+use crate::primitives::ApplyOp;
+use crate::primitives::IterableKind;
+use crate::primitives::{Graph, GraphEdge, GraphNode};
+use crate::primitives::{Primitive, PrimitiveKind};
+use crate::runtime_builtin::FunctionCall;
+use crate::traits::{escape_latex, ToLatex};
 use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, WithType,
 };
@@ -65,19 +64,6 @@ export type SerializedPreExp = {span: InputSpan} & (
     }}
 )
 "#;
-
-#[derive(Serialize)]
-struct TempBinOp {
-    op: BinOp,
-    lhs: PreExp,
-    rhs: PreExp,
-}
-
-#[derive(Serialize)]
-struct TempUnOp {
-    op: UnOp,
-    exp: PreExp,
-}
 
 impl TypeCheckable for PreExp {
     //TODO improve spans
@@ -215,7 +201,7 @@ impl TypeCheckable for PreExp {
         fn_context: &FunctionContext,
     ) {
         match self {
-            Self::FunctionCall(span, fun) => {
+            Self::FunctionCall(_span, fun) => {
                 fun.populate_token_type_map(context, fn_context);
             }
             Self::Abs(_, exp) => {
@@ -307,8 +293,8 @@ impl WithType for PreExp {
                 if f.is_none() {
                     return PrimitiveKind::Undefined;
                 }
-                let return_type = f.unwrap().get_return_type(&fun.args, context, fn_context);
-                return_type
+
+                f.unwrap().get_return_type(&fun.args, context, fn_context)
             }
             Self::Variable(name) => {
                 match context.get_value(name) {
@@ -449,13 +435,20 @@ impl PreExp {
             }
             Self::BlockScopedFunction(f) => {
                 let mut results = Vec::new();
-                recursive_set_resolver(&f.iters, context, fn_context,&mut results, 0, &|context| {
-                    let inner = f
-                        .exp
-                        .into_exp(context, fn_context)
-                        .map_err(|e| e.add_span(self.get_span()))?;
-                    Ok(inner)
-                })
+                recursive_set_resolver(
+                    &f.iters,
+                    context,
+                    fn_context,
+                    &mut results,
+                    0,
+                    &|context| {
+                        let inner = f
+                            .exp
+                            .into_exp(context, fn_context)
+                            .map_err(|e| e.add_span(self.get_span()))?;
+                        Ok(inner)
+                    },
+                )
                 .map_err(|e| e.add_span(self.get_span()))?;
                 match f.kind {
                     BlockScopedFunctionKind::Sum => {
@@ -786,9 +779,7 @@ impl ToLatex for PreExp {
             Self::Primitive(p) => p.to_latex(),
             Self::Abs(_, exp) => format!("|{}|", exp.to_latex()),
             Self::CompoundVariable(c) => c.to_latex(),
-            Self::FunctionCall(_, f) =>{
-                f.to_latex()
-            },
+            Self::FunctionCall(_, f) => f.to_latex(),
         }
     }
 }

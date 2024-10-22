@@ -1,11 +1,11 @@
-use crate::math::math_utils::{float_eq, float_ne};
-use crate::pipe::pipe_definitions::{PipeDataType, PipeError, PipeableData};
-use crate::pipe::pipe_executors::{
+use crate::math::{float_eq, float_ne};
+use crate::pipe::PipeRunner;
+use crate::pipe::{
     BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe,
     PreModelPipe, SimplexPipe, StandardLinearModelPipe, TableauPipe,
 };
-use crate::pipe::pipe_runner::PipeRunner;
-use crate::solvers::common::IntegerBinaryLpSolution;
+use crate::pipe::{PipeDataType, PipeError, PipeableData};
+use crate::solvers::common::LpSolution;
 use crate::solvers::linear_integer_binary::VarValue;
 #[allow(unused_imports)]
 use crate::solvers::simplex::{CanonicalTransformError, OptimalTableau, SimplexError};
@@ -41,7 +41,7 @@ fn solve(source: &str) -> Result<OptimalTableau, PipeError> {
 
 #[allow(unused)]
 #[allow(clippy::result_large_err)]
-fn solve_binary(source: &str) -> Result<IntegerBinaryLpSolution<bool>, PipeError> {
+fn solve_binary(source: &str) -> Result<LpSolution<bool>, PipeError> {
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
         Box::new(PreModelPipe::new()),
@@ -68,7 +68,7 @@ fn solve_binary(source: &str) -> Result<IntegerBinaryLpSolution<bool>, PipeError
 
 #[allow(unused)]
 #[allow(clippy::result_large_err)]
-fn solve_integer_binary(source: &str) -> Result<IntegerBinaryLpSolution<VarValue>, PipeError> {
+fn solve_integer_binary(source: &str) -> Result<LpSolution<VarValue>, PipeError> {
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
         Box::new(PreModelPipe::new()),
@@ -431,11 +431,7 @@ fn should_solve_integer_problem() {
     let solution = solve_integer_binary(source).unwrap();
     assert_precision(solution.get_value(), 21.0);
     let assignment = solution.get_assignment_values();
-    assert_variables_integer(
-        &assignment,
-        &vec![VarValue::Int(0), VarValue::Int(7)],
-        false,
-    );
+    assert_variables_integer(&assignment, &[VarValue::Int(0), VarValue::Int(7)], false);
 }
 
 #[test]
@@ -497,7 +493,7 @@ fn should_solve_dynamic_domain() {
     let assignment = result.get_assignment_values();
     assert_variables_integer(
         &assignment,
-        &vec![
+        &[
             VarValue::Int(1),
             VarValue::Int(2),
             VarValue::Int(3),

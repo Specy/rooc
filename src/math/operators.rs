@@ -5,7 +5,7 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 use crate::enum_with_variants_to_string;
-use crate::traits::latex::ToLatex;
+use crate::traits::ToLatex;
 
 enum_with_variants_to_string! {
     pub enum Operator derives[Debug, PartialEq, Clone, Copy] with_wasm {

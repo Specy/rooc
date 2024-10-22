@@ -1,5 +1,5 @@
-use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
-use crate::parser::model_transformer::transformer_context::DomainVariable;
+use crate::math::{Comparison, OptimizationType, VariableType};
+use crate::parser::model_transformer::DomainVariable;
 use copper::views::{Times, ViewExt};
 use copper::{VarId, VarIdBinary};
 use indexmap::IndexMap;
@@ -17,6 +17,9 @@ pub enum SolverError {
         value: f64,
     },
     DidNotSolve,
+    Unbounded,
+    Other(String),
+    LimitReached,
     UnimplementedOptimizationType {
         expected: Vec<OptimizationType>,
         got: OptimizationType,
@@ -46,6 +49,15 @@ impl std::fmt::Display for SolverError {
                         .join(" or "),
                     vars
                 )
+            }
+            SolverError::Unbounded => {
+                write!(f, "The problem is unbounded")
+            }
+            SolverError::Other(s) => {
+                write!(f, "{}", s)
+            }
+            SolverError::LimitReached => {
+                write!(f, "The iteration limit was reached")
             }
             SolverError::UnavailableComparison { got, expected } => {
                 write!(
@@ -83,12 +95,12 @@ pub struct Assignment<T: Clone + Serialize + Copy> {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct IntegerBinaryLpSolution<T: Clone + Serialize + Copy> {
+pub struct LpSolution<T: Clone + Serialize + Copy> {
     assignment: Vec<Assignment<T>>,
     value: f64,
 }
 
-impl<T: Clone + Serialize + Copy> IntegerBinaryLpSolution<T> {
+impl<T: Clone + Serialize + Copy> LpSolution<T> {
     pub fn new(assignment: Vec<Assignment<T>>, value: f64) -> Self {
         Self { assignment, value }
     }

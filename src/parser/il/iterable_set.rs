@@ -4,10 +4,10 @@ use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::parser::il::il_exp::PreExp;
-use crate::parser::model_transformer::model::VariableKind;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::primitives::primitive::PrimitiveKind;
-use crate::traits::latex::ToLatex;
+use crate::parser::model_transformer::TransformError;
+use crate::parser::model_transformer::VariableKind;
+use crate::primitives::PrimitiveKind;
+use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, WithType,
 };
@@ -88,7 +88,7 @@ impl IterableSet {
     pub fn get_variable_types(
         &self,
         context: &TypeCheckerContext,
-        fn_context: &FunctionContext
+        fn_context: &FunctionContext,
     ) -> Result<Vec<(Spanned<String>, PrimitiveKind)>, TransformError> {
         let iter_type = self.iterator.get_type(context, fn_context);
 

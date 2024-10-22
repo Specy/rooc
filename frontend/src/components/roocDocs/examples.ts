@@ -40,7 +40,7 @@ export const ex_2 =`//This is the dominating set problem
 min sum(u in nodes(G)) { x_u }
 s.t. 
     // the variable "_" will simply ignore the value
-    x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1    for v in nodes(G)
+    x_v + sum((_, u) in neigh_edges(v)) { x_u } >= 1 for v in nodes(G)
 where
     let G = Graph {
         A -> [B, C, D, E, F],
@@ -55,7 +55,7 @@ where
         J -> [B, F, I]
     }
 define
-    x_u, x_v as Boolean for v in nodes(G), (_,_,u) in neigh_edges(v)
+    x_u, x_v as Boolean for v in nodes(G), (_, u) in neigh_edges(v)
 `
 
 export const roocExamples = [ex_1, ex_2]

@@ -4,15 +4,15 @@ use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use super::recursive_set_resolver::recursive_set_resolver;
-use crate::math::math_enums::PreVariableType;
-use crate::parser::il::il_problem::CompoundVariable;
-use crate::parser::il::iterable_set::IterableSet;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::TransformerContext;
+use crate::math::PreVariableType;
+use crate::parser::il::CompoundVariable;
+use crate::parser::il::IterableSet;
+use crate::parser::model_transformer::TransformError;
+use crate::parser::model_transformer::TransformerContext;
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{
-    math::math_enums::VariableType,
-    traits::latex::{escape_latex, ToLatex},
+    math::VariableType,
+    traits::{escape_latex, ToLatex},
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext},
     utils::{InputSpan, Spanned},
 };
@@ -158,9 +158,14 @@ impl VariablesDomainDeclaration {
             return self.compute_domain_values(context, fn_context);
         }
         let mut results: Vec<Vec<(String, Spanned<VariableType>)>> = Vec::new();
-        recursive_set_resolver(&self.iteration, context,fn_context, &mut results, 0, &|context| {
-            self.compute_domain_values(context, fn_context)
-        })
+        recursive_set_resolver(
+            &self.iteration,
+            context,
+            fn_context,
+            &mut results,
+            0,
+            &|context| self.compute_domain_values(context, fn_context),
+        )
         .map_err(|e| e.add_span(&self.span))?;
         Ok(results.into_iter().flatten().collect())
     }

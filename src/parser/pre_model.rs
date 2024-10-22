@@ -7,20 +7,20 @@ use std::fmt::Debug;
 use wasm_bindgen::prelude::*;
 
 use crate::bail_missing_token;
-use crate::math::math_enums::PreVariableType;
-use crate::parser::il::il_problem::{PreConstraint, PreObjective};
-use crate::parser::model_transformer::model::{transform_parsed_problem, Model};
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::assert_no_duplicates_in_domain;
-use crate::primitives::consts::Constant;
-use crate::traits::latex::ToLatex;
+use crate::math::PreVariableType;
+use crate::parser::il::{PreConstraint, PreObjective};
+use crate::parser::model_transformer::assert_no_duplicates_in_domain;
+use crate::parser::model_transformer::TransformError;
+use crate::parser::model_transformer::{transform_parsed_problem, Model};
+use crate::primitives::Constant;
+use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, TypedToken,
 };
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 
 use super::domain_declaration::VariablesDomainDeclaration;
-use super::rules_parser::other_parser::{
+use super::rules_parser::{
     parse_constraint_list, parse_consts_declaration, parse_domains_declaration, parse_objective,
 };
 

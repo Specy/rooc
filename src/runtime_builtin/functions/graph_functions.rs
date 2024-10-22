@@ -6,17 +6,13 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use super::function_traits::{
     default_type_check, default_wrong_number_of_arguments, default_wrong_type, RoocFunction,
 };
-use crate::parser::il::il_exp::PreExp;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::TransformerContext;
+use crate::parser::il::PreExp;
+use crate::parser::model_transformer::TransformError;
+use crate::parser::model_transformer::TransformerContext;
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{
-    primitives::{
-        iterable::IterableKind,
-        primitive::{Primitive, PrimitiveKind},
-    },
-    type_checker::type_checker_context::{TypeCheckerContext, WithType}
-    ,
+    primitives::{IterableKind, Primitive, PrimitiveKind},
+    type_checker::type_checker_context::{TypeCheckerContext, WithType},
 };
 
 #[derive(Debug, Serialize, Clone)]
@@ -30,7 +26,7 @@ impl RoocFunction for EdgesOfGraphFn {
     ) -> Result<Primitive, TransformError> {
         match args[..] {
             [ref of_graph] => {
-                let graph = of_graph.as_graph(context,fn_context)?;
+                let graph = of_graph.as_graph(context, fn_context)?;
                 let edges = graph.to_edges();
                 Ok(Primitive::Iterable(IterableKind::Edges(edges)))
             }
@@ -44,9 +40,9 @@ impl RoocFunction for EdgesOfGraphFn {
 
     fn get_return_type(
         &self,
-        args: &[PreExp],
-        context: &TypeCheckerContext,
-        fn_context: &FunctionContext,
+        _args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
     ) -> PrimitiveKind {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphEdge))
     }
@@ -79,7 +75,7 @@ impl RoocFunction for NodesOfGraphFn {
     ) -> Result<Primitive, TransformError> {
         match args[..] {
             [ref of_graph] => {
-                let graph = of_graph.as_graph(context,fn_context)?;
+                let graph = of_graph.as_graph(context, fn_context)?;
                 let nodes = graph.to_nodes();
                 Ok(Primitive::Iterable(IterableKind::Nodes(nodes)))
             }
@@ -93,9 +89,9 @@ impl RoocFunction for NodesOfGraphFn {
 
     fn get_return_type(
         &self,
-        args: &[PreExp],
-        context: &TypeCheckerContext,
-        fn_context: &FunctionContext,
+        _args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
     ) -> PrimitiveKind {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphNode))
     }
@@ -125,7 +121,7 @@ impl RoocFunction for NeighbourOfNodeFn {
     ) -> Result<Primitive, TransformError> {
         match args[..] {
             [ref of_node] => {
-                let node = of_node.as_node(context,fn_context)?;
+                let node = of_node.as_node(context, fn_context)?;
                 Ok(Primitive::Iterable(IterableKind::Edges(node.to_edges())))
             }
             _ => Err(default_wrong_number_of_arguments(self)),
@@ -133,16 +129,14 @@ impl RoocFunction for NeighbourOfNodeFn {
     }
 
     fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
-        vec![(
-            "of_node".to_string(), PrimitiveKind::GraphNode
-        )]
+        vec![("of_node".to_string(), PrimitiveKind::GraphNode)]
     }
 
     fn get_return_type(
         &self,
-        args: &[PreExp],
-        context: &TypeCheckerContext,
-        fn_context: &FunctionContext,
+        _args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
     ) -> PrimitiveKind {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphEdge))
     }
@@ -190,9 +184,9 @@ impl RoocFunction for NeighboursOfNodeInGraphFn {
 
     fn get_return_type(
         &self,
-        args: &[PreExp],
-        context: &TypeCheckerContext,
-        fn_context: &FunctionContext,
+        _args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
     ) -> PrimitiveKind {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphEdge))
     }

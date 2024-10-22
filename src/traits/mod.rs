@@ -1,1 +1,3 @@
-pub mod latex;
+mod latex;
+
+pub use latex::*;

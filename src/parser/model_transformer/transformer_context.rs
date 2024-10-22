@@ -2,15 +2,15 @@ use indexmap::IndexMap;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::math::math_enums::VariableType;
+use crate::math::VariableType;
 use crate::parser::domain_declaration::VariablesDomainDeclaration;
-use crate::parser::il::il_problem::AddressableAccess;
+use crate::parser::il::AddressableAccess;
 use crate::parser::model_transformer::transform_error::TransformError;
-use crate::primitives::consts::Constant;
-use crate::primitives::primitive::{Primitive, PrimitiveKind};
-use crate::runtime_builtin::functions::function_traits::RoocFunction;
-use crate::runtime_builtin::reserved_tokens::check_if_reserved_token;
-use crate::runtime_builtin::rooc_std::ROOC_STD;
+use crate::primitives::Constant;
+use crate::primitives::{Primitive, PrimitiveKind};
+use crate::runtime_builtin::check_if_reserved_token;
+use crate::runtime_builtin::RoocFunction;
+use crate::runtime_builtin::ROOC_STD;
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::utils::{InputSpan, Spanned};
 

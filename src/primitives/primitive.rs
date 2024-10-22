@@ -9,12 +9,12 @@ use super::{
     iterable::IterableKind,
     tuple::Tuple,
 };
-use crate::math::math_utils::{float_lt, float_ne};
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::traits::latex::ToLatex;
+use crate::math::{float_lt, float_ne};
+use crate::parser::model_transformer::TransformError;
+use crate::traits::ToLatex;
 use crate::{
     bail_wrong_argument, match_or_bail,
-    math::operators::{BinOp, UnOp},
+    math::{BinOp, UnOp},
     primitives::primitive_traits::ApplyOp,
     wrong_argument,
 };
@@ -130,8 +130,8 @@ impl PrimitiveKind {
             PrimitiveKind::Tuple(t) => Ok(t.clone()),
             PrimitiveKind::GraphEdge => Ok(vec![
                 PrimitiveKind::String,
-                PrimitiveKind::Number,
                 PrimitiveKind::String,
+                PrimitiveKind::Number,
             ]),
             _ => Err(TransformError::Unspreadable(self.clone())),
         }

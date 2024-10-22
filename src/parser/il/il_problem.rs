@@ -4,13 +4,13 @@ use wasm_bindgen::prelude::*;
 
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::iterable_set::IterableSet;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::TransformerContext;
-use crate::traits::latex::ToLatex;
+use crate::parser::model_transformer::TransformError;
+use crate::parser::model_transformer::TransformerContext;
+use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{
-    math::math_enums::{Comparison, OptimizationType},
-    primitives::primitive::Primitive,
+    math::{Comparison, OptimizationType},
+    primitives::Primitive,
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::InputSpan,
 };
@@ -81,7 +81,7 @@ impl CompoundVariable {
     pub fn compute_indexes(
         &self,
         context: &TransformerContext,
-        fn_context: &FunctionContext
+        fn_context: &FunctionContext,
     ) -> Result<Vec<Primitive>, TransformError> {
         self.indexes
             .iter()

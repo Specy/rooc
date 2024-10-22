@@ -7,7 +7,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::enum_with_variants_to_string;
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::iterable_set::IterableSet;
-use crate::traits::latex::ToLatex;
+use crate::traits::ToLatex;
 use crate::utils::InputSpan;
 
 enum_with_variants_to_string! {

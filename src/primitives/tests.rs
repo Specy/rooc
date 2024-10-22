@@ -7,7 +7,7 @@ mod primitive_tests {
         let source = "
         min 1
         s.t.
-            sum((u,c,v) in edges(G)){ (x_u + x_v)*c } <= 1
+            sum((u,v,c) in edges(G)){ (x_u + x_v)*c } <= 1
             sum((first, second) in A){ first + second } <= 1
             sum((el, j) in enumerate(A[i])){ el * j } <= 1 for i in 0..len(A)
             where 
@@ -20,7 +20,7 @@ mod primitive_tests {
                     [3, 4]
                 ]
             define
-                x_u, x_v as Boolean for (u, _, v) in edges(G)  
+                x_u, x_v as Boolean for (u, v) in edges(G)  
         ";
         RoocParser::new(source.to_string())
             .parse_and_transform()

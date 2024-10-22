@@ -1,17 +1,12 @@
 use serde::Serialize;
 
-use super::function_traits::{
-    default_wrong_number_of_arguments, default_wrong_type, RoocFunction,
-};
-use crate::parser::il::il_exp::PreExp;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::TransformerContext;
+use super::function_traits::{default_wrong_number_of_arguments, default_wrong_type, RoocFunction};
+use crate::parser::il::PreExp;
+use crate::parser::model_transformer::TransformError;
+use crate::parser::model_transformer::TransformerContext;
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{
-    primitives::{
-        iterable::IterableKind,
-        primitive::{Primitive, PrimitiveKind},
-    },
+    primitives::{IterableKind, Primitive, PrimitiveKind},
     type_checker::type_checker_context::{TypeCheckerContext, WithType},
 };
 

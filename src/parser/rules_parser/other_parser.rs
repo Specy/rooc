@@ -2,27 +2,25 @@ use std::vec;
 
 use pest::iterators::{Pair, Pairs};
 
-use crate::math::math_enums::{Comparison, OptimizationType, PreVariableType};
+use crate::math::{Comparison, OptimizationType, PreVariableType};
 use crate::parser::domain_declaration::{VariableToAssert, VariablesDomainDeclaration};
-use crate::parser::il::block_functions::{
+use crate::parser::il::IterableSet;
+use crate::parser::il::PreExp;
+use crate::parser::il::{AddressableAccess, CompoundVariable, PreConstraint, PreObjective};
+use crate::parser::il::{
     BlockFunction, BlockFunctionKind, BlockScopedFunction, BlockScopedFunctionKind,
 };
-use crate::parser::il::il_exp::PreExp;
-use crate::parser::il::il_problem::{
-    AddressableAccess, CompoundVariable, PreConstraint, PreObjective,
-};
-use crate::parser::il::iterable_set::IterableSet;
 use crate::parser::iterable_utils::flatten_primitive_array_values;
-use crate::parser::model_transformer::model::VariableKind;
+use crate::parser::model_transformer::VariableKind;
 use crate::parser::pre_model::Rule;
-use crate::primitives::consts::Constant;
-use crate::primitives::graph::{Graph, GraphEdge, GraphNode};
-use crate::primitives::primitive::Primitive;
+use crate::primitives::Constant;
+use crate::primitives::Primitive;
+use crate::primitives::{Graph, GraphEdge, GraphNode};
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 
 use super::exp_parser::parse_exp;
 
-use crate::runtime_builtin::functions::function_traits::FunctionCall;
+use crate::runtime_builtin::FunctionCall;
 use crate::{bail_missing_token, err_unexpected_token};
 
 pub fn parse_objective(objective: Pair<Rule>) -> Result<PreObjective, CompilationError> {

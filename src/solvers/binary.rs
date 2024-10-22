@@ -1,15 +1,11 @@
-use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
-use crate::solvers::common::{
-    find_invalid_variables, Assignment, IntegerBinaryLpSolution, SolverError,
-};
-use crate::transformers::linear_model::LinearModel;
+use crate::math::{Comparison, OptimizationType, VariableType};
+use crate::solvers::common::{find_invalid_variables, Assignment, LpSolution, SolverError};
+use crate::transformers::LinearModel;
 use copper::views::ViewExt;
 use copper::*;
 use num_traits::ToPrimitive;
 
-pub fn solve_binary_lp_problem(
-    lp: &LinearModel,
-) -> Result<IntegerBinaryLpSolution<bool>, SolverError> {
+pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<LpSolution<bool>, SolverError> {
     let non_binary_variables =
         find_invalid_variables(lp.get_domain(), |var| matches!(var, VariableType::Boolean));
     if !non_binary_variables.is_empty() {
@@ -102,7 +98,7 @@ pub fn solve_binary_lp_problem(
                 .collect::<Vec<Assignment<bool>>>();
             let value = solution[objective] as f64 + lp.get_objective_offset();
             assignment.sort_by(|a, b| a.name.cmp(&b.name));
-            let sol = IntegerBinaryLpSolution::new(assignment, value);
+            let sol = LpSolution::new(assignment, value);
             Ok(sol)
         }
     }

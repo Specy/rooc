@@ -1,10 +1,10 @@
 use pest::iterators::Pair;
 use pest::pratt_parser::PrattParser;
 
-use crate::parser::il::il_exp::PreExp;
+use crate::parser::il::PreExp;
 use crate::{
     err_unexpected_token,
-    math::operators::{BinOp, UnOp},
+    math::{BinOp, UnOp},
     parser::pre_model::Rule,
     utils::{CompilationError, InputSpan, ParseError, Spanned},
 };

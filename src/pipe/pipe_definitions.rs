@@ -2,17 +2,17 @@ use std::fmt::Display;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::parser::model_transformer::model::Model;
-use crate::parser::model_transformer::transform_error::TransformError;
+use crate::parser::model_transformer::Model;
+use crate::parser::model_transformer::TransformError;
 use crate::parser::pre_model::PreModel;
-use crate::solvers::common::{IntegerBinaryLpSolution, SolverError};
-use crate::solvers::linear_integer_binary::VarValue;
-use crate::solvers::simplex::{
+use crate::solvers::VarValue;
+use crate::solvers::{
     CanonicalTransformError, OptimalTableau, OptimalTableauWithSteps, SimplexError, Tableau,
 };
-use crate::transformers::linear_model::LinearModel;
-use crate::transformers::linearizer::LinearizationError;
-use crate::transformers::standard_linear_model::StandardLinearModel;
+use crate::solvers::{LpSolution, SolverError};
+use crate::transformers::LinearModel;
+use crate::transformers::LinearizationError;
+use crate::transformers::StandardLinearModel;
 use crate::utils::CompilationError;
 use crate::{match_pipe_data_to, RoocParser};
 
@@ -27,8 +27,8 @@ pub enum PipeableData {
     Tableau(Tableau),
     OptimalTableau(OptimalTableau),
     OptimalTableauWithSteps(OptimalTableauWithSteps),
-    BinarySolution(IntegerBinaryLpSolution<bool>),
-    IntegerBinarySolution(IntegerBinaryLpSolution<VarValue>),
+    BinarySolution(LpSolution<bool>),
+    IntegerBinarySolution(LpSolution<VarValue>),
 }
 
 #[allow(clippy::result_large_err)]
@@ -77,24 +77,20 @@ impl PipeableData {
     pub fn to_optimal_tableau_with_steps(self) -> Result<OptimalTableauWithSteps, PipeError> {
         match_pipe_data_to!(self, OptimalTableauWithSteps, OptimalTableauWithSteps)
     }
-    pub fn to_binary_solution(self) -> Result<IntegerBinaryLpSolution<bool>, PipeError> {
+    pub fn to_binary_solution(self) -> Result<LpSolution<bool>, PipeError> {
         match_pipe_data_to!(self, BinarySolution, BinarySolution)
     }
 
-    pub fn to_integer_binary_solution(
-        self,
-    ) -> Result<IntegerBinaryLpSolution<VarValue>, PipeError> {
+    pub fn to_integer_binary_solution(self) -> Result<LpSolution<VarValue>, PipeError> {
         match_pipe_data_to!(self, IntegerBinarySolution, IntegerBinarySolution)
     }
     pub fn as_string_data(&self) -> Result<&String, PipeError> {
         match_pipe_data_to!(self, String, String)
     }
-    pub fn as_binary_solution(&self) -> Result<&IntegerBinaryLpSolution<bool>, PipeError> {
+    pub fn as_binary_solution(&self) -> Result<&LpSolution<bool>, PipeError> {
         match_pipe_data_to!(self, BinarySolution, BinarySolution)
     }
-    pub fn as_integer_binary_solution(
-        &self,
-    ) -> Result<&IntegerBinaryLpSolution<VarValue>, PipeError> {
+    pub fn as_integer_binary_solution(&self) -> Result<&LpSolution<VarValue>, PipeError> {
         match_pipe_data_to!(self, IntegerBinarySolution, IntegerBinarySolution)
     }
 

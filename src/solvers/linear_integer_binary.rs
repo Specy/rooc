@@ -1,9 +1,9 @@
-use crate::math::math_enums::{Comparison, OptimizationType, VariableType};
+use crate::math::{Comparison, OptimizationType, VariableType};
 use crate::solvers::common::{
-    find_invalid_variables, process_variables, process_variables_binary, Assignment,
-    IntegerBinaryLpSolution, SolverError,
+    find_invalid_variables, process_variables, process_variables_binary, Assignment, LpSolution,
+    SolverError,
 };
-use crate::transformers::linear_model::LinearModel;
+use crate::transformers::LinearModel;
 use copper::*;
 use indexmap::IndexMap;
 use num_traits::ToPrimitive;
@@ -18,7 +18,7 @@ pub enum VarValue {
 
 pub fn solve_integer_binary_lp_problem(
     lp: &LinearModel,
-) -> Result<IntegerBinaryLpSolution<VarValue>, SolverError> {
+) -> Result<LpSolution<VarValue>, SolverError> {
     let invalid_variables = find_invalid_variables(lp.get_domain(), |var| {
         matches!(
             var,
@@ -200,7 +200,7 @@ pub fn solve_integer_binary_lp_problem(
                 .collect::<Vec<Assignment<VarValue>>>();
             assignment.sort_by(|a, b| a.name.cmp(&b.name));
             let value = solution[objective] as f64 + lp.get_objective_offset();
-            let sol = IntegerBinaryLpSolution::new(assignment, value);
+            let sol = LpSolution::new(assignment, value);
             Ok(sol)
         }
     }

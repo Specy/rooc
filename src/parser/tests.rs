@@ -7,7 +7,7 @@ mod parser_tests {
         let input = "
 min sum(u in nodes(G)) { x_u }
 s.t. 
-    x_v + sum((_, _, u) in neigh_edges(v)) { x_u } >= 1    for v in nodes(G)
+    x_v + sum((_, u) in neigh_edges(v)) { x_u } >= 1 for v in nodes(G)
 where
     let G = Graph {
         A -> [B, C, D, E, F],
@@ -22,7 +22,7 @@ where
         J -> [B, F, I]
     }
 define
-    x_u as Boolean for v in nodes(G), (_,_,u) in edges(G) 
+    x_u as Boolean for v in nodes(G), (_, u) in edges(G) 
     x_v as Boolean for v in nodes(G)
         ";
         RoocParser::new(input.to_string())
@@ -255,11 +255,11 @@ define
         min 1
         s.t.
 
-            sum((u, c, v) in edges(G)) { x_u * c + x_v * c } <= 0
+            sum((u, v, c) in edges(G)) { x_u * c + x_v * c } <= 0
             sum(n in nodes(G)) { x_n } <= 0
             sum((n, i) in enumerate(nodes(G))) { x_n + 1} <= 0
-            sum((_, _, u) in neigh_edges(n)) { x_u } <= 0 for n in nodes(G)
-            sum((_, _, u) in neigh_edges_of(v, G)) { x_u } <= x_v for (v) in edges(G)
+            sum((_, u) in neigh_edges(n)) { x_u } <= 0 for n in nodes(G)
+            sum((_, u) in neigh_edges_of(v, G)) { x_u } <= x_v for (v) in edges(G)
         where
             let G = Graph {
                 A -> [B: 10, C],
@@ -267,7 +267,7 @@ define
                 C -> [A, B]
             }
         define
-            x_u, x_v as Boolean for (u, _, v) in edges(G)
+            x_u, x_v as Boolean for (u, v) in edges(G)
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform()

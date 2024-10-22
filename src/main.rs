@@ -1,7 +1,4 @@
-use rooc::pipe::pipe_definitions::PipeableData;
-use rooc::pipe::pipe_executors::{CompilerPipe, PreModelPipe};
-use rooc::pipe::pipe_runner::PipeRunner;
-use rooc::traits::latex::ToLatex;
+use rooc::pipe::{CompilerPipe, PipeRunner, PipeableData, PreModelPipe};
 
 #[allow(unused)]
 fn main() {
@@ -35,13 +32,12 @@ define
     match result {
         Ok(data) => {
             let last = data.last().unwrap();
-            println!("{}",last.as_pre_model().unwrap().to_latex());
             let str = data
                 .iter()
                 .map(|data| format!("//--------{}--------//\n\n{}", data.get_type(), data))
                 .collect::<Vec<String>>()
                 .join("\n\n");
-           // println!("{}", str)
+            println!("{}", str)
         }
         Err((error, context)) => {
             return;

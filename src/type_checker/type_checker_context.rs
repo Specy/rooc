@@ -2,17 +2,16 @@ use indexmap::IndexMap;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::math::math_enums::PreVariableType;
-use crate::parser::il::il_exp::PreExp;
-use crate::parser::il::il_problem::AddressableAccess;
-use crate::parser::model_transformer::transform_error::TransformError;
-use crate::parser::model_transformer::transformer_context::Frame;
-use crate::runtime_builtin::functions::function_traits::RoocFunction;
-use crate::runtime_builtin::rooc_std::ROOC_STD;
+use crate::math::PreVariableType;
+use crate::parser::il::AddressableAccess;
+use crate::parser::il::PreExp;
+use crate::parser::model_transformer::Frame;
+use crate::parser::model_transformer::TransformError;
+use crate::runtime_builtin::RoocFunction;
+use crate::runtime_builtin::ROOC_STD;
 use crate::utils::Spanned;
 use crate::{
-    primitives::primitive::PrimitiveKind,
-    runtime_builtin::reserved_tokens::check_if_reserved_token, utils::InputSpan,
+    primitives::PrimitiveKind, runtime_builtin::check_if_reserved_token, utils::InputSpan,
 };
 
 pub trait TypeCheckable {
@@ -111,7 +110,7 @@ pub struct TypeCheckerContext {
     token_map: IndexMap<u32, TypedToken>,
 }
 
-impl<'a> Default for TypeCheckerContext {
+impl Default for TypeCheckerContext {
     fn default() -> Self {
         let primitives = IndexMap::new();
         let token_map = IndexMap::new();
