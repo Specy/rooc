@@ -36,7 +36,7 @@ struct IndependentVariable {
 }
 
 impl StandardLinearModel {
-    pub fn into_canonical(self) -> Result<Tableau, CanonicalTransformError> {
+    pub fn into_tableau(self) -> Result<Tableau, CanonicalTransformError> {
         let mut usable_independent_vars: Vec<IndependentVariable> = Vec::new();
         //find independent variables by checking if the column has a single value, and if so, add it to the independent list
         for column in 0..self.variables.len() {

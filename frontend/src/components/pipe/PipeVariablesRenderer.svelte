@@ -29,11 +29,7 @@
                     <Var value={varName}/>
                 </th>
             {/each}
-            <th class="slack-surplus">
-                <div style="opacity: 0;">
-                    {formatNum(biggestRhs)}
-                </div>
-            </th>
+
         </tr>
 
         </thead>
@@ -44,9 +40,7 @@
                         class:slack-surplus={vars[i].startsWith("$")}
                 >{formatNum(value)}</th>
             {/each}
-            <th class="slack-surplus">
 
-            </th>
 
         </tr>
         </tbody>

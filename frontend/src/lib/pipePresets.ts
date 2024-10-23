@@ -10,7 +10,7 @@ function makePipePreset(name: string, pipes: Pipes[]): PipePreset {
 }
 
 export const pipePresets = [
-    makePipePreset("Simplex solver Step by step", [
+    makePipePreset("Simplex solver Step by Step", [
         Pipes.CompilerPipe,
         Pipes.PreModelPipe,
         Pipes.ModelPipe,

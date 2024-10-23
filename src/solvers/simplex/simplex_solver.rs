@@ -6,7 +6,7 @@ use crate::transformers::LinearModel;
 pub fn solve_lp_problem(lp: &LinearModel, limit: i64) -> Result<LpSolution<f64>, SolverError> {
     let standard = lp.clone().into_standard_form()?;
     let mut canonical_form = standard
-        .into_canonical()
+        .into_tableau()
         .map_err(|e| SolverError::Other(e.to_string()))?;
 
     let solution = canonical_form.solve(limit);

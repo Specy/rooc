@@ -16,6 +16,8 @@
             {rest.join(', ')}
         </mn>
     </msub>
+    {:else}
+    <mi style="display: unset">{varName}</mi>
 {/if}
 
 <style>
