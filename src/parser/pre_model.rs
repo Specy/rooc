@@ -13,6 +13,7 @@ use crate::parser::model_transformer::assert_no_duplicates_in_domain;
 use crate::parser::model_transformer::TransformError;
 use crate::parser::model_transformer::{transform_parsed_problem, Model};
 use crate::primitives::Constant;
+use crate::runtime_builtin::{RoocFunction, ROOC_STD};
 use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, TypedToken,
@@ -76,8 +77,8 @@ impl PreModel {
     pub fn get_domains(&self) -> &Vec<VariablesDomainDeclaration> {
         &self.domains
     }
-    pub fn transform(self) -> Result<Model, TransformError> {
-        transform_parsed_problem(self)
+    pub fn transform(self, fns: IndexMap<String, Box<dyn RoocFunction>>) -> Result<Model, TransformError> {
+        transform_parsed_problem(self, fns)
     }
     pub fn get_source(&self) -> Option<String> {
         self.source.clone()
@@ -93,10 +94,10 @@ impl PreModel {
             })
             .collect::<Vec<_>>()
     }
-    pub fn create_type_checker(&self) -> Result<(), TransformError> {
+    pub fn create_type_checker(&self, fns: IndexMap<String, Box<dyn RoocFunction>>) -> Result<(), TransformError> {
         let mut context = TypeCheckerContext::default();
         let domain = self.get_static_domain();
-        let fn_context = FunctionContext::default();
+        let fn_context = FunctionContext::new(fns, &ROOC_STD);
         //TODO add span
         assert_no_duplicates_in_domain(
             &domain
@@ -118,10 +119,10 @@ impl PreModel {
         }
         self.type_check(&mut context, &fn_context)
     }
-    pub fn create_token_type_map(&self) -> IndexMap<u32, TypedToken> {
+    pub fn create_token_type_map(&self, fns: IndexMap<String, Box<dyn RoocFunction>>) -> IndexMap<u32, TypedToken> {
         let mut context = TypeCheckerContext::default();
         let domain = self.get_static_domain();
-        let fn_context = FunctionContext::default();
+        let fn_context = FunctionContext::new(fns, &ROOC_STD);
         context.set_static_domain(domain);
         for constants in &self.constants {
             constants.populate_token_type_map(&mut context, &fn_context);
@@ -202,7 +203,7 @@ impl ToLatex for PreModel {
 #[wasm_bindgen]
 impl PreModel {
     pub fn transform_wasm(self) -> Result<Model, TransformErrorWrapper> {
-        self.transform()
+        self.transform(IndexMap::new())
             .map_err(|e| TransformErrorWrapper { error: e })
     }
     pub fn serialize_wasm(&self) -> JsValue {
@@ -212,12 +213,12 @@ impl PreModel {
         self.to_string()
     }
     pub fn type_check_wasm(self) -> Result<(), TransformErrorWrapper> {
-        self.create_type_checker()
+        self.create_type_checker(IndexMap::new())
             .map(|_| ())
             .map_err(|e| TransformErrorWrapper { error: e })
     }
     pub fn create_token_type_map_wasm(&self) -> JsValue {
-        serde_wasm_bindgen::to_value(&self.create_token_type_map()).unwrap()
+        serde_wasm_bindgen::to_value(&self.create_token_type_map(IndexMap::new())).unwrap()
     }
     pub fn to_latex_wasm(&self) -> String {
         self.to_latex()

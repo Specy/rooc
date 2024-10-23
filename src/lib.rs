@@ -3,12 +3,14 @@ extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 
+use indexmap::IndexMap;
 use wasm_bindgen::prelude::*;
 
 use parser::pre_model::{parse_problem_source, PreModel};
 use utils::CompilationError;
 
 use crate::parser::model_transformer::{transform_parsed_problem, Model};
+use crate::runtime_builtin::RoocFunction;
 
 pub mod macros;
 pub mod math;
@@ -39,11 +41,14 @@ impl RoocParser {
         let parsed = self.parse()?;
         Ok(parsed.to_string())
     }
-    pub fn parse_and_transform(&self) -> Result<Model, String> {
+    pub fn parse_and_transform(
+        &self,
+        fns: IndexMap<String, Box<dyn RoocFunction>>,
+    ) -> Result<Model, String> {
         let parsed = self
             .parse()
             .map_err(|e| e.to_string_from_source(&self.source))?;
-        let transformed = transform_parsed_problem(parsed);
+        let transformed = transform_parsed_problem(parsed, fns);
         match transformed {
             Ok(transformed) => Ok(transformed),
             Err(e) => Err(e
@@ -51,11 +56,11 @@ impl RoocParser {
                 .unwrap_or(e.get_traced_error())),
         }
     }
-    pub fn type_check(&self) -> Result<(), String> {
+    pub fn type_check(&self, fns: IndexMap<String, Box<dyn RoocFunction>>) -> Result<(), String> {
         let parsed = self
             .parse()
             .map_err(|e| e.to_string_from_source(&self.source))?;
-        match parsed.create_type_checker() {
+        match parsed.create_type_checker(fns) {
             Ok(_) => Ok(()),
             Err(e) => Err(e
                 .get_trace_from_source(&self.source)
@@ -76,7 +81,7 @@ impl RoocParser {
         self.parse()
     }
     pub fn parse_and_transform_wasm(&self) -> Result<Model, String> {
-        self.parse_and_transform()
+        self.parse_and_transform(IndexMap::new())
     }
     pub fn wasm_get_source(&self) -> String {
         self.source.clone()

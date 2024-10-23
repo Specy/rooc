@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
@@ -81,13 +82,13 @@ impl ModelPipe {
 impl Pipeable for ModelPipe {
     fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
         let pre_model = data.as_pre_model()?;
-        if let Err(e) = pre_model.create_type_checker() {
+        if let Err(e) = pre_model.create_type_checker(IndexMap::new()) {
             return Err(PipeError::TransformError {
                 error: e,
                 source: pre_model.get_source().unwrap_or("".to_string()),
             });
         }
-        match pre_model.clone().transform() {
+        match pre_model.clone().transform(IndexMap::new()) {
             Ok(model) => Ok(PipeableData::Model(model)),
             Err(e) => Err(PipeError::TransformError {
                 error: e,

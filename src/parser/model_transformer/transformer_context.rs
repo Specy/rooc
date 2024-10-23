@@ -9,8 +9,6 @@ use crate::parser::model_transformer::transform_error::TransformError;
 use crate::primitives::Constant;
 use crate::primitives::{Primitive, PrimitiveKind};
 use crate::runtime_builtin::check_if_reserved_token;
-use crate::runtime_builtin::RoocFunction;
-use crate::runtime_builtin::ROOC_STD;
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::utils::{InputSpan, Spanned};
 
@@ -131,13 +129,12 @@ impl TransformerContext {
             domain,
         }
     }
-    pub fn new_from_constants(
+    pub fn new_from_constants<'a>(
         constants: Vec<Constant>,
         domain: Vec<VariablesDomainDeclaration>,
-        functions: IndexMap<String, Box<dyn RoocFunction>>,
+        fn_context: &FunctionContext,
     ) -> Result<Self, TransformError> {
         let mut context = Self::default();
-        let fn_context = FunctionContext::new(functions, &ROOC_STD);
 
         for constant in constants {
             let value = constant.as_primitive(&context, &fn_context)?;
