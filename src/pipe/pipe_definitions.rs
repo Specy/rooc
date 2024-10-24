@@ -222,5 +222,5 @@ impl Display for PipeError {
 
 pub trait Pipeable {
     #[allow(clippy::result_large_err)]
-    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError>;
+    fn pipe(&self, data: &mut PipeableData, ) -> Result<PipeableData, PipeError>;
 }

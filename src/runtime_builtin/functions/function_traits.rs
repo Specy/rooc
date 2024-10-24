@@ -161,7 +161,7 @@ pub fn default_rooc_function_to_string(function: &FunctionCall) -> String {
     )
 }
 
-pub trait RoocFunction: Debug + Send + Sync {
+pub trait RoocFunction: Debug  {
     fn call(
         &self,
         args: &[PreExp],

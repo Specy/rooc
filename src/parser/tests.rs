@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod parser_tests {
+    use indexmap::IndexMap;
     use crate::RoocParser;
 
     #[test]
@@ -26,10 +27,10 @@ define
     x_v as Boolean for v in nodes(G)
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to type check problem");
     }
 
@@ -41,10 +42,10 @@ define
             1 >= 1
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to type check problem");
     }
 
@@ -67,10 +68,10 @@ define
             }
     ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to type check problem");
     }
 
@@ -84,10 +85,10 @@ define
                 let M = [[1, 2], [3, 4]]
             ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to type check problem");
     }
 
@@ -107,10 +108,10 @@ define
                 let A = [1, 2, 3, 4]
             ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to type check problem");
     }
 
@@ -127,10 +128,10 @@ define
                 x as Real
             ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to type check problem");
     }
 
@@ -158,10 +159,10 @@ define
             x,y,z as Real
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to type check problem");
     }
 
@@ -175,10 +176,10 @@ define
             x, y, z as Boolean
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to type check problem");
     }
 
@@ -192,7 +193,7 @@ define
                 let A = [1, 2, 3, 4]
             ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect_err("Failed to detect invalid primitive type");
     }
 
@@ -206,7 +207,7 @@ define
                 let M = [[1, 2], [3, 4]]
             ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect_err("Failed to detect invalid primitive type");
     }
 
@@ -220,7 +221,7 @@ define
                 let S = \"Hello\"
             ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect_err("Failed to detect invalid primitive type");
     }
 
@@ -242,10 +243,10 @@ define
             ]
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to type check problem");
     }
 
@@ -270,10 +271,10 @@ define
             x_u, x_v as Boolean for (u, v) in edges(G)
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to type check problem");
     }
 
@@ -301,10 +302,10 @@ define
             x_i as Boolean for i in n
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to type check problem");
     }
 
@@ -322,10 +323,10 @@ define
             x_u, x_{u + 1}, x_{len(c) + 2}, x_1, x_{-1} as Boolean
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to type check problem");
     }
 
@@ -339,10 +340,10 @@ define
             let nodes = [1]
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect_err("Failed to detect invalid identifier name");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect_err("Failed to detect invalid identifier name");
     }
 
@@ -356,10 +357,10 @@ define
             let a = [1]
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect_err("Failed to detect invalid identifier name");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect_err("Failed to detect invalid identifier name");
     }
 
@@ -374,10 +375,10 @@ define
         ";
 
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect_err("Failed to detect invalid identifier name");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect_err("Failed to detect invalid identifier name");
     }
 
@@ -392,7 +393,7 @@ define
             x_v as Boolean for v in 0..10
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect_err("Failed to detect duplicate domain");
     }
 
@@ -409,7 +410,7 @@ define
             x as IntegerRange(10, 20)
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
     }
 
@@ -434,10 +435,10 @@ define
             x as Real //aaa
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to typecheck problem");
     }
 
@@ -449,10 +450,10 @@ define
             x <= 2
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect_err("Failed to detect undeclared static variable");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect_err("Failed to detect undeclared static variable");
     }
     #[test]
@@ -465,10 +466,10 @@ define
             x as Real
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to typecheck problem");
     }
     #[test]
@@ -481,10 +482,10 @@ define
             let x = 2
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to typecheck problem");
     }
     #[test]
@@ -500,7 +501,7 @@ define
         ";
         //TODO should i add this to the compiler too?
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect_err("Failed to typecheck duplicate");
     }
 
@@ -516,7 +517,7 @@ define
             x as IntegerRange(0, a)
         ";
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect_err("Failed to find domain type error");
     }
 
@@ -536,7 +537,7 @@ define
             z_3 as IntegerRange(0, len(y))
         ";
         RoocParser::new(input.to_string())
-            .type_check()
+            .type_check(IndexMap::new())
             .expect("Failed to typecheck");
     }
 }

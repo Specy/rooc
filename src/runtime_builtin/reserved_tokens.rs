@@ -6,7 +6,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::parser::il::{BlockFunctionKind, BlockScopedFunctionKind};
 use crate::parser::model_transformer::TransformError;
-use crate::runtime_builtin::rooc_std::ROOC_STD;
+use crate::runtime_builtin::make_std;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum TokenType {
@@ -59,7 +59,7 @@ lazy_static! {
             m.insert(v, TokenType::Function);
         }
 
-        let builtin_fn = ROOC_STD
+        let builtin_fn = make_std()
             .keys()
             .map(|x| x.to_string())
             .collect::<Vec<String>>();

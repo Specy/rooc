@@ -13,7 +13,6 @@
     let vars = $derived(baseTableau.getVariableNames())
     let values = $derived(tableau.getVariablesValues())
 
-    let biggestRhs = $derived(Math.max(tableau.getOptimalValue(), ...baseTableau.getBVector()))
 </script>
 
 
@@ -71,7 +70,7 @@
     }
   }
 
-  th, td {
+  th {
     padding: 0.3rem;
     text-align: center;
     border: solid 0.1rem var(--secondary-5);

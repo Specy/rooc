@@ -13,7 +13,7 @@ use crate::parser::model_transformer::assert_no_duplicates_in_domain;
 use crate::parser::model_transformer::TransformError;
 use crate::parser::model_transformer::{transform_parsed_problem, Model};
 use crate::primitives::Constant;
-use crate::runtime_builtin::{RoocFunction, ROOC_STD};
+use crate::runtime_builtin::{make_std, JsFunction, RoocFunction};
 use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, TypedToken,
@@ -77,7 +77,10 @@ impl PreModel {
     pub fn get_domains(&self) -> &Vec<VariablesDomainDeclaration> {
         &self.domains
     }
-    pub fn transform(self, fns: IndexMap<String, Box<dyn RoocFunction>>) -> Result<Model, TransformError> {
+    pub fn transform(
+        self,
+        fns: IndexMap<String, Box<dyn RoocFunction>>,
+    ) -> Result<Model, TransformError> {
         transform_parsed_problem(self, fns)
     }
     pub fn get_source(&self) -> Option<String> {
@@ -94,10 +97,13 @@ impl PreModel {
             })
             .collect::<Vec<_>>()
     }
-    pub fn create_type_checker(&self, fns: IndexMap<String, Box<dyn RoocFunction>>) -> Result<(), TransformError> {
+    pub fn create_type_checker(
+        &self,
+        fns: IndexMap<String, Box<dyn RoocFunction>>,
+    ) -> Result<(), TransformError> {
         let mut context = TypeCheckerContext::default();
         let domain = self.get_static_domain();
-        let fn_context = FunctionContext::new(fns, &ROOC_STD);
+        let fn_context = FunctionContext::new(fns, make_std());
         //TODO add span
         assert_no_duplicates_in_domain(
             &domain
@@ -119,10 +125,13 @@ impl PreModel {
         }
         self.type_check(&mut context, &fn_context)
     }
-    pub fn create_token_type_map(&self, fns: IndexMap<String, Box<dyn RoocFunction>>) -> IndexMap<u32, TypedToken> {
+    pub fn create_token_type_map(
+        &self,
+        fns: IndexMap<String, Box<dyn RoocFunction>>,
+    ) -> IndexMap<u32, TypedToken> {
         let mut context = TypeCheckerContext::default();
         let domain = self.get_static_domain();
-        let fn_context = FunctionContext::new(fns, &ROOC_STD);
+        let fn_context = FunctionContext::new(fns, make_std());
         context.set_static_domain(domain);
         for constants in &self.constants {
             constants.populate_token_type_map(&mut context, &fn_context);
@@ -200,10 +209,21 @@ impl ToLatex for PreModel {
     }
 }
 
+pub fn js_value_to_fns_map(fns: Vec<JsFunction>) -> IndexMap<String, Box<dyn RoocFunction>> {
+    fns.into_iter()
+        .map(|f| {
+            (
+                f.get_function_name().clone(),
+                Box::new(f) as Box<dyn RoocFunction>,
+            )
+        })
+        .collect()
+}
+
 #[wasm_bindgen]
 impl PreModel {
-    pub fn transform_wasm(self) -> Result<Model, TransformErrorWrapper> {
-        self.transform(IndexMap::new())
+    pub fn transform_wasm(self, fns: Vec<JsFunction>) -> Result<Model, TransformErrorWrapper> {
+        self.transform(js_value_to_fns_map(fns))
             .map_err(|e| TransformErrorWrapper { error: e })
     }
     pub fn serialize_wasm(&self) -> JsValue {
@@ -212,13 +232,13 @@ impl PreModel {
     pub fn format_wasm(&self) -> String {
         self.to_string()
     }
-    pub fn type_check_wasm(self) -> Result<(), TransformErrorWrapper> {
-        self.create_type_checker(IndexMap::new())
+    pub fn type_check_wasm(self, fns: Vec<JsFunction>) -> Result<(), TransformErrorWrapper> {
+        self.create_type_checker(js_value_to_fns_map(fns))
             .map(|_| ())
             .map_err(|e| TransformErrorWrapper { error: e })
     }
-    pub fn create_token_type_map_wasm(&self) -> JsValue {
-        serde_wasm_bindgen::to_value(&self.create_token_type_map(IndexMap::new())).unwrap()
+    pub fn create_token_type_map_wasm(&self, fns: Vec<JsFunction>) -> JsValue {
+        serde_wasm_bindgen::to_value(&self.create_token_type_map(js_value_to_fns_map(fns))).unwrap()
     }
     pub fn to_latex_wasm(&self) -> String {
         self.to_latex()

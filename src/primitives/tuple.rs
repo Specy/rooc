@@ -1,6 +1,6 @@
 use core::fmt;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::math::{BinOp, UnOp};
@@ -12,7 +12,7 @@ use super::{
     primitive_traits::{ApplyOp, OperatorError, Spreadable},
 };
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tuple(pub Vec<Primitive>);
 
 #[wasm_bindgen(typescript_custom_section)]

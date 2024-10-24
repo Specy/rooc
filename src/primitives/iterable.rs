@@ -1,6 +1,6 @@
 use core::fmt;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::parser::model_transformer::TransformError;
@@ -17,7 +17,7 @@ use super::{
     tuple::Tuple,
 };
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value")]
 pub enum IterableKind {
     Numbers(Vec<f64>),

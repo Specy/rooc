@@ -1,6 +1,6 @@
 use core::fmt;
 use indexmap::IndexMap;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::math::{BinOp, UnOp};
@@ -12,7 +12,7 @@ use super::{
     primitive_traits::{ApplyOp, OperatorError, Spreadable},
 };
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GraphEdge {
     pub from: String,
     pub to: String,
@@ -54,7 +54,7 @@ impl fmt::Display for GraphEdge {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GraphNode {
     name: String,
     edges: IndexMap<String, GraphEdge>,
@@ -115,7 +115,7 @@ impl fmt::Display for GraphNode {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Graph {
     vertices: Vec<GraphNode>,
 }

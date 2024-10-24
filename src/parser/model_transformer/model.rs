@@ -11,7 +11,7 @@ use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::{DomainVariable, TransformerContext};
 use crate::parser::pre_model::PreModel;
 use crate::parser::recursive_set_resolver::recursive_set_resolver;
-use crate::runtime_builtin::{RoocFunction, ROOC_STD};
+use crate::runtime_builtin::{make_std, RoocFunction};
 use crate::traits::{escape_latex, ToLatex};
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{primitives::Primitive, utils::Spanned};
@@ -436,7 +436,7 @@ impl Model {
 }
 
 pub fn transform_parsed_problem(pre_problem: PreModel, fns: IndexMap<String, Box<dyn RoocFunction>>) -> Result<Model, TransformError> {
-    let fn_context = FunctionContext::new(fns, &ROOC_STD);
+    let fn_context = FunctionContext::new(fns, make_std());
     let context = TransformerContext::new_from_constants(
         pre_problem.get_constants().clone(),
         pre_problem.get_domains().clone(),

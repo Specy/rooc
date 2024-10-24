@@ -7,24 +7,21 @@ use crate::runtime_builtin::functions::{EnumerateArray, LenOfIterableFn};
 use crate::runtime_builtin::functions::{FunctionCall, RoocFunction};
 use crate::traits::ToLatex;
 use indexmap::IndexMap;
-use lazy_static::lazy_static;
 
-lazy_static! {
-    pub static ref ROOC_STD: IndexMap<String, Box<dyn RoocFunction>> = {
-        let mut m: IndexMap<String, Box<dyn RoocFunction>> = IndexMap::new();
-        m.insert("edges".to_string(), Box::new(EdgesOfGraphFn {}));
-        m.insert("len".to_string(), Box::new(LenOfIterableFn {}));
-        m.insert("nodes".to_string(), Box::new(NodesOfGraphFn {}));
-        m.insert("neigh_edges".to_string(), Box::new(NeighbourOfNodeFn {}));
-        m.insert(
-            "neigh_edges_of".to_string(),
-            Box::new(NeighboursOfNodeInGraphFn {}),
-        );
-        m.insert("enumerate".to_string(), Box::new(EnumerateArray {}));
-        m.insert("range".to_string(), Box::new(NumericRange {}));
+pub fn make_std() -> IndexMap<String, Box<dyn RoocFunction>> {
+    let mut m: IndexMap<String, Box<dyn RoocFunction>> = IndexMap::new();
+    m.insert("edges".to_string(), Box::new(EdgesOfGraphFn {}));
+    m.insert("len".to_string(), Box::new(LenOfIterableFn {}));
+    m.insert("nodes".to_string(), Box::new(NodesOfGraphFn {}));
+    m.insert("neigh_edges".to_string(), Box::new(NeighbourOfNodeFn {}));
+    m.insert(
+        "neigh_edges_of".to_string(),
+        Box::new(NeighboursOfNodeInGraphFn {}),
+    );
+    m.insert("enumerate".to_string(), Box::new(EnumerateArray {}));
+    m.insert("range".to_string(), Box::new(NumericRange {}));
 
-        m
-    };
+    m
 }
 
 pub fn std_fn_to_latex(fun: &FunctionCall) -> Option<String> {

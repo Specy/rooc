@@ -13,6 +13,7 @@ use crate::solvers::{OptimalTableau, OptimalTableauWithSteps, Tableau};
 use crate::transformers::LinearModel;
 use crate::transformers::StandardLinearModel;
 use crate::RoocParser;
+use crate::runtime_builtin::JsFunction;
 
 #[wasm_bindgen]
 #[allow(unused)]
@@ -50,6 +51,7 @@ impl WasmPipeRunner {
     pub fn wasm_run_from_string(
         &self,
         data: String,
+        fns: Vec<JsFunction>
     ) -> Result<Vec<WasmPipableData>, WasmPipeError> {
         let data = PipeableData::String(data);
         match self.pipe.run(data) {

@@ -22,6 +22,7 @@ dyn-clone = "1.0.16"
 erased-serde = "0.4.2"
 copper = "0.1.0"
 indexmap = {version =  "2.6.0", features = ["serde"] }
+js-sys = "0.3.72"
 
 [profile.release]
 opt-level = 3

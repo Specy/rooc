@@ -2,6 +2,7 @@ import {
     CompilationError as _CompilationError,
     EqualityConstraint as _EqualityConstraint,
     InputSpan,
+    JsFunction,
     LinearConstraint as _LinearConstraint,
     LinearModel as _LinearModel,
     Model as _Model,
@@ -15,6 +16,8 @@ import {
     SerializedCompilationError,
     SerializedModel,
     SerializedPreModel,
+    SerializedPrimitive,
+    SerializedPrimitiveKind,
     SerializedTransformError,
     SerializedTypedToken,
     SimplexStep as _SimplexStep,
@@ -23,9 +26,29 @@ import {
     TransformErrorWrapper as _TransformErrorWrapper,
     WasmPipableData,
     WasmPipeError,
-    WasmPipeRunner,
+    WasmPipeRunner
 } from './pkg/rooc.js'
-import {Err, Ok, Result} from 'ts-results'
+import {Err, Ok, Result} from 'ts-results-es'
+import {ExtractArgTypes} from "./runtime";
+
+
+
+
+export function makeRoocFunction<T extends [string, SerializedPrimitiveKind][]>(
+    name: string,
+    argTypes: T,
+    returnType: SerializedPrimitiveKind,
+    fn: (...args: ExtractArgTypes<T>) => SerializedPrimitive
+) {
+    return JsFunction.new(
+        // @ts-ignore
+        (...args) => fn(...args),
+        name,
+        argTypes,
+        returnType
+    )
+}
+
 
 export class RoocParser {
     instance: _RoocParser;
@@ -56,9 +79,9 @@ export class RoocParser {
         }
     }
 
-    compileAndTransform(): Result<Model, string> {
+    compileAndTransform(fns: JsFunction[] = []): Result<Model, string> {
         try {
-            return Ok(new Model(this.instance.parse_and_transform_wasm()))
+            return Ok(new Model(this.instance.parse_and_transform_wasm(fns)))
         } catch (e) {
             return Err(e)
         }
@@ -113,25 +136,25 @@ export class PreModel {
         return this.instance.serialize_wasm()
     }
 
-    transform(): Result<Model, TransformError> {
+    transform(fns: JsFunction[] = []): Result<Model, TransformError> {
         try {
-            return Ok(new Model(this.instance.transform_wasm()))
+            return Ok(new Model(this.instance.transform_wasm(fns)))
         } catch (e) {
             return Err(new TransformError(e, this.source))
         }
     }
 
-    typeCheck(): Result<null, TransformError> {
+    typeCheck(fns: JsFunction[] = []): Result<null, TransformError> {
         try {
-            this.instance.type_check_wasm()
+            this.instance.type_check_wasm(fns)
             return Ok(null)
         } catch (e) {
             return Err(new TransformError(e, this.source))
         }
     }
 
-    createTypeMap(): Map<number, SerializedTypedToken> {
-        return this.instance.create_token_type_map_wasm()
+    createTypeMap(fns: JsFunction[] = []): Map<number, SerializedTypedToken> {
+        return this.instance.create_token_type_map_wasm(fns)
     }
 
     toLatex(): string {
@@ -157,7 +180,7 @@ export type RoocData =
     RoocType<PipeDataType.Tableau, SimplexTableau> |
     RoocType<PipeDataType.OptimalTableau, OptimalTableau> |
     RoocType<PipeDataType.OptimalTableauWithSteps, OptimalTableauWithSteps> |
-    RoocType<PipeDataType.BinarySolution, BinaryIntegerSolution<boolean>> | 
+    RoocType<PipeDataType.BinarySolution, BinaryIntegerSolution<boolean>> |
     RoocType<PipeDataType.IntegerBinarySolution, BinaryIntegerSolution<VarValue>>
 
 function toRoocData(data: WasmPipableData): RoocData {
@@ -464,7 +487,7 @@ export class RoocRunnablePipe {
         this.instance = WasmPipeRunner.new_wasm(steps)
     }
 
-    run(source: string): Result<RoocData[], { error: String, context: RoocData[] }> {
+    run(source: string, fns: JsFunction[] = []): Result<RoocData[], { error: String, context: RoocData[] }> {
         try {
             const data = this.instance.wasm_run_from_string(source)
             return Ok(data.map(toRoocData))

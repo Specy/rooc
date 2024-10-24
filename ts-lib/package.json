@@ -2,7 +2,7 @@
     "type": "module",
     "name": "@specy/rooc",
     "description": "A compiler for mathematical models",
-    "version": "0.9.21",
+    "version": "0.9.22",
     "main": "dist/index.js",
     "module": "dist/index.js",
     "typings": "dist/index.d.ts",
@@ -14,10 +14,10 @@
         "build-lib": "node build.js"
     },
     "devDependencies": {
-        "typescript":"^5.2.2"
+        "typescript": "^5.6.3"
     },
     "dependencies": {
         "fuse.js": "^7.0.0",
-        "ts-results": "^3.3.0"
+        "ts-results-es": "^4.2.0"
     }
 }

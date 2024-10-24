@@ -1,5 +1,31 @@
-import type {SerializedPrimitiveKind} from "./pkg/rooc";
+import type {SerializedPrimitiveKind, SerializedPrimitive} from "./pkg/rooc";
 import Fuse from 'fuse.js'
+
+export const PrimitiveKind = {
+    Number: {type: 'Number'},
+    Integer: {type: 'Integer'},
+    PositiveInteger: {type: 'PositiveInteger'},
+    String: {type: 'String'},
+    Iterable: (value: SerializedPrimitiveKind) => ({type: 'Iterable', value}),
+    Graph: {type: 'Graph'},
+    GraphEdge: {type: 'GraphEdge'},
+    GraphNode: {type: 'GraphNode'},
+    Tuple: (value: SerializedPrimitiveKind[]) => ({type: 'Tuple', value}),
+    Boolean: {type: 'Boolean'},
+    Undefined: {type: 'Undefined'},
+    Any: {type: 'Any'},
+} satisfies Record<
+    SerializedPrimitiveKind['type'],
+    SerializedPrimitiveKind | ((value: SerializedPrimitiveKind | SerializedPrimitiveKind[]) => SerializedPrimitiveKind)
+>
+export type ExtractArgTypes<T extends [string, SerializedPrimitiveKind][]> = {
+    [K in keyof T]: T[K] extends [string, infer Type extends SerializedPrimitiveKind] ? SerializedPrimitive & {
+        kind: Type['type']
+    } : never;
+};
+
+
+
 
 //TODO remember to put this back in whenever they are updated, the runtime is supposed to not import anything from the compiler
 export enum PipeDataType {

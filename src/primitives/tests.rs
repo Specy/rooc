@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod primitive_tests {
+    use indexmap::IndexMap;
     use crate::RoocParser;
 
     #[test]
@@ -23,7 +24,7 @@ mod primitive_tests {
                 x_u, x_v as Boolean for (u, v) in edges(G)  
         ";
         RoocParser::new(source.to_string())
-            .parse_and_transform()
+            .parse_and_transform(IndexMap::new())
             .expect("Failed to parse");
     }
 }

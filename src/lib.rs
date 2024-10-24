@@ -10,7 +10,8 @@ use parser::pre_model::{parse_problem_source, PreModel};
 use utils::CompilationError;
 
 use crate::parser::model_transformer::{transform_parsed_problem, Model};
-use crate::runtime_builtin::RoocFunction;
+use crate::parser::pre_model::js_value_to_fns_map;
+use crate::runtime_builtin::{JsFunction, RoocFunction};
 
 pub mod macros;
 pub mod math;
@@ -80,10 +81,11 @@ impl RoocParser {
     pub fn parse_wasm(&self) -> Result<PreModel, CompilationError> {
         self.parse()
     }
-    pub fn parse_and_transform_wasm(&self) -> Result<Model, String> {
-        self.parse_and_transform(IndexMap::new())
+    pub fn parse_and_transform_wasm(&self, fns: Vec<JsFunction>) -> Result<Model, String> {
+        self.parse_and_transform(js_value_to_fns_map(fns))
     }
     pub fn wasm_get_source(&self) -> String {
         self.source.clone()
     }
 }
+ 

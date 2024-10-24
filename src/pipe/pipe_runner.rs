@@ -1,4 +1,7 @@
+use dyn_clone::DynClone;
+use indexmap::IndexMap;
 use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
+use crate::runtime_builtin::RoocFunction;
 
 pub struct PipeRunner {
     pipes: Vec<Box<dyn Pipeable>>,
@@ -12,6 +15,7 @@ impl PipeRunner {
     pub fn run(
         &self,
         data: PipeableData,
+        fns: IndexMap<String, Box<dyn RoocFunction>>
     ) -> Result<Vec<PipeableData>, (PipeError, Vec<PipeableData>)> {
         if self.pipes.is_empty() {
             return Ok(vec![data]);

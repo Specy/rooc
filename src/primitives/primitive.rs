@@ -1,7 +1,7 @@
 use core::fmt;
 use std::fmt::Display;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use super::{
@@ -19,7 +19,7 @@ use crate::{
     wrong_argument,
 };
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value")]
 pub enum Primitive {
     Number(f64),
@@ -66,7 +66,7 @@ export type SerializedPrimitive =
     | { kind: 'Undefined' }
 "#;
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Deserialize)]
 #[serde(tag = "type", content = "value")]
 pub enum PrimitiveKind {
     Number,
