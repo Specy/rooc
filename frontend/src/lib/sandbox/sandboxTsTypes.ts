@@ -33,13 +33,10 @@ declare type Primitive = typeof Primitive
 declare type ExtractArgTypes<T extends [string, SerializedPrimitiveKind][]> = {
     [K in keyof T]: T[K] extends [string, infer Type extends SerializedPrimitiveKind]
         ? Type extends { type: 'Iterable' }
-            ? { type: 'Iterable', value: (SerializedIterable & {type: \`\${Type['value']['type']}s\`})['value'] }
+            ? { type: 'Iterable', value: (SerializedIterable & { type: \`\${Type['value']['type']}s\` }) }
             : SerializedPrimitive & { type: Type['type'] }
-        : never;
+    : never;
 };
-
-
-
 
 declare type MakeRoocFunction<T extends [string, SerializedPrimitiveKind][]> = {
     name: string;
@@ -104,4 +101,3 @@ declare function register<T extends [string, SerializedPrimitiveKind][]>({ name,
 
     `
 }
-
