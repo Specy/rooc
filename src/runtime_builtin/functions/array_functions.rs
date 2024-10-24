@@ -28,7 +28,7 @@ impl RoocFunction for EnumerateArray {
                 for (i, item) in values.into_iter().enumerate() {
                     result.push(Tuple::new(vec![item.clone(), Primitive::Number(i as f64)]));
                 }
-                Ok(Primitive::Iterable(IterableKind::Tuple(result)))
+                Ok(Primitive::Iterable(IterableKind::Tuples(result)))
             }
             _ => Err(default_wrong_number_of_arguments(self)),
         }

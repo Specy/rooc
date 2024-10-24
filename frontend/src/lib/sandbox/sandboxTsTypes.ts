@@ -19,22 +19,27 @@ const Primitive = {
     Integer: {type: 'Integer'},
     PositiveInteger: {type: 'PositiveInteger'},
     String: {type: 'String'},
-    Iterable: (value: SerializedPrimitiveKind) => ({type: 'Iterable', value}),
+    Iterable: <T extends SerializedPrimitiveKind>(value: T) => ({type: 'Iterable', value} as const),
     Graph: {type: 'Graph'},
     GraphEdge: {type: 'GraphEdge'},
     GraphNode: {type: 'GraphNode'},
-    Tuple: (value: SerializedPrimitiveKind[]) => ({type: 'Tuple', value}),
+    Tuple: <T extends SerializedPrimitiveKind>(value: T[]) => ({type: 'Tuple', value} as const) ,
     Boolean: {type: 'Boolean'},
     Undefined: {type: 'Undefined'},
     Any: {type: 'Any'},
 } as const
-declare type Primitive = typeof PrimitiveKind
+declare type Primitive = typeof Primitive
 
 declare type ExtractArgTypes<T extends [string, SerializedPrimitiveKind][]> = {
-    [K in keyof T]: T[K] extends [string, infer Type extends SerializedPrimitiveKind] ? SerializedPrimitive & {
-        type: Type['type']
-    } : never;
+    [K in keyof T]: T[K] extends [string, infer Type extends SerializedPrimitiveKind]
+        ? Type extends { type: 'Iterable' }
+            ? { type: 'Iterable', value: (SerializedIterable & {type: \`\${Type['value']['type']}s\`})['value'] }
+            : SerializedPrimitive & { type: Type['type'] }
+        : never;
 };
+
+
+
 
 declare type MakeRoocFunction<T extends [string, SerializedPrimitiveKind][]> = {
     name: string;
@@ -88,12 +93,15 @@ declare type SerializedIterable =
     | { type: 'Edges', value: SerializedGraphEdge[] }
     | { type: 'Nodes', value: SerializedGraphNode[] }
     | { type: 'Graphs', value: SerializedGraph[] }
-    | { type: 'Tuple', value: SerializedTuple[] }
+    | { type: 'Tuples', value: SerializedTuple[] }
     | { type: 'Booleans', value: boolean[] }
-    | { type: 'Iterable', value: SerializedIterable[] }
+    | { type: 'Iterables', value: SerializedIterable[] }
 
 declare type SerializedTuple = SerializedPrimitive[]
 
 declare function register<T extends [string, SerializedPrimitiveKind][]>({ name, argTypes, returnType, type_checker, call, description }: MakeRoocFunction<T>): void
+ 
+
     `
 }
+

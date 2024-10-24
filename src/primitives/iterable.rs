@@ -27,9 +27,9 @@ pub enum IterableKind {
     Edges(Vec<GraphEdge>),
     Nodes(Vec<GraphNode>),
     Graphs(Vec<Graph>),
-    Tuple(Vec<Tuple>),
+    Tuples(Vec<Tuple>),
     Booleans(Vec<bool>),
-    Iterable(Vec<IterableKind>),
+    Iterables(Vec<IterableKind>),
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -42,9 +42,9 @@ export type SerializedIterable =
     | { type: 'Edges', value: SerializedGraphEdge[] }
     | { type: 'Nodes', value: SerializedGraphNode[] }
     | { type: 'Graphs', value: SerializedGraph[] }
-    | { type: 'Tuple', value: SerializedTuple[] }
+    | { type: 'Tuples', value: SerializedTuple[] }
     | { type: 'Booleans', value: boolean[] }
-    | { type: 'Iterable', value: SerializedIterable[] }
+    | { type: 'Iterables', value: SerializedIterable[] }
 "#;
 
 impl IterableKind {
@@ -59,13 +59,13 @@ impl IterableKind {
             IterableKind::Strings(_) => PrimitiveKind::String,
             IterableKind::Edges(_) => PrimitiveKind::GraphEdge,
             IterableKind::Nodes(_) => PrimitiveKind::GraphNode,
-            IterableKind::Tuple(t) => t
+            IterableKind::Tuples(t) => t
                 .first()
                 .map(|e| e.get_type())
                 .unwrap_or(PrimitiveKind::Undefined),
             IterableKind::Booleans(_) => PrimitiveKind::Boolean,
             IterableKind::Graphs(_) => PrimitiveKind::Graph,
-            IterableKind::Iterable(i) => PrimitiveKind::Iterable(
+            IterableKind::Iterables(i) => PrimitiveKind::Iterable(
                 i.first()
                     .map(|e| e.get_inner_type())
                     .unwrap_or(PrimitiveKind::Undefined)
@@ -81,8 +81,8 @@ impl IterableKind {
             IterableKind::Strings(v) => v.len(),
             IterableKind::Edges(v) => v.len(),
             IterableKind::Nodes(v) => v.len(),
-            IterableKind::Tuple(v) => v.len(),
-            IterableKind::Iterable(v) => v.len(),
+            IterableKind::Tuples(v) => v.len(),
+            IterableKind::Iterables(v) => v.len(),
             IterableKind::Booleans(v) => v.len(),
             IterableKind::Graphs(v) => v.len(),
         }
@@ -106,8 +106,8 @@ impl IterableKind {
                 .map(|e| Primitive::GraphEdge(e.to_owned()))
                 .collect(),
             IterableKind::Nodes(v) => v.into_iter().map(Primitive::GraphNode).collect(),
-            IterableKind::Tuple(v) => v.into_iter().map(Primitive::Tuple).collect(),
-            IterableKind::Iterable(v) => v.into_iter().map(Primitive::Iterable).collect(),
+            IterableKind::Tuples(v) => v.into_iter().map(Primitive::Tuple).collect(),
+            IterableKind::Iterables(v) => v.into_iter().map(Primitive::Iterable).collect(),
             IterableKind::Booleans(v) => v.into_iter().map(Primitive::Boolean).collect(),
             IterableKind::Graphs(v) => v.into_iter().map(Primitive::Graph).collect(),
         }
@@ -145,10 +145,10 @@ impl IterableKind {
                     IterableKind::Nodes(v) => {
                         check_bounds!(i, v, self, Primitive::GraphNode(v[i].to_owned()))
                     }
-                    IterableKind::Tuple(v) => {
+                    IterableKind::Tuples(v) => {
                         check_bounds!(i, v, self, Primitive::Tuple(v[i].clone()))
                     }
-                    IterableKind::Iterable(v) => {
+                    IterableKind::Iterables(v) => {
                         check_bounds!(i, v, self, Primitive::Iterable(v[i].clone()))
                     }
                     IterableKind::Graphs(v) => {
@@ -158,7 +158,7 @@ impl IterableKind {
                 return Ok(val);
             } else {
                 match current {
-                    IterableKind::Iterable(v) => {
+                    IterableKind::Iterables(v) => {
                         if i < v.len() {
                             current = &v[i];
                         } else {
@@ -185,7 +185,7 @@ impl IterableKind {
     pub fn depth(&self) -> usize {
         let mut current = self;
         let mut depth = 1;
-        while let IterableKind::Iterable(v) = current {
+        while let IterableKind::Iterables(v) = current {
             depth += 1;
             match v.first() {
                 Some(i) => current = i,
@@ -196,7 +196,7 @@ impl IterableKind {
     }
     pub fn to_string_depth(&self, depth: usize) -> String {
         match self {
-            IterableKind::Iterable(v) => {
+            IterableKind::Iterables(v) => {
                 let s = v
                     .iter()
                     .map(|e| e.to_string_depth(depth + 1))
@@ -215,10 +215,10 @@ impl IterableKind {
             IterableKind::Strings(v) => latexify_vec(v, include_block),
             IterableKind::Edges(v) => latexify_vec(v, include_block),
             IterableKind::Nodes(v) => latexify_vec(v, include_block),
-            IterableKind::Tuple(v) => latexify_vec(v, include_block),
+            IterableKind::Tuples(v) => latexify_vec(v, include_block),
             IterableKind::Booleans(v) => latexify_vec(v, include_block),
             IterableKind::Graphs(v) => latexify_vec(v, include_block),
-            IterableKind::Iterable(v) => {
+            IterableKind::Iterables(v) => {
                 let s = v
                     .iter()
                     .map(|i| i.to_latex())
@@ -253,7 +253,7 @@ where
 impl ToLatex for IterableKind {
     fn to_latex(&self) -> String {
         match self {
-            IterableKind::Iterable(v) => {
+            IterableKind::Iterables(v) => {
                 let depth = self.depth();
                 if depth == 2 {
                     //try to prettify for 2d matrices
@@ -282,10 +282,10 @@ impl fmt::Display for IterableKind {
             IterableKind::Strings(v) => format!("{:?}", v),
             IterableKind::Edges(v) => format!("{:?}", v),
             IterableKind::Nodes(v) => format!("{:?}", v),
-            IterableKind::Tuple(v) => format!("{:?}", v),
+            IterableKind::Tuples(v) => format!("{:?}", v),
             IterableKind::Booleans(v) => format!("{:?}", v),
             IterableKind::Graphs(v) => format!("{:?}", v),
-            IterableKind::Iterable(v) => {
+            IterableKind::Iterables(v) => {
                 let result = v
                     .iter()
                     .map(|i| i.to_string_depth(1))

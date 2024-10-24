@@ -96,7 +96,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     _ => Err(format!("Expected Tuple but got {}", v.get_type_string())),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
-            Ok(Primitive::Iterable(IterableKind::Tuple(values)))
+            Ok(Primitive::Iterable(IterableKind::Tuples(values)))
         }
         PrimitiveKind::Iterable(_) => {
             let values = values
@@ -106,7 +106,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     _ => Err(format!("Expected Iterable but got {}", v.get_type_string())),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
-            Ok(Primitive::Iterable(IterableKind::Iterable(values)))
+            Ok(Primitive::Iterable(IterableKind::Iterables(values)))
         }
         PrimitiveKind::Undefined => Ok(Primitive::Iterable(IterableKind::Numbers(vec![]))),
         PrimitiveKind::Graph => {

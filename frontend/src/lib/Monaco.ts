@@ -53,10 +53,17 @@ class MonacoLoader {
         this.monaco = monaco
         monaco.languages.typescript.typescriptDefaults.addExtraLib(getTsGlobal(), 'global.d.ts')
         monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
-            strict: true,
-            noImplicitAny: true,
-            strictNullChecks: true,
-            strictFunctionTypes: true,
+            "strict": true,
+            "noImplicitAny": true,
+            "strictNullChecks": true,
+            "strictFunctionTypes": true,
+            "strictPropertyInitialization": true,
+            "strictBindCallApply": true,
+            "noImplicitThis": true,
+            "noImplicitReturns": true,
+            "alwaysStrict": true,
+            "esModuleInterop": true,
+            "declaration": true,
         });
         this.registerLanguages()
         self.MonacoEnvironment = {
