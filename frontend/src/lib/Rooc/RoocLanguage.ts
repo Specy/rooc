@@ -11,6 +11,7 @@ import {createRoocFunctionSignature, getFormattedRoocType} from './RoocUtils'
 import {roocJsStd} from "$lib/Rooc/roocJsStd";
 import {type NamedParameter, type RuntimeFunction} from "@specy/rooc/src/runtime";
 import type {RoocFnRef} from "$lib/Monaco";
+import {createDebouncer} from "$cmp/pipe/utils";
 
 
 export const RoocLanguage = {
@@ -242,8 +243,10 @@ export function createRoocHoverProvider(ref: RoocFnRef) {
 
 export function createRoocRuntimeDiagnostics(model: editor.ITextModel, ref: RoocFnRef) {
     const disposable: IDisposable[] = []
-
+    let disposed = false
+    const debounce = createDebouncer()
     function callback() {
+        if(disposed) return
         const text = model.getValue()
         const parser = new RoocParser(text)
         const parsed = parser.compile()
@@ -281,15 +284,20 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel, ref: Rooc
                     message,
                     severity: MarkerSeverity.Error
                 })
+            }else{
             }
         }
         editor.setModelMarkers(model, 'rooc', markers)
     }
 
-    disposable.push(model.onDidChangeContent(callback))
+    disposable.push(model.onDidChangeContent(() => {
+        debounce(callback, 250)
+    }))
     ref.runDiagnosis = callback
     return {
         dispose() {
+            disposed = true
+            ref.runDiagnosis = undefined
             disposable.forEach(d => d.dispose())
         }
     }
@@ -351,8 +359,8 @@ export function roocFunctionToRuntimeFunction(f: RoocFunction): RuntimeFunction<
         name: f.name,
         description: f.description,
         type: "RuntimeFunction",
-        parameters: f.argTypes.map(([k, v]) => ({name: k, value: v})),
-        returnType: f.returnType
+        parameters: f.parameters.map(([k, v]) => ({name: k, value: v})),
+        returns: f.returns
     } satisfies RuntimeFunction<NamedParameter[], SerializedPrimitiveKind>
 }
 

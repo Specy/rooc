@@ -12,7 +12,7 @@ export function getFormattedRoocType(type: SerializedPrimitiveKind): string {
 
 export function createRoocFunctionSignature(entry: PossibleCompletionToken){
     if(entry.type === "RuntimeFunction"){
-        return `${entry.name}(${entry.parameters.map(v => `${v.name}: ${getFormattedRoocType(v.value)}`).join(", ")}): ${getFormattedRoocType(entry.returnType)}`
+        return `${entry.name}(${entry.parameters.map(v => `${v.name}: ${getFormattedRoocType(v.value)}`).join(", ")}): ${getFormattedRoocType(entry.returns)}`
     } else if (entry.type === "RuntimeBlockFunction"){
         return `${entry.name}{ }`
     } else if(entry.type === "RuntimeBlockScopedFunction"){

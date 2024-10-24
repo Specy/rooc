@@ -34,8 +34,8 @@ import {ExtractArgTypes} from "./runtime";
 
 type MakeRoocFunction<T extends [string, SerializedPrimitiveKind][]> = {
     name: string,
-    argTypes: T,
-    returnType: SerializedPrimitiveKind,
+    parameters: T,
+    returns: SerializedPrimitiveKind,
     call: (...args: ExtractArgTypes<T>) => SerializedPrimitive,
     type_checker?: (...args: SerializedPrimitiveKind[]) => null | string
     description?: string
@@ -43,8 +43,8 @@ type MakeRoocFunction<T extends [string, SerializedPrimitiveKind][]> = {
 
 export function makeRoocFunction<T extends [string, SerializedPrimitiveKind][]>({
                                                                                     name,
-                                                                                    argTypes,
-                                                                                    returnType,
+                                                                                    parameters,
+                                                                                    returns,
                                                                                     type_checker,
                                                                                     call,
                                                                                     description
@@ -54,13 +54,13 @@ export function makeRoocFunction<T extends [string, SerializedPrimitiveKind][]>(
             // @ts-ignore
             (...args) => call(...args),
             name,
-            argTypes,
-            returnType,
+            parameters,
+            returns,
             type_checker
         ),
         name,
-        argTypes,
-        returnType,
+        parameters,
+        returns,
         description
     )
 }
@@ -69,19 +69,19 @@ export class RoocFunction<T extends [string, SerializedPrimitiveKind][] = [strin
     instance: JsFunction
     name: string
     description?: string
-    argTypes: T
-    returnType: SerializedPrimitiveKind
+    parameters: T
+    returns: SerializedPrimitiveKind
 
     constructor(
         instance: JsFunction,
         name: string,
-        argTypes: T,
-        returnType: SerializedPrimitiveKind,
+        parameters: T,
+        returns: SerializedPrimitiveKind,
         description?: string) {
         this.instance = instance
         this.name = name
-        this.argTypes = argTypes
-        this.returnType = returnType
+        this.parameters = parameters
+        this.returns = returns
         this.description = description
     }
 }

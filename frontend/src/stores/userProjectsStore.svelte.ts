@@ -29,8 +29,8 @@ const defaultTs = `
 register({
     name: 'sqrt',
     description: 'Calculate the square root of a number',
-    argTypes: [['of_num', Primitive.Number]],
-    returnType: Primitive.Number,
+    parameters: [['of_num', Primitive.Number]],
+    returns: Primitive.Number,
     call: (num) => {
         return {type: "Number", value: Math.sqrt(num.value)}
     }

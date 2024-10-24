@@ -40,8 +40,8 @@ declare type ExtractArgTypes<T extends [string, SerializedPrimitiveKind][]> = {
 
 declare type MakeRoocFunction<T extends [string, SerializedPrimitiveKind][]> = {
     name: string;
-    argTypes: T;
-    returnType: SerializedPrimitiveKind;
+    parameters: T;
+    returns: SerializedPrimitiveKind;
     call: (...args: ExtractArgTypes<T>) => SerializedPrimitive;
     type_checker?: (...args: SerializedPrimitiveKind[]) => null | string;
     description?: string;
@@ -96,7 +96,7 @@ declare type SerializedIterable =
 
 declare type SerializedTuple = SerializedPrimitive[]
 
-declare function register<T extends [string, SerializedPrimitiveKind][]>({ name, argTypes, returnType, type_checker, call, description }: MakeRoocFunction<T>): void
+declare function register<T extends [string, SerializedPrimitiveKind][]>({ name, parameters, returns, type_checker, call, description }: MakeRoocFunction<T>): void
  
 
     `

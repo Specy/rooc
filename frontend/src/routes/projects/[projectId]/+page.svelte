@@ -116,9 +116,7 @@
                             color={project.runtimeVisible ? 'transparent' :'primary'}
                     >
 
-                        <FaCode
-                            style="font-size: 1.2rem"
-                        /> {project.runtimeVisible ? 'Hide' : 'Show'} runtime
+                        <FaCode/> {project.runtimeVisible ? 'Hide' : 'Show'} runtime
                     </Button>
                 </div>
             {/if}

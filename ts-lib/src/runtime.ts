@@ -65,11 +65,11 @@ export type RuntimeFunction<T extends NamedParameter[], R extends SerializedPrim
     description?: string;
     type: "RuntimeFunction";
     parameters: T;
-    returnType: R;
+    returns: R;
 }
 
-export function makeRuntimeFunction<T extends NamedParameter[], R extends SerializedPrimitiveKind>(name: string, parameters: T, returnType: R, description?: string): RuntimeFunction<T, R> {
-    return {name, parameters, returnType, type: "RuntimeFunction", description};
+export function makeRuntimeFunction<T extends NamedParameter[], R extends SerializedPrimitiveKind>(name: string, parameters: T, returns: R, description?: string): RuntimeFunction<T, R> {
+    return {name, parameters, returns, type: "RuntimeFunction", description};
 }
 
 
