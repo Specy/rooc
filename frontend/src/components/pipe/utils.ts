@@ -20,3 +20,11 @@ export function formatNum(num: number, precision = 4): string {
     cache[precision][num] = whole
     return whole
 }
+
+export function createDebouncer() {
+    let timeout: number;
+    return (fn: () => void, delay: number) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(fn, delay);
+    };
+}

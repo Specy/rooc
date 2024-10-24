@@ -2,7 +2,7 @@
     import Editor from '$cmp/editor/Editor.svelte';
     import Button from '$cmp/inputs/Button.svelte';
     import {Monaco} from '$src/lib/Monaco';
-    import {onMount} from 'svelte';
+    import {onMount, tick} from 'svelte';
     import {type Project} from '$stores/userProjectsStore.svelte';
     import Row from '$cmp/layout/Row.svelte';
     import {createCompilerStore} from '$src/routes/projects/[projectId]/projectStore.svelte';
@@ -24,7 +24,7 @@
         project: Project;
     }
 
-    let { project = $bindable() }: Props = $props();
+    let {project = $bindable()}: Props = $props();
     let rooc = createCompilerStore(project);
     onMount(() => {
         Monaco.load();
@@ -49,16 +49,34 @@
 
 
     let isPresetPipe = $derived(findPreset(project.pipes.map(p => p.pipe)))
-
+    $effect(() => {
+        Monaco.setRoocFns(rooc.userDefinedFunctions);
+    })
 </script>
 
 <div class="wrapper">
-    <Editor
-            style="flex: 1; height: 100%;"
-            language="rooc"
-            bind:code={project.content}
-            highlightedLine={-1}
-    />
+    <Column gap="0.5rem">
+        <div class="editor">
+            <Editor
+                    style="flex: 1"
+                    language="rooc"
+                    bind:code={project.content}
+                    highlightedLine={-1}
+            />
+        </div>
+        <div
+                class="secondary-editor no-mobile"
+                class:secondary-editor-visible={project.runtimeVisible}
+        >
+            <Editor
+                    style="flex: 1"
+                    language="typescript"
+                    bind:code={project.runtime}
+                    highlightedLine={-1}
+            />
+        </div>
+    </Column>
+
     <div class="pipe-container">
         <div class="pipe-container-inner">
 
@@ -148,10 +166,10 @@
         {#if rooc.result.latex}
             <ExpandableContainer>
                 {#snippet title()}
-                                <h2 >
+                    <h2>
                         LaTeX
                     </h2>
-                            {/snippet}
+                {/snippet}
                 <Column style="position: relative;" gap="0.5rem">
                     <LatexRenderer
                             source={rooc.result.latex}
@@ -237,6 +255,21 @@
         gap: 0.5rem;
     }
 
+    .editor {
+        display: flex;
+        flex: 1;
+        min-height: 45vh;
+    }
+
+    .secondary-editor {
+        display: none;
+        flex: 1;
+    }
+
+    .secondary-editor-visible {
+        display: flex;
+    }
+
     .pipe-container-inner {
         background-color: var(--primary);
         padding: 0.5rem;
@@ -270,6 +303,14 @@
             display: flex;
             flex-direction: column;
         }
+
+        .editor {
+            min-height: 30vh;
+        }
+
+        .no-mobile {
+            display: none;
+        }
     }
 
     .pipe-preset-select {
@@ -279,4 +320,5 @@
         background-color: var(--primary);
         color: var(--primary-text);
     }
+
 </style>

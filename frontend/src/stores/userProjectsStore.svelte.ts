@@ -16,17 +16,33 @@ export type Project = {
     createdAt: number,
     updatedAt: number
     content: string
+    runtime: string
+    runtimeVisible: boolean
     pipes: ProjectPipe[]
 }
 
 export function validateProject(project: Project): Project {
     return {...createProject(), ...project}
 }
-
+const defaultTs = `
+/*
+register({
+    name: 'sqrt',
+    description: 'Calculate the square root of a number',
+    argTypes: [['of_num', Primitive.Number]],
+    returnType: Primitive.Number,
+    call: (num) => {
+        return {type: "Number", value: Math.sqrt(num.value)}
+    }
+})
+*/
+`.trim()
 export function createProject(): Project {
     return {
         version: 1,
         id: "",
+        runtime: defaultTs,
+        runtimeVisible: false,
         name: "Unnamed",
         description: "",
         createdAt: new Date().getTime(),

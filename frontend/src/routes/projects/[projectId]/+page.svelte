@@ -21,7 +21,9 @@
     import Book from '~icons/fa/book';
     import Share from '~icons/fa/share-alt';
     import FaDonate from '~icons/fa6-solid/hand-holding-dollar.svelte';
+    import FaCode from '~icons/fa6-solid/code.svelte';
     import {registerDeep} from "$lib/runes/anyof.svelte";
+    import {createDebouncer} from "$cmp/pipe/utils";
 
     let showDocs = $state(false);
     let project: Project | undefined = $state(undefined);
@@ -78,13 +80,6 @@
         toast.logPill('Copied to clipboard');
     }
 
-    function createDebouncer() {
-        let timeout: number;
-        return (fn: () => void, delay: number) => {
-            clearTimeout(timeout);
-            timeout = setTimeout(fn, delay);
-        };
-    }
 
     const debouncer = createDebouncer();
     $effect(() => {
@@ -109,7 +104,24 @@
             {project?.name ?? 'Project'}
         </h3>
 
-        <Row gap="0.5rem" style="margin-left: auto; height: 2.4rem">
+        <Row gap="0.5rem" style="margin-left: auto; height: 2.6rem">
+            {#if project}
+                <div class="no-mobile">
+                    <Button
+
+                            hasIcon
+                            on:click={() => project.runtimeVisible = !project.runtimeVisible}
+                            border="secondary"
+                            style="gap: 0.6rem; height: 100%; min-width: 10rem; justify-content: start"
+                            color={project.runtimeVisible ? 'transparent' :'primary'}
+                    >
+
+                        <FaCode
+                            style="font-size: 1.2rem"
+                        /> {project.runtimeVisible ? 'Hide' : 'Show'} runtime
+                    </Button>
+                </div>
+            {/if}
             <ButtonLink
                     href="https://github.com/Specy/tokeko"
                     hasIcon
@@ -178,5 +190,11 @@
 
     :global(html) {
         overflow-y: scroll;
+    }
+
+    @media (max-width: 768px) {
+        .no-mobile {
+            display: none;
+        }
     }
 </style>

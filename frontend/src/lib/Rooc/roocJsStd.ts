@@ -1,8 +1,6 @@
 import {makeRoocFunction, PrimitiveKind} from "@specy/rooc";
 
 
-
-
 const sqrt = makeRoocFunction({
     name: 'sqrt',
     description: 'Calculate the square root of a number',
@@ -12,7 +10,6 @@ const sqrt = makeRoocFunction({
         return {type: "Number", value: Math.sqrt(num.value)}
     }
 })
-
 
 
 

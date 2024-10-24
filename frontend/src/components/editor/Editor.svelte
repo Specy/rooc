@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { run } from 'svelte/legacy';
 
     import {createEventDispatcher, onDestroy, onMount} from 'svelte';
     import type monaco from 'monaco-editor';
@@ -12,7 +11,7 @@
         code: string;
         highlightedLine: number;
         hasError?: boolean;
-        language: 'rooc';
+        language: 'rooc' | 'typescript';
         style?: string;
         editor?: monaco.editor.IStandaloneCodeEditor | null;
         config?: monaco.editor.IStandaloneEditorConstructionOptions;

@@ -1,13 +1,16 @@
 import {
     findRoocCompletionTokens,
     findRoocExactToken,
-    type PossibleCompletionToken, RoocFunction,
-    RoocParser, type SerializedPrimitiveKind
+    type PossibleCompletionToken,
+    RoocFunction,
+    RoocParser,
+    type SerializedPrimitiveKind
 } from '@specy/rooc'
 import {editor, type IDisposable, languages, MarkerSeverity, Position, Range} from 'monaco-editor'
 import {createRoocFunctionSignature, getFormattedRoocType} from './RoocUtils'
 import {roocJsStd} from "$lib/Rooc/roocJsStd";
 import {type NamedParameter, type RuntimeFunction} from "@specy/rooc/src/runtime";
+import type {RoocFnRef} from "$lib/Monaco";
 
 
 export const RoocLanguage = {
@@ -164,7 +167,14 @@ function stringifyRuntimeEntry(entry: PossibleCompletionToken) {
     return []
 }
 
-export function createRoocHoverProvider() {
+function mapIfExists<T, U>(value: T | undefined, fn: (v: T) => U): U | undefined {
+    if (value) {
+        return fn(value)
+    }
+    return undefined
+}
+
+export function createRoocHoverProvider(ref: RoocFnRef) {
     return {
         provideHover: (model: editor.ITextModel, position: Position) => {
             const text = model.getValue()
@@ -172,7 +182,9 @@ export function createRoocHoverProvider() {
             const pos = new Position(position.lineNumber, word?.startColumn ?? position.column)
             const offset = model.getOffsetAt(pos)
             const preciseOffset = model.getOffsetAt(position)
-            const exactMatch = findRoocExactToken(word?.word ?? '') ?? suggestedRoocStd.find(e => e.name === word?.word)
+            const exactMatch = findRoocExactToken(word?.word ?? '')
+                ?? suggestedRoocStd.find(e => e.name === word?.word)
+                ?? ref.runtimeFunction.find(e => e.name === word?.word)
             const range = new Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + (word?.word.length ?? 0))
 
             if (pos.lineNumber === 1 && pos.column === 1) {
@@ -201,7 +213,10 @@ export function createRoocHoverProvider() {
             const parser = new RoocParser(text)
             const parsed = parser.compile()
             if (parsed.isOk()) {
-                const items = parsed.value.createTypeMap(roocJsStd())
+                const items = parsed.value.createTypeMap([
+                    ...roocJsStd(),
+                    ...ref.current
+                ])
                 const item = items.get?.(preciseOffset) ?? items.get?.(offset)
                 if (item) {
                     contents.push({value: `\`\`\`typescript\n${word?.word ?? "Unknown"}: ${getFormattedRoocType(item.value)}\n\`\`\``})
@@ -225,9 +240,10 @@ export function createRoocHoverProvider() {
 }
 
 
-export function createRoocRuntimeDiagnostics(model: editor.ITextModel) {
+export function createRoocRuntimeDiagnostics(model: editor.ITextModel, ref: RoocFnRef) {
     const disposable: IDisposable[] = []
-    disposable.push(model.onDidChangeContent(() => {
+
+    function callback() {
         const text = model.getValue()
         const parser = new RoocParser(text)
         const parsed = parser.compile()
@@ -247,7 +263,10 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel) {
                 severity: MarkerSeverity.Error
             })
         } else {
-            const typeCheck = parsed.value.typeCheck(roocJsStd())
+            const typeCheck = parsed.value.typeCheck([
+                ...roocJsStd(),
+                ...ref.current
+            ])
             if (!typeCheck.isOk()) {
                 const err = typeCheck.error
                 const span = err.getOriginSpan()
@@ -265,7 +284,10 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel) {
             }
         }
         editor.setModelMarkers(model, 'rooc', markers)
-    }))
+    }
+
+    disposable.push(model.onDidChangeContent(callback))
+    ref.runDiagnosis = callback
     return {
         dispose() {
             disposable.forEach(d => d.dispose())
@@ -273,7 +295,7 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel) {
     }
 }
 
-function makeRoocCompletionToken(entry: PossibleCompletionToken) {
+export function makeRoocCompletionToken(entry: PossibleCompletionToken) {
     if (entry.type === "RuntimeBlockScopedFunction") {
         return {
             label: entry.name,
@@ -303,6 +325,8 @@ function makeRoocCompletionToken(entry: PossibleCompletionToken) {
     return undefined
 }
 
+export type RoocCompletionToken = ReturnType<typeof makeRoocCompletionToken>
+
 const suggestedKeywords = [
     'where', 'for', 'in', 's.t.', 'as', 'define', 'let', 'solve'
 ].map(k => ({
@@ -322,12 +346,12 @@ const suggestedTypes = [
     detail: `Type ${k}`
 }))
 
-function roocFunctionToRuntimeFunction(f: RoocFunction): RuntimeFunction<NamedParameter[], SerializedPrimitiveKind>{
+export function roocFunctionToRuntimeFunction(f: RoocFunction): RuntimeFunction<NamedParameter[], SerializedPrimitiveKind> {
     return {
         name: f.name,
         description: f.description,
         type: "RuntimeFunction",
-        parameters: f.argTypes.map(([k,v]) => ({name: k, value: v})),
+        parameters: f.argTypes.map(([k, v]) => ({name: k, value: v})),
         returnType: f.returnType
     } satisfies RuntimeFunction<NamedParameter[], SerializedPrimitiveKind>
 }
@@ -335,7 +359,7 @@ function roocFunctionToRuntimeFunction(f: RoocFunction): RuntimeFunction<NamedPa
 const suggestedRoocStd = roocJsStd().map(roocFunctionToRuntimeFunction)
 const suggestedStdCompletionToken = suggestedRoocStd.map(makeRoocCompletionToken)
 
-export function createRoocCompletion() {
+export function createRoocCompletion(ref: RoocFnRef) {
     return {
         provideCompletionItems: (model: editor.ITextModel, position: Position) => {
             const word = model.getWordUntilPosition(position)
@@ -343,8 +367,8 @@ export function createRoocCompletion() {
             const keywords = suggestedKeywords.filter(e => e.label.startsWith(word.word)) as languages.CompletionItem[]
             const types = suggestedTypes.filter(e => e.label.startsWith(word.word)) as languages.CompletionItem[]
             const parsed = new RoocParser(model.getValue()).compile()
-            const suggestions = [...elements, ...suggestedStdCompletionToken, ...keywords, ...types, ] as languages.CompletionItem[]
-            if(parsed.isOk()){
+            const suggestions = [...elements, ...suggestedStdCompletionToken, ...ref.completionTokenSuggestions, ...keywords, ...types,] as languages.CompletionItem[]
+            if (parsed.isOk()) {
                 const identifiers = [...parsed.value.createTypeMap().values()].filter(e => e.identifier)
                 const unique = [...new Set(identifiers.map(e => e.identifier))]
                 suggestions.push(...unique.map(e => ({
