@@ -36,7 +36,7 @@
 	"type": "module",
 	"dependencies": {
 		"@ctrl/tinycolor": "^4.1.0",
-		"@specy/rooc": "^0.9.21",
+		"@specy/rooc": "^0.9.29",
 		"@sveltejs/adapter-static": "^3.0.1",
 		"@types/clone-deep": "^4.0.4",
 		"@types/color": "^3.0.6",
@@ -50,7 +50,7 @@
 		"monaco-editor": "^0.48.0",
 		"s-ago": "^2.2.0",
 		"sass": "^1.75.0",
-		"ts-results": "^3.3.0",
+		"ts-results-es": "^4.2.0",
 		"unplugin-icons": "^0.18.5",
 		"vite-plugin-top-level-await": "^1.4.1",
 		"vite-plugin-wasm": "^3.3.0"

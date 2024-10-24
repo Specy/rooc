@@ -50,7 +50,30 @@ pub fn default_type_check(
         });
     }
     for (arg, (_, kind)) in args.iter().zip(type_signature) {
+        if kind == &PrimitiveKind::Any
+            || *kind == PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any))
+        {
+            continue;
+        }
         let arg_type = arg.get_type(context, fn_context);
+        if kind == &PrimitiveKind::Number  {
+            //allow anything that can be converted to a number
+            if matches!(
+                arg_type,
+                PrimitiveKind::Number
+                    | PrimitiveKind::Boolean
+                    | PrimitiveKind::Integer
+                    | PrimitiveKind::PositiveInteger
+            ) {
+                continue;
+            }
+        }
+        if kind == &PrimitiveKind::Integer {
+            //allow anything that can be converted to a boolean
+            if matches!(arg_type, PrimitiveKind::Integer | PrimitiveKind::PositiveInteger) {
+                continue;
+            }
+        }
         if arg_type != *kind {
             return Err(TransformError::WrongArgument {
                 expected: kind.clone(),
@@ -161,7 +184,7 @@ pub fn default_rooc_function_to_string(function: &FunctionCall) -> String {
     )
 }
 
-pub trait RoocFunction: Debug  {
+pub trait RoocFunction: Debug {
     fn call(
         &self,
         args: &[PreExp],

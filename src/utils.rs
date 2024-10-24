@@ -2,12 +2,12 @@ use core::fmt;
 use std::{fmt::Debug, ops::Deref, ops::DerefMut};
 
 use pest::{iterators::Pair, Span};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 use crate::parser::pre_model::Rule;
 
-#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[wasm_bindgen]
 pub struct InputSpan {
     //as u32 as realistically we won't have more than 4 billion characters in a file

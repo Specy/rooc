@@ -1,14 +1,14 @@
 use std::{collections::HashMap, fmt::Display};
 
 use lazy_static::lazy_static;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::parser::il::{BlockFunctionKind, BlockScopedFunctionKind};
 use crate::parser::model_transformer::TransformError;
 use crate::runtime_builtin::make_std;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TokenType {
     Function,
     Literal,

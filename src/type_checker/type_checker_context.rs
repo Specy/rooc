@@ -7,7 +7,7 @@ use crate::parser::il::AddressableAccess;
 use crate::parser::il::PreExp;
 use crate::parser::model_transformer::Frame;
 use crate::parser::model_transformer::TransformError;
-use crate::runtime_builtin::{make_std, RoocFunction};
+use crate::runtime_builtin::{RoocFunction};
 use crate::utils::Spanned;
 use crate::{
     primitives::PrimitiveKind, runtime_builtin::check_if_reserved_token, utils::InputSpan,
@@ -73,22 +73,15 @@ impl StaticVariableType {
     }
 }
 
-pub struct FunctionContext {
-    functions: IndexMap<String, Box<dyn RoocFunction>>,
-    builtin_functions: IndexMap<String, Box<dyn RoocFunction>>,
+pub struct FunctionContext<'a> {
+    functions: &'a IndexMap<String, Box<dyn RoocFunction>>,
+    builtin_functions: &'a IndexMap<String, Box<dyn RoocFunction>>,
 }
-impl Default for FunctionContext{
-    fn default() -> Self {
-        Self {
-            functions: IndexMap::new(),
-            builtin_functions: make_std(),
-        }
-    }
-}
-impl FunctionContext {
+
+impl<'a> FunctionContext<'a> {
     pub fn new(
-        functions: IndexMap<String, Box<dyn RoocFunction>>,
-        builtin_functions: IndexMap<String, Box<dyn RoocFunction>>,
+        functions: &'a IndexMap<String, Box<dyn RoocFunction>>,
+        builtin_functions: &'a  IndexMap<String, Box<dyn RoocFunction>>,
     ) -> Self {
         Self {
             functions,

@@ -1,7 +1,7 @@
 use core::fmt;
 use std::str::FromStr;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 use crate::enum_with_variants_to_string;
@@ -117,13 +117,11 @@ impl FromStr for BinOp {
         }
     }
 }
-
 enum_with_variants_to_string! {
     pub enum UnOp derives[Debug, PartialEq, Clone, Copy] with_wasm {
         Neg,
     }
 }
-
 impl ToLatex for UnOp {
     fn to_latex(&self) -> String {
         match self {

@@ -5,6 +5,7 @@ use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
 use crate::solvers::{solve_binary_lp_problem, solve_integer_binary_lp_problem};
 use crate::transformers::Linearizer;
 use crate::RoocParser;
+use crate::runtime_builtin::RoocFunction;
 
 #[wasm_bindgen]
 pub enum Pipes {
@@ -35,7 +36,7 @@ impl CompilerPipe {
 }
 
 impl Pipeable for CompilerPipe {
-    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+    fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let str = data.as_string_data()?;
         let parser = RoocParser::new(str.clone());
         Ok(PipeableData::Parser(parser))
@@ -55,7 +56,7 @@ impl PreModelPipe {
     }
 }
 impl Pipeable for PreModelPipe {
-    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+    fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let parser = data.as_parser()?;
         match parser.parse() {
             Ok(model) => Ok(PipeableData::PreModel(model)),
@@ -80,15 +81,15 @@ impl ModelPipe {
     }
 }
 impl Pipeable for ModelPipe {
-    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+    fn pipe(&self, data: &mut PipeableData, fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let pre_model = data.as_pre_model()?;
-        if let Err(e) = pre_model.create_type_checker(IndexMap::new()) {
+        if let Err(e) = pre_model.create_type_checker(fns) {
             return Err(PipeError::TransformError {
                 error: e,
                 source: pre_model.get_source().unwrap_or("".to_string()),
             });
         }
-        match pre_model.clone().transform(IndexMap::new()) {
+        match pre_model.clone().transform(fns) {
             Ok(model) => Ok(PipeableData::Model(model)),
             Err(e) => Err(PipeError::TransformError {
                 error: e,
@@ -111,7 +112,7 @@ impl LinearModelPipe {
     }
 }
 impl Pipeable for LinearModelPipe {
-    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+    fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let model = data.as_model()?;
         let linearizer = Linearizer::linearize(model.clone());
         match linearizer {
@@ -134,7 +135,7 @@ impl StandardLinearModelPipe {
     }
 }
 impl Pipeable for StandardLinearModelPipe {
-    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+    fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let linear_model = data.as_linear_model()?;
         let standard = linear_model.clone().into_standard_form();
         match standard {
@@ -157,7 +158,7 @@ impl TableauPipe {
     }
 }
 impl Pipeable for TableauPipe {
-    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+    fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let standard_linear_model = data.as_standard_linear_model()?.clone();
         let tableau = standard_linear_model.into_tableau();
         match tableau {
@@ -180,7 +181,7 @@ impl SimplexPipe {
     }
 }
 impl Pipeable for SimplexPipe {
-    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+    fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let mut tableau = data.as_tableau()?.clone();
         let optimal_tableau = tableau.solve(1000);
         match optimal_tableau {
@@ -203,7 +204,7 @@ impl StepByStepSimplexPipe {
     }
 }
 impl Pipeable for StepByStepSimplexPipe {
-    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+    fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let mut tableau = data.as_tableau()?.clone();
         let optimal_tableau = tableau.solve_step_by_step(1000);
         match optimal_tableau {
@@ -228,7 +229,7 @@ impl DualPipe {
     }
 }
 impl Pipeable for DualPipe {
-    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+    fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let model = data.as_linear_model()?.clone();
         //TODO: Implement dual
         let dual = model;
@@ -250,7 +251,7 @@ impl BinarySolverPipe {
     }
 }
 impl Pipeable for BinarySolverPipe {
-    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+    fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let linear_model = data.as_linear_model()?;
         let binary_solution = solve_binary_lp_problem(linear_model);
         match binary_solution {
@@ -273,7 +274,7 @@ impl IntegerBinarySolverPipe {
     }
 }
 impl Pipeable for IntegerBinarySolverPipe {
-    fn pipe(&self, data: &mut PipeableData) -> Result<PipeableData, PipeError> {
+    fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let linear_model = data.as_linear_model()?;
         let integer_binary_solution = solve_integer_binary_lp_problem(linear_model);
         match integer_binary_solution {

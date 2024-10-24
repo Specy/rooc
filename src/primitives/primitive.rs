@@ -53,17 +53,17 @@ impl PartialEq for Primitive {
 #[wasm_bindgen(typescript_custom_section)]
 const IPrimitive: &'static str = r#"
 export type SerializedPrimitive =
-    | { kind: 'Number', value: number }
-    | { kind: 'Integer', value: number }
-    | { kind: 'PositiveInteger', value: number }
-    | { kind: 'String', value: string }
-    | { kind: 'Iterable', value: SerializedIterable }
-    | { kind: 'Graph', value: SerializedGraph }
-    | { kind: 'GraphEdge', value: SerializedGraphEdge }
-    | { kind: 'GraphNode', value: SerializedGraphNode }
-    | { kind: 'Tuple', value: SerializedTuple }
-    | { kind: 'Boolean', value: boolean }
-    | { kind: 'Undefined' }
+    | { type: 'Number', value: number }
+    | { type: 'Integer', value: number }
+    | { type: 'PositiveInteger', value: number }
+    | { type: 'String', value: string }
+    | { type: 'Iterable', value: SerializedIterable }
+    | { type: 'Graph', value: SerializedGraph }
+    | { type: 'GraphEdge', value: SerializedGraphEdge }
+    | { type: 'GraphNode', value: SerializedGraphNode }
+    | { type: 'Tuple', value: SerializedTuple }
+    | { type: 'Boolean', value: boolean }
+    | { type: 'Undefined' }
 "#;
 
 #[derive(Debug, Clone, Serialize, PartialEq, Deserialize)]

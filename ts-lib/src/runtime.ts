@@ -18,9 +18,10 @@ export const PrimitiveKind = {
     SerializedPrimitiveKind['type'],
     SerializedPrimitiveKind | ((value: SerializedPrimitiveKind | SerializedPrimitiveKind[]) => SerializedPrimitiveKind)
 >
+
 export type ExtractArgTypes<T extends [string, SerializedPrimitiveKind][]> = {
     [K in keyof T]: T[K] extends [string, infer Type extends SerializedPrimitiveKind] ? SerializedPrimitive & {
-        kind: Type['type']
+        type: Type['type']
     } : never;
 };
 

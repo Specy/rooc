@@ -1,12 +1,13 @@
 import {
-    CompilationError,
     findRoocCompletionTokens,
     findRoocExactToken,
-    type PossibleCompletionToken,
-    RoocParser
+    type PossibleCompletionToken, RoocFunction,
+    RoocParser, type SerializedPrimitiveKind
 } from '@specy/rooc'
 import {editor, type IDisposable, languages, MarkerSeverity, Position, Range} from 'monaco-editor'
 import {createRoocFunctionSignature, getFormattedRoocType} from './RoocUtils'
+import {roocJsStd} from "$lib/Rooc/roocJsStd";
+import {type NamedParameter, type RuntimeFunction} from "@specy/rooc/src/runtime";
 
 
 export const RoocLanguage = {
@@ -110,13 +111,13 @@ export function createRoocFormatter() {
             const text = model.getValue()
             const parser = new RoocParser(text)
             const result = parser.format()
-            if (!result.ok) {
-                console.error("Error formatting", result.err)
+            if (!result.isOk()) {
+                console.error("Error formatting", result.error)
                 return []
             }
             return [{
                 range: model.getFullModelRange(),
-                text: result.val
+                text: result.value
             }]
         }
     }
@@ -171,7 +172,7 @@ export function createRoocHoverProvider() {
             const pos = new Position(position.lineNumber, word?.startColumn ?? position.column)
             const offset = model.getOffsetAt(pos)
             const preciseOffset = model.getOffsetAt(position)
-            const exactMatch = findRoocExactToken(word?.word ?? '')
+            const exactMatch = findRoocExactToken(word?.word ?? '') ?? suggestedRoocStd.find(e => e.name === word?.word)
             const range = new Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + (word?.word.length ?? 0))
 
             if (pos.lineNumber === 1 && pos.column === 1) {
@@ -199,8 +200,8 @@ export function createRoocHoverProvider() {
             }
             const parser = new RoocParser(text)
             const parsed = parser.compile()
-            if (parsed.ok) {
-                const items = parsed.val.createTypeMap()
+            if (parsed.isOk()) {
+                const items = parsed.value.createTypeMap(roocJsStd())
                 const item = items.get?.(preciseOffset) ?? items.get?.(offset)
                 if (item) {
                     contents.push({value: `\`\`\`typescript\n${word?.word ?? "Unknown"}: ${getFormattedRoocType(item.value)}\n\`\`\``})
@@ -231,8 +232,8 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel) {
         const parser = new RoocParser(text)
         const parsed = parser.compile()
         const markers = [] as editor.IMarkerData[]
-        if (!parsed.ok) {
-            const err = parsed.val as CompilationError
+        if (!parsed.isOk()) {
+            const err = parsed.error
             const span = err.getSpan()
             const start = model.getPositionAt(span.start)
             const end = model.getPositionAt(span.start + span.len)
@@ -246,9 +247,9 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel) {
                 severity: MarkerSeverity.Error
             })
         } else {
-            const typeCheck = parsed.val.typeCheck()
-            if (!typeCheck.ok) {
-                const err = typeCheck.val
+            const typeCheck = parsed.value.typeCheck(roocJsStd())
+            if (!typeCheck.isOk()) {
+                const err = typeCheck.error
                 const span = err.getOriginSpan()
                 const start = model.getPositionAt(span?.start)
                 const end = model.getPositionAt(span?.start + span.len)
@@ -321,6 +322,19 @@ const suggestedTypes = [
     detail: `Type ${k}`
 }))
 
+function roocFunctionToRuntimeFunction(f: RoocFunction): RuntimeFunction<NamedParameter[], SerializedPrimitiveKind>{
+    return {
+        name: f.name,
+        description: f.description,
+        type: "RuntimeFunction",
+        parameters: f.argTypes.map(([k,v]) => ({name: k, value: v})),
+        returnType: f.returnType
+    } satisfies RuntimeFunction<NamedParameter[], SerializedPrimitiveKind>
+}
+
+const suggestedRoocStd = roocJsStd().map(roocFunctionToRuntimeFunction)
+const suggestedStdCompletionToken = suggestedRoocStd.map(makeRoocCompletionToken)
+
 export function createRoocCompletion() {
     return {
         provideCompletionItems: (model: editor.ITextModel, position: Position) => {
@@ -329,9 +343,9 @@ export function createRoocCompletion() {
             const keywords = suggestedKeywords.filter(e => e.label.startsWith(word.word)) as languages.CompletionItem[]
             const types = suggestedTypes.filter(e => e.label.startsWith(word.word)) as languages.CompletionItem[]
             const parsed = new RoocParser(model.getValue()).compile()
-            const suggestions = [...elements, ...keywords, ...types] as languages.CompletionItem[]
-            if(parsed.ok){
-                const identifiers = [...parsed.val.createTypeMap().values()].filter(e => e.identifier)
+            const suggestions = [...elements, ...suggestedStdCompletionToken, ...keywords, ...types, ] as languages.CompletionItem[]
+            if(parsed.isOk()){
+                const identifiers = [...parsed.value.createTypeMap().values()].filter(e => e.identifier)
                 const unique = [...new Set(identifiers.map(e => e.identifier))]
                 suggestions.push(...unique.map(e => ({
                     label: e,

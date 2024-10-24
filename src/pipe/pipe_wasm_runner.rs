@@ -1,5 +1,5 @@
 use crate::parser::model_transformer::Model;
-use crate::parser::pre_model::PreModel;
+use crate::parser::pre_model::{js_value_to_fns_map, PreModel};
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
@@ -54,7 +54,8 @@ impl WasmPipeRunner {
         fns: Vec<JsFunction>
     ) -> Result<Vec<WasmPipableData>, WasmPipeError> {
         let data = PipeableData::String(data);
-        match self.pipe.run(data) {
+        let fns = js_value_to_fns_map(fns);
+        match self.pipe.run(data, &fns) {
             Ok(results) => Ok(results.into_iter().map(WasmPipableData::new).collect()),
             Err((e, results)) => {
                 let results: Vec<WasmPipableData> =

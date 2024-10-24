@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use rooc::pipe::{CompilerPipe, PipeRunner, PipeableData, PreModelPipe};
 
 #[allow(unused)]
@@ -28,7 +29,7 @@ define
         Box::new(PreModelPipe::new()),
     ]);
 
-    let (result) = pipe_runner.run(PipeableData::String(source));
+    let (result) = pipe_runner.run(PipeableData::String(source), &IndexMap::new());
     match result {
         Ok(data) => {
             let last = data.last().unwrap();

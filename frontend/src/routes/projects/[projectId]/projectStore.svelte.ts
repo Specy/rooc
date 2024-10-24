@@ -1,5 +1,6 @@
 import {type Project} from "$stores/userProjectsStore.svelte";
 import {type RoocData, RoocParser, RoocRunnablePipe} from "@specy/rooc";
+import {roocJsStd} from "$lib/Rooc/roocJsStd";
 
 type RoocResult = ({
     ok: boolean,
@@ -23,19 +24,19 @@ export function createCompilerStore(project: Project) {
             compiling = true
             await new Promise(resolve => setTimeout(resolve, 100))
             const pipe = new RoocRunnablePipe(project.pipes.map(p => p.pipe))
-            const res = pipe.run(project.content)
+            const res = pipe.run(project.content, roocJsStd())
             const latex = new RoocParser(project.content)
                 .compile()
                 .map(x => x.toLatex())
                 .unwrapOr("")
-            if (res.ok) {
+            if (res.isOk()) {
                 result = {
                     ok: true,
                     latex: latex || undefined,
-                    val: res.val,
+                    val: res.value,
                 }
             } else {
-                const error = res.val as { context: RoocData[], error: string }
+                const error = res.error as { context: RoocData[], error: string }
                 result = {
                     ok: false,
                     latex: latex || undefined,

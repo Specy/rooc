@@ -1,6 +1,6 @@
 import type { PossibleCompletionToken, SerializedPrimitiveKind } from "@specy/rooc"
 
-export function getFormattedRoocType(type: SerializedPrimitiveKind) {
+export function getFormattedRoocType(type: SerializedPrimitiveKind): string {
 	if (type.type === 'Tuple') {
 		return `(${type.value.map(getFormattedRoocType).join(', ')})`
 	} else if (type.type === "Iterable") {

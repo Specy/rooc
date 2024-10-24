@@ -30,6 +30,7 @@ The library is compiled as a WebAssembly (WASM) module and integrated into the [
   - [x] Error traces
   - [x] Primitives Operator overloading (for example, `+` for strings)
   - [x] Definition of variable bounds
+  - [x] Javascript defined functions, define js functions to use in the model
 - [x] Simplex resolution
   - [x] Linearization of a generic problem (done except for mod operator)
   - [x] Transformation of a linear problem into the standard form

@@ -1,5 +1,5 @@
 use std::fmt::Display;
-
+use indexmap::IndexMap;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::parser::model_transformer::Model;
@@ -15,6 +15,7 @@ use crate::transformers::LinearizationError;
 use crate::transformers::StandardLinearModel;
 use crate::utils::CompilationError;
 use crate::{match_pipe_data_to, RoocParser};
+use crate::runtime_builtin::RoocFunction;
 
 #[derive(Debug, Clone)]
 pub enum PipeableData {
@@ -222,5 +223,5 @@ impl Display for PipeError {
 
 pub trait Pipeable {
     #[allow(clippy::result_large_err)]
-    fn pipe(&self, data: &mut PipeableData, ) -> Result<PipeableData, PipeError>;
+    fn pipe(&self, data: &mut PipeableData, fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError>;
 }

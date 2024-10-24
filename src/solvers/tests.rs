@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use crate::math::{float_eq, float_ne};
 use crate::pipe::PipeRunner;
 use crate::pipe::{
@@ -23,7 +24,7 @@ fn solve(source: &str) -> Result<OptimalTableau, PipeError> {
         Box::new(SimplexPipe::new()),
     ]);
 
-    let result = pipe_runner.run(PipeableData::String(source.to_string()));
+    let result = pipe_runner.run(PipeableData::String(source.to_string()),&IndexMap::new());
     match result {
         Ok(data) => {
             let last = data.last().unwrap();
@@ -50,7 +51,7 @@ fn solve_binary(source: &str) -> Result<LpSolution<bool>, PipeError> {
         Box::new(BinarySolverPipe::new()),
     ]);
 
-    let result = pipe_runner.run(PipeableData::String(source.to_string()));
+    let result = pipe_runner.run(PipeableData::String(source.to_string()),&IndexMap::new());
     match result {
         Ok(data) => {
             let last = data.last().unwrap();
@@ -77,7 +78,7 @@ fn solve_integer_binary(source: &str) -> Result<LpSolution<VarValue>, PipeError>
         Box::new(IntegerBinarySolverPipe::new()),
     ]);
 
-    let result = pipe_runner.run(PipeableData::String(source.to_string()));
+    let result = pipe_runner.run(PipeableData::String(source.to_string()), &IndexMap::new());
     match result {
         Ok(data) => {
             let last = data.last().unwrap();

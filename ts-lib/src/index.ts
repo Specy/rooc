@@ -32,21 +32,58 @@ import {Err, Ok, Result} from 'ts-results-es'
 import {ExtractArgTypes} from "./runtime";
 
 
-
-
-export function makeRoocFunction<T extends [string, SerializedPrimitiveKind][]>(
+type MakeRoocFunction<T extends [string, SerializedPrimitiveKind][]> = {
     name: string,
     argTypes: T,
     returnType: SerializedPrimitiveKind,
-    fn: (...args: ExtractArgTypes<T>) => SerializedPrimitive
-) {
-    return JsFunction.new(
-        // @ts-ignore
-        (...args) => fn(...args),
+    call: (...args: ExtractArgTypes<T>) => SerializedPrimitive,
+    type_checker?: (...args: SerializedPrimitiveKind[]) => null | string
+    description?: string
+}
+
+export function makeRoocFunction<T extends [string, SerializedPrimitiveKind][]>({
+                                                                                    name,
+                                                                                    argTypes,
+                                                                                    returnType,
+                                                                                    type_checker,
+                                                                                    call,
+                                                                                    description
+                                                                                }: MakeRoocFunction<T>) {
+    return new RoocFunction<T>(
+        JsFunction.new(
+            // @ts-ignore
+            (...args) => call(...args),
+            name,
+            argTypes,
+            returnType,
+            type_checker
+        ),
         name,
         argTypes,
-        returnType
+        returnType,
+        description
     )
+}
+
+export class RoocFunction<T extends [string, SerializedPrimitiveKind][] = [string, SerializedPrimitiveKind][]> {
+    instance: JsFunction
+    name: string
+    description?: string
+    argTypes: T
+    returnType: SerializedPrimitiveKind
+
+    constructor(
+        instance: JsFunction,
+        name: string,
+        argTypes: T,
+        returnType: SerializedPrimitiveKind,
+        description?: string) {
+        this.instance = instance
+        this.name = name
+        this.argTypes = argTypes
+        this.returnType = returnType
+        this.description = description
+    }
 }
 
 
@@ -79,14 +116,18 @@ export class RoocParser {
         }
     }
 
-    compileAndTransform(fns: JsFunction[] = []): Result<Model, string> {
+    compileAndTransform(fns: RoocFunction[] = []): Result<Model, string> {
         try {
-            return Ok(new Model(this.instance.parse_and_transform_wasm(fns)))
+            return Ok(new Model(this.instance.parse_and_transform_wasm(cloneJsFunction(fns))))
         } catch (e) {
             return Err(e)
         }
 
     }
+}
+
+function cloneJsFunction(fns: RoocFunction[]) {
+    return fns.map(f => f.instance.clone_wasm())
 }
 
 export class CompilationError {
@@ -136,25 +177,25 @@ export class PreModel {
         return this.instance.serialize_wasm()
     }
 
-    transform(fns: JsFunction[] = []): Result<Model, TransformError> {
+    transform(fns: RoocFunction[] = []): Result<Model, TransformError> {
         try {
-            return Ok(new Model(this.instance.transform_wasm(fns)))
+            return Ok(new Model(this.instance.transform_wasm(cloneJsFunction(fns))))
         } catch (e) {
             return Err(new TransformError(e, this.source))
         }
     }
 
-    typeCheck(fns: JsFunction[] = []): Result<null, TransformError> {
+    typeCheck(fns: RoocFunction[] = []): Result<null, TransformError> {
         try {
-            this.instance.type_check_wasm(fns)
+            this.instance.type_check_wasm(cloneJsFunction(fns))
             return Ok(null)
         } catch (e) {
             return Err(new TransformError(e, this.source))
         }
     }
 
-    createTypeMap(fns: JsFunction[] = []): Map<number, SerializedTypedToken> {
-        return this.instance.create_token_type_map_wasm(fns)
+    createTypeMap(fns: RoocFunction[] = []): Map<number, SerializedTypedToken> {
+        return this.instance.create_token_type_map_wasm(cloneJsFunction(fns))
     }
 
     toLatex(): string {
@@ -487,9 +528,9 @@ export class RoocRunnablePipe {
         this.instance = WasmPipeRunner.new_wasm(steps)
     }
 
-    run(source: string, fns: JsFunction[] = []): Result<RoocData[], { error: String, context: RoocData[] }> {
+    run(source: string, fns: RoocFunction[] = []): Result<RoocData[], { error: String, context: RoocData[] }> {
         try {
-            const data = this.instance.wasm_run_from_string(source)
+            const data = this.instance.wasm_run_from_string(source, cloneJsFunction(fns))
             return Ok(data.map(toRoocData))
         } catch (e) {
             if (e instanceof WasmPipeError) {

@@ -435,8 +435,9 @@ impl Model {
     }
 }
 
-pub fn transform_parsed_problem(pre_problem: PreModel, fns: IndexMap<String, Box<dyn RoocFunction>>) -> Result<Model, TransformError> {
-    let fn_context = FunctionContext::new(fns, make_std());
+pub fn transform_parsed_problem(pre_problem: PreModel, fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<Model, TransformError> {
+    let std = make_std();
+    let fn_context = FunctionContext::new(fns,&std);
     let context = TransformerContext::new_from_constants(
         pre_problem.get_constants().clone(),
         pre_problem.get_domains().clone(),

@@ -79,7 +79,7 @@ impl PreModel {
     }
     pub fn transform(
         self,
-        fns: IndexMap<String, Box<dyn RoocFunction>>,
+        fns: &IndexMap<String, Box<dyn RoocFunction>>,
     ) -> Result<Model, TransformError> {
         transform_parsed_problem(self, fns)
     }
@@ -99,11 +99,12 @@ impl PreModel {
     }
     pub fn create_type_checker(
         &self,
-        fns: IndexMap<String, Box<dyn RoocFunction>>,
+        fns: &IndexMap<String, Box<dyn RoocFunction>>,
     ) -> Result<(), TransformError> {
         let mut context = TypeCheckerContext::default();
         let domain = self.get_static_domain();
-        let fn_context = FunctionContext::new(fns, make_std());
+        let std = make_std();
+        let fn_context = FunctionContext::new(fns, &std);
         //TODO add span
         assert_no_duplicates_in_domain(
             &domain
@@ -127,11 +128,12 @@ impl PreModel {
     }
     pub fn create_token_type_map(
         &self,
-        fns: IndexMap<String, Box<dyn RoocFunction>>,
+        fns: &IndexMap<String, Box<dyn RoocFunction>>,
     ) -> IndexMap<u32, TypedToken> {
         let mut context = TypeCheckerContext::default();
         let domain = self.get_static_domain();
-        let fn_context = FunctionContext::new(fns, make_std());
+        let std = make_std();
+        let fn_context = FunctionContext::new(fns, &std);
         context.set_static_domain(domain);
         for constants in &self.constants {
             constants.populate_token_type_map(&mut context, &fn_context);
@@ -223,7 +225,8 @@ pub fn js_value_to_fns_map(fns: Vec<JsFunction>) -> IndexMap<String, Box<dyn Roo
 #[wasm_bindgen]
 impl PreModel {
     pub fn transform_wasm(self, fns: Vec<JsFunction>) -> Result<Model, TransformErrorWrapper> {
-        self.transform(js_value_to_fns_map(fns))
+        let fns = js_value_to_fns_map(fns);
+        self.transform(&fns)
             .map_err(|e| TransformErrorWrapper { error: e })
     }
     pub fn serialize_wasm(&self) -> JsValue {
@@ -233,12 +236,14 @@ impl PreModel {
         self.to_string()
     }
     pub fn type_check_wasm(self, fns: Vec<JsFunction>) -> Result<(), TransformErrorWrapper> {
-        self.create_type_checker(js_value_to_fns_map(fns))
+        let fns = js_value_to_fns_map(fns);
+        self.create_type_checker(&fns)
             .map(|_| ())
             .map_err(|e| TransformErrorWrapper { error: e })
     }
     pub fn create_token_type_map_wasm(&self, fns: Vec<JsFunction>) -> JsValue {
-        serde_wasm_bindgen::to_value(&self.create_token_type_map(js_value_to_fns_map(fns))).unwrap()
+        let fns = js_value_to_fns_map(fns);
+        serde_wasm_bindgen::to_value(&self.create_token_type_map(&fns)).unwrap()
     }
     pub fn to_latex_wasm(&self) -> String {
         self.to_latex()

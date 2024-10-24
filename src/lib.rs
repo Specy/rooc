@@ -44,7 +44,7 @@ impl RoocParser {
     }
     pub fn parse_and_transform(
         &self,
-        fns: IndexMap<String, Box<dyn RoocFunction>>,
+        fns: &IndexMap<String, Box<dyn RoocFunction>>,
     ) -> Result<Model, String> {
         let parsed = self
             .parse()
@@ -57,7 +57,7 @@ impl RoocParser {
                 .unwrap_or(e.get_traced_error())),
         }
     }
-    pub fn type_check(&self, fns: IndexMap<String, Box<dyn RoocFunction>>) -> Result<(), String> {
+    pub fn type_check(&self, fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<(), String> {
         let parsed = self
             .parse()
             .map_err(|e| e.to_string_from_source(&self.source))?;
@@ -82,7 +82,8 @@ impl RoocParser {
         self.parse()
     }
     pub fn parse_and_transform_wasm(&self, fns: Vec<JsFunction>) -> Result<Model, String> {
-        self.parse_and_transform(js_value_to_fns_map(fns))
+        let fns = js_value_to_fns_map(fns);
+        self.parse_and_transform(&fns)
     }
     pub fn wasm_get_source(&self) -> String {
         self.source.clone()

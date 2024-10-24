@@ -35,16 +35,16 @@ pub enum IterableKind {
 #[wasm_bindgen(typescript_custom_section)]
 const IIterableKind: &'static str = r#"
 export type SerializedIterable = 
-    | { kind: 'Numbers', value: number[] }
-    | { kind: 'Integers', value: number[] }
-    | { kind: 'PositiveIntegers', value: number[] }
-    | { kind: 'Strings', value: string[] }
-    | { kind: 'Edges', value: SerializedGraphEdge[] }
-    | { kind: 'Nodes', value: SerializedGraphNode[] }
-    | { kind: 'Graphs', value: SerializedGraph[] }
-    | { kind: 'Tuple', value: SerializedTuple[] }
-    | { kind: 'Booleans', value: boolean[] }
-    | { kind: 'Iterable', value: SerializedIterable[] }
+    | { type: 'Numbers', value: number[] }
+    | { type: 'Integers', value: number[] }
+    | { type: 'PositiveIntegers', value: number[] }
+    | { type: 'Strings', value: string[] }
+    | { type: 'Edges', value: SerializedGraphEdge[] }
+    | { type: 'Nodes', value: SerializedGraphNode[] }
+    | { type: 'Graphs', value: SerializedGraph[] }
+    | { type: 'Tuple', value: SerializedTuple[] }
+    | { type: 'Booleans', value: boolean[] }
+    | { type: 'Iterable', value: SerializedIterable[] }
 "#;
 
 impl IterableKind {

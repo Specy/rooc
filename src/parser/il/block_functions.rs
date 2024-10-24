@@ -1,7 +1,7 @@
 use core::fmt;
 use std::str::FromStr;
 
-use serde::Serialize;
+use serde::{Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::enum_with_variants_to_string;

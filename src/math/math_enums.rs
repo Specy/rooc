@@ -201,8 +201,8 @@ impl PreVariableType {
             PreVariableType::PositiveReal => Ok(VariableType::PositiveReal),
             PreVariableType::Real => Ok(VariableType::Real),
             PreVariableType::IntegerRange(min, max) => {
-                let min_i64 = min.as_integer(context, fn_context)?;
-                let max_i64 = max.as_integer(context, fn_context)?;
+                let min_i64 = min.as_integer_cast(context, fn_context)?;
+                let max_i64 = max.as_integer_cast(context, fn_context)?;
                 let min_i32 = min_i64.to_i32();
                 let max_i32 = max_i64.to_i32();
                 if min_i32.is_none() {

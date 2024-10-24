@@ -1,6 +1,6 @@
 use core::fmt;
 
-use serde::Serialize;
+use serde::{Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::math::VariableType;
