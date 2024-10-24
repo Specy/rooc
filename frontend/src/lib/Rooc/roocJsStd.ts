@@ -15,7 +15,7 @@ const sqrt = makeRoocFunction({
 
 export function roocJsStd() {
     return [
-        sqrt
+        //sqrt
     ]
 }
 

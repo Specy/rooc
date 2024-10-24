@@ -12,8 +12,13 @@
     } from "@specy/rooc";
     import Separator from "$cmp/misc/Separator.svelte";
     import Row from "$cmp/layout/Row.svelte";
+    import {roocJsStd} from "$lib/Rooc/roocJsStd";
+    import {roocFunctionToRuntimeFunction} from "$lib/Rooc/RoocLanguage";
 
-    let functions = ROOC_RUNTIME_FUNCTIONS.values();
+    let functions = [
+        ...ROOC_RUNTIME_FUNCTIONS.values(),
+        ...roocJsStd().map(roocFunctionToRuntimeFunction)
+    ];
     let blockFunctions = RUNTIME_BLOCK_FUNCTIONS.values();
     let blockScopedFunctions = RUNTIME_BLOCK_SCOPED_FUNCTIONS.values();
 </script>
