@@ -305,7 +305,7 @@
         }
 
         .editor {
-            min-height: 30vh;
+            min-height: 60vh;
         }
 
         .no-mobile {
