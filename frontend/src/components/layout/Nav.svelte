@@ -132,8 +132,8 @@
     flex-direction: column;
     gap: 0.8rem;
     z-index: 4;
-    position: absolute;
-    top: $nav-height;
+    position: fixed;
+    top: calc($nav-height - 0.3rem);
     right: 0;
     width: 100%;
     background-color: rgba(var(--primary-rgb), 0.9);

@@ -32,9 +32,15 @@ export function createCompilerStore(project: Project) {
         debouncer(async () => {
             // eslint-disable-next-line no-async-promise-executor
             loadingUserFunctions = new Promise<RoocFunction[]>(async (res) => {
-                const jsCode = await Monaco.typescriptToJavascript(code)
-                const fns = await getRuntimeFns(jsCode)
-                res(fns)
+                try {
+                    const jsCode = await Monaco.typescriptToJavascript(code)
+                    const fns = await getRuntimeFns(jsCode)
+                    res(fns)
+                } catch (e) {
+                    console.error(e)
+                    res([])
+                }
+
             })
             userDefinedFunctions = await loadingUserFunctions
         }, 500)
