@@ -1,6 +1,6 @@
 import {Pipes} from "@specy/rooc"
 
-type PipePreset = {
+export type PipePreset = {
     name: string,
     pipes: Pipes[]
 }
@@ -8,6 +8,8 @@ type PipePreset = {
 function makePipePreset(name: string, pipes: Pipes[]): PipePreset {
     return {name, pipes}
 }
+
+
 
 export const pipePresets = [
     makePipePreset("Simplex solver Step by Step", [

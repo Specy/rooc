@@ -23,9 +23,17 @@ define
 `.trim();
 </script>
 
-<h1>The language</h1>
+<h1>ROOC</h1>
 <Column gap="0.8rem">
-    With ROOC you can formalize mathematical models and let the compiler create the final model.
+    <p>
+        ROOC is a language designed to parse and convert formal optimization models into static formulations. These
+        static formulations can be transformed into linear models which can then be solved using optimization
+        techniques.
+    </p>
+    <p>
+        If you are looking for the typescript library documentation, look <a href="/docs/lib"
+                                                                             style="color: var(--accent-10); text-decoration: underline">Here</a>
+    </p>
     <br/>
     <h1>
         Table of contents
@@ -34,6 +42,7 @@ define
         <li><a href="#rooc_objective_function">Objective function</a></li>
         <li><a href="#rooc_constraints">Constraints</a></li>
         <li><a href="#rooc_variable">Variables and compound variables</a></li>
+        <li><a href="#rooc_data">Data</a></li>
         <li>
             Blocks
             <ul class="toc">
@@ -41,7 +50,6 @@ define
                 <li><a href="#rooc_scoped_blocks">Scoped expansion blocks</a></li>
             </ul>
         </li>
-        <li><a href="#rooc_data">Data</a></li>
         <li><a href="#rooc_domains">Domains</a></li>
         <li><a href="#rooc_functions_and_tuples">Functions and tuples</a></li>
         <li><a href="#rooc_others">Other things</a></li>
@@ -57,7 +65,7 @@ define
         The objective function can be one of either "min" or "max", after the keyword, you can define whichever
         expression
         you wish to optimize.
-        <br />
+        <br/>
         Once the model is compiled, it will be ran through the solver and find the optimal
         solution
         which fits the constraints.
@@ -73,7 +81,7 @@ define
     <p>
 
         The formal model can follow a list of constraints, you can use one of {`<=, >=, =`} relations.
-        <br />
+        <br/>
         The special keyword "for" can be used at the end of a constraint to create a constraint for each element that
         you iterate over.
     </p>
@@ -91,18 +99,18 @@ define
         determined after the model is compiled (compound variables), variables whose value is replaced during
         compilation
         (for example a number), or normal variables which will be kept after the compilation is finished.
-        <br />
-        <br />
+        <br/>
+        <br/>
         A compound variable is any variable with an underscore in it's name, the first part of the variable will be used
         as
         a prefix name, and the rest of the variable (split by the underscore) will be treated as an expression, and
         evaluated as a string or number
-        <br />
+        <br/>
         You can omit the curly braces if the index is a number or a variable name, for other kind of expressions, they
         are
         needed.
-        <br />
-        <br />
+        <br/>
+        <br/>
         Sometimes you might need to manually write a name of a variable which looks like a compound variable, in that
         case
         you can escape the name with a backslash. Example: "\x_hello"
@@ -115,6 +123,27 @@ define
     will be compiled to
     <Card padding="0.8rem 1rem">
         <SyntaxHighlighter language="rooc" source={`min 1\ns.t.\n    x_3 + x_hello <= 1\n    x_4_3 <= 2`}
+                           style="overflow-x: auto;"/>
+    </Card>
+    <Separator/>
+    <h1 id="rooc_data">
+        Data
+    </h1>
+    <p>
+
+        After the constraints, inside the "where" section you can define the data of the model, this data will be used
+        inside the constraints and
+        objective functions.
+        <br/>
+        <br/>
+        The ROOC language supports arrays, matrices, graphs, strings, numbers and boolean values.
+        <br/>
+        To define a data constant, you can use the "let" keyword followed by the name of the constant and the value.
+    </p>
+
+    <Card padding="0.8rem 1rem">
+        <SyntaxHighlighter language="rooc"
+                           source={`let A = [1, 2, 3]\nlet B = [\n    [1, 2, 3],\n    [4, 5, 6]\n]\nlet G = Graph {\n    A -> [ C, B:2 ],\n    B -> [ A, C:-3 ],\n    C\n}\nlet lengthOfA = len(A)\nlet someString = "hello"\nlet someBool = true`}
                            style="overflow-x: auto;"/>
     </Card>
     <Separator/>
@@ -152,7 +181,7 @@ define
         the
         expansion block
         will be applied to all the iterations that the scope has.
-        <br />
+        <br/>
         You can put more than one scope and it will behave like if they were nested inside each other.
     </p>
 
@@ -174,26 +203,6 @@ define
     </p>
 
     <Separator/>
-    <h1 id="rooc_data">
-        Data
-    </h1>
-    <p>
-
-        After the constraints, inside the "where" section you can define the data of the model, this data will be used inside the constraints and
-        objective functions.
-        <br />
-        <br />
-        The ROOC language supports arrays, matrices, graphs, strings, numbers and boolean values.
-        <br />
-        To define a variable, you can use the "let" keyword followed by the name of the variable and the value.
-    </p>
-
-    <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc"
-                           source={`let A = [1, 2, 3]\nlet B = [\n    [1, 2, 3],\n    [4, 5, 6]\n]\nlet G = Graph {\n    A -> [ C, B:2 ],\n    B -> [ A, C:-3 ],\n    C\n}\nlet lengthOfA = len(A)\nlet someString = "hello"\nlet someBool = true`}
-                           style="overflow-x: auto;"/>
-    </Card>
-    <Separator/>
     <h1 id="rooc_domains">
         Domains
     </h1>
@@ -202,17 +211,18 @@ define
         After the data you can define in which domain each variable will be part of, those variables are the ones that
         will
         remain after the compilation is finished.
-        <br />
-        <br />
+        <br/>
+        <br/>
         Every variable that will end up in the compiled model must be defined, you can use the "for" iteration like in
         the
         constraints to define compound variables.
-        <br />
-        The domains are "Real", "PositiveReal", "Boolean"
+        <br/>
+        The domains are "Real", "NonNegativeReal", "Boolean" and "IntegerRange(min, max)"
     </p>
 
     <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`y, x_u as IntegerRange(0,20) for u in 0..5`} style="overflow-x: auto;"/>
+        <SyntaxHighlighter language="rooc" source={`y, x_u as IntegerRange(0,20) for u in 0..5`}
+                           style="overflow-x: auto;"/>
     </Card>
     <h1 id="rooc_functions_and_tuples">
         Functions and tuples
@@ -221,12 +231,13 @@ define
 
         The ROOC langage has a set of builtin functions that can be used to manipulate data, in the future, the language
         will support custom user defined functions.
-        <br />
+        <br/>
         Those functions can be run anywhere in the model or data section.
-        <br />
-        <br />
+        <br/>
+        <br/>
         The language also has support for tuples and tuples destructuring, you can destructure a tuple or array by
-        writing the name of the variables inside a parenthesis "(a,b,c)". Some builtin values are destructurable, like arrays, tuples and graph edges.
+        writing the name of the variables inside a parenthesis "(a,b,c)". Some builtin values are destructurable, like
+        arrays, tuples and graph edges.
     </p>
 
     <Card padding="0.8rem 1rem">
@@ -234,7 +245,7 @@ define
                            style="overflow-x: auto;"/>
     </Card>
     <p>
-    will be compiled to
+        will be compiled to
     </p>
     <Card padding="0.8rem 1rem">
         <SyntaxHighlighter language="rooc" source={`x_0 * 10 + x_1 * 20 + x_2 * 30`} style="overflow-x: auto;"/>
@@ -268,10 +279,12 @@ define
     .toc {
         padding-left: 2rem;
     }
-    p{
+
+    p {
         max-width: 70ch;
         line-height: 1.5rem;
         font-size: 1.1rem;
     }
+
 </style>
 

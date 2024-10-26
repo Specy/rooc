@@ -21,11 +21,11 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
         total_variables: variables.len(),
     };
     let invalid_variables = find_invalid_variables(&domain, |var| {
-        matches!(var, VariableType::Real | VariableType::PositiveReal)
+        matches!(var, VariableType::Real | VariableType::NonNegativeReal)
     });
     if !invalid_variables.is_empty() {
         return Err(SolverError::InvalidDomain {
-            expected: vec![VariableType::Real, VariableType::PositiveReal],
+            expected: vec![VariableType::Real, VariableType::NonNegativeReal],
             got: invalid_variables,
         });
     }
@@ -52,11 +52,11 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
         variables.push(var_name2.clone());
         domain.insert(
             var_name1.clone(),
-            DomainVariable::new(VariableType::PositiveReal, InputSpan::default()),
+            DomainVariable::new(VariableType::NonNegativeReal, InputSpan::default()),
         );
         domain.insert(
             var_name2.clone(),
-            DomainVariable::new(VariableType::PositiveReal, InputSpan::default()),
+            DomainVariable::new(VariableType::NonNegativeReal, InputSpan::default()),
         );
         context.total_variables += 2;
         constraints.iter_mut().for_each(|c| {
@@ -98,7 +98,7 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
                 variables.push(variable.clone());
                 domain.insert(
                     variable,
-                    DomainVariable::new(VariableType::PositiveReal, InputSpan::default()),
+                    DomainVariable::new(VariableType::NonNegativeReal, InputSpan::default()),
                 );
                 context.total_variables += 1;
             };

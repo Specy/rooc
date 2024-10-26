@@ -4,7 +4,6 @@
     import ExpandableContainer from "$cmp/layout/ExpandableContainer.svelte";
     import PipeOptimalTableauRenderer from "$cmp/pipe/PipeOptimalTableauRenderer.svelte";
     import PipeTableauRenderer from "$cmp/pipe/PipeTableauRenderer.svelte";
-    import PipeOptimalTableauWithSteps from "$cmp/pipe/PipeOptimalTableauWithStepsRenderer.svelte";
     import PipeOptimalTableauWithStepsRenderer from "$cmp/pipe/PipeOptimalTableauWithStepsRenderer.svelte";
     import BinarySolutionRenderer from "$cmp/pipe/BinarySolutionRenderer.svelte";
     import IntegerBinarySolutionRenderer from "$cmp/pipe/IntegerBinarySolutionRenderer.svelte";
@@ -13,9 +12,10 @@
         data: RoocData;
         pipeStep: Pipes | string;
         expanded?: boolean;
+        id: string;
     }
 
-    let { data, pipeStep, expanded = $bindable(false) }: Props = $props();
+    let {data, pipeStep, expanded = $bindable(false), id}: Props = $props();
 
 
 </script>
@@ -25,9 +25,9 @@
         disabled={data.type === PipeDataType.Parser || data.type === PipeDataType.PreModel}
 >
     {#snippet title()}
-        <h2 >
+        <h2 {id}>
             {typeof pipeStep === "string" ? pipeStep : pipeDescriptions[pipeStep].name}
-            ({pipeDataDescriptions[data.type].name})
+
         </h2>
     {/snippet}
     <div style="margin: 0.5rem 0">
@@ -52,13 +52,13 @@
     {:else if data.type === PipeDataType.Tableau}
         <PipeTableauRenderer tableau={data.data}/>
     {:else if data.type === PipeDataType.OptimalTableau}
-        <PipeOptimalTableauRenderer tableau={data.data}/>
-        {:else if data.type === PipeDataType.OptimalTableauWithSteps}
-        <PipeOptimalTableauWithStepsRenderer data={data.data} />
-        {:else if data.type === PipeDataType.BinarySolution}
-        <BinarySolutionRenderer binarySolution={data.data} />
-        {:else if data.type === PipeDataType.IntegerBinarySolution}
-        <IntegerBinarySolutionRenderer binarySolution={data.data} />
+        <PipeOptimalTableauRenderer tableau={data.data} showSteps={false}/>
+    {:else if data.type === PipeDataType.OptimalTableauWithSteps}
+        <PipeOptimalTableauWithStepsRenderer data={data.data}/>
+    {:else if data.type === PipeDataType.BinarySolution}
+        <BinarySolutionRenderer binarySolution={data.data}/>
+    {:else if data.type === PipeDataType.IntegerBinarySolution}
+        <IntegerBinarySolutionRenderer binarySolution={data.data}/>
     {/if}
 </ExpandableContainer>
 

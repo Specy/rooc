@@ -40,14 +40,14 @@
 
 <Column gap="1rem">
     <Row justify="between" align="center">
-        <Button on:click={decrement} style="padding-left: 0.5rem; gap: 0.5rem" disabled={current === 0}>
+        <Button on:click={decrement} style="padding-left: 0.7rem; gap: 0.5rem" disabled={current <= 0}>
             <ChevronLeft/>
             Previous
         </Button>
         <div style="font-weight: bold; font-size: 1.4rem">
             {current + 1} / {steps.length }
         </div>
-        <Button on:click={increment} style="padding-right: 0.5rem; gap: 0.5rem" disabled={current >= steps.length - 1}>
+        <Button on:click={increment} style="padding-right: 0.7rem; gap: 0.5rem" disabled={current >= steps.length - 1}>
             Next
             <ChevronRight/>
         </Button>
@@ -70,7 +70,7 @@
     <div style="font-size: 1.5rem">
         Optimal tableau
     </div>
-    <PipeOptimalTableauRenderer tableau={result}/>
+    <PipeOptimalTableauRenderer tableau={result} showSteps={true}/>
 </Column>
 
 <style>

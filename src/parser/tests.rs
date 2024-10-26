@@ -48,6 +48,20 @@ define
             .type_check(&IndexMap::new())
             .expect("Failed to type check problem");
     }
+    #[test]
+    fn test_should_allow_st_variant() {
+        let input = "
+        min 1
+        subject to
+            1 >= 1
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform(&IndexMap::new())
+            .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check(&IndexMap::new())
+            .expect("Failed to type check problem");
+    }
 
     #[test]
     fn test_parser_variants2() {
@@ -406,7 +420,7 @@ define
         define
             a as Real
             b as Boolean
-            e as PositiveReal
+            e as NonNegativeReal
             x as IntegerRange(10, 20)
         ";
         RoocParser::new(input.to_string())

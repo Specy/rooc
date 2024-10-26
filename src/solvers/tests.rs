@@ -181,7 +181,7 @@ fn should_solve_correctly() {
         x_1 + x_2 <= 15
         2x_1 <= x_2 + 18
     define
-        x_1, x_2 as PositiveReal
+        x_1, x_2 as NonNegativeReal
     "#;
     let solution = solve(source).unwrap();
     assert_precision(solution.get_optimal_value(), 21.0);
@@ -199,7 +199,7 @@ fn should_solve_correctly2() {
         x_1 + 2x_2 <= 8
         x_3 + x_4 <= 20
     define
-        x_1, x_2, x_3, x_4 as PositiveReal
+        x_1, x_2, x_3, x_4 as NonNegativeReal
     "#;
     let solution = solve(source).unwrap();
     assert_precision(solution.get_optimal_value(), 107.0);
@@ -215,7 +215,7 @@ fn should_solve_correctly_3() {
         x_1 - x_2 >= -2
         -x_1 + 2x_2 >= -1
     define
-        x_1, x_2 as PositiveReal
+        x_1, x_2 as NonNegativeReal
      "#;
     let solution = solve(source).unwrap();
     assert_precision(solution.get_optimal_value(), -2.0);
@@ -231,7 +231,7 @@ fn should_find_unbounded_2d() {
         x_1 - x_2 >= -2
         -x_1 + 2x_2 >= 1
     define
-        x_1, x_2 as PositiveReal
+        x_1, x_2 as NonNegativeReal
      "#;
     let solution = solve(source);
     match solution {
@@ -252,7 +252,7 @@ fn should_find_unbounded_4d() {
             2x_1 - 3x_2 + x_3 - x_4 <= 8
             x_1 - x_2 - x_3 + x_4 <= 7
         define
-            x_1, x_2, x_3, x_4 as PositiveReal
+            x_1, x_2, x_3, x_4 as NonNegativeReal
      "#;
     let solution = solve(source);
     match solution {
@@ -274,7 +274,7 @@ fn should_solve_degen_2d() {
         x_2 <= (1/2)x_1 + 2
         x_1 <= 4
     define
-        x_1, x_2 as PositiveReal
+        x_1, x_2 as NonNegativeReal
     "#;
     let solution = solve(source).unwrap();
     assert_precision(solution.get_optimal_value(), 12.0);
@@ -292,7 +292,7 @@ fn should_solve_degen_4d() {
         -x_1 + 2x_3 + x_4 <= 10
         x_1 - x_2 + 2x_4 <= 12
     define
-        x_1, x_2, x_3, x_4 as PositiveReal
+        x_1, x_2, x_3, x_4 as NonNegativeReal
     "#;
     let solution = solve(source).unwrap();
     assert_precision(solution.get_optimal_value(), 84.0);
@@ -313,7 +313,7 @@ fn should_solve_multiple_solutions() {
         -x_1 + x_2 <= 4
         x_1 - x_2 <= 4
     define
-        x_1, x_2 as PositiveReal
+        x_1, x_2 as NonNegativeReal
     "#;
     let solution = solve(source).unwrap();
     assert_precision(solution.get_optimal_value(), 18.0);
@@ -335,7 +335,7 @@ fn infeasible_starting_basis() {
         -2x_1 + x_2 <= -4
         x_1 + x_2 <= 4
     define
-        x_1, x_2 as PositiveReal
+        x_1, x_2 as NonNegativeReal
     "#;
     let solution = solve(source);
     match solution {
@@ -371,7 +371,7 @@ fn should_solve_diet() {
         let F = len(a)
         let N = len(Nmax)
     define
-        x_i as PositiveReal for i in 0..N
+        x_i as NonNegativeReal for i in 0..N
     "#;
     let solution = solve(source).unwrap();
     assert_precision(solution.get_optimal_value(), 6.04444);
@@ -388,7 +388,7 @@ s.t.
     2x_1 - x_2 - x_3 <= 3
 define 
     x_1 as Real
-    x_2, x_3 as PositiveReal
+    x_2, x_3 as NonNegativeReal
     "#;
     let solution = solve(source).unwrap();
     assert_precision(solution.get_optimal_value(), 34.0);
@@ -446,7 +446,7 @@ fn should_detect_invalid_domain() {
     define
         x_1 as Real
         x_2 as IntegerRange(0, 10)
-    "#; //here only Real and PositiveReal are allowed
+    "#; //here only Real and NonNegativeReal are allowed
     solve(source).unwrap();
 }
 #[test]

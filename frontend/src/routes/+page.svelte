@@ -10,6 +10,7 @@
     import Github from "~icons/fa-brands/Github.svelte";
     import Column from "$cmp/layout/Column.svelte";
     import Row from "$cmp/layout/Row.svelte";
+    import {projectStore} from "$stores/userProjectsStore.svelte";
 
     let installEvent: Event | null = $state(null)
     onMount(() => {
@@ -18,7 +19,9 @@
             console.log('beforeinstallprompt', e)
             installEvent = e
         })
+        projectStore.init()
     })
+    let hasProjects = $derived(projectStore.projects.length || !projectStore.initialized)
 </script>
 
 <svelte:head>
@@ -50,11 +53,13 @@
                     <div class="buttons">
                         <ButtonLink
                                 color="accent"
-                                href="/projects"
+                                href={hasProjects ? '/projects' : '/projects/new'}
                                 style={'box-shadow: 0 3px 10px rgb(0 0 0 / 0.2)'}
                                 title="Open the editor"
                         >
-                            Go to your projects
+                            {hasProjects
+                            ? "Go to your projects"
+                            : "Create your first project"}
                         </ButtonLink>
                         <Row gap="0.6rem">
                             <ButtonLink

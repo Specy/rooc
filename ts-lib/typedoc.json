@@ -1,0 +1,29 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "out": "../frontend/static/docs/lib",
+    "name": "ROOC",
+    "readme": "./README.md",
+    "entryPoints": ["./src"],
+    "sort": ["source-order"],
+    "categorizeByGroup": false,
+    "searchCategoryBoosts": {
+        "Component": 2,
+        "Model": 1.2
+    },
+    "searchGroupBoosts": {
+        "Classes": 1.5
+    },
+    "navigationLinks": {
+        "Try in the editor": "https://rooc.specy.app",
+        "ROOC docs": "https://rooc.specy.app/docs/rooc",
+        "GitHub": "https://github.com/Specy/rooc"
+    },
+    "highlightLanguages": [
+        "typescript",
+        "lua",
+        "json"
+    ],
+    "markdownItOptions": {
+        "html": true
+    }
+}

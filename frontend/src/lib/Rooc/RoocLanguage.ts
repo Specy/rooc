@@ -18,7 +18,7 @@ export const RoocLanguage = {
     defaultToken: 'invalid',
     ignoreCase: true,
     tokenPostfix: '.rooc',
-    keywords: ["where", "for", "min", "max", "in", "s.t.", "as", "define", "let", 'solve'],
+    keywords: ["where", "for", "min", "max", "in", "as", "define", "let", 'solve'],
     literals: ["true", "false"],
     operators: ["+", "-", "/", "*", "!", "&", "|", "=", "<=", "=>", "<", ">"],
     symbols: /[=><!~?:&|+\-*\/\^%]+/,
@@ -34,8 +34,8 @@ export const RoocLanguage = {
             [/(@digits)[lL]?/, 'number'],
         ],
         common: [
-            //TODO not sure why i need to do this
             [/s\.t\./, 'keyword'],
+            [/subject\s+to\b/, 'keyword'],
             //once reached the where block, everything else is declarations
             [/where/, 'keyword', '@where_block'],
             {include: "declarations"},
@@ -131,7 +131,11 @@ export function createRoocFormatter() {
 const keywords = {
     'min': 'Minimize the objective function',
     'max': 'Maximize the objective function',
+    //cannot get this to work
     's.t.': 'Below here, define all the constraints of the problem',
+    'subject to': 'Below here, define all the constraints of the problem',
+    's': 'Below here, define all the constraints of the problem',
+    't': 'Below here, define all the constraints of the problem',
     'where': 'Below here, define all the variables of the problem',
     'for': 'Iterate over one or more ranges to expand the constraint in multiple constraints',
     'in': 'Iterate over a range',
@@ -142,8 +146,8 @@ const keywords = {
 }
 const domainTypes = {
     'Boolean': 'A boolean value {0,1}',
-    'Real': 'A real number ',
-    'PositiveReal': 'A positive real number between -32768 and 32768',
+    'Real': 'A real number',
+    'NonNegativeReal': 'A non negative real number',
     'IntegerRange(0, 10)': 'An integer between min and max',
 }
 
@@ -221,16 +225,19 @@ export function createRoocHoverProvider(ref: RoocFnRef) {
                 const item = items.get?.(preciseOffset) ?? items.get?.(offset)
                 if (item) {
                     contents.push({value: `\`\`\`typescript\n${word?.word ?? "Unknown"}: ${getFormattedRoocType(item.value)}\n\`\`\``})
-                } else if (word?.word) {
-                    if (word.word.startsWith('IntegerRange')) {
-                        contents.push({value: `An integer between min and max`})
-                    } else {
-                        const type = domainTypes[word.word]
-                        const keyword = keywords[word.word]
-                        contents.push({value: keyword ?? type ?? 'No type found'})
-                    }
-
+                } else if (word?.word && word.word.startsWith('IntegerRange')) {
+                    contents.push({value: `An integer between min and max`})
                 }
+            }
+            const type = domainTypes[word.word]
+            const keyword = keywords[word.word]
+            if(word.word === 'subject'){
+                contents.push({value: keywords['subject to']})
+            }
+            if(keyword ?? type){
+                contents.push({value: keyword ?? type})
+            } else if (contents.length === 0){
+                contents.push({value: `No type found`})
             }
             return {
                 range,
@@ -245,8 +252,9 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel, ref: Rooc
     const disposable: IDisposable[] = []
     let disposed = false
     const debounce = createDebouncer()
+
     function callback() {
-        if(disposed) return
+        if (disposed) return
         const text = model.getValue()
         const parser = new RoocParser(text)
         const parsed = parser.compile()
@@ -284,7 +292,7 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel, ref: Rooc
                     message,
                     severity: MarkerSeverity.Error
                 })
-            }else{
+            } else {
             }
         }
         editor.setModelMarkers(model, 'rooc', markers)
@@ -345,7 +353,7 @@ const suggestedKeywords = [
     detail: keywords[k]
 }))
 const suggestedTypes = [
-    "Boolean", "Real", "PositiveReal", "IntegerRange(0, 10)"
+    "Boolean", "Real", "NonNegativeReal", "IntegerRange(0, 10)"
 ].map(k => ({
     label: k,
     kind: languages.CompletionItemKind.Class,

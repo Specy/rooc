@@ -109,7 +109,7 @@ impl FromStr for OptimizationType {
 #[derive(Debug, Clone, Serialize)]
 pub enum PreVariableType {
     Boolean,
-    PositiveReal,
+    NonNegativeReal,
     Real,
     IntegerRange(PreExp, PreExp),
 }
@@ -118,7 +118,7 @@ impl PartialEq<Self> for PreVariableType {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (PreVariableType::Boolean, PreVariableType::Boolean) => true,
-            (PreVariableType::PositiveReal, PreVariableType::PositiveReal) => true,
+            (PreVariableType::NonNegativeReal, PreVariableType::NonNegativeReal) => true,
             (PreVariableType::Real, PreVariableType::Real) => true,
             (
                 PreVariableType::IntegerRange(min1, max1),
@@ -148,7 +148,7 @@ impl FromStr for PreVariableType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Boolean" => Ok(PreVariableType::Boolean),
-            "PositiveReal" => Ok(PreVariableType::PositiveReal),
+            "NonNegativeReal" => Ok(PreVariableType::NonNegativeReal),
             "Real" => Ok(PreVariableType::Real),
             _ => Err(()),
         }
@@ -159,7 +159,7 @@ impl PreVariableType {
     pub fn kinds_to_string() -> Vec<String> {
         vec![
             "Boolean".to_string(),
-            "PositiveReal".to_string(),
+            "NonNegativeReal".to_string(),
             "Real".to_string(),
             "IntegerRange(min, max)".to_string(),
         ]
@@ -168,7 +168,7 @@ impl PreVariableType {
     pub fn to_variable_type_without_context(&self) -> VariableType {
         match self {
             PreVariableType::Boolean => VariableType::Boolean,
-            PreVariableType::PositiveReal => VariableType::PositiveReal,
+            PreVariableType::NonNegativeReal => VariableType::NonNegativeReal,
             PreVariableType::Real => VariableType::Real,
             PreVariableType::IntegerRange(min, max) => {
                 let min = match min {
@@ -198,7 +198,7 @@ impl PreVariableType {
     ) -> Result<VariableType, TransformError> {
         match self {
             PreVariableType::Boolean => Ok(VariableType::Boolean),
-            PreVariableType::PositiveReal => Ok(VariableType::PositiveReal),
+            PreVariableType::NonNegativeReal => Ok(VariableType::NonNegativeReal),
             PreVariableType::Real => Ok(VariableType::Real),
             PreVariableType::IntegerRange(min, max) => {
                 let min_i64 = min.as_integer_cast(context, fn_context)?;
@@ -244,7 +244,7 @@ impl ToLatex for PreVariableType {
     fn to_latex(&self) -> String {
         match self {
             PreVariableType::Boolean => "\\{0,1\\}".to_string(),
-            PreVariableType::PositiveReal => "\\mathbb{R}^+_0".to_string(),
+            PreVariableType::NonNegativeReal => "\\mathbb{R}^+_0".to_string(),
             PreVariableType::Real => "\\mathbb{R}".to_string(),
             PreVariableType::IntegerRange(min, max) => format!(
                 "\\{{x \\in \\mathbb{{Z}} | {} \\leq x \\leq {}\\}}",
@@ -263,7 +263,7 @@ impl TypeCheckable for PreVariableType {
     ) -> Result<(), TransformError> {
         match self {
             PreVariableType::Boolean => Ok(()),
-            PreVariableType::PositiveReal => Ok(()),
+            PreVariableType::NonNegativeReal => Ok(()),
             PreVariableType::Real => Ok(()),
             PreVariableType::IntegerRange(min, max) => {
                 min.type_check(context, fn_context)?;
@@ -296,7 +296,7 @@ impl TypeCheckable for PreVariableType {
     ) {
         match self {
             PreVariableType::Boolean => {}
-            PreVariableType::PositiveReal => {}
+            PreVariableType::NonNegativeReal => {}
             PreVariableType::Real => {}
             PreVariableType::IntegerRange(min, max) => {
                 min.populate_token_type_map(context, fn_context);
@@ -310,7 +310,7 @@ impl fmt::Display for PreVariableType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             PreVariableType::Boolean => "Boolean".to_string(),
-            PreVariableType::PositiveReal => "PositiveReal".to_string(),
+            PreVariableType::NonNegativeReal => "NonNegativeReal".to_string(),
             PreVariableType::Real => "Real".to_string(),
             PreVariableType::IntegerRange(min, max) => format!("IntegerRange({}, {})", min, max),
         };
@@ -323,14 +323,14 @@ impl fmt::Display for PreVariableType {
 #[serde(tag = "type", content = "value")]
 pub enum VariableType {
     Boolean,
-    PositiveReal,
+    NonNegativeReal,
     Real,
     IntegerRange(i32, i32),
 }
 #[wasm_bindgen(typescript_custom_section)]
 const IVariablesDomainDeclaration: &'static str = r#"
 export type VariableType = {
-    type: "Boolean" | "PositiveReal" | "Real"
+    type: "Boolean" | "NonNegativeReal" | "Real"
 } | {
     type: "IntegerRange"
     value: [number, number]
@@ -341,7 +341,7 @@ impl VariableType {
     pub fn kinds_to_string() -> Vec<String> {
         vec![
             "Boolean".to_string(),
-            "PositiveReal".to_string(),
+            "NonNegativeReal".to_string(),
             "Real".to_string(),
             "IntegerRange(min, max)".to_string(),
         ]
@@ -352,7 +352,7 @@ impl fmt::Display for VariableType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             VariableType::Boolean => "Boolean".to_string(),
-            VariableType::PositiveReal => "PositiveReal".to_string(),
+            VariableType::NonNegativeReal => "NonNegativeReal".to_string(),
             VariableType::Real => "Real".to_string(),
             VariableType::IntegerRange(min, max) => format!("IntegerRange({}, {})", min, max),
         };
@@ -366,7 +366,7 @@ impl FromStr for VariableType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Boolean" => Ok(VariableType::Boolean),
-            "PositiveReal" => Ok(VariableType::PositiveReal),
+            "NonNegativeReal" => Ok(VariableType::NonNegativeReal),
             "Real" => Ok(VariableType::Real),
             _ => Err(()),
         }
@@ -377,7 +377,7 @@ impl ToLatex for VariableType {
     fn to_latex(&self) -> String {
         match self {
             VariableType::Boolean => "\\{0,1\\}".to_string(),
-            VariableType::PositiveReal => "\\mathbb{R}^+_0".to_string(),
+            VariableType::NonNegativeReal => "\\mathbb{R}^+_0".to_string(),
             VariableType::Real => "\\mathbb{R}".to_string(),
             VariableType::IntegerRange(min, max) => format!(
                 "\\{{{} \\in \\mathbb{{Z}} | {} \\leq {} \\leq {}\\}}",

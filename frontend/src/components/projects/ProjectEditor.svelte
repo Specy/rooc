@@ -2,7 +2,7 @@
     import Editor from '$cmp/editor/Editor.svelte';
     import Button from '$cmp/inputs/Button.svelte';
     import {Monaco} from '$src/lib/Monaco';
-    import {onMount, tick} from 'svelte';
+    import {onMount} from 'svelte';
     import {type Project} from '$stores/userProjectsStore.svelte';
     import Row from '$cmp/layout/Row.svelte';
     import {createCompilerStore} from '$src/routes/projects/[projectId]/projectStore.svelte';
@@ -33,14 +33,32 @@
         };
     });
 
-    function run() {
-        rooc?.run();
+    async function run() {
+        await rooc?.run();
+        if(rooc?.result.ok){
+            scrollToNearestResult()
+        }else{
+            let errLength = rooc.result.context.length;
+            scrollToResult(`pipe-result-${errLength - 1}`);
+        }
+    }
+
+    function scrollToResult(id: string) {
         setTimeout(() => {
-            const element = document.getElementById('jump-to');
+            const element = document.getElementById(id);
             if (element) {
                 element.scrollIntoView({behavior: 'smooth'});
             }
         }, 100);
+    }
+
+    function scrollToNearestResult() {
+        const pipe = project.pipes.findIndex(p => p.open);
+        if (pipe !== -1) {
+            scrollToResult(`pipe-result-${pipe}`);
+        } else {
+            scrollToResult('jump-to')
+        }
     }
 
     function reset() {
@@ -147,8 +165,7 @@
                 {/if}
                 <Button
                         on:click={run}
-                        border="secondary"
-                        color="primary"
+                        color="accent"
                         disabled={rooc.compiling}
                 >
                     {rooc.compiling ? 'Running...' : 'Run'}
@@ -191,6 +208,7 @@
                         <PipeResultRenderer
                                 data={{type: PipeDataType.String, data: project.content}}
                                 pipeStep="Source"
+                                id={`pipe-result-${i}`}
                         />
                     {:else }
                         {#if project.pipes[i - 1]}
@@ -198,12 +216,14 @@
                                     pipeStep={project.pipes[i - 1].pipe}
                                     bind:expanded={project.pipes[i - 1].open}
                                     data={step}
+                                    id={`pipe-result-${i}`}
                             />
                         {:else}
                             <PipeResultRenderer
                                     pipeStep={"Unknown"}
                                     expanded={false}
                                     data={step}
+                                    id={`pipe-result-${i}`}
                             />
                         {/if}
 
@@ -217,6 +237,7 @@
                         <PipeResultRenderer
                                 data={{type: PipeDataType.String, data: project.content}}
                                 pipeStep="Source"
+                                id={`pipe-result-${i}`}
                         />
                     {:else }
                         {#if project.pipes[i - 1]}
@@ -224,12 +245,14 @@
                                     pipeStep={project.pipes[i - 1].pipe}
                                     data={step}
                                     bind:expanded={project.pipes[i - 1].open}
+                                    id={`pipe-result-${i}`}
                             />
                         {:else}
                             <PipeResultRenderer
                                     pipeStep={"Unknown"}
                                     expanded={false}
                                     data={step}
+                                    id={`pipe-result-${i}`}
                             />
                         {/if}
                     {/if}

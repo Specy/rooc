@@ -33,7 +33,7 @@ where
     // Number of nutrients
     let N = len(Nmax)
 define
-    x_i as PositiveReal for i in 0..N
+    x_i as NonNegativeReal for i in 0..N
 `
 
 export const ex_2 =`//This is the dominating set problem

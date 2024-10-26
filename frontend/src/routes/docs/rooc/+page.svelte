@@ -4,7 +4,7 @@
     import RoocFunctionsDocs from '$cmp/roocDocs/RoocFunctionsDocs.svelte';
     import RoocSyntaxDocs from '$cmp/roocDocs/RoocSyntaxDocs.svelte';
     import lzstring from "lz-string";
-    import {createProject} from "$stores/userProjectsStore.svelte";
+    import {createProject} from "$stores/Project";
 
     const code = lzstring.compressToEncodedURIComponent(JSON.stringify(createProject()));
     const url = `/projects/share?project=${code}`;
@@ -19,6 +19,7 @@
 
 <Nav/>
 <Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">
+
     <RoocSyntaxDocs/>
     <RoocFunctionsDocs/>
     <a href="{url}" class="tryit">
@@ -35,5 +36,8 @@
         color: var(--accent-text);
         padding: 0.5rem 1rem;
         text-align: center;
+    }
+    a{
+        color: var(--accent);
     }
 </style>

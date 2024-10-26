@@ -20,7 +20,7 @@ s.t.
     x_1 + x_2 <= 15
     2x_1 <= x_2 + len([1,2,3])
 define
-    x_1, x_2 as PositiveReal
+    x_1, x_2 as NonNegativeReal
     "#
     .to_string();
 

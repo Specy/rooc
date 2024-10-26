@@ -1,4 +1,4 @@
-import type {SerializedPrimitiveKind, SerializedPrimitive} from "./pkg/rooc";
+import type {SerializedPrimitive, SerializedPrimitiveKind} from "./pkg/rooc";
 import Fuse from 'fuse.js'
 
 export const PrimitiveKind = {
@@ -14,6 +14,7 @@ export const PrimitiveKind = {
     Boolean: {type: 'Boolean'},
     Undefined: {type: 'Undefined'},
     Any: {type: 'Any'},
+
 } satisfies Record<
     SerializedPrimitiveKind['type'],
     SerializedPrimitiveKind | ((value: SerializedPrimitiveKind | SerializedPrimitiveKind[]) => SerializedPrimitiveKind)
@@ -24,8 +25,6 @@ export type ExtractArgTypes<T extends [string, SerializedPrimitiveKind][]> = {
         type: Type['type']
     } : never;
 };
-
-
 
 
 //TODO remember to put this back in whenever they are updated, the runtime is supposed to not import anything from the compiler
@@ -385,6 +384,7 @@ type PipeDataDescription = {
     name: string;
     description: string;
 }
+
 export const pipeDataDescriptions = {
     [PipeDataType.String]: makePipeDataEntry(PipeDataType.String, "String", "A string"),
     [PipeDataType.Parser]: makePipeDataEntry(PipeDataType.Parser, "Parser", "The ROOC parser"),

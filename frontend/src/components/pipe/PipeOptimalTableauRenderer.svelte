@@ -7,16 +7,22 @@
 
     interface Props {
         tableau: OptimalTableau;
+        showSteps?: boolean;
     }
 
-    let { tableau }: Props = $props();
+    let {
+        tableau,
+        showSteps = false
+    }: Props = $props();
 
     let baseTableau = $derived(tableau.getTableau())
 </script>
 
 
 <Column gap="1rem">
-    <PipeTableauRenderer tableau={baseTableau}/>
+    {#if showSteps}
+        <PipeTableauRenderer tableau={baseTableau}/>
+    {/if}
     <div style="font-size: 1.5rem">
         Optimal value: {formatNum(tableau.getOptimalValue())}
     </div>

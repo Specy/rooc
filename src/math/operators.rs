@@ -1,6 +1,7 @@
 use core::fmt;
 use std::str::FromStr;
 
+#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
