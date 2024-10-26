@@ -1,5 +1,5 @@
 import {SANDBOX_RUNTIME_DATA} from "$lib/sandbox/sandboxRuntimeData";
-
+import std from '../../../static/std/bundle.js?raw'
 export type ConsoleOutput = {
     type: 'log' | 'error' | 'warn' | 'info';
     args: unknown[];
@@ -39,6 +39,9 @@ export async function runSandboxedCode(code: string, global: Record<string, unkn
 
         // Inject code to signal completion
         const wrappedCode = `
+        ${std}
+        //because it's a namespace
+        Rooc = Rooc.Rooc
       // Disable dangerous APIs
       const dangerousApis = [
         'localStorage',

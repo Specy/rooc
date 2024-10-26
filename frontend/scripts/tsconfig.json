@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist",
+    "moduleResolution": "node",
+    "lib": ["esnext", "dom"],
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationMap": true,
+    "module": "esnext",
+    "target": "es6",
+    "allowJs": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*", "src/global.d.ts"]
+}

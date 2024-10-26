@@ -1,5 +1,7 @@
 use indexmap::IndexMap;
+use serde::Serialize;
 use rooc::pipe::{CompilerPipe, PipeRunner, PipeableData, PreModelPipe};
+use rooc::primitives::{Graph, GraphEdge, GraphNode};
 
 #[allow(unused)]
 fn main() {
@@ -12,18 +14,20 @@ fn main() {
             x + 3y + 4z = 1
      */
     let source = r#"
-max x_1 + 2x_2
+min x
 s.t.
-    /* write the constraints here */
-    x_2 <= 2x_1 + 2
-    x_1 + 3x_2 <= 27
-    x_1 + x_2 <= 15
-    2x_1 <= x_2 + len([1,2,3])
+    x >= 2
+where
+    let g = Graph {
+        A -> [B:2],
+        B
+    }
 define
-    x_1, x_2 as NonNegativeReal
+    x as Boolean
+    
     "#
     .to_string();
-
+    
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
         Box::new(PreModelPipe::new()),

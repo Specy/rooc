@@ -229,16 +229,19 @@ export function createRoocHoverProvider(ref: RoocFnRef) {
                     contents.push({value: `An integer between min and max`})
                 }
             }
-            const type = domainTypes[word.word]
-            const keyword = keywords[word.word]
-            if(word.word === 'subject'){
-                contents.push({value: keywords['subject to']})
+            if (word.word) {
+                const type = domainTypes[word.word]
+                const keyword = keywords[word.word]
+                if (word.word === 'subject') {
+                    contents.push({value: keywords['subject to']})
+                }
+                if (keyword ?? type) {
+                    contents.push({value: keyword ?? type})
+                } else if (contents.length === 0) {
+                    contents.push({value: `No type found`})
+                }
             }
-            if(keyword ?? type){
-                contents.push({value: keyword ?? type})
-            } else if (contents.length === 0){
-                contents.push({value: `No type found`})
-            }
+
             return {
                 range,
                 contents

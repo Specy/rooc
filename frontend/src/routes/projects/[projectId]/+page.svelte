@@ -109,7 +109,7 @@
 
         <Row gap="0.5rem" style="margin-left: auto; height: 2.6rem">
             {#if project}
-                <div class="no-mobile" style="display: flex; gap: 0.5rem">
+                <div class="no-mobile" style="gap: 0.5rem">
                     <FilePicker
                             onImport={(f) => {
                             project.files = f.map(f => f.data)
@@ -208,6 +208,10 @@
 
     :global(html) {
         overflow-y: scroll;
+    }
+
+    .no-mobile{
+        display: flex;
     }
 
     @media (max-width: 768px) {

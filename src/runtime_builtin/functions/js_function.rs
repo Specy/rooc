@@ -6,6 +6,7 @@ use crate::type_checker::type_checker_context::{FunctionContext, TypeCheckerCont
 use js_sys::Function;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
+use crate::utils::serialize_json_compatible;
 
 #[derive(Serialize)]
 pub enum JsFunctionRuntimeError {
@@ -94,7 +95,7 @@ impl RoocFunction for JsFunction {
             .iter()
             .map(|arg| arg.as_primitive(context, fn_context))
             .collect::<Result<Vec<Primitive>, TransformError>>()?;
-        let js_args = serde_wasm_bindgen::to_value(&args).unwrap();
+        let js_args = serialize_json_compatible(&args).unwrap();
         let arr = js_sys::Array::from(&js_args);
         let result = self.js_function.apply(&JsValue::NULL, &arr).map_err(|e| {
             TransformError::Other(

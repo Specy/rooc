@@ -1,5 +1,11 @@
-export function getTsGlobal(){
-    return `
+import dts from '../../../static/std/index.d.ts?raw'
+
+
+
+
+
+const tsGlobal = {
+    'global.d.ts': `
 declare type SerializedPrimitiveKind =
     | { type: 'Number' }
     | { type: 'Integer' }
@@ -99,5 +105,13 @@ declare type SerializedTuple = SerializedPrimitive[]
 declare function register<const T extends [string, SerializedPrimitiveKind][]>({ name, parameters, returns, type_checker, call, description }: MakeRoocFunction<T>): void
  
 declare function GET_FILES(): string[]
-    `
+    `,
+    'rooc.d.ts': dts
+}
+
+
+
+
+export function getTsGlobal(){
+    return tsGlobal
 }

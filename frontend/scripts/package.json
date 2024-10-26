@@ -1,0 +1,20 @@
+{
+  "name": "rooc-std",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm run build:js && npm run build:types && node ./patchDts.js",
+    "build:js": "npx esbuild src/index.ts --bundle --minify --outfile=../static/std/bundle.js --format=iife --global-name=Rooc",
+    "build:types": "dts-bundle-generator --config dts.config.cjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@dagrejs/graphlib": "^2.2.4",
+    "@types/node": "^22.8.1",
+    "csv-parse": "^5.5.6",
+    "dts-bundle-generator": "^9.5.1"
+  }
+}

@@ -43,7 +43,7 @@ export function createCompilerStore(project: Project) {
 
             })
             userDefinedFunctions = await loadingUserFunctions
-        }, 500)
+        }, 1000)
 
     }
 

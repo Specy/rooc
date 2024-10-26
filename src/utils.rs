@@ -3,6 +3,7 @@ use std::{fmt::Debug, ops::Deref, ops::DerefMut};
 
 use pest::{iterators::Pair, Span};
 use serde::{Deserialize, Serialize};
+use serde_wasm_bindgen::Serializer;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 use crate::parser::pre_model::Rule;
@@ -239,4 +240,12 @@ pub fn remove_many<T>(vec: &mut Vec<T>, indices: &[usize]) {
         i += 1;
         keep
     });
+}
+
+pub fn serialize_json_compatible<T>(obj: &T) -> Result<JsValue, serde_wasm_bindgen::Error>
+where
+    T: Serialize
+{
+    let s = Serializer::new().serialize_maps_as_objects(true);
+    obj.serialize(&s)
 }

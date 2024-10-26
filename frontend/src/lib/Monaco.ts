@@ -51,10 +51,14 @@ class MonacoLoader {
         monaco.editor.defineTheme('custom-theme', generateTheme())
         monaco.languages.register({id: 'rooc'})
         this.monaco = monaco
-        monaco.languages.typescript.typescriptDefaults.addExtraLib(getTsGlobal(), 'global.d.ts')
+        for (const [name, lib] of Object.entries(getTsGlobal())) {
+            monaco.languages.typescript.typescriptDefaults.addExtraLib(lib, name)
+
+        }
         monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
             "strict": true,
             "noImplicitAny": true,
+            "lib": ["esnext"],
             "strictNullChecks": true,
             "strictFunctionTypes": true,
             "strictPropertyInitialization": true,
@@ -65,6 +69,7 @@ class MonacoLoader {
             "esModuleInterop": true,
             "declaration": true,
         });
+
         this.registerLanguages()
         self.MonacoEnvironment = {
             getWorker: async function (_, label) {
