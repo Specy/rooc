@@ -3,7 +3,14 @@
     "out": "../frontend/static/docs/lib",
     "name": "ROOC",
     "readme": "./README.md",
-    "entryPoints": ["./src"],
+    "entryPoints": [
+        "./src/index.ts",
+        "./src/runtime.ts"
+    ],
+    "exclude": [
+        "./src/pkg/**/*"
+    ],
+    "skipErrorChecking": true,
     "sort": ["source-order"],
     "categorizeByGroup": false,
     "searchCategoryBoosts": {

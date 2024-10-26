@@ -7,5 +7,6 @@ node_modules
 .env
 .env.*
 !.env.example
+/static/docs/lib
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
