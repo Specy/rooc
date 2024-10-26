@@ -26,12 +26,15 @@ export type Project = {
     content: string
     runtime: string
     runtimeVisible: boolean
+    files: string[]
     pipes: ProjectPipe[]
 }
 
 
 const defaultTs = `
 /*
+const files = GET_FILES()
+
 register({
     name: 'sqrt',
     description: 'Calculate the square root of a number',
@@ -59,6 +62,7 @@ export function createProject(): Project {
         description: "",
         createdAt: new Date().getTime(),
         updatedAt: new Date().getTime(),
+        files: [],
         content:
             `min x
 subject to

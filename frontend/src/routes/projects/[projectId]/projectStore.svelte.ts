@@ -25,16 +25,16 @@ export function createCompilerStore(project: Project) {
     let userDefinedFunctions = $state.raw<RoocFunction[]>([])
 
     $effect(() => {
-        compileUserFunctions(project.runtime)
+        compileUserFunctions($state.snapshot(project.runtime), $state.snapshot(project.files))
     })
 
-    async function compileUserFunctions(code: string) {
+    async function compileUserFunctions(code: string, files: string[]) {
         debouncer(async () => {
             // eslint-disable-next-line no-async-promise-executor
             loadingUserFunctions = new Promise<RoocFunction[]>(async (res) => {
                 try {
                     const jsCode = await Monaco.typescriptToJavascript(code)
-                    const fns = await getRuntimeFns(jsCode)
+                    const fns = await getRuntimeFns(jsCode, files)
                     res(fns)
                 } catch (e) {
                     console.error(e)
@@ -110,9 +110,10 @@ export function createCompilerStore(project: Project) {
 }
 
 
-async function getRuntimeFns(code: string) {
+async function getRuntimeFns(code: string, files: string[]) {
     const res: RoocFunction[] = []
     await runSandboxedCode(code, {
+        GET_FILES: () => files,
         register(d) {
             try {
                 res.push(makeRoocFunction(d))

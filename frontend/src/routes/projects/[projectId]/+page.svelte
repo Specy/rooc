@@ -4,7 +4,7 @@
     import {Monaco} from '$src/lib/Monaco';
     import {onMount} from 'svelte';
     import {goto} from '$app/navigation';
-    import {type Project, projectStore, validateProject} from '$stores/userProjectsStore.svelte';
+    import {projectStore, validateProject} from '$stores/userProjectsStore.svelte';
     import {page} from '$app/stores';
     import Row from '$cmp/layout/Row.svelte';
     import ButtonLink from '$cmp/inputs/ButtonLink.svelte';
@@ -22,8 +22,11 @@
     import Share from '~icons/fa/share-alt';
     import FaDonate from '~icons/fa6-solid/hand-holding-dollar.svelte';
     import FaCode from '~icons/fa6-solid/code.svelte';
+    import FaDocument from '~icons/fa6-solid/file-arrow-up.svelte'
     import {registerDeep} from "$lib/runes/anyof.svelte";
     import {createDebouncer} from "$cmp/pipe/utils";
+    import FilePicker from "$cmp/misc/FilePicker.svelte";
+    import type {Project} from "$stores/Project";
 
     let showDocs = $state(false);
     let project: Project | undefined = $state(undefined);
@@ -106,14 +109,31 @@
 
         <Row gap="0.5rem" style="margin-left: auto; height: 2.6rem">
             {#if project}
-                <div class="no-mobile">
+                <div class="no-mobile" style="display: flex; gap: 0.5rem">
+                    <FilePicker
+                            onImport={(f) => {
+                            project.files = f.map(f => f.data)
+                            project.runtimeVisible = true
+                        }}
+                            as='text'
+                    >
+                        <Button
+                                disabled={!project.runtimeVisible && project.files.length === 0}
+                                border="secondary"
+                                hasIcon
+                                color={project.runtimeVisible ? 'primary' :'background'}
+                                style="gap: 0.6rem; height: 100%; justify-content: start"
+                        >
+                            <FaDocument/>
+                            Attach files {project.files.length > 0 ? `(${project.files.length})` : undefined}
+                        </Button>
+                    </FilePicker>
                     <Button
-
                             hasIcon
                             on:click={() => project.runtimeVisible = !project.runtimeVisible}
-                            border="secondary"
                             style="gap: 0.6rem; height: 100%; min-width: 10rem; justify-content: start"
-                            color={project.runtimeVisible ? 'transparent' :'primary'}
+                            border="secondary"
+                            color={project.runtimeVisible ? 'primary' :'background'}
                     >
 
                         <FaCode/> {project.runtimeVisible ? 'Hide' : 'Show'} runtime

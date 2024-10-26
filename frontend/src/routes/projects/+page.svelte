@@ -5,7 +5,7 @@
     import Row from '$cmp/layout/Row.svelte';
     import ProjectCard from '$cmp/projects/ProjectCard.svelte';
     import {textDownloader} from '$src/lib/utils';
-    import {type Project, projectStore} from '$stores/userProjectsStore.svelte';
+    import {projectStore} from '$stores/userProjectsStore.svelte';
     import {prompter} from '$src/stores/promptStore';
     import {toast} from '$src/stores/toastStore';
     import {onMount} from 'svelte';
@@ -14,6 +14,7 @@
     import FaUpload from "~icons/fa6-solid/upload.svelte";
     import FilePicker from "$cmp/misc/FilePicker.svelte";
     import Button from "$cmp/inputs/Button.svelte";
+    import type {Project} from "$stores/Project";
 
     onMount(() => {
         if ('launchQueue' in window) {
@@ -88,8 +89,10 @@
         <Row gap="0.5rem" flex1 justify="end">
             <FilePicker
                     as="text"
-                    on:import={f => {
-                        importString(f.detail.data);
+                    onImport={f => {
+                        for(const file of f){
+                            importString(file.data);
+                        }
                     }}
             >
                 <Button iconLeft border="secondary" color="background">

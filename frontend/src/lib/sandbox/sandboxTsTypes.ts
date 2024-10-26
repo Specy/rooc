@@ -98,6 +98,6 @@ declare type SerializedTuple = SerializedPrimitive[]
 
 declare function register<const T extends [string, SerializedPrimitiveKind][]>({ name, parameters, returns, type_checker, call, description }: MakeRoocFunction<T>): void
  
-
+declare function GET_FILES(): string[]
     `
 }
