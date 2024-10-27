@@ -76,7 +76,7 @@ pub fn default_type_check(
             return Err(TransformError::WrongArgument {
                 expected: kind.clone(),
                 got: arg_type,
-            });
+            }.add_span(arg.get_span()));
         }
     }
 

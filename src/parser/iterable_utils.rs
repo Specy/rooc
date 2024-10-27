@@ -4,7 +4,7 @@ use crate::primitives::{IterableKind, Primitive, PrimitiveKind};
 pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitive, String> {
     let first = values.first();
     if first.is_none() {
-        return Ok(Primitive::Iterable(IterableKind::Numbers(vec![])));
+        return Ok(Primitive::Iterable(IterableKind::Anys(vec![])));
     }
     let first_kind = first.unwrap().get_type();
     match first_kind {

@@ -112,7 +112,7 @@ graph_node_list = { graph_node? ~ (comma ~ graph_node)* }
 graph_node = { #name = simple_variable ~ ( "->" ~ "[" ~ #edges = edges_list ~ "]")?}
 edges_list = {  (edge ~ comma)* ~ edge?}
 edge = { #node = simple_variable ~ (":" ~ #cost = signed_number)? }
-array    =  { "[" ~ nl* ~ ((_primitive ~ comma)* ~ _primitive) ~ nl* ~ "]" }
+array    =  { ("[" ~ nl* ~ ((_primitive ~ comma)* ~ _primitive) ~ nl* ~ "]") | ("[" ~ nl* ~ "]") }
 // utilities
 comma_separated_exp = { (tagged_exp ~ comma)* ~ tagged_exp }
 comma = _{ "," ~ nl* }

@@ -30,6 +30,7 @@ pub enum IterableKind {
     Tuples(Vec<Tuple>),
     Booleans(Vec<bool>),
     Iterables(Vec<IterableKind>),
+    Anys(Vec<Primitive>)
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -45,6 +46,7 @@ export type SerializedIterable =
     | { type: 'Tuples', value: SerializedTuple[] }
     | { type: 'Booleans', value: boolean[] }
     | { type: 'Iterables', value: SerializedIterable[] }
+    | { type: 'Anys', value: SerializedPrimitive[] }
 "#;
 
 impl IterableKind {
@@ -59,6 +61,7 @@ impl IterableKind {
             IterableKind::Strings(_) => PrimitiveKind::String,
             IterableKind::Edges(_) => PrimitiveKind::GraphEdge,
             IterableKind::Nodes(_) => PrimitiveKind::GraphNode,
+            IterableKind::Anys(_) => PrimitiveKind::Any,
             IterableKind::Tuples(t) => t
                 .first()
                 .map(|e| e.get_type())
@@ -85,6 +88,7 @@ impl IterableKind {
             IterableKind::Iterables(v) => v.len(),
             IterableKind::Booleans(v) => v.len(),
             IterableKind::Graphs(v) => v.len(),
+            IterableKind::Anys(v) => v.len(),
         }
     }
     pub fn is_empty(&self) -> bool {
@@ -97,6 +101,7 @@ impl IterableKind {
             IterableKind::PositiveIntegers(v) => {
                 v.iter().map(|n| Primitive::PositiveInteger(*n)).collect()
             }
+            IterableKind::Anys(v) => v,
             IterableKind::Strings(v) => v
                 .into_iter()
                 .map(|s| Primitive::String((*s).to_string()))
@@ -129,6 +134,7 @@ impl IterableKind {
                     IterableKind::Booleans(v) => {
                         check_bounds!(i, v, self, Primitive::Boolean(v[i]))
                     }
+                    IterableKind::Anys(v) => check_bounds!(i, v, self, v[i].clone()),
                     IterableKind::Numbers(v) => check_bounds!(i, v, self, Primitive::Number(v[i])),
                     IterableKind::Integers(v) => {
                         check_bounds!(i, v, self, Primitive::Integer(v[i]))
@@ -212,6 +218,7 @@ impl IterableKind {
             IterableKind::Numbers(v) => latexify_vec(v, include_block),
             IterableKind::Integers(v) => latexify_vec(v, include_block),
             IterableKind::PositiveIntegers(v) => latexify_vec(v, include_block),
+            IterableKind::Anys(v) => latexify_vec(v, include_block),
             IterableKind::Strings(v) => latexify_vec(v, include_block),
             IterableKind::Edges(v) => latexify_vec(v, include_block),
             IterableKind::Nodes(v) => latexify_vec(v, include_block),
@@ -278,6 +285,7 @@ impl fmt::Display for IterableKind {
         let s = match self {
             IterableKind::Numbers(v) => format!("{:?}", v),
             IterableKind::Integers(v) => format!("{:?}", v),
+            IterableKind::Anys(v) => format!("{:?}", v),
             IterableKind::PositiveIntegers(v) => format!("{:?}", v),
             IterableKind::Strings(v) => format!("{:?}", v),
             IterableKind::Edges(v) => format!("{:?}", v),

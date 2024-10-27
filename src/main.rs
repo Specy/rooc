@@ -16,10 +16,7 @@ min x
 s.t.
     x >= 2
 where
-    let g = Graph {
-        A -> [B:2],
-        B
-    }
+    let a = []
 define
     x as Boolean
     

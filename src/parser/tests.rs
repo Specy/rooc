@@ -75,6 +75,7 @@ define
             let S = \"Hello\"
             let S2 = \"\\\"() => {} _ aiaosjd\"
             let A = [1, 2, 3]
+            let empty = []
             let M = [[1, 2], [3, 4]]
             let G = Graph {
                 A -> [B, C: 10],

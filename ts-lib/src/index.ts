@@ -29,7 +29,7 @@ import {
     WasmPipeRunner
 } from './pkg/rooc.js'
 import {Err, Ok, Result} from 'ts-results-es'
-import {ExtractArgTypes, ExtractReturnArgs} from "./runtime";
+import {ExtractArgTypes, ExtractReturnArgs, PrimitiveKind} from "./runtime";
 
 
 export type ReturnCallback<T extends [string, SerializedPrimitiveKind][]> = ((args: ExtractReturnArgs<T>, staticArgs: ExtractArgTypes<T>) => SerializedPrimitiveKind)
@@ -89,6 +89,8 @@ export function makeRoocFunction<const T extends [string, SerializedPrimitiveKin
         description
     )
 }
+
+
 
 
 /**
