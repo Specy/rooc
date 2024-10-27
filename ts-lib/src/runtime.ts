@@ -1,4 +1,4 @@
-import type {SerializedPrimitive, SerializedPrimitiveKind} from "./pkg/rooc";
+import type {SerializedPrimitive, SerializedPrimitiveKind, SerializedIterable} from "./pkg/rooc";
 import Fuse from 'fuse.js'
 
 export const PrimitiveKind = {
@@ -6,26 +6,32 @@ export const PrimitiveKind = {
     Integer: {type: 'Integer'},
     PositiveInteger: {type: 'PositiveInteger'},
     String: {type: 'String'},
-    Iterable: (value: SerializedPrimitiveKind) => ({type: 'Iterable', value}),
+    Iterable: <T extends SerializedPrimitiveKind>(value: T) => ({type: 'Iterable', value} as const),
     Graph: {type: 'Graph'},
     GraphEdge: {type: 'GraphEdge'},
     GraphNode: {type: 'GraphNode'},
-    Tuple: (value: SerializedPrimitiveKind[]) => ({type: 'Tuple', value}),
+    Tuple: <T extends SerializedPrimitiveKind>(value: T[]) => ({type: 'Tuple', value} as const) ,
     Boolean: {type: 'Boolean'},
     Undefined: {type: 'Undefined'},
     Any: {type: 'Any'},
+} as const
 
-} satisfies Record<
-    SerializedPrimitiveKind['type'],
-    SerializedPrimitiveKind | ((value: SerializedPrimitiveKind | SerializedPrimitiveKind[]) => SerializedPrimitiveKind)
->
 
-export type ExtractArgTypes<T extends [string, SerializedPrimitiveKind][]> = {
-    [K in keyof T]: T[K] extends [string, infer Type extends SerializedPrimitiveKind] ? SerializedPrimitive & {
-        type: Type['type']
-    } : never;
+
+export type ExtractReturnArgs<T extends [string, SerializedPrimitiveKind][]> = {
+    [K in keyof T]: T[K] extends [string, infer Type extends SerializedPrimitiveKind]
+        ? Type
+    : never;
 };
 
+
+export type ExtractArgTypes<T extends [string, SerializedPrimitiveKind][]> = {
+    [K in keyof T]: T[K] extends [string, infer Type extends SerializedPrimitiveKind]
+        ? Type extends { type: 'Iterable' }
+            ? { type: 'Iterable', value: (SerializedIterable & { type: `${Type['value']['type']}s` }) }
+            : SerializedPrimitive & { type: Type['type'] }
+    : never;
+};
 
 //TODO remember to put this back in whenever they are updated, the runtime is supposed to not import anything from the compiler
 export enum PipeDataType {

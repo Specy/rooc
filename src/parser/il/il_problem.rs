@@ -264,7 +264,7 @@ impl TypeCheckable for PreConstraint {
         for _ in &self.iteration {
             context.pop_scope()?;
         }
-        if !lhs_type.is_numeric() || !rhs_type.is_numeric() {
+        if (!lhs_type.is_numeric() && !lhs_type.is_any())  || (!rhs_type.is_numeric() && !rhs_type.is_any()) {
             let err = TransformError::Other(format!(
                 "Expected comparison of \"Number\", got \"{}\" {} \"{}\"",
                 lhs_type, self.constraint_type, rhs_type

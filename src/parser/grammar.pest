@@ -140,7 +140,13 @@ div = { "/" }
 unary_op  = _{ neg }
 neg = { "-" }
 
-string = @ { "\"" ~ (LETTER | NUMBER)* ~ "\""}
+string = ${ "\"" ~ inner_string ~ "\"" }
+inner_string = @{ char* }
+char = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
 boolean = @{ ^"true" | ^"false" }
 function_name = @{ LETTER+ ~ ("_" ~ (LETTER | NUMBER)+)*}
 // ignore whitespace in whole grammar

@@ -1,9 +1,50 @@
 import {SANDBOX_RUNTIME_DATA} from "$lib/sandbox/sandboxRuntimeData";
 import std from '../../../static/std/bundle.js?raw'
+
 export type ConsoleOutput = {
     type: 'log' | 'error' | 'warn' | 'info';
     args: unknown[];
 };
+
+const dangerousApis = [
+    'localStorage',
+    'sessionStorage',
+    'indexedDB',
+    'webkitIndexedDB',
+    'mozIndexedDB',
+    'msIndexedDB',
+    'fetch',
+    'XMLHttpRequest',
+    'WebSocket',
+    'EventSource',
+    'webkitStorageInfo',
+    'crypto',
+    'caches',
+    'navigation',
+    'navigator',
+    'screen',
+    'history',
+    'document',
+    'self',
+    'opener',
+    'window',
+    'top',
+    'frames',
+    'parent',
+    'frameElement',
+    'external',
+    'status',
+    'name',
+    'close',
+    'open',
+    'alert',
+    'confirm',
+    'prompt',
+    'print',
+    'blur',
+    'focus',
+    'sharedStorage'
+];
 
 
 export async function runSandboxedCode(code: string, global: Record<string, unknown> = {}): Promise<{
@@ -28,6 +69,7 @@ export async function runSandboxedCode(code: string, global: Record<string, unkn
             iframeWindow[key] = value
         }
 
+
         // Override console methods
         (['log', 'error', 'warn', 'info']).forEach((method) => {
             //@ts-expect-error
@@ -43,44 +85,7 @@ export async function runSandboxedCode(code: string, global: Record<string, unkn
         //because it's a namespace
         Rooc = Rooc.Rooc
       // Disable dangerous APIs
-      const dangerousApis = [
-        'localStorage',
-        'sessionStorage',
-        'indexedDB',
-        'webkitIndexedDB',
-        'mozIndexedDB',
-        'msIndexedDB',
-        'fetch',
-        'XMLHttpRequest',
-        'WebSocket',
-        'EventSource',
-        'webkitStorageInfo',
-        'crypto',
-        'caches',
-        'navigation',
-        'navigator',
-        'screen',
-        'history',
-        'document',
-        'self',
-        'opener',
-        'window',
-        'top',
-        'frames',
-        'parent',
-        'frameElement',
-        'external',
-        'status',
-        'name',
-        'close',
-        'open',
-        'alert',
-        'confirm',
-        'prompt',
-        'print',
-        'blur',
-        'focus',       
-      ];
+      const dangerousApis = ${JSON.stringify(dangerousApis)}
       let ignoreWarning = true
       const postMessage = window.parent.postMessage;
       function disableApi(obj, api) {
@@ -100,7 +105,7 @@ export async function runSandboxedCode(code: string, global: Record<string, unkn
       }
 
       // Disable APIs on both window and globalThis
-      [window, globalThis].forEach(obj => {
+      [window, globalThis, self, this].forEach(obj => {
         dangerousApis.forEach(api => {
             disableApi(obj, api);
         });
@@ -111,8 +116,7 @@ export async function runSandboxedCode(code: string, global: Record<string, unkn
        (async function() {
           try {
             ${SANDBOX_RUNTIME_DATA}
-            
-            ${code}
+            eval(atob("${btoa(code)}"))
           } catch (error) {
             console.error(error);
           } finally {
@@ -121,7 +125,6 @@ export async function runSandboxedCode(code: string, global: Record<string, unkn
        })()
 
     `;
-
         // Listen for the completion message
         window.addEventListener('message', function onMessage(event) {
             if (event.data.type === 'CODE_EXECUTION_COMPLETE') {
@@ -130,7 +133,6 @@ export async function runSandboxedCode(code: string, global: Record<string, unkn
                 resolve({result: event.data.result, consoleOutput});
             }
         });
-
         // Execute the code
         const script = iframeWindow.document.createElement('script');
         script.textContent = wrappedCode;

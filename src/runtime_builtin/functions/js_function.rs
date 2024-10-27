@@ -3,10 +3,10 @@ use crate::parser::model_transformer::{TransformError, TransformerContext};
 use crate::primitives::{Primitive, PrimitiveKind};
 use crate::runtime_builtin::{default_type_check, RoocFunction};
 use crate::type_checker::type_checker_context::{FunctionContext, TypeCheckerContext, WithType};
+use crate::utils::serialize_json_compatible;
 use js_sys::Function;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
-use crate::utils::serialize_json_compatible;
 
 #[derive(Serialize)]
 pub enum JsFunctionRuntimeError {
@@ -15,8 +15,14 @@ pub enum JsFunctionRuntimeError {
 //TODO implement into
 impl JsFunctionRuntimeError {
     pub fn into_js_value(self) -> JsValue {
-        serde_wasm_bindgen::to_value(&self).unwrap()
+        serde_wasm_bindgen::to_value(&self).unwrap_or(JsValue::NULL)
     }
+}
+
+#[derive(Debug, Clone)]
+enum ReturnType {
+    Primitive(PrimitiveKind),
+    Function(Function),
 }
 
 #[wasm_bindgen]
@@ -25,17 +31,16 @@ pub struct JsFunction {
     js_function: Function,
     function_name: String,
     arg_types: Vec<(String, PrimitiveKind)>,
-    return_type: PrimitiveKind,
-    type_checker: Option<Function>
+    return_type: ReturnType,
+    type_checker: Option<Function>,
 }
 
 #[wasm_bindgen]
 impl JsFunction {
-    
     pub fn clone_wasm(&self) -> JsFunction {
         self.clone()
     }
-    
+
     pub fn new(
         js_function: JsValue,
         function_name: String,
@@ -62,24 +67,29 @@ impl JsFunction {
             .into_js_value());
         }
         let js_function = js_sys::Function::from(js_function);
-        let return_type = serde_wasm_bindgen::from_value(return_type).map_err(|_| {
-            JsFunctionRuntimeError::WrongType("Expected a PrimitiveKind".to_string())
-                .into_js_value()
-        })?;
+        let return_type = if return_type.is_function() {
+            ReturnType::Function(js_sys::Function::from(return_type))
+        } else {
+            ReturnType::Primitive(
+                serde_wasm_bindgen::from_value::<PrimitiveKind>(return_type).map_err(|_| {
+                    JsFunctionRuntimeError::WrongType("Expected a PrimitiveKind".to_string())
+                        .into_js_value()
+                })?,
+            )
+        };
 
-        
         let type_checker = if type_checker.is_function() {
             Some(js_sys::Function::from(type_checker))
         } else {
             None
         };
-        
+
         Ok(Self {
             js_function,
             function_name,
             arg_types,
             return_type,
-            type_checker
+            type_checker,
         })
     }
 }
@@ -95,7 +105,8 @@ impl RoocFunction for JsFunction {
             .iter()
             .map(|arg| arg.as_primitive(context, fn_context))
             .collect::<Result<Vec<Primitive>, TransformError>>()?;
-        let js_args = serialize_json_compatible(&args).unwrap();
+        let js_args =
+            serialize_json_compatible(&args).map_err(|e| TransformError::Other(e.to_string()))?;
         let arr = js_sys::Array::from(&js_args);
         let result = self.js_function.apply(&JsValue::NULL, &arr).map_err(|e| {
             TransformError::Other(
@@ -114,11 +125,33 @@ impl RoocFunction for JsFunction {
 
     fn get_return_type(
         &self,
-        _args: &[PreExp],
-        _context: &TypeCheckerContext,
-        _fn_context: &FunctionContext,
+        args: &[PreExp],
+        context: &TypeCheckerContext,
+        fn_context: &FunctionContext,
     ) -> PrimitiveKind {
-        self.return_type.clone()
+        match &self.return_type {
+            ReturnType::Primitive(kind) => kind.clone(),
+            ReturnType::Function(f) => {
+                let static_primitives = args
+                    .iter()
+                    .map(|p| p.as_static_primitive())
+                    .collect::<Vec<_>>();
+                let args: Vec<PrimitiveKind> = args
+                    .iter()
+                    .map(|arg| arg.get_type(context, fn_context))
+                    .collect();
+                let js_args = serde_wasm_bindgen::to_value(&args).unwrap_or(JsValue::NULL);
+                let js_static_primitives =
+                    serde_wasm_bindgen::to_value(&static_primitives).unwrap_or(JsValue::NULL);
+                let arr = js_sys::Array::from(&js_args);
+                let arr_static_primitives = js_sys::Array::from(&js_static_primitives);
+                let pars = js_sys::Array::new();
+                pars.push(&arr);
+                pars.push(&arr_static_primitives);
+                let result = f.apply(&JsValue::NULL, &pars).unwrap_or(JsValue::NULL);
+                serde_wasm_bindgen::from_value(result).unwrap_or(PrimitiveKind::Any)
+            }
+        }
     }
 
     fn get_function_name(&self) -> String {
@@ -131,13 +164,13 @@ impl RoocFunction for JsFunction {
         context: &mut TypeCheckerContext,
         fn_context: &FunctionContext,
     ) -> Result<(), TransformError> {
-        
         if let Some(type_checker) = &self.type_checker {
             let args: Vec<PrimitiveKind> = args
                 .iter()
                 .map(|arg| arg.get_type(context, fn_context))
                 .collect();
-            let js_args = serde_wasm_bindgen::to_value(&args).unwrap();
+            let js_args = serde_wasm_bindgen::to_value(&args)
+                .map_err(|e| TransformError::Other(e.to_string()))?;
             let arr = js_sys::Array::from(&js_args);
             let result = type_checker.apply(&JsValue::NULL, &arr).map_err(|e| {
                 TransformError::Other(
@@ -148,9 +181,10 @@ impl RoocFunction for JsFunction {
             if result.is_null() || result.is_undefined() {
                 Ok(())
             } else {
-                let transform_error: TransformError = serde_wasm_bindgen::from_value::<String>(result)
-                    .map(|e| TransformError::Other(e))
-                    .map_err(|e| TransformError::Other(e.to_string()))?;
+                let transform_error: TransformError =
+                    serde_wasm_bindgen::from_value::<String>(result)
+                        .map(|e| TransformError::Other(e))
+                        .map_err(|e| TransformError::Other(e.to_string()))?;
                 Err(transform_error)
             }
         } else {

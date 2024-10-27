@@ -500,6 +500,12 @@ impl PreExp {
         }
     }
 
+    pub fn as_static_primitive(&self) -> Option<Primitive> {
+        match self {
+            Self::Primitive(p) => Some(p.get_span_value().clone()),
+            _ => None,
+        }
+    }
     pub fn as_primitive(
         &self,
         context: &TransformerContext,

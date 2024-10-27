@@ -125,6 +125,9 @@ impl PrimitiveKind {
                 | PrimitiveKind::Boolean
         )
     }
+    pub fn is_any(&self) -> bool {
+        matches!(self, PrimitiveKind::Any)
+    }
     pub fn can_spread_into(&self) -> Result<Vec<PrimitiveKind>, TransformError> {
         match self {
             PrimitiveKind::Tuple(t) => Ok(t.clone()),
@@ -139,7 +142,7 @@ impl PrimitiveKind {
 
     pub fn can_apply_binary_op(&self, op: BinOp, to: PrimitiveKind) -> bool {
         match self {
-            PrimitiveKind::Any => false,
+            PrimitiveKind::Any => true, //make it fail at runtime
             PrimitiveKind::Undefined => false,
             PrimitiveKind::Integer => i64::can_apply_binary_op(op, to),
             PrimitiveKind::PositiveInteger => u64::can_apply_binary_op(op, to),

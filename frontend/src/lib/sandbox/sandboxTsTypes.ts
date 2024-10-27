@@ -36,6 +36,12 @@ const Primitive = {
 } as const
 declare type Primitive = typeof Primitive
 
+declare type ExtractReturnArgs<T extends [string, SerializedPrimitiveKind][]> = {
+    [K in keyof T]: T[K] extends [string, infer Type extends SerializedPrimitiveKind]
+        ? Type
+    : never;
+};
+
 declare type ExtractArgTypes<T extends [string, SerializedPrimitiveKind][]> = {
     [K in keyof T]: T[K] extends [string, infer Type extends SerializedPrimitiveKind]
         ? Type extends { type: 'Iterable' }
@@ -44,14 +50,16 @@ declare type ExtractArgTypes<T extends [string, SerializedPrimitiveKind][]> = {
     : never;
 };
 
+declare type ReturnCallback<T extends [string, SerializedPrimitiveKind][]> = ((args: ExtractReturnArgs<T>, staticArgs: ExtractArgTypes<T>) => SerializedPrimitiveKind)
+
 declare type MakeRoocFunction<T extends [string, SerializedPrimitiveKind][]> = {
-    name: string;
-    description?: string;
-    parameters: T;
-    returns: SerializedPrimitiveKind;
-    type_checker?: (...args: SerializedPrimitiveKind[]) => null | string;
-    call: (...args: NoInfer<ExtractArgTypes<T>>) => SerializedPrimitive;
-};
+    name: string,
+    parameters: T,
+    returns: SerializedPrimitiveKind | ReturnCallback<NoInfer<T>>
+    call: (...args: ExtractArgTypes<NoInfer<T>>) => SerializedPrimitive,
+    type_checker?: (...args: SerializedPrimitiveKind[]) => null | string
+    description?: string
+}
 
 
 

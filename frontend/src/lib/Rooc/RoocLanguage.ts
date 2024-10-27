@@ -229,7 +229,7 @@ export function createRoocHoverProvider(ref: RoocFnRef) {
                     contents.push({value: `An integer between min and max`})
                 }
             }
-            if (word.word) {
+            if (word?.word) {
                 const type = domainTypes[word.word]
                 const keyword = keywords[word.word]
                 if (word.word === 'subject') {
@@ -283,18 +283,32 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel, ref: Rooc
             ])
             if (!typeCheck.isOk()) {
                 const err = typeCheck.error
-                const span = err.getOriginSpan()
-                const start = model.getPositionAt(span?.start)
-                const end = model.getPositionAt(span?.start + span.len)
-                const message = err.stringifyBaseError()
-                markers.push({
-                    startColumn: start.column,
-                    endColumn: end.column,
-                    startLineNumber: start.lineNumber,
-                    endLineNumber: end.lineNumber,
-                    message,
-                    severity: MarkerSeverity.Error
-                })
+                try {
+                    if(err.instance?.constructor?.name === "RuntimeError"){
+                        throw String(err.instance)
+                    }
+                    const span = err.getOriginSpan()
+                    const start = model.getPositionAt(span?.start)
+                    const end = model.getPositionAt(span?.start + span.len)
+                    const message = err.stringifyBaseError()
+                    markers.push({
+                        startColumn: start.column,
+                        endColumn: end.column,
+                        startLineNumber: start.lineNumber,
+                        endLineNumber: end.lineNumber,
+                        message,
+                        severity: MarkerSeverity.Error
+                    })
+                } catch (e) {
+                    markers.push({
+                        startColumn: 0,
+                        endColumn: 0,
+                        startLineNumber: 0,
+                        endLineNumber: 0,
+                        message: e,
+                        severity: MarkerSeverity.Error
+                    })
+                }
             } else {
             }
         }
@@ -371,7 +385,7 @@ export function roocFunctionToRuntimeFunction(f: RoocFunction): RuntimeFunction<
         description: f.description,
         type: "RuntimeFunction",
         parameters: f.parameters.map(([k, v]) => ({name: k, value: v})),
-        returns: f.returns
+        returns: typeof f.returns === 'function' ? {type: "Any"} : f.returns
     } satisfies RuntimeFunction<NamedParameter[], SerializedPrimitiveKind>
 }
 

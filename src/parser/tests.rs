@@ -73,6 +73,7 @@ define
             let B = false
             let N = 1
             let S = \"Hello\"
+            let S2 = \"\\\"() => {} _ aiaosjd\"
             let A = [1, 2, 3]
             let M = [[1, 2], [3, 4]]
             let G = Graph {

@@ -29,14 +29,16 @@ import {
     WasmPipeRunner
 } from './pkg/rooc.js'
 import {Err, Ok, Result} from 'ts-results-es'
-import {ExtractArgTypes} from "./runtime";
+import {ExtractArgTypes, ExtractReturnArgs} from "./runtime";
 
+
+export type ReturnCallback<T extends [string, SerializedPrimitiveKind][]> = ((args: ExtractReturnArgs<T>, staticArgs: ExtractArgTypes<T>) => SerializedPrimitiveKind)
 
 type MakeRoocFunction<T extends [string, SerializedPrimitiveKind][]> = {
     name: string,
     parameters: T,
-    returns: SerializedPrimitiveKind,
-    call: (...args: ExtractArgTypes<T>) => SerializedPrimitive,
+    returns: SerializedPrimitiveKind | ReturnCallback<NoInfer<T>>
+    call: (...args: ExtractArgTypes<NoInfer<T>>) => SerializedPrimitive,
     type_checker?: (...args: SerializedPrimitiveKind[]) => null | string
     description?: string
 }
@@ -46,26 +48,39 @@ type MakeRoocFunction<T extends [string, SerializedPrimitiveKind][]> = {
  * Create a RoocFunction, this function can be provided to the RoocParser to be used in the transformation process
  * @param name the name of the function
  * @param parameters the type of parameters of the rooc function
- * @param returns the type of the return value of the rooc function
+ * @param returns the type of the return value of the rooc function, or a function that will be called to determine the return type
  * @param type_checker a function that will be called to check the types of parameters, this disabled the default type checking and this will be used instead
  * @param call the function that will be called when the rooc function is called
  * @param description a description of the function
  */
-export function makeRoocFunction<T extends [string, SerializedPrimitiveKind][]>({
-                                                                                    name,
-                                                                                    parameters,
-                                                                                    returns,
-                                                                                    type_checker,
-                                                                                    call,
-                                                                                    description
-                                                                                }: MakeRoocFunction<T>) {
+export function makeRoocFunction<const T extends [string, SerializedPrimitiveKind][]>({
+                                                                                          name,
+                                                                                          parameters,
+                                                                                          returns,
+                                                                                          type_checker,
+                                                                                          call,
+                                                                                          description
+                                                                                      }: MakeRoocFunction<T>) {
     return new RoocFunction<T>(
         JsFunction.new(
-            // @ts-ignore
-            (...args) => call(...args),
+            (...args) => {
+                try {
+                    // @ts-ignore
+                    return call(...args)
+                } catch (e) {
+                    throw String(e)
+                }
+            },
             name,
             parameters,
-            returns,
+            typeof returns === 'function' ? (...args) => {
+                try {
+                    // @ts-ignore
+                    return returns(...args)
+                } catch (e) {
+                    throw String(e)
+                }
+            } : returns,
             type_checker
         ),
         name,
@@ -74,6 +89,7 @@ export function makeRoocFunction<T extends [string, SerializedPrimitiveKind][]>(
         description
     )
 }
+
 
 /**
  * Create a RoocFunction, this function can be provided to the RoocParser to be used in the transformation process
@@ -88,14 +104,15 @@ export class RoocFunction<T extends [string, SerializedPrimitiveKind][] = [strin
     name: string
     description?: string
     parameters: T
-    returns: SerializedPrimitiveKind
+    returns: SerializedPrimitiveKind | ReturnCallback<NoInfer<T>>
 
     constructor(
         instance: JsFunction,
         name: string,
         parameters: T,
-        returns: SerializedPrimitiveKind,
-        description?: string) {
+        returns: SerializedPrimitiveKind | ReturnCallback<NoInfer<T>>,
+        description?: string
+    ) {
         this.instance = instance
         this.name = name
         this.parameters = parameters
@@ -103,6 +120,7 @@ export class RoocFunction<T extends [string, SerializedPrimitiveKind][] = [strin
         this.description = description
     }
 }
+
 
 /**
  * The RoocParser is the main entry point to the Rooc library, it allows to parse, transform and compile rooc code
