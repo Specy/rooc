@@ -50,27 +50,25 @@ pub fn default_type_check(
         });
     }
     for (arg, (_, kind)) in args.iter().zip(type_signature) {
-        if kind == &PrimitiveKind::Any
-            || *kind == PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any))
-        {
+        if kind == &PrimitiveKind::Any {
             continue;
         }
         let arg_type = arg.get_type(context, fn_context);
-        if kind == &PrimitiveKind::Number  {
+        //allow any if they are both iterable and expected is iterable of any
+        if *kind == PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)) && arg_type.is_iterable()
+        {
+            continue;
+        }
             //allow anything that can be converted to a number
-            if matches!(
-                arg_type,
-                PrimitiveKind::Number
-                    | PrimitiveKind::Boolean
-                    | PrimitiveKind::Integer
-                    | PrimitiveKind::PositiveInteger
-            ) {
-                continue;
-            }
+        if kind == &PrimitiveKind::Number && arg_type.is_numeric() {
+            continue;
         }
         if kind == &PrimitiveKind::Integer {
             //allow anything that can be converted to a boolean
-            if matches!(arg_type, PrimitiveKind::Integer | PrimitiveKind::PositiveInteger) {
+            if matches!(
+                arg_type,
+                PrimitiveKind::Integer | PrimitiveKind::PositiveInteger
+            ) {
                 continue;
             }
         }

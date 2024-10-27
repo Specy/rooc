@@ -128,6 +128,9 @@ impl PrimitiveKind {
     pub fn is_any(&self) -> bool {
         matches!(self, PrimitiveKind::Any)
     }
+    pub fn is_iterable(&self) -> bool {
+        matches!(self, PrimitiveKind::Iterable(_))
+    }
     pub fn can_spread_into(&self) -> Result<Vec<PrimitiveKind>, TransformError> {
         match self {
             PrimitiveKind::Tuple(t) => Ok(t.clone()),
@@ -136,6 +139,7 @@ impl PrimitiveKind {
                 PrimitiveKind::String,
                 PrimitiveKind::Number,
             ]),
+            //TODO PrimitiveKind::Any => Ok(vec![PrimitiveKind::Any; 4]),
             _ => Err(TransformError::Unspreadable(self.clone())),
         }
     }
@@ -158,7 +162,7 @@ impl PrimitiveKind {
     }
     pub fn can_apply_unary_op(&self, op: UnOp) -> bool {
         match self {
-            PrimitiveKind::Any => false,
+            PrimitiveKind::Any => true, //make it fail at runtime
             PrimitiveKind::Undefined => false,
             PrimitiveKind::Integer => i64::can_apply_unary_op(op),
             PrimitiveKind::PositiveInteger => u64::can_apply_unary_op(op),

@@ -264,9 +264,9 @@ impl TypeCheckerContext {
                             last_value = i
                         }
                         _ => return Err(TransformError::Other(format!(
-                            "Expected value of type \"Iterable\" to index array, got \"{}\", check the definition of \"{}\"",
+                            "Expected value of type \"Iterable\" to index, got \"{}\", check the definition of \"{}\"",
                             last_value,
-                            access
+                            addressable_access
                         )).add_span(access.get_span()))
                     }
                 }

@@ -25,12 +25,15 @@ register({
         ['js_code', Primitive.String]
     ],
     returns: (_, [v1, v2]) => {
-        return { type: 'Iterable', value: { type: v2.value } };
+        return tsTypeToPrimitive(v2.value);
     },
     call: (arr, asVal, code) => {
         let fn = eval(code.value);
         let mapped = arr.value.value.map(fn);
-        return { type: "Iterable", value: { type: \`\${asVal.value}s\`, value: mapped } };
+        let type = tsTypeToPrimitive(asVal.value);
+        type.value.value = mapped;
+        type.value.type += 's'
+        return type;
     }
 });
 
@@ -72,6 +75,44 @@ register({
         return { type: type.slice(0, type.length - 1), value: found };
     }
 });
+
+
+//converts things like Number[] into {type: "Iterable", value: {type: "Number"}}
+function tsTypeToPrimitive(type){
+    if(type.endsWith("[]")){
+        return {type: "Iterable", value: tsTypeToPrimitive(type.slice(0, type.length-2))}
+    }
+    return Primitive[type]
+}
+
+function getBaseType(type){
+    return type.split("[")[0]
+}
+
+
+register({
+    name: "js",
+    description: "Runs a js function over an input and returns a result",
+    parameters: [
+        ['input', Primitive.Any],
+        ['return_type', Primitive.String],
+        ['js_code', Primitive.String]
+    ],
+    returns: (_, [v1, returnType]) => {
+        return tsTypeToPrimitive(returnType.value);
+    },
+    call: (input, returnType, code) => {
+        let fn = eval(code.value);
+        let result = fn(input.value);
+        let type = tsTypeToPrimitive(returnType.value);
+        let baseType = getBaseType(returnType.value)
+        type.value = result;
+        if(type?.type === "Iterable" && baseType !== "Iterable"){
+            type.value = {type: baseType + 's', value: result}
+        }
+        return type;
+    }
+})
 
 
 
