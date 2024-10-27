@@ -78,6 +78,7 @@ export function makeRoocFunction<const T extends [string, SerializedPrimitiveKin
                     // @ts-ignore
                     return returns(...args)
                 } catch (e) {
+                    console.error(e)
                     throw String(e)
                 }
             } : returns,

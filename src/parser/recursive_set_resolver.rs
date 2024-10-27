@@ -49,7 +49,8 @@ pub fn recursive_set_resolver<T>(
                     .map_err(|e| e.add_span(&range.span))?;
             }
             VariableKind::Tuple(tuple) => {
-                let values = value.to_primitive_set()?;
+                let values = value.to_primitive_set()
+                    .map_err(|e| e.add_span(&range.span))?;
                 apply_tuple(context, tuple, values).map_err(|e| e.add_span(&range.span))?;
             }
         }

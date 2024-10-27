@@ -30,9 +30,8 @@ register({
     call: (arr, asVal, code) => {
         let fn = eval(code.value);
         let mapped = arr.value.value.map(fn);
-        let type = tsTypeToPrimitive(asVal.value);
+        let type = tsTypeToPrimitive(asVal.value, true);
         type.value.value = mapped;
-        type.value.type += 's'
         return type;
     }
 });
@@ -78,11 +77,15 @@ register({
 
 
 //converts things like Number[] into {type: "Iterable", value: {type: "Number"}}
-function tsTypeToPrimitive(type){
-    if(type.endsWith("[]")){
-        return {type: "Iterable", value: tsTypeToPrimitive(type.slice(0, type.length-2))}
+function tsTypeToPrimitive(type, plural = false){
+    let split = type.split("[");
+    let baseType = split[0];
+    let nested = split.length - 1;
+    let result = {type: baseType + (plural ? "s" : "")};
+    for(let i = 0; i < nested; i++){
+        result = {type: "Iterable", value: result};
     }
-    return Primitive[type]
+    return result;
 }
 
 function getBaseType(type){
@@ -108,7 +111,7 @@ register({
         let baseType = getBaseType(returnType.value)
         type.value = result;
         if(type?.type === "Iterable" && baseType !== "Iterable"){
-            type.value = {type: baseType + 's', value: result}
+            type.value = {type: baseType, value: result}
         }
         return type;
     }

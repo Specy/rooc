@@ -413,7 +413,7 @@ export function createRoocCompletion(ref: RoocFnRef) {
                 }) as languages.CompletionItem))
             }
             return {
-                suggestions
+                suggestions: structuredClone(suggestions)
             }
         }
     } satisfies languages.CompletionItemProvider
