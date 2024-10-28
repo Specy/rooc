@@ -192,6 +192,9 @@
                 padding="0.8rem"
                 gap="0.5rem"
         >
+            <p>
+                If you want a more in depth documentation <a href="/docs/rooc" style="color: var(--accent-10); text-decoration: underline">visit the full docs</a>
+            </p>
             <RoocDocs/>
             <RoocSyntaxDocs/>
         </Column>

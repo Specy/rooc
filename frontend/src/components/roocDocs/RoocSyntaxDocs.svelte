@@ -42,8 +42,6 @@ define
         <li><a href="#rooc_domains">Domains</a></li>
         <li><a href="#rooc_functions_and_tuples">Functions and tuples</a></li>
         <li><a href="#rooc_others">Other things</a></li>
-
-        <li><a href="#rooc_examples">Examples</a></li>
     </ul>
     <Separator/>
     <h1 id="rooc_objective_function">
