@@ -9,6 +9,7 @@
 		padding?: string | undefined;
 		background?: ColorName | undefined;
 		style?: string | undefined;
+		flex1?: boolean | undefined
 		children?: import('svelte').Snippet;
 	}
 
@@ -19,6 +20,7 @@
 		padding = undefined,
 		background = undefined,
 		style = undefined,
+		flex1 = false,
 		children
 	}: Props = $props();
 </script>
@@ -31,6 +33,7 @@
     {gap ? `gap: ${gap};` : ''}
     {padding ? `padding: ${padding};` : ''}
     {background ? `background-color: var(--${background}); color: var(--${background}-text);` : ''}
+    {flex1 ? 'flex: 1;' : ''}
     {style}
     "
 >

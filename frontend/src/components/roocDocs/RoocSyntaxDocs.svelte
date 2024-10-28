@@ -23,18 +23,7 @@ define
 `.trim();
 </script>
 
-<h1>ROOC</h1>
 <Column gap="0.8rem">
-    <p>
-        ROOC is a language designed to parse and convert formal optimization models into static formulations. These
-        static formulations can be transformed into linear models which can then be solved using optimization
-        techniques.
-    </p>
-    <p>
-        If you are looking for the typescript library documentation, look <a href="/docs/lib"
-                                                                             style="color: var(--accent-10); text-decoration: underline">Here</a>
-    </p>
-    <br/>
     <h1>
         Table of contents
     </h1>
