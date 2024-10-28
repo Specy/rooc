@@ -8,5 +8,10 @@
 }
 
 a {
-  color: var(--accent-100);
+  color: var(--accent-15);
+  text-decoration: underline;
+}
+
+ul {
+  margin-left: 1rem;
 }

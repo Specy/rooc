@@ -40,9 +40,9 @@
                 />
             </Button>
         </div>
-        <Column gap="1rem" flex1 padding="0 1rem">
+        <Column flex1>
             <MenuLink
-                    href="/docs/rooc/"
+                    href="/docs/rooc"
                     title="Introduction"
                     on:click={() => (menuOpen = false)}
             />
@@ -61,9 +61,16 @@
                     title="Typescript runtime"
                     on:click={() => (menuOpen = false)}
             />
-            <a href="{url}" class="tryit">
-                Try it
-            </a>
+             <MenuLink
+                    href="/docs/rooc/examples"
+                    title="Rooc examples"
+                    on:click={() => (menuOpen = false)}
+            />
+            <Row padding="0.8rem" style="margin-top: auto">
+                <a href="{url}" class="tryit">
+                    Try it
+                </a>
+            </Row>
         </Column>
 
     </aside>
@@ -90,7 +97,6 @@
     width: 15rem;
     gap: 1rem;
     top: 3rem;
-    padding: 0.8rem 0;
     border-top: solid 0.2rem var(--secondary);
     height: calc(100vh - 3.2rem);
     z-index: 10;
@@ -118,7 +124,6 @@
     color: var(--accent-text);
     padding: 0.5rem 1rem;
     text-align: center;
-    margin-top: auto;
   }
 
   .mobile-only {

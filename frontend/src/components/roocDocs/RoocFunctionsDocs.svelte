@@ -2,19 +2,16 @@
     import SyntaxHighlighter from '$cmp/SyntaxHighlighter.svelte';
     import Card from '$cmp/layout/Card.svelte';
     import Column from '$cmp/layout/Column.svelte';
-    import {createRoocFunctionSignature} from '$src/lib/Rooc/RoocUtils';
+    import {createRoocFunctionSignature, roocFunctionToRuntimeFunction} from '$src/lib/Rooc/RoocUtils';
     import {
-        ROOC_RUNTIME_FUNCTIONS,
-        RUNTIME_BLOCK_FUNCTIONS,
-        RUNTIME_BLOCK_SCOPED_FUNCTIONS,
         pipeDataDescriptions,
-        pipeDescriptions
-    } from "@specy/rooc";
+        pipeDescriptions,
+        ROOC_RUNTIME_FUNCTIONS, RUNTIME_BLOCK_FUNCTIONS,
+        RUNTIME_BLOCK_SCOPED_FUNCTIONS,
+    } from "@specy/rooc/runtime";
     import Separator from "$cmp/misc/Separator.svelte";
     import Row from "$cmp/layout/Row.svelte";
     import {roocJsStd} from "$lib/Rooc/roocJsStd";
-    import {roocFunctionToRuntimeFunction} from "$lib/Rooc/RoocLanguage";
-
     let functions = [
         ...ROOC_RUNTIME_FUNCTIONS.values(),
         ...roocJsStd().map(roocFunctionToRuntimeFunction)
@@ -23,7 +20,7 @@
     let blockScopedFunctions = RUNTIME_BLOCK_SCOPED_FUNCTIONS.values();
 </script>
 
-<h1>Functions</h1>
+<h2 id="functions">Functions</h2>
 <Column gap="0.5rem">
     <Column style="margin-bottom: 1rem;" gap="0.4rem">
         They are functions that accept parameters and return a value, you can use them inside blocks,
@@ -45,11 +42,15 @@
     {/each}
 </Column>
 <Separator/>
-<h1>Block functions</h1>
+<h2 id="block_functions">Block functions</h2>
 <Column gap="0.5rem">
-    <Column>
+    <Column gap="0.4rem" style="margin-bottom: 1rem;">
         They are blocks which have one or more expressions separated by a comma, they will use those
         expressions to perform a transformation, like the avg (average) block
+        <br/>
+        <Card padding="0.8rem">
+            <SyntaxHighlighter language="rooc" source={`avg {x_1, x_2, x_3}`} />
+        </Card>
     </Column>
     {#each blockFunctions as fun}
         <Card padding="0.8rem" gap="0.5rem">
@@ -63,7 +64,7 @@
     {/each}
 </Column>
 <Separator/>
-<h1>Block scoped functions</h1>
+<h2 id="block_scoped_functions">Block scoped functions</h2>
 <Column gap="0.5rem">
     <Column gap="0.4rem" style="margin-bottom: 1rem;">
         They are function blocks, it has as parameters one or more iterators over iterable data, they
@@ -102,14 +103,17 @@
         <Card padding="0.8rem" gap="0.5rem">
             <Column gap="0.2rem">
                 <Row>
-                    <div style="width: 8ch">Name: </div><b>{pipeDescriptions[pipe].name}</b>
+                    <div style="width: 8ch">Name:</div>
+                    <b>{pipeDescriptions[pipe].name}</b>
                 </Row>
-                    <Row>
-                        <div style="width: 8ch">Input: </div><code>{pipeDataDescriptions[pipeDescriptions[pipe].input].name}</code>
-                    </Row>
-                    <Row>
-                        <div style="width: 8ch">Output: </div> <code>{pipeDataDescriptions[pipeDescriptions[pipe].output].name}</code>
-                    </Row>
+                <Row>
+                    <div style="width: 8ch">Input:</div>
+                    <code>{pipeDataDescriptions[pipeDescriptions[pipe].input].name}</code>
+                </Row>
+                <Row>
+                    <div style="width: 8ch">Output:</div>
+                    <code>{pipeDataDescriptions[pipeDescriptions[pipe].output].name}</code>
+                </Row>
             </Column>
             <div>
                 {pipeDescriptions[pipe].description}

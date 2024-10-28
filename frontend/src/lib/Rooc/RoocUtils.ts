@@ -1,4 +1,16 @@
-import type { PossibleCompletionToken, SerializedPrimitiveKind } from "@specy/rooc"
+import type { PossibleCompletionToken, SerializedPrimitiveKind, RoocFunction } from "@specy/rooc"
+import type {NamedParameter, RuntimeFunction} from "@specy/rooc/runtime";
+
+export function roocFunctionToRuntimeFunction(f: RoocFunction): RuntimeFunction<NamedParameter[], SerializedPrimitiveKind> {
+    return {
+        name: f.name,
+        description: f.description,
+        type: "RuntimeFunction",
+        parameters: f.parameters.map(([k, v]) => ({name: k, value: v})),
+        returns: typeof f.returns === 'function' ? {type: "Any"} : f.returns
+    } satisfies RuntimeFunction<NamedParameter[], SerializedPrimitiveKind>
+}
+
 
 export function getFormattedRoocType(type: SerializedPrimitiveKind): string {
 	if (type.type === 'Tuple') {

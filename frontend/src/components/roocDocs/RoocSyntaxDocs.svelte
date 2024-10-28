@@ -253,15 +253,6 @@ define
     <Card padding="0.8rem 1rem">
         <SyntaxHighlighter language="rooc" source={exampleModel} style="overflow-x: auto;"/>
     </Card>
-    <Separator/>
-    <h1 id="rooc_examples">
-        Examples
-    </h1>
-    {#each roocExamples as code}
-        <Card padding="0.8rem 1rem">
-            <SyntaxHighlighter language="rooc" source={code} style="overflow-x: auto;"/>
-        </Card>
-    {/each}
 </Column>
 
 <style>

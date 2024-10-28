@@ -1,6 +1,5 @@
 import {browser} from '$app/environment';
 import {generateTheme} from '$lib/theme/editorTheme';
-//@ts-expect-error - Monaco doesn't have typescript definitions
 import type monaco from 'monaco-editor'
 import {
     createRoocCompletion,
@@ -9,12 +8,12 @@ import {
     createRoocRuntimeDiagnostics,
     makeRoocCompletionToken,
     type RoocCompletionToken,
-    roocFunctionToRuntimeFunction,
     RoocLanguage
 } from './Rooc/RoocLanguage'
 import {getTsGlobal} from "$lib/sandbox/sandboxTsTypes";
 import type {RoocFunction, SerializedPrimitiveKind} from "@specy/rooc";
 import type {NamedParameter, RuntimeFunction} from "@specy/rooc/src/runtime";
+import {roocFunctionToRuntimeFunction} from "$lib/Rooc/RoocUtils";
 
 export type MonacoType = typeof monaco
 
@@ -74,9 +73,11 @@ class MonacoLoader {
         self.MonacoEnvironment = {
             getWorker: async function (_, label) {
                 if (label === 'typescript' || label === 'javascript') {
+                    //@ts-expect-error - Worker works
                     const worker = await import('monaco-editor/esm/vs/language/typescript/ts.worker?worker')
                     return new worker.default()
                 }
+                //@ts-expect-error - Worker works
                 const worker = await import('monaco-editor/esm/vs/editor/editor.worker?worker')
                 return new worker.default()
             }
@@ -126,7 +127,7 @@ class MonacoLoader {
 
     registerRuntimePushers = (language: 'rooc', instance: monaco.editor.ITextModel) => {
         if (language === 'rooc') {
-            const disposer = createRoocRuntimeDiagnostics(instance, this.roocFnsRef)
+            const disposer = createRoocRuntimeDiagnostics(instance, this.monaco.editor, this.roocFnsRef)
             return () => disposer.dispose()
         }
         return () => {

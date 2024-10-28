@@ -1,9 +1,6 @@
 import dts from '../../../static/std/index.d.ts?raw'
 
 
-
-
-
 const tsGlobal = {
     'global.d.ts': `
 declare type SerializedPrimitiveKind =

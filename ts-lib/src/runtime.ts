@@ -296,7 +296,7 @@ function makePipeDescriptionEntry(type: Pipes, name: string, description: string
     } as PipeDescription
 }
 
-type PipeDescription = {
+export type PipeDescription = {
     type: Pipes;
     name: string;
     description: string;
@@ -385,7 +385,7 @@ function makePipeDataEntry(type: PipeDataType, name: string, description: string
 }
 
 
-type PipeDataDescription = {
+export type PipeDataDescription = {
     type: PipeDataType;
     name: string;
     description: string;

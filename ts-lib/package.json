@@ -1,24 +1,38 @@
 {
-    "type": "module",
-    "name": "@specy/rooc",
-    "description": "A compiler for mathematical models",
-    "version": "1.1.0",
-    "main": "dist/index.js",
-    "module": "dist/index.js",
-    "typings": "dist/index.d.ts",
-    "repository": "https://github.com/Specy/rooc",
-    "scripts": {
-        "ci-build": "npm i -g wasm-pack && npm run build-all",
-        "build-all": "npm run build-wasm && npm run build-lib",
-        "build-wasm": "cd .. && cargo test && wasm-pack build --out-dir ts-lib/src/pkg --out-name rooc",
-        "build-lib": "node build.js",
-        "build-docs": "npx --yes typedoc"
+  "type": "module",
+  "name": "@specy/rooc",
+  "description": "A compiler for mathematical models",
+  "version": "1.1.2",
+  "license": "GPL-3.0",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./src/runtime": {
+      "import": "./dist/runtime.js",
+      "types": "./dist/runtime.d.ts"
     },
-    "devDependencies": {
-        "typescript": "^5.6.3"
-    },
-    "dependencies": {
-        "fuse.js": "^7.0.0",
-        "ts-results-es": "^4.2.0"
+    "./runtime": {
+      "import": "./dist/runtime.js",
+      "types": "./dist/runtime.d.ts"
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Specy/rooc.git"
+  },
+  "scripts": {
+    "ci-build": "npm i -g wasm-pack && npm run build-all",
+    "build-all": "npm run build-wasm && npm run build-lib",
+    "build-wasm": "cd .. && cargo test && wasm-pack build --out-dir ts-lib/src/pkg --out-name rooc",
+    "build-lib": "node build.js",
+    "build-docs": "npx --yes typedoc"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "fuse.js": "^7.0.0",
+    "ts-results-es": "^4.2.0"
+  }
 }

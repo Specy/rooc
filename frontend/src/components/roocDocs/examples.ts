@@ -1,7 +1,5 @@
-
-
-export const ex_1 = `//This is a simple diet problem
-//minimize the cost of the diet
+export const ex_1 = {
+    code: `//minimize the cost of the diet
 min sum((cost, i) in enumerate(C)) { cost * x_i }
 s.t.
     //the diet must have at least of nutrient j
@@ -34,9 +32,13 @@ where
     let N = len(Nmax)
 define
     x_i as NonNegativeReal for i in 0..N
-`
+`,
+    name: "Diet Problem",
+    description: `The diet problem is a classic optimization problem where the goal is to find the optimal diet that meets the nutritional requirements at the lowest cost.`
+}
 
-export const ex_2 =`//This is the dominating set problem
+export const ex_2 = {
+    code: `//minimize the number of selected nodes
 min sum(u in nodes(G)) { x_u }
 s.t. 
     // the variable "_" will simply ignore the value
@@ -56,9 +58,29 @@ where
     }
 define
     x_u, x_v as Boolean for v in nodes(G), (_, u) in neigh_edges(v)
-`
+`,
+    name: "Dominating Set Problem",
+    description: "In the dominating set problem, the goal is to find the smallest set of nodes in a graph such that every node in the graph is either in the set or adjacent to a node in the set, as in, the nodes are either dominant or adjacent to a dominant node (dominated)."
+}
 
-export const roocExamples = [ex_1, ex_2]
+export let ex_3 = {
+    code: `//maximize the value of the bag
+max sum((value, i) in enumerate(values)) { value * x_i }
+s.t.
+    //make sure that the selected items do not go over the bag's capacity
+    sum((weight, i) in enumerate(weights)) { weight * x_i } <= capacity
+where
+    let weights = [10, 60, 30, 40, 30, 20, 20, 2]
+    let values = [1, 10, 15, 40, 60, 90, 100, 15]
+    let capacity = 102
+define
+    x_i as Boolean for i in 0..len(weights)
+`,
+    name: "Knapsack Problem",
+    description: "In the knapsack problem, you are given a set of items, each with a weight and a value, and a knapsack with a maximum capacity. The goal is to maximize the total value of the items in the knapsack without exceeding the capacity."
+}
+
+export const roocExamples = [ex_1, ex_2, ex_3]
 
 
 

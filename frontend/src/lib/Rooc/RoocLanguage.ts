@@ -2,14 +2,11 @@ import {
     findRoocCompletionTokens,
     findRoocExactToken,
     type PossibleCompletionToken,
-    RoocFunction,
     RoocParser,
-    type SerializedPrimitiveKind
 } from '@specy/rooc'
-import {editor, type IDisposable, languages, MarkerSeverity, Position, Range} from 'monaco-editor'
-import {createRoocFunctionSignature, getFormattedRoocType} from './RoocUtils'
+import {type editor, type IDisposable, languages, MarkerSeverity, Position, Range} from 'monaco-editor'
+import {createRoocFunctionSignature, getFormattedRoocType, roocFunctionToRuntimeFunction} from './RoocUtils'
 import {roocJsStd} from "$lib/Rooc/roocJsStd";
-import {type NamedParameter, type RuntimeFunction} from "@specy/rooc/src/runtime";
 import type {RoocFnRef} from "$lib/Monaco";
 import {createDebouncer} from "$cmp/pipe/utils";
 
@@ -251,7 +248,7 @@ export function createRoocHoverProvider(ref: RoocFnRef) {
 }
 
 
-export function createRoocRuntimeDiagnostics(model: editor.ITextModel, ref: RoocFnRef) {
+export function createRoocRuntimeDiagnostics(model: editor.ITextModel, edit: typeof editor, ref: RoocFnRef) {
     const disposable: IDisposable[] = []
     let disposed = false
     const debounce = createDebouncer()
@@ -312,7 +309,7 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel, ref: Rooc
             } else {
             }
         }
-        editor.setModelMarkers(model, 'rooc', markers)
+        edit.setModelMarkers(model, 'rooc', markers)
     }
 
     disposable.push(model.onDidChangeContent(() => {
@@ -379,15 +376,7 @@ const suggestedTypes = [
     detail: `Type ${k}`
 }))
 
-export function roocFunctionToRuntimeFunction(f: RoocFunction): RuntimeFunction<NamedParameter[], SerializedPrimitiveKind> {
-    return {
-        name: f.name,
-        description: f.description,
-        type: "RuntimeFunction",
-        parameters: f.parameters.map(([k, v]) => ({name: k, value: v})),
-        returns: typeof f.returns === 'function' ? {type: "Any"} : f.returns
-    } satisfies RuntimeFunction<NamedParameter[], SerializedPrimitiveKind>
-}
+
 
 const suggestedRoocStd = roocJsStd().map(roocFunctionToRuntimeFunction)
 const suggestedStdCompletionToken = suggestedRoocStd.map(makeRoocCompletionToken)

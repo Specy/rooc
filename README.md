@@ -4,7 +4,9 @@
   <p><strong>Mathematical models compiler</strong></p>
 </div>
 
-[Go to the documentation (WIP)](https://rooc.specy.app/docs/rooc)
+[Go to the language documentation](https://rooc.specy.app/docs/rooc)
+
+[Go to the library documentation](https://rooc.specy.app/docs/lib)
 
 
 **ROOC** stands for the courses I took in university—*Ricerca Operativa* (Operational Research) and *Ottimizzazione Combinatoria* (Combinatorial Optimization)—which deal with solving optimization models.
@@ -107,4 +109,4 @@ The model can then be solved using the `Binary solver` pipeline, which will solv
 F	F	F	F	T	F	F	F	T	T
 ```
 # Notes
-This project is purely educational, it shouldn't be used to solve serious problems as it won't be optimized for big calculations
+This project is purely educational, it shouldn't be used to solve serious problems as it won't be optimized for big models

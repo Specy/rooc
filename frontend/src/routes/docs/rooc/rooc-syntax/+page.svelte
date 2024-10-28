@@ -6,7 +6,7 @@
 
 <svelte:head>
     <title>
-        Rooc documentation
+        Rooc docs - Syntax
     </title>
     <meta name="description" content="The documentation of ROOC, with syntax, function definitions and examples"/>
 </svelte:head>
