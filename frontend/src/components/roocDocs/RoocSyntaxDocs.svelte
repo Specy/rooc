@@ -56,6 +56,10 @@ define
         Once the model is compiled, it will be ran through the solver and find the optimal
         solution
         which fits the constraints.
+        <br/>
+        Some solvers allow you to also work on finding a satisfiable solution, which is a solution that fits the
+        constraints, not caring about the objective function. in that case, instead of writing the min/max keyword and objective function,
+        you can use the "solve" keyword.
     </p>
 
     <Card padding="0.8rem 1rem">
@@ -67,7 +71,8 @@ define
     </h1>
     <p>
 
-        The formal model can follow a list of constraints, you can use one of {`<=, >=, =`} relations.
+        The formal model can follow a list of constraints, you can use one of {`<=, >=, =, <, >`} comparisons.
+        Some solvers like the simplex, do not allow for strict inequalities {`<, >`}.
         <br/>
         The special keyword "for" can be used at the end of a constraint to create a constraint for each element that
         you iterate over.
