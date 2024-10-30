@@ -5,7 +5,7 @@ const cache = {
     4: {}
 } as Record<number, Record<number, string>>
 
-export function formatNum(num: number, precision = 4): string {
+export function formatNum(num: number, precision = 5): string {
     if (!cache[precision]) cache[precision] = {}
     if (cache[precision][num] !== undefined) return cache[precision][num]
     const f = new Fraction(num)

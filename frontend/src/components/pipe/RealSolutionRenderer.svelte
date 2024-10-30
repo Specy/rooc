@@ -2,6 +2,7 @@
     import type {BinaryIntegerSolution} from "@specy/rooc";
     import Column from "$cmp/layout/Column.svelte";
     import Var from "$cmp/pipe/Var.svelte";
+    import {formatNum} from "$cmp/pipe/utils";
 
     interface Props {
         realSolution: BinaryIntegerSolution<number>;
@@ -29,7 +30,7 @@
                 {#each realSolution.assignment as assignment}
                     <td
                     >
-                        {assignment.value}
+                        {formatNum(assignment.value)}
                     </td>
                 {/each}
             </tr>
@@ -38,7 +39,7 @@
 
     </div>
     <div style="font-size: 1.5rem">
-        Optimal value: {realSolution.value}
+        Optimal value: {formatNum(realSolution.value)}
     </div>
 </Column>
 
