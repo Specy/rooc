@@ -116,6 +116,12 @@ impl OptimalTableauWithSteps {
     pub fn new(result: OptimalTableau, steps: Vec<SimplexStep>) -> OptimalTableauWithSteps {
         OptimalTableauWithSteps { result, steps }
     }
+    pub fn get_result(&self) -> &OptimalTableau {
+        &self.result
+    }
+    pub fn get_steps(&self) -> &Vec<SimplexStep> {
+        &self.steps
+    }
 }
 
 #[wasm_bindgen]

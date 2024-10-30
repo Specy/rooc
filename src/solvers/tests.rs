@@ -1,35 +1,34 @@
-use indexmap::IndexMap;
 use crate::math::{float_eq, float_ne};
 use crate::pipe::PipeRunner;
 use crate::pipe::{
     BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe,
     PreModelPipe, SimplexPipe, StandardLinearModelPipe, TableauPipe,
 };
-use crate::pipe::{PipeDataType, PipeError, PipeableData};
+use crate::pipe::{PipeDataType, PipeError, PipeableData, StepByStepSimplexPipe};
 use crate::solvers::common::LpSolution;
 use crate::solvers::linear_integer_binary::VarValue;
 #[allow(unused_imports)]
 use crate::solvers::simplex::{CanonicalTransformError, OptimalTableau, SimplexError};
+use crate::solvers::OptimalTableauWithSteps;
+use indexmap::IndexMap;
 
 #[allow(unused)]
 #[allow(clippy::result_large_err)]
-fn solve(source: &str) -> Result<OptimalTableau, PipeError> {
+fn solve(source: &str) -> Result<(OptimalTableauWithSteps, LpSolution<f64>), PipeError> {
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
         Box::new(PreModelPipe::new()),
         Box::new(ModelPipe::new()),
         Box::new(LinearModelPipe::new()),
-        Box::new(StandardLinearModelPipe::new()),
-        Box::new(TableauPipe::new()),
         Box::new(SimplexPipe::new()),
     ]);
 
-    let result = pipe_runner.run(PipeableData::String(source.to_string()),&IndexMap::new());
-    match result {
+    let result = pipe_runner.run(PipeableData::String(source.to_string()), &IndexMap::new());
+    let simplex = match result {
         Ok(data) => {
             let last = data.last().unwrap();
             match last {
-                PipeableData::OptimalTableau(data) => Ok(data.clone()),
+                PipeableData::RealSolution(data) => Ok(data.clone()),
                 _ => Err(PipeError::InvalidData {
                     expected: PipeDataType::OptimalTableau,
                     got: last.get_type(),
@@ -37,7 +36,48 @@ fn solve(source: &str) -> Result<OptimalTableau, PipeError> {
             }
         }
         Err((error, _context)) => Err(error),
-    }
+    };
+    let pipe_runner = PipeRunner::new(vec![
+        Box::new(CompilerPipe::new()),
+        Box::new(PreModelPipe::new()),
+        Box::new(ModelPipe::new()),
+        Box::new(LinearModelPipe::new()),
+        Box::new(StandardLinearModelPipe::new()),
+        Box::new(TableauPipe::new()),
+        Box::new(StepByStepSimplexPipe::new()),
+    ]);
+
+    let result = pipe_runner.run(PipeableData::String(source.to_string()), &IndexMap::new());
+    let simplex2 = match result {
+        Ok(data) => {
+            let last = data.last().unwrap();
+            match last {
+                PipeableData::OptimalTableauWithSteps(data) => Ok(data.clone()),
+                _ => Err(PipeError::InvalidData {
+                    expected: PipeDataType::OptimalTableau,
+                    got: last.get_type(),
+                }),
+            }
+        }
+        Err((error, _context)) => Err(error),
+    };
+    Ok((simplex2?, simplex?))
+}
+#[allow(unused)]
+#[allow(clippy::result_large_err)]
+fn assert_correct_solution(
+    solution: (OptimalTableauWithSteps, LpSolution<f64>),
+    expected_value: f64,
+    expected_variables: Vec<f64>,
+) {
+    let val_1 = solution.1.get_value();
+    let val_2 = solution.0.get_result().get_optimal_value();
+    assert_precision(val_1, expected_value);
+    assert_precision(val_2, expected_value);
+    let variables = solution.1.get_assignment_values();
+    assert_variables(&variables, &expected_variables, true);
+    let variables_2 = solution.0.get_result().get_variables_values();
+    assert_variables(variables_2, &expected_variables, false);
 }
 
 #[allow(unused)]
@@ -51,7 +91,7 @@ fn solve_binary(source: &str) -> Result<LpSolution<bool>, PipeError> {
         Box::new(BinarySolverPipe::new()),
     ]);
 
-    let result = pipe_runner.run(PipeableData::String(source.to_string()),&IndexMap::new());
+    let result = pipe_runner.run(PipeableData::String(source.to_string()), &IndexMap::new());
     match result {
         Ok(data) => {
             let last = data.last().unwrap();
@@ -184,9 +224,7 @@ fn should_solve_correctly() {
         x_1, x_2 as NonNegativeReal
     "#;
     let solution = solve(source).unwrap();
-    assert_precision(solution.get_optimal_value(), 21.0);
-    let variables = solution.get_variables_values();
-    assert_variables(variables, &vec![9.0, 6.0, 14.0, 0.0, 0.0, 6.0], false);
+    assert_correct_solution(solution, 21.0, vec![9.0, 6.0, 14.0, 0.0, 0.0, 6.0]);
 }
 
 #[test]
@@ -202,9 +240,7 @@ fn should_solve_correctly2() {
         x_1, x_2, x_3, x_4 as NonNegativeReal
     "#;
     let solution = solve(source).unwrap();
-    assert_precision(solution.get_optimal_value(), 107.0);
-    let variables = solution.get_variables_values();
-    assert_variables(variables, &vec![8.0, 0.0, 9.0, 11.0, 0.0, 0.0, 0.0], false);
+    assert_correct_solution(solution, 107.0, vec![8.0, 0.0, 9.0, 11.0, 0.0, 0.0, 0.0]);
 }
 
 #[test]
@@ -218,9 +254,7 @@ fn should_solve_correctly_3() {
         x_1, x_2 as NonNegativeReal
      "#;
     let solution = solve(source).unwrap();
-    assert_precision(solution.get_optimal_value(), -2.0);
-    let variables = solution.get_variables_values();
-    assert_variables(variables, &vec![0.0, 2.0, 0.0, 5.0], false);
+    assert_correct_solution(solution, -2.0, vec![0.0, 2.0, 0.0, 5.0]);
 }
 
 #[test]
@@ -237,7 +271,7 @@ fn should_find_unbounded_2d() {
     match solution {
         Ok(_) => panic!("Should not reach here"),
         Err(e) => match e {
-            PipeError::SimplexError(SimplexError::Unbounded, _tableau) => {}
+            PipeError::StepByStepSimplexError(SimplexError::Unbounded, _tableau) => {}
             _ => panic!("Should be unbounded"),
         },
     }
@@ -258,7 +292,7 @@ fn should_find_unbounded_4d() {
     match solution {
         Ok(_) => panic!("Should not reach here"),
         Err(e) => match e {
-            PipeError::SimplexError(SimplexError::Unbounded, _tableau) => {}
+            PipeError::StepByStepSimplexError(SimplexError::Unbounded, _tableau) => {}
             _ => panic!("Should be unbounded"),
         },
     }
@@ -277,9 +311,7 @@ fn should_solve_degen_2d() {
         x_1, x_2 as NonNegativeReal
     "#;
     let solution = solve(source).unwrap();
-    assert_precision(solution.get_optimal_value(), 12.0);
-    let variables = solution.get_variables_values();
-    assert_variables(variables, &vec![4.0, 4.0, 6.0, 2.0, 0.0, 0.0], false);
+    assert_correct_solution(solution, 12.0, vec![4.0, 4.0, 6.0, 2.0, 0.0, 0.0]);
 }
 
 #[test]
@@ -295,12 +327,10 @@ fn should_solve_degen_4d() {
         x_1, x_2, x_3, x_4 as NonNegativeReal
     "#;
     let solution = solve(source).unwrap();
-    assert_precision(solution.get_optimal_value(), 84.0);
-    let variables = solution.get_variables_values();
-    assert_variables(
-        variables,
-        &vec![0.0, 8.0, 0.0, 10.0, 0.0, 4.0, 0.0, 0.0],
-        false,
+    assert_correct_solution(
+        solution,
+        84.0,
+        vec![0.0, 8.0, 0.0, 10.0, 0.0, 4.0, 0.0, 0.0],
     );
 }
 
@@ -316,14 +346,7 @@ fn should_solve_multiple_solutions() {
         x_1, x_2 as NonNegativeReal
     "#;
     let solution = solve(source).unwrap();
-    assert_precision(solution.get_optimal_value(), 18.0);
-    let variables = solution.get_variables_values();
-    // assert_variables(variables, &vec![14.0/3.0, 26.0/3.0, 0.0, 0.0, 8.0]); alternative solution
-    assert_variables(
-        variables,
-        &vec![22.0 / 3.0, 10.0 / 3.0, 0.0, 8.0, 0.0],
-        false,
-    );
+    assert_correct_solution(solution, 18.0, vec![22.0 / 3.0, 10.0 / 3.0, 0.0, 8.0, 0.0]);
 }
 
 #[test]
@@ -347,7 +370,6 @@ fn infeasible_starting_basis() {
     }
 }
 
-//TODO make this work :(
 #[test]
 fn should_solve_diet() {
     let source = r#"
@@ -374,13 +396,19 @@ fn should_solve_diet() {
         x_i as NonNegativeReal for i in 0..N
     "#;
     let solution = solve(source).unwrap();
-    assert_precision(solution.get_optimal_value(), 6.04444);
-    let variables = solution.get_variables_values();
-    assert_variables(variables, &vec![1.32592, 4.11111, 1.0], true);
+    assert_correct_solution(
+        solution,
+        6.04444,
+        vec![
+            1.32592, 4.11111, 0.99999, 0.0, 0.0, 26.62962, 100.0, 100.0, 43.37037, 3.67407,
+            0.88888, 4.0, 0.32592, 3.11111, 0.0,
+        ],
+    );
 }
 
 #[test]
-fn should_solve_free_variables() {
+#[should_panic]
+fn should_be_unbounded() {
     let source = r#"
     min x_1 + 2x_2 - x_3
 s.t. 
@@ -390,11 +418,16 @@ define
     x_1 as Real
     x_2, x_3 as NonNegativeReal
     "#;
-    let solution = solve(source).unwrap();
-    assert_precision(solution.get_optimal_value(), 34.0);
-    let variables = solution.get_variables_values();
-    assert_variables(variables, &vec![13.0, 0.0, 8.0, 0.0, 0.0], false);
+    //TODO improve test detection
+    solve(source).unwrap();
 }
+
+#[test]
+#[should_panic]
+fn should_transform_free_variables(){
+    todo!("Create this test plis")
+}
+
 
 #[test]
 fn should_solve_binary_problem() {

@@ -18,6 +18,7 @@ pub enum SolverError {
     },
     DidNotSolve,
     Unbounded,
+    Infisible,
     Other(String),
     LimitReached,
     UnimplementedOptimizationType {
@@ -76,6 +77,9 @@ impl std::fmt::Display for SolverError {
             }
             SolverError::DidNotSolve => {
                 write!(f, "The problem was able to be solved")
+            }
+            SolverError::Infisible => {
+                write!(f, "The problem is infeasible")
             }
             SolverError::UnimplementedOptimizationType { expected, got } => {
                 write!(

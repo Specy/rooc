@@ -1,6 +1,7 @@
 use crate::math::float_eq;
 use crate::math::{Comparison, OptimizationType, VariableType};
 use crate::parser::model_transformer::DomainVariable;
+use crate::parser::pre_model::Rule::add;
 use crate::solvers::{find_invalid_variables, SolverError};
 use crate::transformers::linear_model::{LinearConstraint, LinearModel};
 use crate::transformers::standard_linear_model::{EqualityConstraint, StandardLinearModel};
@@ -58,7 +59,7 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
             var_name2.clone(),
             DomainVariable::new(VariableType::NonNegativeReal, InputSpan::default()),
         );
-        context.total_variables += 2;
+        context.total_variables += 1; //we add two variables, but one is removed, so only one is added
         constraints.iter_mut().for_each(|c| {
             let original_coefficient = c.get_coefficients()[*i];
             if float_eq(original_coefficient, 0.0) {

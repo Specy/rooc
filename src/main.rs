@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use rooc::pipe::{CompilerPipe, PipeRunner, PipeableData, PreModelPipe};
+use rooc::pipe::{CompilerPipe, LinearModelPipe, ModelPipe, PipeRunner, PipeableData, PreModelPipe, SimplexPipe, StandardLinearModelPipe};
 
 #[allow(unused)]
 fn main() {
@@ -12,13 +12,13 @@ fn main() {
             x + 3y + 4z = 1
      */
     let source = r#"
-min x
-s.t.
-    x >= 2
-where
-    let a = []
-define
-    x as Boolean
+    min x_1 + 2x_2 - x_3
+s.t. 
+    -x_1 + x_2 = 5
+    2x_1 - x_2 - x_3 <= 3
+define 
+    x_1 as Real
+    x_2, x_3 as NonNegativeReal
     
     "#
     .to_string();
@@ -26,6 +26,9 @@ define
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
         Box::new(PreModelPipe::new()),
+        Box::new(ModelPipe::new()),
+        Box::new(LinearModelPipe::new()),
+        Box::new(SimplexPipe::new()),
     ]);
 
     let (result) = pipe_runner.run(PipeableData::String(source), &IndexMap::new());
@@ -37,10 +40,9 @@ define
                 .map(|data| format!("//--------{}--------//\n\n{}", data.get_type(), data))
                 .collect::<Vec<String>>()
                 .join("\n\n");
-            println!("{}", str)
+            println!("{}", last)
         }
         Err((error, context)) => {
-            return;
             let context = context
                 .iter()
                 .map(|data| format!("//--------{}--------//\n\n{}", data.get_type(), data))

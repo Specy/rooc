@@ -308,8 +308,9 @@ export type RoocData =
     RoocType<PipeDataType.Tableau, SimplexTableau> |
     RoocType<PipeDataType.OptimalTableau, OptimalTableau> |
     RoocType<PipeDataType.OptimalTableauWithSteps, OptimalTableauWithSteps> |
-    RoocType<PipeDataType.BinarySolution, BinaryIntegerSolution<boolean>> |
-    RoocType<PipeDataType.IntegerBinarySolution, BinaryIntegerSolution<VarValue>>
+    RoocType<PipeDataType.BinarySolution, LpSolution<boolean>> |
+    RoocType<PipeDataType.IntegerBinarySolution, LpSolution<VarValue>> |
+    RoocType<PipeDataType.RealSolution, LpSolution<number>>
 
 function toRoocData(data: WasmPipableData): RoocData {
     switch (data.wasm_get_type()) {
@@ -346,6 +347,11 @@ function toRoocData(data: WasmPipableData): RoocData {
             return {
                 type: PipeDataType.IntegerBinarySolution,
                 data: data.to_integer_binary_solution()
+            }
+        case PipeDataType.RealSolution:
+            return {
+                type: PipeDataType.RealSolution,
+                data: data.to_real_solution()
             }
     }
 }
@@ -862,13 +868,13 @@ export type VarValue = {
     value: boolean
 }
 
-export type BinaryAssignment<T> = {
+export type LpAssignment<T> = {
     name: string
     value: T
 }
 
-export type BinaryIntegerSolution<T> = {
-    assignment: BinaryAssignment<T>[]
+export type LpSolution<T> = {
+    assignment: LpAssignment<T>[]
     value: number
 }
 

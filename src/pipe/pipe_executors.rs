@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
-use crate::solvers::{solve_binary_lp_problem, solve_integer_binary_lp_problem};
+use crate::solvers::{solve_binary_lp_problem, solve_integer_binary_lp_problem, solve_real_lp_problem};
 use crate::transformers::Linearizer;
 use crate::RoocParser;
 use crate::runtime_builtin::RoocFunction;
@@ -182,11 +182,11 @@ impl SimplexPipe {
 }
 impl Pipeable for SimplexPipe {
     fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
-        let mut tableau = data.as_tableau()?.clone();
-        let optimal_tableau = tableau.solve(1000);
-        match optimal_tableau {
-            Ok(optimal_tableau) => Ok(PipeableData::OptimalTableau(optimal_tableau)),
-            Err(e) => Err(PipeError::SimplexError(e, tableau)),
+        let model = data.as_linear_model()?.clone();
+        let assignment = solve_real_lp_problem(&model);
+        match assignment {
+            Ok(optimal) => Ok(PipeableData::RealSolution(optimal)),
+            Err(e) => Err(PipeError::RealSolverError(e)),
         }
     }
 }
@@ -209,7 +209,7 @@ impl Pipeable for StepByStepSimplexPipe {
         let optimal_tableau = tableau.solve_step_by_step(1000);
         match optimal_tableau {
             Ok(optimal_tableau) => Ok(PipeableData::OptimalTableauWithSteps(optimal_tableau)),
-            Err(e) => Err(PipeError::SimplexError(e, tableau)),
+            Err(e) => Err(PipeError::StepByStepSimplexError(e, tableau)),
         }
     }
 }

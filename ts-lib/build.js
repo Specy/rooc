@@ -8,9 +8,9 @@ async function init(){
     await fs.unlink("./src/pkg/rooc_bg.wasm.d.ts").catch(()=>{});
     execSync('tsc', {stdio: 'inherit'});
     await fs.cp("./src/pkg", "./dist/pkg", { recursive: true });
-    await fs.unlink("./dist/pkg/package.json");
-    await fs.unlink("./dist/pkg/README.md");
-    await fs.unlink("./dist/pkg/.gitignore");
+    await fs.unlink("./dist/pkg/package.json").catch(()=>{});
+    await fs.unlink("./dist/pkg/README.md").catch(()=>{});
+    await fs.unlink("./dist/pkg/.gitignore").catch(()=>{});
     console.log("Build complete")
     
 }

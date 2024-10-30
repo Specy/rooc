@@ -26,8 +26,6 @@ export const pipePresets = [
         Pipes.PreModelPipe,
         Pipes.ModelPipe,
         Pipes.LinearModelPipe,
-        Pipes.StandardLinearModelPipe,
-        Pipes.TableauPipe,
         Pipes.SimplexPipe
     ]),
     makePipePreset("Binary solver", [

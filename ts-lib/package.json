@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@specy/rooc",
   "description": "A compiler for mathematical models",
-  "version": "1.1.2",
+  "version": "1.1.4",
   "license": "GPL-3.0",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -25,6 +25,9 @@
     "ci-build": "npm i -g wasm-pack && npm run build-all",
     "build-all": "npm run build-wasm && npm run build-lib",
     "build-wasm": "cd .. && cargo test && wasm-pack build --out-dir ts-lib/src/pkg --out-name rooc",
+    "build-wasm:debug": "cd .. && wasm-pack build  --out-dir ts-lib/src/pkg --out-name rooc --target deno",
+    "test": "deno run -A ./tests/index.ts --unstable-sloppy-imports",
+    "test-ci":"npm run build-wasm:debug && npm run test",
     "build-lib": "node build.js",
     "build-docs": "npx --yes typedoc"
   },

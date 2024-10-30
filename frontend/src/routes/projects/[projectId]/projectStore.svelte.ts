@@ -1,4 +1,4 @@
-import {type Project} from "$stores/userProjectsStore.svelte";
+import type{ Project} from "$stores/userProjectsStore.svelte";
 import {makeRoocFunction, type RoocData, type RoocFunction, RoocParser, RoocRunnablePipe} from "@specy/rooc";
 import {roocJsStd} from "$lib/Rooc/roocJsStd";
 import {runSandboxedCode} from "$lib/sandbox/sandbox";
@@ -80,6 +80,7 @@ export function createCompilerStore(project: Project) {
                 }
             }
         } catch (e) {
+            console.error(e)
             result = {
                 ok: false,
                 error: e.toString(),

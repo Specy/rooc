@@ -46,6 +46,7 @@ export enum PipeDataType {
     OptimalTableauWithSteps = 8,
     BinarySolution = 9,
     IntegerBinarySolution = 10,
+    RealSolution  = 11,
 }
 
 export enum Pipes {
@@ -350,8 +351,8 @@ export const pipeDescriptions = {
         Pipes.SimplexPipe,
         "Simplex solver",
         "Runs the simplex algorithm to find the optimal solution",
-        PipeDataType.Tableau,
-        PipeDataType.OptimalTableau
+        PipeDataType.LinearModel,
+        PipeDataType.RealSolution
     ),
     [Pipes.StepByStepSimplexPipe]: makePipeDescriptionEntry(
         Pipes.StepByStepSimplexPipe,
@@ -403,4 +404,5 @@ export const pipeDataDescriptions = {
     [PipeDataType.OptimalTableauWithSteps]: makePipeDataEntry(PipeDataType.OptimalTableauWithSteps, "Optimal Tableau with Steps", "The tableau at each step of the simplex algorithm"),
     [PipeDataType.BinarySolution]: makePipeDataEntry(PipeDataType.BinarySolution, "Binary Solution", "The optimal solution of a binary model"),
     [PipeDataType.IntegerBinarySolution]: makePipeDataEntry(PipeDataType.IntegerBinarySolution, "Integer Binary Solution", "The optimal solution of a binary or integer model"),
+    [PipeDataType.RealSolution]: makePipeDataEntry(PipeDataType.RealSolution, "Real Solution", "The optimal solution of a linear model where variables have real values"),
 } satisfies Record<PipeDataType, PipeDataDescription>

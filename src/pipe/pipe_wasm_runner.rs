@@ -171,4 +171,11 @@ impl WasmPipableData {
             .map(|s| serde_wasm_bindgen::to_value(&s).unwrap())
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
+    
+    pub fn to_real_solution(self) -> Result<JsValue, JsValue> {
+        self.data
+            .to_real_solution()
+            .map(|s| serde_wasm_bindgen::to_value(&s).unwrap())
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
 }
