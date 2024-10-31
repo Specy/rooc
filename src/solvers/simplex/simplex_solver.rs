@@ -4,7 +4,7 @@ use crate::transformers::LinearModel;
 use microlp::{OptimizationDirection, Problem};
 
 #[allow(unused)]
-pub fn solve_lp_problem_old(lp: &LinearModel, limit: i64) -> Result<LpSolution<f64>, SolverError> {
+pub fn solve_real_lp_problem_slow_simplex(lp: &LinearModel, limit: i64) -> Result<LpSolution<f64>, SolverError> {
     let standard = lp.clone().into_standard_form()?;
     let mut canonical_form = standard
         .into_tableau()
@@ -22,7 +22,7 @@ pub fn solve_lp_problem_old(lp: &LinearModel, limit: i64) -> Result<LpSolution<f
 }
 
 
-pub fn solve_real_lp_problem(lp: &LinearModel) -> Result<LpSolution<f64>, SolverError> {
+pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64>, SolverError> {
     let domain = lp.get_domain();
     let invalid_variables = find_invalid_variables(domain, |var| {
         matches!(var, VariableType::Real | VariableType::NonNegativeReal)

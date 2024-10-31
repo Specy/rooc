@@ -10,17 +10,7 @@ function makePipePreset(name: string, pipes: Pipes[]): PipePreset {
 }
 
 
-
 export const pipePresets = [
-    makePipePreset("Simplex solver Step by Step", [
-        Pipes.CompilerPipe,
-        Pipes.PreModelPipe,
-        Pipes.ModelPipe,
-        Pipes.LinearModelPipe,
-        Pipes.StandardLinearModelPipe,
-        Pipes.TableauPipe,
-        Pipes.StepByStepSimplexPipe
-    ]),
     makePipePreset("Simplex solver", [
         Pipes.CompilerPipe,
         Pipes.PreModelPipe,
@@ -35,12 +25,21 @@ export const pipePresets = [
         Pipes.LinearModelPipe,
         Pipes.BinarySolverPipe,
     ]),
-        makePipePreset("Integer binary solver", [
+    makePipePreset("Integer binary solver", [
         Pipes.CompilerPipe,
         Pipes.PreModelPipe,
         Pipes.ModelPipe,
         Pipes.LinearModelPipe,
         Pipes.IntegerBinarySolverPipe
+    ]),
+    makePipePreset("Simplex solver Step by Step", [
+        Pipes.CompilerPipe,
+        Pipes.PreModelPipe,
+        Pipes.ModelPipe,
+        Pipes.LinearModelPipe,
+        Pipes.StandardLinearModelPipe,
+        Pipes.TableauPipe,
+        Pipes.StepByStepSimplexPipe
     ]),
     makePipePreset("To standard form", [
         Pipes.CompilerPipe,

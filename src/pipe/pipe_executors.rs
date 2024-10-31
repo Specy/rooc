@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
-use crate::solvers::{solve_binary_lp_problem, solve_integer_binary_lp_problem, solve_real_lp_problem};
+use crate::solvers::{solve_binary_lp_problem, solve_integer_binary_lp_problem, solve_real_lp_problem_clarabel, solve_real_lp_problem_micro_lp};
 use crate::transformers::Linearizer;
 use crate::RoocParser;
 use crate::runtime_builtin::RoocFunction;
@@ -183,7 +183,8 @@ impl SimplexPipe {
 impl Pipeable for SimplexPipe {
     fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let model = data.as_linear_model()?.clone();
-        let assignment = solve_real_lp_problem(&model);
+        //solve_real_lp_problem
+        let assignment = solve_real_lp_problem_micro_lp(&model);
         match assignment {
             Ok(optimal) => Ok(PipeableData::RealSolution(optimal)),
             Err(e) => Err(PipeError::RealSolverError(e)),

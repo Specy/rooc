@@ -24,8 +24,10 @@
   "scripts": {
     "ci-build": "npm i -g wasm-pack && npm run build-all",
     "build-all": "npm run build-wasm && npm run build-lib",
+    "build-source-map": "cargo wasm2map ./src/pkg/rooc_bg.wasm",
+    "debug:resolve-wasm": "npx source-map-cli resolve ./src/pkg/rooc_bg.wasm.map",
     "build-wasm": "cd .. && cargo test && wasm-pack build --out-dir ts-lib/src/pkg --out-name rooc",
-    "build-wasm:debug": "cd .. && wasm-pack build  --out-dir ts-lib/src/pkg --out-name rooc --target deno",
+    "build-wasm:debug": "cd .. && wasm-pack build --dev --out-dir ts-lib/src/pkg --out-name rooc --target deno && cd ts-lib && npm run build-source-map",
     "test": "deno run -A ./tests/index.ts --unstable-sloppy-imports",
     "test-ci":"npm run build-wasm:debug && npm run test",
     "build-lib": "node build.js",
