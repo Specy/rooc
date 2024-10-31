@@ -6,7 +6,7 @@ use wasm_bindgen::JsValue;
 use crate::pipe::pipe_definitions::{PipeDataType, PipeError, Pipeable, PipeableData};
 use crate::pipe::pipe_executors::{
     BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe, Pipes,
-    PreModelPipe, SimplexPipe, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe,
+    PreModelPipe, RealSolver, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe,
 };
 use crate::pipe::pipe_runner::PipeRunner;
 use crate::solvers::{OptimalTableau, OptimalTableauWithSteps, Tableau};
@@ -35,7 +35,7 @@ impl WasmPipeRunner {
                     Pipes::LinearModelPipe => Box::new(LinearModelPipe::new()),
                     Pipes::StandardLinearModelPipe => Box::new(StandardLinearModelPipe::new()),
                     Pipes::TableauPipe => Box::new(TableauPipe::new()),
-                    Pipes::SimplexPipe => Box::new(SimplexPipe::new()),
+                    Pipes::RealPipe => Box::new(RealSolver::new()),
                     Pipes::StepByStepSimplexPipe => Box::new(StepByStepSimplexPipe::new()),
                     Pipes::BinarySolverPipe => Box::new(BinarySolverPipe::new()),
                     Pipes::IntegerBinarySolverPipe => Box::new(IntegerBinarySolverPipe::new()),

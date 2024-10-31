@@ -2,7 +2,7 @@ use crate::math::{float_eq, float_ne};
 use crate::pipe::PipeRunner;
 use crate::pipe::{
     BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe,
-    PreModelPipe, SimplexPipe, StandardLinearModelPipe, TableauPipe,
+    PreModelPipe, RealSolver, StandardLinearModelPipe, TableauPipe,
 };
 use crate::pipe::{PipeDataType, PipeError, PipeableData, StepByStepSimplexPipe};
 use crate::solvers::common::LpSolution;
@@ -20,7 +20,7 @@ fn solve(source: &str) -> Result<(OptimalTableauWithSteps, LpSolution<f64>), Pip
         Box::new(PreModelPipe::new()),
         Box::new(ModelPipe::new()),
         Box::new(LinearModelPipe::new()),
-        Box::new(SimplexPipe::new()),
+        Box::new(RealSolver::new()),
     ]);
 
     let result = pipe_runner.run(PipeableData::String(source.to_string()), &IndexMap::new());

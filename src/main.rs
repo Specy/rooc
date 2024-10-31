@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use rooc::pipe::{CompilerPipe, LinearModelPipe, ModelPipe, PipeRunner, PipeableData, PreModelPipe, SimplexPipe, StandardLinearModelPipe};
+use rooc::pipe::{CompilerPipe, LinearModelPipe, ModelPipe, PipeRunner, PipeableData, PreModelPipe, RealSolver, StandardLinearModelPipe};
 
 #[allow(unused)]
 fn main() {
@@ -28,7 +28,7 @@ define
         Box::new(PreModelPipe::new()),
         Box::new(ModelPipe::new()),
         Box::new(LinearModelPipe::new()),
-        Box::new(SimplexPipe::new()),
+        Box::new(RealSolver::new()),
     ]);
 
     let (result) = pipe_runner.run(PipeableData::String(source), &IndexMap::new());

@@ -15,7 +15,7 @@ pub enum Pipes {
     LinearModelPipe,
     StandardLinearModelPipe,
     TableauPipe,
-    SimplexPipe,
+    RealPipe,
     StepByStepSimplexPipe,
     BinarySolverPipe,
     IntegerBinarySolverPipe,
@@ -168,19 +168,19 @@ impl Pipeable for TableauPipe {
     }
 }
 //-------------------- Simplex --------------------
-pub struct SimplexPipe {}
-impl Default for SimplexPipe {
+pub struct RealSolver {}
+impl Default for RealSolver {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl SimplexPipe {
-    pub fn new() -> SimplexPipe {
-        SimplexPipe {}
+impl RealSolver {
+    pub fn new() -> RealSolver {
+        RealSolver {}
     }
 }
-impl Pipeable for SimplexPipe {
+impl Pipeable for RealSolver {
     fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let model = data.as_linear_model()?.clone();
         //solve_real_lp_problem

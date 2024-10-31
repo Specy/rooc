@@ -11,12 +11,12 @@ function makePipePreset(name: string, pipes: Pipes[]): PipePreset {
 
 
 export const pipePresets = [
-    makePipePreset("Simplex solver", [
+    makePipePreset("Real solver", [
         Pipes.CompilerPipe,
         Pipes.PreModelPipe,
         Pipes.ModelPipe,
         Pipes.LinearModelPipe,
-        Pipes.SimplexPipe
+        Pipes.RealPipe
     ]),
     makePipePreset("Binary solver", [
         Pipes.CompilerPipe,
@@ -25,7 +25,7 @@ export const pipePresets = [
         Pipes.LinearModelPipe,
         Pipes.BinarySolverPipe,
     ]),
-    makePipePreset("Integer binary solver", [
+    makePipePreset("Integer & binary solver", [
         Pipes.CompilerPipe,
         Pipes.PreModelPipe,
         Pipes.ModelPipe,

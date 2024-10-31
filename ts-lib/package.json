@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@specy/rooc",
   "description": "A compiler for mathematical models",
-  "version": "1.1.5",
+  "version": "1.2.0",
   "license": "GPL-3.0",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",

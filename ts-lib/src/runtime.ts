@@ -56,7 +56,7 @@ export enum Pipes {
     LinearModelPipe = 3,
     StandardLinearModelPipe = 4,
     TableauPipe = 5,
-    SimplexPipe = 6,
+    RealPipe = 6,
     StepByStepSimplexPipe = 7,
     BinarySolverPipe = 8,
     IntegerBinarySolverPipe = 9,
@@ -347,10 +347,10 @@ export const pipeDescriptions = {
         PipeDataType.StandardLinearModel,
         PipeDataType.Tableau
     ),
-    [Pipes.SimplexPipe]: makePipeDescriptionEntry(
-        Pipes.SimplexPipe,
-        "Simplex solver",
-        "Runs the simplex algorithm to find the optimal solution",
+    [Pipes.RealPipe]: makePipeDescriptionEntry(
+        Pipes.RealPipe,
+        "Real solver",
+        "Runs a real variable solver to find the optimal solution, the variables must be real or non negative real",
         PipeDataType.LinearModel,
         PipeDataType.RealSolution
     ),
@@ -364,14 +364,14 @@ export const pipeDescriptions = {
     [Pipes.BinarySolverPipe]: makePipeDescriptionEntry(
         Pipes.BinarySolverPipe,
         "Binary solver",
-        "Runs a binary solver to find the optimal solution, the variables must be binary",
+        "Runs a binary variable solver to find the optimal solution, the variables must be binary",
         PipeDataType.LinearModel,
         PipeDataType.BinarySolution
     ),
     [Pipes.IntegerBinarySolverPipe]: makePipeDescriptionEntry(
         Pipes.IntegerBinarySolverPipe,
         "Integer binary solver",
-        "Runs a binary and integer solver to find the optimal solution, the variables must be binary or integer",
+        "Runs a binary and integer variable solver to find the optimal solution, the variables must be binary or integer",
         PipeDataType.LinearModel,
         PipeDataType.IntegerBinarySolution
     ),

@@ -41,7 +41,7 @@ const pipes = [
     Pipes.PreModelPipe,
     Pipes.ModelPipe,
     Pipes.LinearModelPipe,
-    Pipes.SimplexPipe
+    Pipes.RealPipe
 ]
 const res = WasmPipeRunner.new_wasm(pipes).wasm_run_from_string(model, [])
 
