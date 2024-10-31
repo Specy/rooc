@@ -22,9 +22,8 @@ erased-serde = "0.4.2"
 copper = "0.1.0"
 indexmap = {version =  "2.6.0", features = ["serde"] }
 js-sys = "0.3.72"
-good_lp = { version = "1.8.1", features = ["clarabel"], default-features = false }
+good_lp = { git = "https://github.com/specy/good_lp", branch = "main", features = ["clarabel-wasm"], default-features = false }
 microlp = "0.2.4"
-
 
 [profile.release]
 opt-level = 3

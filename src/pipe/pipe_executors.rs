@@ -184,7 +184,7 @@ impl Pipeable for SimplexPipe {
     fn pipe(&self, data: &mut PipeableData, _fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError> {
         let model = data.as_linear_model()?.clone();
         //solve_real_lp_problem
-        let assignment = solve_real_lp_problem_micro_lp(&model);
+        let assignment = solve_real_lp_problem_clarabel(&model);
         match assignment {
             Ok(optimal) => Ok(PipeableData::RealSolution(optimal)),
             Err(e) => Err(PipeError::RealSolverError(e)),
