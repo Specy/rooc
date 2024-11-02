@@ -1,7 +1,6 @@
 use crate::math::float_eq;
 use crate::math::{Comparison, OptimizationType, VariableType};
 use crate::parser::model_transformer::DomainVariable;
-use crate::parser::pre_model::Rule::add;
 use crate::solvers::{find_invalid_variables, SolverError};
 use crate::transformers::linear_model::{LinearConstraint, LinearModel};
 use crate::transformers::standard_linear_model::{EqualityConstraint, StandardLinearModel};

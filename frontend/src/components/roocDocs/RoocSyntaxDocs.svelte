@@ -221,8 +221,7 @@ define
     </h1>
     <p>
 
-        The ROOC langage has a set of builtin functions that can be used to manipulate data, in the future, the language
-        will support custom user defined functions.
+        The ROOC langage has a set of builtin functions that can be used to manipulate data.
         <br/>
         Those functions can be run anywhere in the model or data section.
         <br/>

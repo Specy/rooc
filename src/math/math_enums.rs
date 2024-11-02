@@ -109,7 +109,8 @@ impl FromStr for OptimizationType {
 #[derive(Debug, Clone, Serialize)]
 pub enum PreVariableType {
     Boolean,
-    NonNegativeReal,
+    //TODO should i add bounds here too?
+    NonNegativeReal, 
     Real,
     IntegerRange(PreExp, PreExp),
 }

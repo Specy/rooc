@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
-use crate::solvers::{solve_binary_lp_problem, solve_integer_binary_lp_problem, solve_real_lp_problem_clarabel, solve_real_lp_problem_micro_lp};
+use crate::solvers::{solve_binary_lp_problem, solve_integer_binary_lp_problem, solve_real_lp_problem_clarabel};
 use crate::transformers::Linearizer;
 use crate::RoocParser;
 use crate::runtime_builtin::RoocFunction;

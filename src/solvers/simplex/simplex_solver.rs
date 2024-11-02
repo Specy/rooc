@@ -61,7 +61,7 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
         let var = match domain.get_type() {
             VariableType::NonNegativeReal => problem.add_var(obj[i], (0.0, f64::INFINITY)),
             VariableType::Real => problem.add_var(obj[i], (f64::NEG_INFINITY, f64::INFINITY)),
-            t => {
+            _ => {
                 return Err(SolverError::InvalidDomain {
                     expected: vec![VariableType::Real, VariableType::NonNegativeReal],
                     got: vec![(name.clone(), domain.clone())],
