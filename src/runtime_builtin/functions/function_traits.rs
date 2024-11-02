@@ -76,7 +76,7 @@ pub fn default_type_check(
             return Err(TransformError::WrongArgument {
                 expected: kind.clone(),
                 got: arg_type,
-            }.add_span(arg.get_span()));
+            }.add_span(arg.span()));
         }
     }
 
@@ -89,7 +89,7 @@ pub fn default_wrong_type(
     context: &TypeCheckerContext,
     fn_context: &FunctionContext,
 ) -> TransformError {
-    let type_signature = fun.get_type_signature();
+    let type_signature = fun.type_signature();
     let args = args.to_owned();
     TransformError::WrongFunctionSignature {
         signature: type_signature,
@@ -102,7 +102,7 @@ pub fn default_wrong_type(
 
 pub fn default_wrong_number_of_arguments(fun: &dyn RoocFunction) -> TransformError {
     TransformError::WrongNumberOfArguments {
-        signature: fun.get_type_signature(),
+        signature: fun.type_signature(),
         args: vec![],
     }
 }
@@ -118,7 +118,7 @@ impl TypeCheckable for FunctionCall {
                 .map_err(|e| e.add_span(&self.span))?;
         }
         let f = fn_context
-            .get_function(&self.name)
+            .function(&self.name)
             .ok_or_else(|| TransformError::NonExistentFunction(self.name.clone()))?;
         f.type_check(&self.args, context, fn_context)
             .map_err(|e| e.add_span(&self.span))
@@ -132,8 +132,8 @@ impl TypeCheckable for FunctionCall {
         self.args
             .iter()
             .for_each(|arg| arg.populate_token_type_map(context, fn_context));
-        if let Some(f) = fn_context.get_function(&self.name) {
-            let return_type = f.get_return_type(&self.args, context, fn_context);
+        if let Some(f) = fn_context.function(&self.name) {
+            let return_type = f.return_type(&self.args, context, fn_context);
             context.add_token_type_or_undefined(return_type, self.span.clone(), None);
         }
     }
@@ -189,14 +189,14 @@ pub trait RoocFunction: Debug {
         context: &TransformerContext,
         fn_context: &FunctionContext,
     ) -> Result<Primitive, TransformError>;
-    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)>;
-    fn get_return_type(
+    fn type_signature(&self) -> Vec<(String, PrimitiveKind)>;
+    fn return_type(
         &self,
         args: &[PreExp],
         context: &TypeCheckerContext,
         fn_context: &FunctionContext,
     ) -> PrimitiveKind;
-    fn get_function_name(&self) -> String;
+    fn function_name(&self) -> String;
     fn type_check(
         &self,
         args: &[PreExp],

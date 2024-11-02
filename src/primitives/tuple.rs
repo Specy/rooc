@@ -33,7 +33,7 @@ impl Tuple {
     pub fn into_primitives(self) -> Vec<Primitive> {
         self.0
     }
-    pub fn get_primitives(&self) -> &Vec<Primitive> {
+    pub fn primitives(&self) -> &Vec<Primitive> {
         &self.0
     }
     pub fn len(&self) -> usize {
@@ -43,9 +43,9 @@ impl Tuple {
         self.0.is_empty()
     }
     pub fn get_type(&self) -> PrimitiveKind {
-        PrimitiveKind::Tuple(self.get_inner_types())
+        PrimitiveKind::Tuple(self.inner_types())
     }
-    pub fn get_inner_types(&self) -> Vec<PrimitiveKind> {
+    pub fn inner_types(&self) -> Vec<PrimitiveKind> {
         self.0.iter().map(|p| p.get_type()).collect::<Vec<_>>()
     }
 }

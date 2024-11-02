@@ -32,7 +32,7 @@ impl ToLatex for Constant {
     fn to_latex(&self) -> String {
         format!(
             "{} &= {}",
-            self.name.get_span_value(),
+            self.name.value(),
             self.value.to_latex()
         )
     }
@@ -72,8 +72,8 @@ impl TypeCheckable for Constant {
         let value = self.value.get_type(context, fn_context);
         context.add_token_type_or_undefined(
             value,
-            self.name.get_span().clone(),
-            Some(self.name.get_span_value().clone()),
+            self.name.span().clone(),
+            Some(self.name.value().clone()),
         );
     }
     fn type_check(
@@ -85,14 +85,14 @@ impl TypeCheckable for Constant {
         let value = self.value.get_type(context, fn_context);
         context.add_token_type(
             value,
-            self.name.get_span().clone(),
-            Some(self.name.get_span_value().clone()),
+            self.name.span().clone(),
+            Some(self.name.value().clone()),
         )
     }
 }
 
 impl fmt::Display for Constant {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "let {} = {}", self.name.get_span_value(), self.value)
+        write!(f, "let {} = {}", self.name.value(), self.value)
     }
 }

@@ -70,13 +70,13 @@ fn assert_correct_solution(
     expected_value: f64,
     expected_solutions: Vec<Vec<f64>>,
 ) {
-    let val_1 = solution.1.get_value();
-    let val_2 = solution.0.get_result().get_optimal_value();
+    let val_1 = solution.1.value();
+    let val_2 = solution.0.result().optimal_value();
     assert_precision(val_1, expected_value);
     assert_precision(val_2, expected_value);
-    let variables = solution.1.get_assignment_values();
+    let variables = solution.1.assignment_values();
     assert_variables(&variables, &expected_solutions, true);
-    let variables_2 = solution.0.get_result().get_variables_values();
+    let variables_2 = solution.0.result().variables_values();
     assert_variables(variables_2, &expected_solutions, false);
 }
 
@@ -469,9 +469,9 @@ fn should_solve_binary_problem() {
         x_i as Boolean for i in 0..len(weights)
     "#;
     let solution = solve_binary(source).unwrap();
-    assert_precision(solution.get_value(), 280.0);
+    assert_precision(solution.value(), 280.0);
     assert_variables_binary(
-        &solution.get_assignment_values(),
+        &solution.assignment_values(),
         &vec![false, false, true, false, true, true, true, true],
         true,
     );
@@ -488,8 +488,8 @@ fn should_solve_integer_problem() {
         x_1, x_2 as IntegerRange(0, 10)
     "#;
     let solution = solve_integer_binary(source).unwrap();
-    assert_precision(solution.get_value(), 21.0);
-    let assignment = solution.get_assignment_values();
+    assert_precision(solution.value(), 21.0);
+    let assignment = solution.assignment_values();
     assert_variables_integer(&assignment, &[VarValue::Int(0), VarValue::Int(7)], false);
 }
 
@@ -548,8 +548,8 @@ fn should_solve_dynamic_domain() {
         x_i as IntegerRange(0, arr[i]) for i in 0..len(arr)
     "#; //here only Boolean is allowed
     let result = solve_integer_binary(source).unwrap();
-    assert_precision(result.get_value(), 10.0);
-    let assignment = result.get_assignment_values();
+    assert_precision(result.value(), 10.0);
+    let assignment = result.assignment_values();
     assert_variables_integer(
         &assignment,
         &[

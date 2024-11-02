@@ -23,7 +23,7 @@ pub fn solve_real_lp_problem_slow_simplex(lp: &LinearModel, limit: i64) -> Resul
 
 
 pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64>, SolverError> {
-    let domain = lp.get_domain();
+    let domain = lp.domain();
     let invalid_variables = find_invalid_variables(domain, |var| {
         matches!(var, VariableType::Real | VariableType::NonNegativeReal)
     });
@@ -33,7 +33,7 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
             got: invalid_variables,
         });
     }
-    let opt_type = match lp.get_optimization_type() {
+    let opt_type = match lp.optimization_type() {
         OptimizationType::Min => OptimizationDirection::Minimize,
         OptimizationType::Max => OptimizationDirection::Maximize,
         OptimizationType::Satisfy => {
@@ -44,10 +44,10 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
         }
     };
     let mut problem = Problem::new(opt_type);
-    let variables = lp.get_variables();
+    let variables = lp.variables();
 
     
-    let obj = lp.get_objective();
+    let obj = lp.objective();
     let mut vars_microlp = Vec::with_capacity(obj.len());
     for (i, name) in variables.iter().enumerate() {
         let domain = if let Some(domain) = domain.get(name) {
@@ -71,15 +71,15 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
         vars_microlp.push(var);
     }
     
-    for cons in lp.get_constraints() {
+    for cons in lp.constraints() {
         let coeffs = cons
-            .get_coefficients()
+            .coefficients()
             .iter()
             .zip(vars_microlp.iter())
             .map(|(c, v)| (*v, *c))
             .collect::<Vec<_>>();
-        let rhs = cons.get_rhs();
-        let comparison = match cons.get_constraint_type() {
+        let rhs = cons.rhs();
+        let comparison = match cons.constraint_type() {
             Comparison::LessOrEqual => microlp::ComparisonOp::Le,
             Comparison::Equal => microlp::ComparisonOp::Eq,
             Comparison::GreaterOrEqual => microlp::ComparisonOp::Ge,
@@ -90,7 +90,7 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
                         Comparison::Equal,
                         Comparison::GreaterOrEqual,
                     ],
-                    got: *cons.get_constraint_type(),
+                    got: *cons.constraint_type(),
                 })
             }
         };
@@ -104,7 +104,7 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
                 f if f.is_nan() => return Err(SolverError::Infisible),
                 _ => {}
             }
-            let obj = optimal_solution.objective() + lp.get_objective_offset();
+            let obj = optimal_solution.objective() + lp.objective_offset();
             let coeffs = variables
                 .iter()
                 .zip(vars_microlp.iter())

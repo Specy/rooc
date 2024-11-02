@@ -44,11 +44,11 @@ impl StandardLinearModel {
             let mut independent_row = 0;
             let mut independent_value = 0.0;
             for (row, constraint) in self.constraints.iter().enumerate() {
-                let coeff = constraint.get_coefficient(column);
+                let coeff = constraint.coefficient(column);
                 if float_ne(coeff, 0.0) {
                     independent_count += 1;
                     independent_row = row;
-                    independent_value = constraint.get_coefficient(column);
+                    independent_value = constraint.coefficient(column);
                 }
             }
             //only positive values are allowed, as the B column must be all positive
@@ -62,9 +62,9 @@ impl StandardLinearModel {
         }
         if usable_independent_vars.len() >= self.constraints.len() {
             //can form a canonical tableau
-            let mut a = self.get_a();
-            let mut b = self.get_b();
-            let mut c = self.get_c();
+            let mut a = self.a_matrix();
+            let mut b = self.b_vec();
+            let mut c = self.c_vec();
             let mut value = 0.0;
             //normalize the rows of the independent variables
             for independent_variable in usable_independent_vars.iter() {
@@ -84,29 +84,29 @@ impl StandardLinearModel {
             //we only need as many basis variables as there are constraints
             basis.resize(self.constraints.len(), 0);
             Ok(Tableau::new(
-                self.get_c(),
+                self.c_vec(),
                 a,
                 b,
                 basis,
                 value,
-                self.get_objective_offset(),
-                self.get_variables(),
+                self.objective_offset(),
+                self.variables(),
                 self.flip_objective,
             ))
         } else {
             //use the 2 phase method to find a canonical tableau by adding artificial variables to the constraints and solving the tableau
-            let mut a = self.get_a();
+            let mut a = self.a_matrix();
             //TODO can i simplify this by only adding necessary artificial variables? reusing the independent variables?
             let number_of_artificial_variables = self.constraints.len();
             let number_of_variables = self.variables.len();
-            let mut variables = self.get_variables();
+            let mut variables = self.variables();
             let mut c = vec![0.0; number_of_variables + number_of_artificial_variables];
             let mut basis = vec![0; number_of_artificial_variables];
             for i in 0..number_of_artificial_variables {
                 c[number_of_variables + i] = 1.0;
                 basis[i] = number_of_variables + i;
             }
-            let b = self.get_b();
+            let b = self.b_vec();
 
             let mut value = 0.0;
             //add the variables to the matrix and turn the objective function into
@@ -127,7 +127,7 @@ impl StandardLinearModel {
                 b,
                 basis,
                 value,
-                self.get_objective_offset(),
+                self.objective_offset(),
                 variables,
                 self.flip_objective,
             );
@@ -136,24 +136,24 @@ impl StandardLinearModel {
                 .collect::<Vec<_>>();
             match tableau.solve_avoiding(10000, &artificial_variables) {
                 Ok(optimal_tableau) => {
-                    let tableau = optimal_tableau.get_tableau();
-                    if float_ne(tableau.get_current_value(), 0.0) {
+                    let tableau = optimal_tableau.tableau();
+                    if float_ne(tableau.current_value(), 0.0) {
                         return Err(CanonicalTransformError::Infesible(
                             "Initial problem is infeasible".to_string(),
                         ));
                     }
-                    let new_basis = tableau.get_in_basis().clone();
+                    let new_basis = tableau.in_basis().clone();
                     //check that the new basis is valid,
                     if new_basis.iter().all(|&i| i < number_of_variables) {
                         //restore the original objective function
-                        let mut new_a = tableau.get_a().clone();
+                        let mut new_a = tableau.a_matrix().clone();
                         //remove the artificial variables from the tableau
                         for row in new_a.iter_mut() {
                             row.resize(number_of_variables, 0.0);
                         }
                         let mut value = 0.0;
-                        let mut new_c = self.get_c();
-                        let new_b = tableau.get_b().clone();
+                        let mut new_c = self.c_vec();
+                        let new_b = tableau.b_vec().clone();
                         //put in the original objective function in canonical form
                         for (row_index, variable_index) in new_basis.iter().enumerate() {
                             //values in base need to be 0, we know that the coefficient in basis is 0 or 1 so we can
@@ -171,8 +171,8 @@ impl StandardLinearModel {
                             new_b,
                             new_basis,
                             value,
-                            self.get_objective_offset(),
-                            self.get_variables(),
+                            self.objective_offset(),
+                            self.variables(),
                             self.flip_objective,
                         ))
                     } else {
@@ -201,10 +201,10 @@ impl EqualityConstraint {
             false => EqualityConstraint { coefficients, rhs },
         }
     }
-    pub fn get_coefficients(&self) -> &Vec<f64> {
+    pub fn coefficients(&self) -> &Vec<f64> {
         &self.coefficients
     }
-    pub fn get_coefficients_mut(&mut self) -> &mut Vec<f64> {
+    pub fn coefficients_mut(&mut self) -> &mut Vec<f64> {
         &mut self.coefficients
     }
 
@@ -212,10 +212,10 @@ impl EqualityConstraint {
         remove_many(self.coefficients.as_mut(), indexes);
     }
 
-    pub fn get_coefficient(&self, index: usize) -> f64 {
+    pub fn coefficient(&self, index: usize) -> f64 {
         self.coefficients[index]
     }
-    pub fn get_rhs(&self) -> f64 {
+    pub fn rhs(&self) -> f64 {
         self.rhs
     }
     pub fn ensure_size(&mut self, size: usize) {
@@ -334,22 +334,22 @@ pub fn format_var(name: &str, value: f64, is_first: bool) -> String {
 }
 
 impl StandardLinearModel {
-    fn get_b(&self) -> Vec<f64> {
+    fn b_vec(&self) -> Vec<f64> {
         self.constraints.iter().map(|c| c.rhs).collect()
     }
-    fn get_c(&self) -> Vec<f64> {
+    fn c_vec(&self) -> Vec<f64> {
         self.objective.clone()
     }
-    fn get_a(&self) -> Vec<Vec<f64>> {
+    fn a_matrix(&self) -> Vec<Vec<f64>> {
         self.constraints
             .iter()
             .map(|c| c.coefficients.clone())
             .collect()
     }
-    fn get_variables(&self) -> Vec<String> {
+    fn variables(&self) -> Vec<String> {
         self.variables.clone()
     }
-    fn get_objective_offset(&self) -> f64 {
+    fn objective_offset(&self) -> f64 {
         self.objective_offset
     }
 }
@@ -373,13 +373,13 @@ impl StandardLinearModel {
     }
 
     pub fn wasm_get_a(&self) -> JsValue {
-        serde_wasm_bindgen::to_value(&self.get_a()).unwrap()
+        serde_wasm_bindgen::to_value(&self.a_matrix()).unwrap()
     }
     pub fn wasm_get_b(&self) -> Vec<f64> {
-        self.get_b()
+        self.b_vec()
     }
     pub fn wasm_get_c(&self) -> Vec<f64> {
-        self.get_c()
+        self.c_vec()
     }
     pub fn wasm_to_string(&self) -> String {
         self.to_string()

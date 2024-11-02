@@ -1,11 +1,11 @@
 use indexmap::IndexMap;
-use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
 use crate::solvers::{solve_binary_lp_problem, solve_integer_binary_lp_problem, solve_real_lp_problem_clarabel};
 use crate::transformers::Linearizer;
 use crate::RoocParser;
 use crate::runtime_builtin::RoocFunction;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
 pub enum Pipes {
@@ -86,14 +86,14 @@ impl Pipeable for ModelPipe {
         if let Err(e) = pre_model.create_type_checker(fns) {
             return Err(PipeError::TransformError {
                 error: e,
-                source: pre_model.get_source().unwrap_or("".to_string()),
+                source: pre_model.source().unwrap_or("".to_string()),
             });
         }
         match pre_model.clone().transform(fns) {
             Ok(model) => Ok(PipeableData::Model(model)),
             Err(e) => Err(PipeError::TransformError {
                 error: e,
-                source: pre_model.get_source().unwrap_or("".to_string()),
+                source: pre_model.source().unwrap_or("".to_string()),
             }),
         }
     }

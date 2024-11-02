@@ -34,14 +34,14 @@ impl RoocFunction for EnumerateArray {
         }
     }
 
-    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
         vec![(
             "of_iterable".to_string(),
             PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
         )]
     }
 
-    fn get_return_type(
+    fn return_type(
         &self,
         args: &[PreExp],
         context: &TypeCheckerContext,
@@ -61,7 +61,7 @@ impl RoocFunction for EnumerateArray {
         ])))
     }
 
-    fn get_function_name(&self) -> String {
+    fn function_name(&self) -> String {
         "enumerate".to_string()
     }
 
@@ -78,7 +78,7 @@ impl RoocFunction for EnumerateArray {
                     return Err(TransformError::from_wrong_type(
                         PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
                         arg_type,
-                        iterable.get_span().clone(),
+                        iterable.span().clone(),
                     ));
                 }
                 Ok(())
@@ -107,14 +107,14 @@ impl RoocFunction for LenOfIterableFn {
         }
     }
 
-    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
         vec![(
             "of_iterable".to_string(),
             PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
         )]
     }
 
-    fn get_return_type(
+    fn return_type(
         &self,
         _args: &[PreExp],
         _context: &TypeCheckerContext,
@@ -123,7 +123,7 @@ impl RoocFunction for LenOfIterableFn {
         PrimitiveKind::PositiveInteger
     }
 
-    fn get_function_name(&self) -> String {
+    fn function_name(&self) -> String {
         "len".to_string()
     }
 
@@ -140,7 +140,7 @@ impl RoocFunction for LenOfIterableFn {
                     return Err(TransformError::from_wrong_type(
                         PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
                         arg_type,
-                        of_iterable.get_span().clone(),
+                        of_iterable.span().clone(),
                     ));
                 }
                 Ok(())

@@ -110,7 +110,7 @@ impl FromStr for OptimizationType {
 pub enum PreVariableType {
     Boolean,
     //TODO should i add bounds here too?
-    NonNegativeReal, 
+    NonNegativeReal,
     Real,
     IntegerRange(PreExp, PreExp),
 }
@@ -126,15 +126,11 @@ impl PartialEq<Self> for PreVariableType {
                 PreVariableType::IntegerRange(min2, max2),
             ) => {
                 let first = match (min1, min2) {
-                    (PreExp::Primitive(a), PreExp::Primitive(b)) => {
-                        a.get_span_value() == b.get_span_value()
-                    }
+                    (PreExp::Primitive(a), PreExp::Primitive(b)) => a.value() == b.value(),
                     _ => false,
                 };
                 let second = match (max1, max2) {
-                    (PreExp::Primitive(a), PreExp::Primitive(b)) => {
-                        a.get_span_value() == b.get_span_value()
-                    }
+                    (PreExp::Primitive(a), PreExp::Primitive(b)) => a.value() == b.value(),
                     _ => false,
                 };
                 first && second
@@ -215,7 +211,7 @@ impl PreVariableType {
                             i32::MAX
                         ),
                     }
-                    .add_span(min.get_span()));
+                    .add_span(min.span()));
                 }
                 if max_i32.is_none() {
                     return Err(TransformError::TooLarge {
@@ -226,7 +222,7 @@ impl PreVariableType {
                             i32::MAX
                         ),
                     }
-                    .add_span(max.get_span()));
+                    .add_span(max.span()));
                 }
                 let min_i32 = min_i32.unwrap();
                 let max_i32 = max_i32.unwrap();
@@ -275,14 +271,14 @@ impl TypeCheckable for PreVariableType {
                     return Err(TransformError::from_wrong_type(
                         PrimitiveKind::Integer,
                         lhs,
-                        min.get_span().clone(),
+                        min.span().clone(),
                     ));
                 }
                 if !matches!(rhs, PrimitiveKind::Integer | PrimitiveKind::PositiveInteger) {
                     return Err(TransformError::from_wrong_type(
                         PrimitiveKind::Integer,
                         rhs,
-                        max.get_span().clone(),
+                        max.span().clone(),
                     ));
                 }
                 Ok(())
@@ -296,9 +292,8 @@ impl TypeCheckable for PreVariableType {
         fn_context: &FunctionContext,
     ) {
         match self {
-            PreVariableType::Boolean => {}
-            PreVariableType::NonNegativeReal => {}
-            PreVariableType::Real => {}
+            PreVariableType::Boolean | PreVariableType::NonNegativeReal | PreVariableType::Real => {
+            }
             PreVariableType::IntegerRange(min, max) => {
                 min.populate_token_type_map(context, fn_context);
                 max.populate_token_type_map(context, fn_context);

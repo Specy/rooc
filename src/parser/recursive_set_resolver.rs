@@ -91,7 +91,7 @@ pub fn apply_tuple(
             Some(name) => {
                 context
                     .update_variable(name, value)
-                    .map_err(|e| e.add_span(name.get_span()))?;
+                    .map_err(|e| e.add_span(name.span()))?;
             }
             None => return Ok(()), //tuple is smaller than the spreadable, ignore the rest
         }

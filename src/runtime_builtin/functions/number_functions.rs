@@ -46,7 +46,7 @@ impl RoocFunction for NumericRange {
         }
     }
 
-    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
         vec![
             ("from".to_string(), PrimitiveKind::Integer),
             ("to".to_string(), PrimitiveKind::Integer),
@@ -54,7 +54,7 @@ impl RoocFunction for NumericRange {
         ]
     }
 
-    fn get_return_type(
+    fn return_type(
         &self,
         args: &[PreExp],
         context: &TypeCheckerContext,
@@ -73,7 +73,7 @@ impl RoocFunction for NumericRange {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::Integer))
     }
 
-    fn get_function_name(&self) -> String {
+    fn function_name(&self) -> String {
         "range".to_string()
     }
 
@@ -93,19 +93,19 @@ impl RoocFunction for NumericRange {
                     Err(TransformError::from_wrong_type(
                         PrimitiveKind::Integer,
                         from_type,
-                        from.get_span().clone(),
+                        from.span().clone(),
                     ))
                 } else if !to_type.is_numeric() {
                     Err(TransformError::from_wrong_type(
                         PrimitiveKind::Integer,
                         to_type,
-                        to.get_span().clone(),
+                        to.span().clone(),
                     ))
                 } else if !matches!(to_inclusive_type, PrimitiveKind::Boolean) {
                     Err(TransformError::from_wrong_type(
                         PrimitiveKind::Boolean,
                         to_inclusive_type,
-                        to_inclusive.get_span().clone(),
+                        to_inclusive.span().clone(),
                     ))
                 } else {
                     Ok(())

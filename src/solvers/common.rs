@@ -109,13 +109,13 @@ impl<T: Clone + Serialize + Copy> LpSolution<T> {
         Self { assignment, value }
     }
 
-    pub fn get_assignment(&self) -> &Vec<Assignment<T>> {
+    pub fn assignment(&self) -> &Vec<Assignment<T>> {
         &self.assignment
     }
-    pub fn get_assignment_values(&self) -> Vec<T> {
+    pub fn assignment_values(&self) -> Vec<T> {
         self.assignment.iter().map(|a| a.value).collect()
     }
-    pub fn get_value(&self) -> f64 {
+    pub fn value(&self) -> f64 {
         self.value
     }
 }

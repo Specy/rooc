@@ -29,7 +29,7 @@ impl<T> Frame<T> {
         }
     }
 
-    pub fn get_value(&self, name: &str) -> Option<&T> {
+    pub fn value(&self, name: &str) -> Option<&T> {
         self.variables.get(name)
     }
     pub fn declare_variable(&mut self, name: &str, value: T) -> Result<(), TransformError> {
@@ -90,13 +90,13 @@ impl DomainVariable {
     pub fn increment_usage(&mut self) {
         self.usage_count += 1;
     }
-    pub fn get_usage_count(&self) -> usize {
+    pub fn usage_count(&self) -> usize {
         self.usage_count
     }
     pub fn is_used(&self) -> bool {
         self.usage_count > 0
     }
-    pub fn get_span(&self) -> &InputSpan {
+    pub fn span(&self) -> &InputSpan {
         &self.span
     }
     pub fn get_type(&self) -> &VariableType {
@@ -138,7 +138,7 @@ impl TransformerContext {
 
         for constant in constants {
             let value = constant.as_primitive(&context, &fn_context)?;
-            let name = constant.name.get_span_value();
+            let name = constant.name.value();
             context.declare_variable(name, value, true)?; //TODO should this be strict or allow for redeclaration?
         }
         let computed_domain = domain
@@ -172,7 +172,7 @@ impl TransformerContext {
                 Primitive::PositiveInteger(value) => Ok(value.to_string()),
                 Primitive::Boolean(value) => Ok(if *value { "T" } else { "F" }.to_string()),
                 Primitive::String(value) => Ok(value.clone()),
-                Primitive::GraphNode(v) => Ok(v.get_name().clone()),
+                Primitive::GraphNode(v) => Ok(v.name().clone()),
                 _ => Err(TransformError::WrongExpectedArgument {
                     got: value.get_type(),
                     one_of: vec![
@@ -205,16 +205,16 @@ impl TransformerContext {
         }
         Ok(self.frames.pop().unwrap())
     }
-    pub fn get_value(&self, name: &str) -> Option<&Primitive> {
+    pub fn value(&self, name: &str) -> Option<&Primitive> {
         for frame in self.frames.iter().rev() {
-            match frame.get_value(name) {
+            match frame.value(name) {
                 Some(value) => return Some(value),
                 None => continue,
             }
         }
         None
     }
-    pub fn get_variable_domain(&self, name: &str) -> Option<&VariableType> {
+    pub fn variable_domain(&self, name: &str) -> Option<&VariableType> {
         self.domain.get(name).map(|v| &v.as_type)
     }
     pub fn increment_domain_variable_usage(&mut self, name: &str) -> Result<(), TransformError> {
@@ -231,7 +231,7 @@ impl TransformerContext {
             v.usage_count = 0;
         }
     }
-    pub fn get_used_domain_variables(&self) -> Vec<(&String, &VariableType)> {
+    pub fn used_domain_variables(&self) -> Vec<(&String, &VariableType)> {
         self.domain
             .iter()
             .filter(|(_, v)| v.is_used())
@@ -262,7 +262,7 @@ impl TransformerContext {
         if name == "_" {
             return Ok(());
         }
-        if strict && self.get_value(name).is_some() {
+        if strict && self.value(name).is_some() {
             return Err(TransformError::AlreadyDeclaredVariable(name.to_string()));
         }
         check_if_reserved_token(name)?;
@@ -302,13 +302,13 @@ impl TransformerContext {
         Ok(name)
     }
 
-    pub fn get_addressable_value(
+    pub fn addressable_value(
         &self,
         addressable_access: &AddressableAccess,
         fn_context: &FunctionContext,
     ) -> Result<Primitive, TransformError> {
         //TODO add support for object access like G["a"] or g.a
-        match self.get_value(&addressable_access.name) {
+        match self.value(&addressable_access.name) {
             Some(a) => {
                 let accesses = addressable_access
                     .accesses
@@ -337,7 +337,7 @@ pub fn assert_no_duplicates_in_domain(
         .fold(acc, |mut acc, (name, as_type)| {
             if let Some((count, saved_type)) = acc.get_mut(name) {
                 //ignore the type if it's the same
-                if saved_type.get_span_value() == as_type.get_span_value() {
+                if saved_type.value() == as_type.value() {
                     return acc;
                 }
                 *count += 1;
@@ -350,7 +350,7 @@ pub fn assert_no_duplicates_in_domain(
         .filter(|(_, (count, _))| *count > 1)
         .collect::<Vec<_>>();
     if !duplicates.is_empty() {
-        let first_span = duplicates.first().unwrap().1 .1.get_span().clone();
+        let first_span = duplicates.first().unwrap().1 .1.span().clone();
         Err(TransformError::AlreadyDeclaredDomainVariable(duplicates).add_span(&first_span))
     } else {
         Ok(())

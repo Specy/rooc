@@ -43,22 +43,22 @@ impl FractionalTableau {
     pub fn new(tableau: Tableau) -> FractionalTableau {
         FractionalTableau {
             c: tableau
-                .get_c()
+                .c_vec()
                 .iter()
                 .map(|&c| PrettyFraction::new(c))
                 .collect(),
             a: tableau
-                .get_a()
+                .a_matrix()
                 .iter()
                 .map(|a| a.iter().map(|&a| PrettyFraction::new(a)).collect())
                 .collect(),
             b: tableau
-                .get_b()
+                .b_vec()
                 .iter()
                 .map(|&b| PrettyFraction::new(b))
                 .collect(),
-            in_basis: tableau.get_in_basis().clone(),
-            value: tableau.get_current_value(),
+            in_basis: tableau.in_basis().clone(),
+            value: tableau.current_value(),
         }
     }
     pub fn pretty_table(&self) -> Vec<Vec<String>> {

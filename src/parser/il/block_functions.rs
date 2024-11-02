@@ -150,8 +150,8 @@ impl BlockScopedFunction {
     pub fn new(kind: BlockScopedFunctionKind, iters: Vec<IterableSet>, exp: Box<PreExp>) -> Self {
         Self { kind, iters, exp }
     }
-    pub fn get_body_span(&self) -> InputSpan {
-        self.exp.get_span().clone()
+    pub fn body_span(&self) -> InputSpan {
+        self.exp.span().clone()
     }
 }
 

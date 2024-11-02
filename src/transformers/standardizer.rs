@@ -60,12 +60,12 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
         );
         context.total_variables += 1; //we add two variables, but one is removed, so only one is added
         constraints.iter_mut().for_each(|c| {
-            let original_coefficient = c.get_coefficients()[*i];
+            let original_coefficient = c.coefficients()[*i];
             if float_eq(original_coefficient, 0.0) {
                 return;
             }
-            c.get_coefficients_mut().push(original_coefficient);
-            c.get_coefficients_mut().push(original_coefficient * -1.0);
+            c.coefficients_mut().push(original_coefficient);
+            c.coefficients_mut().push(original_coefficient * -1.0);
         });
         if float_eq(objective[*i], 0.0) {
             continue;

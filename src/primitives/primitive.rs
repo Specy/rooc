@@ -208,7 +208,7 @@ impl Primitive {
     pub fn get_type(&self) -> PrimitiveKind {
         PrimitiveKind::from_primitive(self)
     }
-    pub fn get_type_string(&self) -> String {
+    pub fn type_string(&self) -> String {
         self.get_type().to_string()
     }
     pub fn as_number(&self) -> Result<f64, TransformError> {
@@ -311,7 +311,7 @@ impl Primitive {
     pub fn as_tuple(&self) -> Result<&Vec<Primitive>, TransformError> {
         match_or_bail!(
             PrimitiveKind::Tuple(vec![]),
-            Primitive::Tuple(t) => Ok(t.get_primitives());
+            Primitive::Tuple(t) => Ok(t.primitives());
             (self)
         )
     }

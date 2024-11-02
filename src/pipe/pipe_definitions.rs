@@ -219,9 +219,9 @@ impl Display for PipeError {
                 write!(f, "{}", error.to_string_from_source(source))
             }
             PipeError::TransformError { error, source } => {
-                match error.get_trace_from_source(source) {
+                match error.trace_from_source(source) {
                     Ok(trace) => write!(f, "{}", trace),
-                    Err(_) => write!(f, "{}", error.get_traced_error()),
+                    Err(_) => write!(f, "{}", error.traced_error()),
                 }
             }
             PipeError::LinearizationError(e) => write!(f, "{}", e),

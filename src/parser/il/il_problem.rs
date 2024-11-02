@@ -104,7 +104,7 @@ impl ToLatex for CompoundVariable {
                     }
                 }
                 PreExp::Variable(name) => {
-                    let name = name.get_span_value().clone();
+                    let name = name.value().clone();
                     name.to_string()
                 }
                 _ => format!("({})", i.to_latex()),
@@ -120,14 +120,14 @@ impl fmt::Display for CompoundVariable {
             .indexes
             .iter()
             .map(|i| match i {
-                PreExp::Primitive(p) => match p.get_span_value() {
+                PreExp::Primitive(p) => match p.value() {
                     Primitive::Number(n) => n.to_string(),
                     Primitive::PositiveInteger(n) => n.to_string(),
                     Primitive::Integer(n) => n.to_string(),
 
                     _ => format!("{{{}}}", i),
                 },
-                PreExp::Variable(name) => name.get_span_value().clone(),
+                PreExp::Variable(name) => name.value().clone(),
                 _ => format!("{{{}}}", i),
             })
             .collect::<Vec<String>>();
@@ -236,14 +236,14 @@ impl TypeCheckable for PreConstraint {
         for iter in &self.iteration {
             iter.iterator
                 .type_check(context, fn_context)
-                .map_err(|e| e.add_span(iter.iterator.get_span()))?;
+                .map_err(|e| e.add_span(iter.iterator.span()))?;
             context.add_scope();
-            let types = iter.get_variable_types(context, fn_context)?;
+            let types = iter.variable_types(context, fn_context)?;
             for (name, t) in types {
                 context.add_token_type(
                     t,
-                    name.get_span().clone(),
-                    Some(name.get_span_value().clone()),
+                    name.span().clone(),
+                    Some(name.value().clone()),
                 )?;
             }
         }

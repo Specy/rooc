@@ -399,16 +399,16 @@ impl Model {
     pub fn into_components(self) -> (Objective, Vec<Constraint>, IndexMap<String, DomainVariable>) {
         (self.objective, self.constraints, self.domain)
     }
-    pub fn get_objective(&self) -> &Objective {
+    pub fn objective(&self) -> &Objective {
         &self.objective
     }
-    pub fn get_constraints(&self) -> &Vec<Constraint> {
+    pub fn constraints(&self) -> &Vec<Constraint> {
         &self.constraints
     }
-    pub fn get_domain(&self) -> &IndexMap<String, DomainVariable> {
+    pub fn domain(&self) -> &IndexMap<String, DomainVariable> {
         &self.domain
     }
-    pub fn get_domain_mut(&mut self) -> &mut IndexMap<String, DomainVariable> {
+    pub fn domain_mut(&mut self) -> &mut IndexMap<String, DomainVariable> {
         &mut self.domain
     }
 }
@@ -439,8 +439,8 @@ pub fn transform_parsed_problem(pre_problem: PreModel, fns: &IndexMap<String, Bo
     let std = make_std();
     let fn_context = FunctionContext::new(fns,&std);
     let context = TransformerContext::new_from_constants(
-        pre_problem.get_constants().clone(),
-        pre_problem.get_domains().clone(),
+        pre_problem.constants().clone(),
+        pre_problem.domains().clone(),
         &fn_context,
     )?;
     transform_model(pre_problem, context, &fn_context)
@@ -487,7 +487,7 @@ impl ToLatex for VariableKind {
                 "({})",
                 names
                     .iter()
-                    .map(|name| escape_latex(name.get_span_value()))
+                    .map(|name| escape_latex(name.value()))
                     .collect::<Vec<_>>()
                     .join(",\\ ")
             ),
@@ -557,9 +557,9 @@ pub fn transform_model(
     mut context: TransformerContext,
     fn_context: &FunctionContext,
 ) -> Result<Model, TransformError> {
-    let objective = transform_objective(problem.get_objective(), &mut context, fn_context)?;
+    let objective = transform_objective(problem.objective(), &mut context, fn_context)?;
     let mut constraints: Vec<Constraint> = Vec::new();
-    for constraint in problem.get_constraints().iter() {
+    for constraint in problem.constraints().iter() {
         let transformed =
             transform_constraint_with_iteration(constraint, &mut context, fn_context)?;
         for transformed_constraint in transformed {

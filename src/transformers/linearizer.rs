@@ -29,10 +29,10 @@ impl Exp {
                     }
                     BinOp::Mul => {
                         if lhs.has_no_vars() {
-                            rhs.mul_by(lhs.get_rhs());
+                            rhs.mul_by(lhs.rhs());
                             rhs
                         } else if rhs.has_no_vars() {
-                            lhs.mul_by(rhs.get_rhs());
+                            lhs.mul_by(rhs.rhs());
                             lhs
                         } else {
                             return Err(LinearizationError::NonLinearExpression(Box::new(
@@ -42,10 +42,10 @@ impl Exp {
                     }
                     BinOp::Div => {
                         if rhs.has_no_vars() {
-                            lhs.div_by(rhs.get_rhs());
+                            lhs.div_by(rhs.rhs());
                             lhs
                         } else if lhs.has_no_vars() {
-                            rhs.div_by(lhs.get_rhs());
+                            rhs.div_by(lhs.rhs());
                             rhs
                         } else {
                             return Err(LinearizationError::NonLinearExpression(Box::new(
@@ -177,7 +177,7 @@ impl Linearizer {
         self.constraints.push_front(constraint);
     }
 
-    pub fn get_constraints(&self) -> &VecDeque<Constraint> {
+    pub fn constraints(&self) -> &VecDeque<Constraint> {
         &self.constraints
     }
     pub fn pop_constraint(&mut self) -> Option<Constraint> {
@@ -196,7 +196,7 @@ impl Linearizer {
         self.domain.insert(name, var);
         Ok(())
     }
-    pub fn get_used_variables(&self) -> Vec<String> {
+    pub fn used_variables(&self) -> Vec<String> {
         self.domain
             .iter()
             .filter(|(_, v)| v.is_used())
@@ -219,7 +219,7 @@ impl Linearizer {
             let res = exp.linearize(&mut context)?;
             linear_constraints.push(MidLinearConstraint::new_from_linearized_context(res, op));
         }
-        let mut vars = context.get_used_variables();
+        let mut vars = context.used_variables();
         vars.sort();
         let domain = context
             .domain
@@ -331,10 +331,10 @@ impl LinearizationContext {
     pub fn add_rhs(&mut self, rhs: f64) {
         self.current_rhs += rhs;
     }
-    pub fn get_vars(&self) -> &IndexMap<String, f64> {
+    pub fn vars(&self) -> &IndexMap<String, f64> {
         &self.current_vars
     }
-    pub fn get_rhs(&self) -> f64 {
+    pub fn rhs(&self) -> f64 {
         self.current_rhs
     }
     pub fn has_var(&self, name: &String) -> bool {

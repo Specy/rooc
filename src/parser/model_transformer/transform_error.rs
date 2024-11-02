@@ -278,9 +278,9 @@ impl fmt::Display for TransformError {
 }
 
 impl TransformError {
-    pub fn get_traced_error(&self) -> String {
+    pub fn traced_error(&self) -> String {
         let error = self.to_string();
-        let trace = self.get_trace();
+        let trace = self.trace();
         let trace = trace
             .iter()
             .map(|(span, origin)| {
@@ -318,20 +318,20 @@ impl TransformError {
             value: None,
         }
     }
-    pub fn get_trace(&self) -> Vec<(InputSpan, Option<String>)> {
+    pub fn trace(&self) -> Vec<(InputSpan, Option<String>)> {
         match self {
             TransformError::SpannedError {
                 spanned_error: span,
                 value,
             } => {
-                let mut trace = vec![(span.get_span().clone(), value.clone())];
+                let mut trace = vec![(span.span().clone(), value.clone())];
                 let mut last_error = span;
                 while let TransformError::SpannedError {
                     spanned_error: ref span,
                     ref value,
-                } = **last_error.get_span_value()
+                } = **last_error.value()
                 {
-                    let current_span = span.get_span().clone();
+                    let current_span = span.span().clone();
                     //don't add if the last span is the same as the current one
                     if let Some((last_span, _)) = trace.last() {
                         if last_span == &current_span {
@@ -348,25 +348,25 @@ impl TransformError {
             _ => Vec::new(),
         }
     }
-    pub fn get_origin_span(&self) -> Option<InputSpan> {
-        let trace = self.get_trace();
+    pub fn origin_span(&self) -> Option<InputSpan> {
+        let trace = self.trace();
         trace.first().map(|(span, _)| span.clone())
     }
-    pub fn get_base_error(&self) -> &TransformError {
+    pub fn base_error(&self) -> &TransformError {
         match self {
             TransformError::SpannedError {
                 spanned_error: span,
                 ..
-            } => span.get_base_error(),
+            } => span.base_error(),
             _ => self,
         }
     }
-    pub fn get_trace_from_source(&self, source: &str) -> Result<String, String> {
-        let trace = self.get_trace();
+    pub fn trace_from_source(&self, source: &str) -> Result<String, String> {
+        let trace = self.trace();
         let trace = trace
             .into_iter()
             .map(|(span, _)| {
-                let text = span.get_span_text(source)?;
+                let text = span.span_text(source)?;
                 Ok(format!(
                     "at {}:{} \"{}\"",
                     span.start_line, span.start_column, text,

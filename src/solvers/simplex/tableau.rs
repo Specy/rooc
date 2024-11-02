@@ -49,7 +49,7 @@ impl Display for Tableau {
 #[wasm_bindgen]
 impl Tableau {
     pub fn wasm_get_variables(&self) -> Vec<String> {
-        self.get_variables().to_owned()
+        self.variables().to_owned()
     }
     pub fn wasm_get_c(&self) -> Vec<f64> {
         self.c.clone()
@@ -109,7 +109,7 @@ impl Tableau {
     pub fn solve(&mut self, limit: i64) -> Result<OptimalTableau, SimplexError> {
         self.solve_avoiding(limit, &[])
     }
-    pub fn get_variables(&self) -> &Vec<String> {
+    pub fn variables(&self) -> &Vec<String> {
         &self.variables
     }
 
@@ -133,7 +133,7 @@ impl Tableau {
                 }
                 Ok(StepAction::Finished) => {
                     return Ok(OptimalTableauWithSteps::new(
-                        OptimalTableau::new(self.get_variables_values(), self.clone()),
+                        OptimalTableau::new(self.variables_values(), self.clone()),
                         steps,
                     ));
                 }
@@ -158,7 +158,7 @@ impl Tableau {
                 }
                 Ok(StepAction::Finished) => {
                     return Ok(OptimalTableau::new(
-                        self.get_variables_values(),
+                        self.variables_values(),
                         self.clone(),
                     ));
                 }
@@ -246,7 +246,7 @@ impl Tableau {
         }
     }
 
-    fn get_variables_values(&self) -> Vec<f64> {
+    fn variables_values(&self) -> Vec<f64> {
         let mut values = vec![0.0; self.c.len()];
         for (i, &j) in self.in_basis.iter().enumerate() {
             values[j] = self.b[i];
@@ -287,22 +287,22 @@ impl Tableau {
         in_basis[t] = h;
         Ok(())
     }
-    pub fn get_current_value(&self) -> f64 {
+    pub fn current_value(&self) -> f64 {
         self.current_value
     }
-    pub fn get_value_offset(&self) -> f64 {
+    pub fn value_offset(&self) -> f64 {
         self.value_offset
     }
-    pub fn get_a(&self) -> &Vec<Vec<f64>> {
+    pub fn a_matrix(&self) -> &Vec<Vec<f64>> {
         &self.a
     }
-    pub fn get_b(&self) -> &Vec<f64> {
+    pub fn b_vec(&self) -> &Vec<f64> {
         &self.b
     }
-    pub fn get_c(&self) -> &Vec<f64> {
+    pub fn c_vec(&self) -> &Vec<f64> {
         &self.c
     }
-    pub fn get_in_basis(&self) -> &Vec<usize> {
+    pub fn in_basis(&self) -> &Vec<usize> {
         &self.in_basis
     }
 }

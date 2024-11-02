@@ -88,7 +88,7 @@ impl<'a> FunctionContext<'a> {
             builtin_functions,
         }
     }
-    pub fn get_function(&self, name: &str) -> Option<&dyn RoocFunction> {
+    pub fn function(&self, name: &str) -> Option<&dyn RoocFunction> {
         match self.builtin_functions.get(name).map(|f| f.as_ref()) {
             Some(f) => Some(f),
             None => self.functions.get(name).map(|f| f.as_ref()),
@@ -167,7 +167,7 @@ impl TypeCheckerContext {
             (k, StaticVariableType::new(v, span))
         }));
     }
-    pub fn get_static_domain_variable(&self, name: &str) -> Option<&StaticVariableType> {
+    pub fn static_domain_variable_of(&self, name: &str) -> Option<&StaticVariableType> {
         self.static_domain.get(name)
     }
     pub fn pop_scope(&mut self) -> Result<Frame<PrimitiveKind>, TransformError> {
@@ -176,9 +176,9 @@ impl TypeCheckerContext {
         }
         Ok(self.frames.pop().unwrap())
     }
-    pub fn get_value(&self, name: &str) -> Option<&PrimitiveKind> {
+    pub fn value_of(&self, name: &str) -> Option<&PrimitiveKind> {
         for frame in self.frames.iter().rev() {
-            match frame.get_value(name) {
+            match frame.value(name) {
                 Some(value) => return Some(value),
                 None => continue,
             }
@@ -193,7 +193,7 @@ impl TypeCheckerContext {
         for index in compound_indexes {
             index.type_check(self, fn_context)?;
             let value = match index {
-                PreExp::Variable(v) => self.get_value(v).cloned(),
+                PreExp::Variable(v) => self.value_of(v).cloned(),
                 PreExp::Primitive(p) => Some(p.value.get_type()),
                 _ => Some(index.get_type(self, fn_context)),
             };
@@ -218,7 +218,7 @@ impl TypeCheckerContext {
                             PrimitiveKind::GraphNode,
                         ],
                     }
-                    .add_span(index.get_span()));
+                    .add_span(index.span()));
                 }
             }
         }
@@ -234,7 +234,7 @@ impl TypeCheckerContext {
         if name == "_" {
             return Ok(());
         }
-        if strict && self.get_value(name).is_some() {
+        if strict && self.value_of(name).is_some() {
             return Err(TransformError::AlreadyDeclaredVariable(name.to_string()));
         }
         check_if_reserved_token(name)?;
@@ -247,7 +247,7 @@ impl TypeCheckerContext {
         fn_context: &FunctionContext,
     ) -> Result<PrimitiveKind, TransformError> {
         //TODO add support for object access like G["a"] or g.a
-        match self.get_value(&addressable_access.name) {
+        match self.value_of(&addressable_access.name) {
             Some(v) => {
                 let mut last_value = v;
                 for access in addressable_access.accesses.iter() {
@@ -267,7 +267,7 @@ impl TypeCheckerContext {
                             "Expected value of type \"Iterable\" to index, got \"{}\", check the definition of \"{}\"",
                             last_value,
                             addressable_access
-                        )).add_span(access.get_span()))
+                        )).add_span(access.span()))
                     }
                 }
                 Ok(last_value.clone())

@@ -79,7 +79,7 @@ impl GraphNode {
     pub fn to_edges(self) -> Vec<GraphEdge> {
         self.edges.into_values().collect()
     }
-    pub fn get_name(&self) -> &String {
+    pub fn name(&self) -> &String {
         &self.name
     }
 }

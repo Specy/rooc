@@ -25,6 +25,14 @@ pub mod transformers;
 pub mod type_checker;
 pub mod utils;
 
+
+mod prelude {
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen::prelude::*;
+}
+
+
+
 #[wasm_bindgen]
 #[derive(Debug, Clone)]
 pub struct RoocParser {
@@ -53,8 +61,8 @@ impl RoocParser {
         match transformed {
             Ok(transformed) => Ok(transformed),
             Err(e) => Err(e
-                .get_trace_from_source(&self.source)
-                .unwrap_or(e.get_traced_error())),
+                .trace_from_source(&self.source)
+                .unwrap_or(e.traced_error())),
         }
     }
     pub fn type_check(&self, fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<(), String> {
@@ -64,8 +72,8 @@ impl RoocParser {
         match parsed.create_type_checker(fns) {
             Ok(_) => Ok(()),
             Err(e) => Err(e
-                .get_trace_from_source(&self.source)
-                .unwrap_or(e.get_traced_error())),
+                .trace_from_source(&self.source)
+                .unwrap_or(e.traced_error())),
         }
     }
 }

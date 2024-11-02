@@ -7,7 +7,7 @@ use num_traits::ToPrimitive;
 
 pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<LpSolution<bool>, SolverError> {
     let non_binary_variables =
-        find_invalid_variables(lp.get_domain(), |var| matches!(var, VariableType::Boolean));
+        find_invalid_variables(lp.domain(), |var| matches!(var, VariableType::Boolean));
     if !non_binary_variables.is_empty() {
         return Err(SolverError::InvalidDomain {
             expected: vec![VariableType::Boolean],
@@ -15,11 +15,11 @@ pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<LpSolution<bool>, Sol
         });
     }
     let mut m = Model::default();
-    let vars: Vec<_> = m.new_vars_binary(lp.get_domain().len()).collect();
+    let vars: Vec<_> = m.new_vars_binary(lp.domain().len()).collect();
 
-    for (i, constraint) in lp.get_constraints().iter().enumerate() {
+    for (i, constraint) in lp.constraints().iter().enumerate() {
         let lhs = constraint
-            .get_coefficients()
+            .coefficients()
             .iter()
             .zip(vars.iter())
             .map(|(c, v)| c.to_i32().map(|c| v.times(c)))
@@ -28,22 +28,22 @@ pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<LpSolution<bool>, Sol
             return Err(SolverError::TooLarge {
                 name: format!("variable in constraint {}", i + 1),
                 value: *constraint
-                    .get_coefficients()
+                    .coefficients()
                     .iter()
                     .find(|c| c.to_f64().is_none())
                     .unwrap_or(&0.0),
             });
         }
         let lhs = m.sum_iter(lhs.unwrap());
-        let rhs = constraint.get_rhs().to_i32();
+        let rhs = constraint.rhs().to_i32();
         if rhs.is_none() {
             return Err(SolverError::TooLarge {
                 name: format!("right hand side of constraint {}", i + 1),
-                value: constraint.get_rhs(),
+                value: constraint.rhs(),
             });
         }
         let rhs = rhs.unwrap();
-        match constraint.get_constraint_type() {
+        match constraint.constraint_type() {
             Comparison::LessOrEqual => {
                 m.less_than_or_equals(lhs, rhs);
             }
@@ -62,7 +62,7 @@ pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<LpSolution<bool>, Sol
         }
     }
     let objective = lp
-        .get_objective()
+        .objective()
         .iter()
         .zip(vars.iter())
         .map(|(c, v)| c.to_i32().map(|c| v.times(c)))
@@ -71,14 +71,14 @@ pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<LpSolution<bool>, Sol
         return Err(SolverError::TooLarge {
             name: "objective function variable".to_string(),
             value: *lp
-                .get_objective()
+                .objective()
                 .iter()
                 .find(|c| c.to_f64().is_none())
                 .unwrap_or(&0.0),
         });
     }
     let objective = m.sum_iter(objective.unwrap());
-    let solution = match lp.get_optimization_type() {
+    let solution = match lp.optimization_type() {
         OptimizationType::Max => m.maximize(objective),
         OptimizationType::Min => m.minimize(objective),
         OptimizationType::Satisfy => m.solve(),
@@ -86,7 +86,7 @@ pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<LpSolution<bool>, Sol
     match solution {
         None => Err(SolverError::DidNotSolve),
         Some(solution) => {
-            let var_names = lp.get_variables();
+            let var_names = lp.variables();
             let mut assignment = solution
                 .get_values_binary(&vars)
                 .iter()
@@ -96,7 +96,7 @@ pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<LpSolution<bool>, Sol
                     value: *v,
                 })
                 .collect::<Vec<Assignment<bool>>>();
-            let value = solution[objective] as f64 + lp.get_objective_offset();
+            let value = solution[objective] as f64 + lp.objective_offset();
             assignment.sort_by(|a, b| a.name.cmp(&b.name));
             let sol = LpSolution::new(assignment, value);
             Ok(sol)

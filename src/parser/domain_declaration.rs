@@ -103,24 +103,24 @@ impl VariablesDomainDeclaration {
         }
     }
 
-    pub fn get_variables(&self) -> &Vec<Spanned<VariableToAssert>> {
+    pub fn variables(&self) -> &Vec<Spanned<VariableToAssert>> {
         &self.variables
     }
     pub fn get_type(&self) -> &PreVariableType {
         &self.as_type
     }
-    pub fn get_static_variables(&self) -> Vec<Spanned<String>> {
+    pub fn static_variables(&self) -> Vec<Spanned<String>> {
         self.variables
             .iter()
-            .filter_map(|v| match &v.get_span_value() {
+            .filter_map(|v| match &v.value() {
                 VariableToAssert::Variable(name) => {
-                    Some(Spanned::new(name.clone(), v.get_span().clone()))
+                    Some(Spanned::new(name.clone(), v.span().clone()))
                 }
                 _ => None,
             })
             .collect()
     }
-    pub fn get_iters(&self) -> &Vec<IterableSet> {
+    pub fn iteration(&self) -> &Vec<IterableSet> {
         &self.iteration
     }
 
@@ -132,7 +132,7 @@ impl VariablesDomainDeclaration {
         self.variables
             .iter()
             .map(|v| {
-                match v.get_span_value() {
+                match v.value() {
                     VariableToAssert::Variable(name) => {
                         let var_type = self.as_type.to_variable_type(context, fn_context)?;
                         Ok((name.clone(), var_type))
@@ -144,7 +144,7 @@ impl VariablesDomainDeclaration {
                         Ok((name, var_type))
                     }
                 }
-                .map(|(name, t)| (name, Spanned::new(t, v.get_span().clone())))
+                .map(|(name, t)| (name, Spanned::new(t, v.span().clone())))
             })
             .collect::<Result<Vec<(String, Spanned<VariableType>)>, TransformError>>()
             .map_err(|e| e.add_span(&self.span))
@@ -180,32 +180,32 @@ impl TypeCheckable for VariablesDomainDeclaration {
         for iter in &self.iteration {
             iter.iterator
                 .type_check(context, fn_context)
-                .map_err(|e| e.add_span(iter.iterator.get_span()))?;
+                .map_err(|e| e.add_span(iter.iterator.span()))?;
             context.add_scope();
-            let types = iter.get_variable_types(context, fn_context)?;
+            let types = iter.variable_types(context, fn_context)?;
             for (name, t) in types {
                 context.add_token_type(
                     t,
-                    name.get_span().clone(),
-                    Some(name.get_span_value().clone()),
+                    name.span().clone(),
+                    Some(name.value().clone()),
                 )?;
             }
         }
         for variable in &self.variables {
-            match &variable.get_span_value() {
+            match &variable.value() {
                 VariableToAssert::Variable(name) => {
-                    if context.get_value(name).is_some() {
+                    if context.value_of(name).is_some() {
                         return Err(TransformError::Other(format!(
                             "Variable {} already declared as static",
                             name
                         ))
-                        .add_span(variable.get_span()));
+                        .add_span(variable.span()));
                     }
                 }
                 VariableToAssert::CompoundVariable(c) => {
                     context
                         .check_compound_variable(&c.indexes, fn_context)
-                        .map_err(|e| e.add_span(variable.get_span()))?;
+                        .map_err(|e| e.add_span(variable.span()))?;
                 }
             }
         }
@@ -229,7 +229,7 @@ impl TypeCheckable for VariablesDomainDeclaration {
 
         self.as_type.populate_token_type_map(context, fn_context);
         for variable in &self.variables {
-            if let VariableToAssert::CompoundVariable(c) = variable.get_span_value() {
+            if let VariableToAssert::CompoundVariable(c) = variable.value() {
                 for index in &c.indexes {
                     index.populate_token_type_map(context, fn_context);
                 }

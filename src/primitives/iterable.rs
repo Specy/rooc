@@ -51,9 +51,9 @@ export type SerializedIterable =
 
 impl IterableKind {
     pub fn get_type(&self) -> PrimitiveKind {
-        PrimitiveKind::Iterable(Box::new(self.get_inner_type()))
+        PrimitiveKind::Iterable(Box::new(self.inner_type()))
     }
-    pub fn get_inner_type(&self) -> PrimitiveKind {
+    pub fn inner_type(&self) -> PrimitiveKind {
         match self {
             IterableKind::Numbers(_) => PrimitiveKind::Number,
             IterableKind::Integers(_) => PrimitiveKind::Integer,
@@ -70,7 +70,7 @@ impl IterableKind {
             IterableKind::Graphs(_) => PrimitiveKind::Graph,
             IterableKind::Iterables(i) => PrimitiveKind::Iterable(
                 i.first()
-                    .map(|e| e.get_inner_type())
+                    .map(|e| e.inner_type())
                     .unwrap_or(PrimitiveKind::Undefined)
                     .into(),
             ),
@@ -316,7 +316,7 @@ impl ApplyOp for IterableKind {
     fn apply_unary_op(&self, op: UnOp) -> Result<Self::Target, Self::Error> {
         Err(OperatorError::unsupported_un_operation(
             op,
-            self.get_inner_type(),
+            self.inner_type(),
         ))
     }
     fn can_apply_binary_op(_: BinOp, _: Self::TargetType) -> bool {

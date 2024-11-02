@@ -60,15 +60,15 @@ impl IterableSet {
             VariableKind::Single(name) => context.add_token_type_or_undefined(
                 iter_type,
                 self.span.clone(),
-                Some(name.get_span_value().clone()),
+                Some(name.value().clone()),
             ),
             VariableKind::Tuple(vars) => match &iter_type {
                 PrimitiveKind::Iterable(kind) => {
                     for v in vars {
                         context.add_token_type_or_undefined(
                             *kind.clone(),
-                            v.get_span().clone(),
-                            Some(v.get_span_value().clone()),
+                            v.span().clone(),
+                            Some(v.value().clone()),
                         )
                     }
                 }
@@ -77,15 +77,15 @@ impl IterableSet {
                     for (i, v) in vars.iter().enumerate() {
                         context.add_token_type_or_undefined(
                             types.get(i).unwrap_or(&PrimitiveKind::Undefined).clone(),
-                            v.get_span().clone(),
-                            Some(v.get_span_value().clone()),
+                            v.span().clone(),
+                            Some(v.value().clone()),
                         )
                     }
                 }
             },
         }
     }
-    pub fn get_variable_types(
+    pub fn variable_types(
         &self,
         context: &TypeCheckerContext,
         fn_context: &FunctionContext,
@@ -119,7 +119,7 @@ impl IterableSet {
                                 to_spread: iter_type,
                                 in_variables: vars
                                     .iter()
-                                    .map(|v| v.get_span_value().clone())
+                                    .map(|v| v.value().clone())
                                     .collect::<Vec<_>>(),
                             }
                             .add_span(&self.span);

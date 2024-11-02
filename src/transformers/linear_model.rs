@@ -29,19 +29,19 @@ impl LinearConstraint {
             constraint_type,
         }
     }
-    pub fn get_coefficients(&self) -> &Vec<f64> {
+    pub fn coefficients(&self) -> &Vec<f64> {
         &self.coefficients
     }
-    pub fn get_coefficients_mut(&mut self) -> &mut Vec<f64> {
+    pub fn coefficients_mut(&mut self) -> &mut Vec<f64> {
         &mut self.coefficients
     }
     pub fn remove_coefficients_by_index(&mut self, indices: &[usize]) {
         remove_many(&mut self.coefficients, indices);
     }
-    pub fn get_rhs(&self) -> f64 {
+    pub fn rhs(&self) -> f64 {
         self.rhs
     }
-    pub fn get_constraint_type(&self) -> &Comparison {
+    pub fn constraint_type(&self) -> &Comparison {
         &self.constraint_type
     }
     pub fn into_parts(self) -> (Vec<f64>, Comparison, f64) {
@@ -115,25 +115,25 @@ impl LinearModel {
             self.domain,
         )
     }
-    pub fn get_optimization_type(&self) -> &OptimizationType {
+    pub fn optimization_type(&self) -> &OptimizationType {
         &self.optimization_type
     }
     pub fn into_standard_form(self) -> Result<StandardLinearModel, SolverError> {
         to_standard_form(self)
     }
-    pub fn get_objective(&self) -> &Vec<f64> {
+    pub fn objective(&self) -> &Vec<f64> {
         &self.objective
     }
-    pub fn get_constraints(&self) -> &Vec<LinearConstraint> {
+    pub fn constraints(&self) -> &Vec<LinearConstraint> {
         &self.constraints
     }
-    pub fn get_variables(&self) -> &Vec<String> {
+    pub fn variables(&self) -> &Vec<String> {
         &self.variables
     }
-    pub fn get_objective_offset(&self) -> f64 {
+    pub fn objective_offset(&self) -> f64 {
         self.objective_offset
     }
-    pub fn get_domain(&self) -> &IndexMap<String, DomainVariable> {
+    pub fn domain(&self) -> &IndexMap<String, DomainVariable> {
         &self.domain
     }
 }

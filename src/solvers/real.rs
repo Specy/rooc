@@ -10,7 +10,7 @@ use good_lp::{
 use indexmap::IndexMap;
 
 pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64>, SolverError> {
-    let domain = lp.get_domain();
+    let domain = lp.domain();
     let invalid_variables = find_invalid_variables(domain, |var| {
         matches!(var, VariableType::Real | VariableType::NonNegativeReal)
     });
@@ -20,7 +20,7 @@ pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64
             got: invalid_variables,
         });
     }
-    let opt_type = match lp.get_optimization_type() {
+    let opt_type = match lp.optimization_type() {
         OptimizationType::Min => ObjectiveDirection::Minimisation,
         OptimizationType::Max => ObjectiveDirection::Maximisation,
         OptimizationType::Satisfy => ObjectiveDirection::Minimisation,
@@ -37,11 +37,11 @@ pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64
         let var = variables.add(def);
         created_vars.insert(name.clone(), var);
     }
-    let vars = lp.get_variables();
-    let obj_exp = match lp.get_optimization_type() {
+    let vars = lp.variables();
+    let obj_exp = match lp.optimization_type() {
         OptimizationType::Satisfy => 0.into(),
-        OptimizationType::Max | OptimizationType::Min => vars.iter().zip(lp.get_objective()).fold(
-            Expression::from(lp.get_objective_offset()),
+        OptimizationType::Max | OptimizationType::Min => vars.iter().zip(lp.objective()).fold(
+            Expression::from(lp.objective_offset()),
             |acc, (name, coeff)| {
                 let var = created_vars.get(name).unwrap();
                 acc + (*coeff) * (*var)
@@ -50,17 +50,17 @@ pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64
     };
     let objective = variables.optimise(opt_type, obj_exp.clone());
     let mut model = objective.using(clarabel);
-    for constraint in lp.get_constraints() {
+    for constraint in lp.constraints() {
         let mut good_lp_constraint = Expression::with_capacity(vars.len());
-        for (i, c) in constraint.get_coefficients().iter().enumerate() {
+        for (i, c) in constraint.coefficients().iter().enumerate() {
             let name = &vars[i];
             let existing = created_vars.get(name).unwrap().clone();
             good_lp_constraint += (*c) * existing;
         }
-        let constraint = match constraint.get_constraint_type() {
-            Comparison::LessOrEqual => good_lp_constraint.leq(constraint.get_rhs()),
-            Comparison::GreaterOrEqual => good_lp_constraint.geq(constraint.get_rhs()),
-            Comparison::Equal => good_lp_constraint.eq(constraint.get_rhs()),
+        let constraint = match constraint.constraint_type() {
+            Comparison::LessOrEqual => good_lp_constraint.leq(constraint.rhs()),
+            Comparison::GreaterOrEqual => good_lp_constraint.geq(constraint.rhs()),
+            Comparison::Equal => good_lp_constraint.eq(constraint.rhs()),
             c => {
                 return Err(SolverError::UnavailableComparison {
                     got: *c,
@@ -87,15 +87,15 @@ pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64
                     }
                 })
                 .collect::<Vec<Assignment<f64>>>();
-            let coeffs = lp.get_objective();
+            let coeffs = lp.objective();
             //good_lp does not provide a way to get the objective value
             let value = vars
                 .iter()
                 .enumerate()
-                .fold(lp.get_objective_offset(), |acc, (i, a)| {
+                .fold(lp.objective_offset(), |acc, (i, a)| {
                     acc + a.value * coeffs[i]
                 });
-            Ok(LpSolution::new(vars, value + lp.get_objective_offset()))
+            Ok(LpSolution::new(vars, value + lp.objective_offset()))
         }
         Err(e) => match e {
             ResolutionError::Unbounded => Err(SolverError::Unbounded),

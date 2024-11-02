@@ -119,11 +119,11 @@ impl RoocFunction for JsFunction {
         Ok(primitive)
     }
 
-    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
         self.arg_types.clone()
     }
 
-    fn get_return_type(
+    fn return_type(
         &self,
         args: &[PreExp],
         context: &TypeCheckerContext,
@@ -154,7 +154,7 @@ impl RoocFunction for JsFunction {
         }
     }
 
-    fn get_function_name(&self) -> String {
+    fn function_name(&self) -> String {
         self.function_name.clone()
     }
 

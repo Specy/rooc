@@ -19,7 +19,7 @@ pub enum VarValue {
 pub fn solve_integer_binary_lp_problem(
     lp: &LinearModel,
 ) -> Result<LpSolution<VarValue>, SolverError> {
-    let invalid_variables = find_invalid_variables(lp.get_domain(), |var| {
+    let invalid_variables = find_invalid_variables(lp.domain(), |var| {
         matches!(
             var,
             VariableType::Boolean | VariableType::IntegerRange(_, _)
@@ -35,7 +35,7 @@ pub fn solve_integer_binary_lp_problem(
         });
     }
     let binary_variables = lp
-        .get_domain()
+        .domain()
         .iter()
         .filter_map(|(name, var)| {
             if *var.get_type() == VariableType::Boolean {
@@ -49,7 +49,7 @@ pub fn solve_integer_binary_lp_problem(
         .collect::<IndexMap<_, _>>();
 
     let integer_variables = lp
-        .get_domain()
+        .domain()
         .iter()
         .filter_map(|(name, var)| {
             if matches!(var.get_type(), VariableType::IntegerRange(_, _)) {
@@ -67,7 +67,7 @@ pub fn solve_integer_binary_lp_problem(
     let vars_integer: Option<Vec<_>> = integer_variables
         .iter()
         .map(|(k, _)| {
-            let domain = lp.get_domain().get(k).unwrap();
+            let domain = lp.domain().get(k).unwrap();
             let (min, max) = match domain.get_type() {
                 VariableType::IntegerRange(min, max) => (*min, *max),
                 _ => unreachable!(),
@@ -84,15 +84,15 @@ pub fn solve_integer_binary_lp_problem(
             })
         }
     };
-    let vars = lp.get_variables();
-    for (i, constraint) in lp.get_constraints().iter().enumerate() {
+    let vars = lp.variables();
+    for (i, constraint) in lp.constraints().iter().enumerate() {
         let lhs_binary = process_variables_binary(
-            constraint.get_coefficients().iter(),
+            constraint.coefficients().iter(),
             vars_binary.iter(),
             |i| binary_variables.get(&vars[i]).is_some(),
         );
         let lhs_integer = process_variables(
-            constraint.get_coefficients().iter(),
+            constraint.coefficients().iter(),
             vars_integer.iter(),
             |i| integer_variables.get(&vars[i]).is_some(),
         );
@@ -100,7 +100,7 @@ pub fn solve_integer_binary_lp_problem(
             return Err(SolverError::TooLarge {
                 name: format!("variable in constraint {}", i + 1),
                 value: *constraint
-                    .get_coefficients()
+                    .coefficients()
                     .iter()
                     .find(|c| c.to_f64().is_none())
                     .unwrap_or(&0.0),
@@ -109,15 +109,15 @@ pub fn solve_integer_binary_lp_problem(
         let lhs_binary = m.sum_iter(lhs_binary.unwrap());
         let lhs_integer = m.sum_iter(lhs_integer.unwrap());
         let lhs = m.sum(&[lhs_binary, lhs_integer]);
-        let rhs = constraint.get_rhs().to_i32();
+        let rhs = constraint.rhs().to_i32();
         if rhs.is_none() {
             return Err(SolverError::TooLarge {
                 name: format!("right hand side of constraint {}", i + 1),
-                value: constraint.get_rhs(),
+                value: constraint.rhs(),
             });
         }
         let rhs = rhs.unwrap();
-        match constraint.get_constraint_type() {
+        match constraint.constraint_type() {
             Comparison::LessOrEqual => {
                 m.less_than_or_equals(lhs, rhs);
             }
@@ -136,18 +136,18 @@ pub fn solve_integer_binary_lp_problem(
         }
     }
     let objective_binary =
-        process_variables_binary(lp.get_objective().iter(), vars_binary.iter(), |i| {
+        process_variables_binary(lp.objective().iter(), vars_binary.iter(), |i| {
             binary_variables.get(&vars[i]).is_some()
         });
     let objective_integer =
-        process_variables(lp.get_objective().iter(), vars_integer.iter(), |i| {
+        process_variables(lp.objective().iter(), vars_integer.iter(), |i| {
             integer_variables.get(&vars[i]).is_some()
         });
     if objective_binary.is_none() || objective_integer.is_none() {
         return Err(SolverError::TooLarge {
             name: "objective function variable".to_string(),
             value: *lp
-                .get_objective()
+                .objective()
                 .iter()
                 .find(|c| c.to_f64().is_none())
                 .unwrap_or(&0.0),
@@ -156,7 +156,7 @@ pub fn solve_integer_binary_lp_problem(
     let objective_binary = m.sum_iter(objective_binary.unwrap());
     let objective_integer = m.sum_iter(objective_integer.unwrap());
     let objective = m.sum(&[objective_binary, objective_integer]);
-    let solution = match lp.get_optimization_type() {
+    let solution = match lp.optimization_type() {
         OptimizationType::Max => m.maximize(objective),
         OptimizationType::Min => m.minimize(objective),
         OptimizationType::Satisfy => m.solve(),
@@ -199,7 +199,7 @@ pub fn solve_integer_binary_lp_problem(
                 )
                 .collect::<Vec<Assignment<VarValue>>>();
             assignment.sort_by(|a, b| a.name.cmp(&b.name));
-            let value = solution[objective] as f64 + lp.get_objective_offset();
+            let value = solution[objective] as f64 + lp.objective_offset();
             let sol = LpSolution::new(assignment, value);
             Ok(sol)
         }

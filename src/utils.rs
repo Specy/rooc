@@ -43,7 +43,7 @@ impl InputSpan {
         }
     }
 
-    pub fn get_span_text<'a>(&self, text: &'a str) -> Result<&'a str, String> {
+    pub fn span_text<'a>(&self, text: &'a str) -> Result<&'a str, String> {
         let end = (self.start + self.len) as usize;
         let start = self.start as usize;
         if start > text.len() || end > text.len() {
@@ -71,21 +71,21 @@ impl<T: Debug + Serialize> Spanned<T> {
     pub fn new(value: T, span: InputSpan) -> Self {
         Self { value, span }
     }
-    pub fn get_span(&self) -> &InputSpan {
+    pub fn span(&self) -> &InputSpan {
         &self.span
     }
 
     pub fn into_tuple(self) -> (T, InputSpan) {
         (self.value, self.span)
     }
-    pub fn get_span_value(&self) -> &T {
+    pub fn value(&self) -> &T {
         &self.value
     }
     pub fn into_span_value(self) -> T {
         self.value
     }
-    pub fn get_span_text<'a>(&self, text: &'a str) -> Result<&'a str, String> {
-        self.span.get_span_text(text)
+    pub fn span_text<'a>(&self, text: &'a str) -> Result<&'a str, String> {
+        self.span.span_text(text)
     }
 }
 
@@ -152,7 +152,7 @@ impl CompilationError {
     }
 
     pub fn to_string_from_source(&self, source: &str) -> String {
-        let span_text = self.span.get_span_text(source);
+        let span_text = self.span.span_text(source);
         let span_text = span_text.unwrap_or("");
         format!(
             "Error at line {}:{} ({})\n\t{}",

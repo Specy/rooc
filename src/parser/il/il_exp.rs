@@ -86,7 +86,7 @@ impl TypeCheckable for PreExp {
                         **op,
                         lhs_type,
                         rhs_type,
-                        op.get_span().clone(),
+                        op.span().clone(),
                     ))
                 } else {
                     Ok(())
@@ -94,13 +94,13 @@ impl TypeCheckable for PreExp {
             }
             Self::UnaryOperation(op, exp) => {
                 exp.type_check(context, fn_context)
-                    .map_err(|e| e.add_span(exp.get_span()))?;
+                    .map_err(|e| e.add_span(exp.span()))?;
                 let exp_type = exp.get_type(context, fn_context);
                 if !exp_type.can_apply_unary_op(**op) {
                     Err(TransformError::from_wrong_unop(
                         **op,
                         exp_type,
-                        op.get_span().clone(),
+                        op.span().clone(),
                     ))
                 } else {
                     Ok(())
@@ -109,13 +109,13 @@ impl TypeCheckable for PreExp {
             Self::Primitive(_) => Ok(()),
             Self::Abs(_, exp) => {
                 exp.type_check(context, fn_context)
-                    .map_err(|e| e.add_span(exp.get_span()))?;
+                    .map_err(|e| e.add_span(exp.span()))?;
                 let exp_type = exp.get_type(context, fn_context);
                 if !exp_type.is_numeric() {
                     return Err(TransformError::from_wrong_type(
                         exp_type,
                         PrimitiveKind::Number,
-                        exp.get_span().clone(),
+                        exp.span().clone(),
                     ));
                 }
                 Ok(())
@@ -123,32 +123,32 @@ impl TypeCheckable for PreExp {
             Self::Variable(name) => {
                 //check if the variable is declared, if not, check if it will be declared at runtime
                 //this is possible for named variables in the domain
-                match context.get_value(name) {
+                match context.value_of(name) {
                     Some(_) => Ok(()),
-                    None => match context.get_static_domain_variable(name) {
+                    None => match context.static_domain_variable_of(name) {
                         Some(_) => Ok(()),
                         None => Err(TransformError::UndeclaredVariable(
-                            name.get_span_value().clone(),
+                            name.value().clone(),
                         )),
                     }
-                    .map_err(|e| e.add_span(name.get_span())),
+                    .map_err(|e| e.add_span(name.span())),
                 }
             }
             Self::CompoundVariable(c) => context
                 .check_compound_variable(&c.indexes, fn_context)
-                .map_err(|e| e.add_span(c.get_span())),
+                .map_err(|e| e.add_span(c.span())),
             Self::BlockFunction(f) => {
                 for exp in &f.exps {
                     exp.type_check(context, fn_context)
-                        .map_err(|e| e.add_span(f.get_span()))?;
+                        .map_err(|e| e.add_span(f.span()))?;
                     let exp_type = exp.get_type(context, fn_context);
                     if !exp_type.is_numeric() {
                         return Err(TransformError::from_wrong_type(
                             PrimitiveKind::Number,
                             exp_type,
-                            exp.get_span().clone(),
+                            exp.span().clone(),
                         )
-                        .add_span(f.get_span()));
+                        .add_span(f.span()));
                     }
                 }
                 Ok(())
@@ -157,34 +157,34 @@ impl TypeCheckable for PreExp {
                 for iter in &f.iters {
                     iter.iterator
                         .type_check(context, fn_context)
-                        .map_err(|e| e.add_span(f.get_span()))?;
+                        .map_err(|e| e.add_span(f.span()))?;
                     context.add_scope();
                     let types = iter
-                        .get_variable_types(context, fn_context)
-                        .map_err(|e| e.add_span(f.get_span()))?;
+                        .variable_types(context, fn_context)
+                        .map_err(|e| e.add_span(f.span()))?;
                     for (name, t) in types {
                         context.add_token_type(
                             t,
-                            name.get_span().clone(),
-                            Some(name.get_span_value().clone()),
+                            name.span().clone(),
+                            Some(name.value().clone()),
                         )?;
                     }
                 }
                 let res = f.exp.type_check(context, fn_context);
                 let exp_type = f.exp.get_type(context, fn_context);
                 for _ in &f.iters {
-                    context.pop_scope().map_err(|e| e.add_span(f.get_span()))?;
+                    context.pop_scope().map_err(|e| e.add_span(f.span()))?;
                 }
                 if let Err(e) = res {
-                    return Err(e.add_span(f.get_span()));
+                    return Err(e.add_span(f.span()));
                 }
                 if !exp_type.is_numeric() {
                     let err = TransformError::from_wrong_type(
                         PrimitiveKind::Number,
                         exp_type,
-                        f.exp.get_span().clone(),
+                        f.exp.span().clone(),
                     )
-                    .add_span(f.get_span());
+                    .add_span(f.span());
                     return Err(err);
                 }
                 Ok(())
@@ -192,7 +192,7 @@ impl TypeCheckable for PreExp {
             Self::ArrayAccess(array_access) => context
                 .get_addressable_value(array_access, fn_context)
                 .map(|_| ())
-                .map_err(|e| e.add_span(array_access.get_span())),
+                .map_err(|e| e.add_span(array_access.span())),
         }
     }
     fn populate_token_type_map(
@@ -208,29 +208,29 @@ impl TypeCheckable for PreExp {
                 exp.populate_token_type_map(context, fn_context);
             }
             Self::Primitive(p) => context.add_token_type_or_undefined(
-                p.get_span_value().get_type(),
-                p.get_span().clone(),
+                p.value().get_type(),
+                p.span().clone(),
                 None,
             ),
-            Self::Variable(name) => match context.get_value(name) {
+            Self::Variable(name) => match context.value_of(name) {
                 Some(value) => context.add_token_type_or_undefined(
                     value.clone(),
-                    name.get_span().clone(),
-                    Some(name.get_span_value().clone()),
+                    name.span().clone(),
+                    Some(name.value().clone()),
                 ),
                 None => {
-                    match context.get_static_domain_variable(name) {
+                    match context.static_domain_variable_of(name) {
                         Some(_) => {
                             context.add_token_type_or_undefined(
                                 PrimitiveKind::Number, //TODO we assume defined variables are numbers, this should be improved to specify this is a runtime variable
-                                name.get_span().clone(),
-                                Some(name.get_span_value().clone()),
+                                name.span().clone(),
+                                Some(name.value().clone()),
                             )
                         }
                         None => context.add_token_type_or_undefined(
                             PrimitiveKind::Undefined,
-                            name.get_span().clone(),
-                            Some(name.get_span_value().clone()),
+                            name.span().clone(),
+                            Some(name.value().clone()),
                         ),
                     }
                 }
@@ -238,7 +238,7 @@ impl TypeCheckable for PreExp {
             Self::CompoundVariable(c) => {
                 context.add_token_type_or_undefined(
                     PrimitiveKind::Number, //every compound variable must be a number
-                    c.get_span().clone(),
+                    c.span().clone(),
                     None,
                 );
                 for index in &c.indexes {
@@ -255,10 +255,10 @@ impl TypeCheckable for PreExp {
             Self::ArrayAccess(array_access) => {
                 context.add_token_type_or_undefined(
                     context
-                        .get_value(&array_access.name)
+                        .value_of(&array_access.name)
                         .unwrap_or(&PrimitiveKind::Undefined)
                         .clone(),
-                    array_access.get_span().clone(),
+                    array_access.span().clone(),
                     Some(array_access.name.to_string()),
                 );
                 for access in &array_access.accesses {
@@ -287,20 +287,20 @@ impl WithType for PreExp {
         fn_context: &FunctionContext,
     ) -> PrimitiveKind {
         match self {
-            Self::Primitive(p) => p.get_span_value().get_type(),
+            Self::Primitive(p) => p.value().get_type(),
             Self::FunctionCall(_, fun) => {
-                let f = fn_context.get_function(&fun.name);
+                let f = fn_context.function(&fun.name);
                 if f.is_none() {
                     return PrimitiveKind::Undefined;
                 }
 
-                f.unwrap().get_return_type(&fun.args, context, fn_context)
+                f.unwrap().return_type(&fun.args, context, fn_context)
             }
             Self::Variable(name) => {
-                match context.get_value(name) {
+                match context.value_of(name) {
                     Some(value) => value.clone(),
                     None => {
-                        match context.get_static_domain_variable(name) {
+                        match context.static_domain_variable_of(name) {
                             Some(_) => PrimitiveKind::Number, //TODO we assume defined variables are numbers, this should be improved to specify this is a runtime variable, currently doesn't error out in type checking as function arguments
                             None => PrimitiveKind::Undefined,
                         }
@@ -324,17 +324,17 @@ impl PreExp {
     pub fn to_boxed(self) -> Box<PreExp> {
         Box::new(self)
     }
-    pub fn get_span(&self) -> &InputSpan {
+    pub fn span(&self) -> &InputSpan {
         match self {
-            Self::Primitive(n) => n.get_span(),
+            Self::Primitive(n) => n.span(),
             Self::Abs(span, _) => span,
-            Self::BlockFunction(f) => f.get_span(),
-            Self::Variable(name) => name.get_span(),
-            Self::CompoundVariable(c) => c.get_span(),
-            Self::BinaryOperation(op, _, _) => op.get_span(),
-            Self::UnaryOperation(op, _) => op.get_span(),
-            Self::ArrayAccess(array_access) => array_access.get_span(),
-            Self::BlockScopedFunction(function) => function.get_span(),
+            Self::BlockFunction(f) => f.span(),
+            Self::Variable(name) => name.span(),
+            Self::CompoundVariable(c) => c.span(),
+            Self::BinaryOperation(op, _, _) => op.span(),
+            Self::UnaryOperation(op, _) => op.span(),
+            Self::ArrayAccess(array_access) => array_access.span(),
+            Self::BlockScopedFunction(function) => function.span(),
             Self::FunctionCall(span, _) => span,
         }
     }
@@ -347,15 +347,15 @@ impl PreExp {
             Self::BinaryOperation(op, lhs, rhs) => {
                 let lhs = lhs
                     .into_exp(context, fn_context)
-                    .map_err(|e| e.add_span(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.span()))?;
                 let rhs = rhs
                     .into_exp(context, fn_context)
-                    .map_err(|e| e.add_span(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.span()))?;
                 Ok(Exp::BinOp(**op, lhs.to_box(), rhs.to_box()))
             }
             Self::Primitive(n) => match n.as_number_cast() {
                 Ok(n) => Ok(Exp::Number(n)),
-                Err(e) => Err(e.add_span(self.get_span())),
+                Err(e) => Err(e.add_span(self.span())),
             },
             Self::Abs(span, exp) => {
                 let inner = exp
@@ -369,7 +369,7 @@ impl PreExp {
                     .iter()
                     .map(|exp| exp.into_exp(context, fn_context))
                     .collect::<Result<Vec<Exp>, TransformError>>()
-                    .map_err(|e| e.add_span(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.span()))?;
                 match f.kind {
                     BlockFunctionKind::Min => Ok(Exp::Min(parsed_exp)),
                     BlockFunctionKind::Max => Ok(Exp::Max(parsed_exp)),
@@ -391,21 +391,21 @@ impl PreExp {
             Self::UnaryOperation(op, exp) => {
                 let inner = exp
                     .into_exp(context, fn_context)
-                    .map_err(|e| e.add_span(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.span()))?;
                 Ok(Exp::UnOp(**op, inner.to_box()))
             }
             Self::Variable(name) => {
-                let value = context.get_value(name).map(|v| match v.as_number_cast() {
+                let value = context.value(name).map(|v| match v.as_number_cast() {
                     Ok(n) => Ok(Exp::Number(n)),
-                    Err(e) => Err(e.add_span(self.get_span())),
+                    Err(e) => Err(e.add_span(self.span())),
                 });
                 match value {
                     Some(value) => Ok(value?),
                     None => {
                         context
                             .increment_domain_variable_usage(name)
-                            .map_err(|e| e.add_span(self.get_span()))?;
-                        Ok(Exp::Variable(name.get_span_value().clone()))
+                            .map_err(|e| e.add_span(self.span()))?;
+                        Ok(Exp::Variable(name.value().clone()))
                     }
                 }
             }
@@ -415,22 +415,22 @@ impl PreExp {
                     .iter()
                     .map(|v| v.as_primitive(context, fn_context))
                     .collect::<Result<Vec<Primitive>, TransformError>>()
-                    .map_err(|e| e.add_span(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.span()))?;
                 let name = context
                     .flatten_compound_variable(&c.name, indexes)
-                    .map_err(|e| e.add_span(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.span()))?;
                 context
                     .increment_domain_variable_usage(&name)
-                    .map_err(|e| e.add_span(self.get_span()))?;
+                    .map_err(|e| e.add_span(self.span()))?;
                 Ok(Exp::Variable(name))
             }
             Self::ArrayAccess(array_access) => {
                 let value = context
-                    .get_addressable_value(array_access, fn_context)
-                    .map_err(|e| e.add_span(self.get_span()))?;
+                    .addressable_value(array_access, fn_context)
+                    .map_err(|e| e.add_span(self.span()))?;
                 match value.as_number_cast() {
                     Ok(n) => Ok(Exp::Number(n)),
-                    Err(e) => Err(e.add_span(self.get_span())),
+                    Err(e) => Err(e.add_span(self.span())),
                 }
             }
             Self::BlockScopedFunction(f) => {
@@ -445,11 +445,11 @@ impl PreExp {
                         let inner = f
                             .exp
                             .into_exp(context, fn_context)
-                            .map_err(|e| e.add_span(self.get_span()))?;
+                            .map_err(|e| e.add_span(self.span()))?;
                         Ok(inner)
                     },
                 )
-                .map_err(|e| e.add_span(self.get_span()))?;
+                .map_err(|e| e.add_span(self.span()))?;
                 match f.kind {
                     BlockScopedFunctionKind::Sum => {
                         let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
@@ -482,7 +482,7 @@ impl PreExp {
                 }
             }
             Self::FunctionCall(span, function) => {
-                let f = fn_context.get_function(&function.name);
+                let f = fn_context.function(&function.name);
                 if f.is_none() {
                     return Err(
                         TransformError::NonExistentFunction(function.name.clone()).add_span(span)
@@ -494,7 +494,7 @@ impl PreExp {
                     .map_err(|e| e.add_span(span))?;
                 match value.as_number_cast() {
                     Ok(n) => Ok(Exp::Number(n)),
-                    Err(e) => Err(e.add_span(self.get_span())),
+                    Err(e) => Err(e.add_span(self.span())),
                 }
             }
         }
@@ -502,7 +502,7 @@ impl PreExp {
 
     pub fn as_static_primitive(&self) -> Option<Primitive> {
         match self {
-            Self::Primitive(p) => Some(p.get_span_value().clone()),
+            Self::Primitive(p) => Some(p.value().clone()),
             _ => None,
         }
     }
@@ -512,17 +512,17 @@ impl PreExp {
         fn_context: &FunctionContext,
     ) -> Result<Primitive, TransformError> {
         match self {
-            PreExp::Primitive(p) => Ok(p.get_span_value().clone()),
-            PreExp::Variable(s) => match context.get_value(s) {
+            PreExp::Primitive(p) => Ok(p.value().clone()),
+            PreExp::Variable(s) => match context.value(s) {
                 Some(value) => Ok(value.clone()),
-                None => match context.get_variable_domain(s) {
+                None => match context.variable_domain(s) {
                     None => Err(TransformError::UndeclaredVariable(
-                        s.get_span_value().clone(),
+                        s.value().clone(),
                     )),
                     Some(_) => Err(
                         //TODO create a specific error for this
                         TransformError::Other(
-                            format!("Variable \"{}\" is a domain variable and cannot be used inside expression valuation", s.get_span_value())
+                            format!("Variable \"{}\" is a domain variable and cannot be used inside expression valuation", s.value())
                         )
                     )
                 },
@@ -530,9 +530,9 @@ impl PreExp {
             PreExp::CompoundVariable(c) => {
                 let indexes = &c.compute_indexes(context, fn_context)?;
                 let name = context.flatten_compound_variable(&c.name, indexes)?;
-                match context.get_value(&name) {
+                match context.value(&name) {
                     Some(value) => Ok(value.clone()),
-                    None => match context.get_variable_domain(&name) {
+                    None => match context.variable_domain(&name) {
                         None => Err(TransformError::UndeclaredVariable(
                             name.clone(),
                         )),
@@ -546,14 +546,14 @@ impl PreExp {
                 }
             }
             PreExp::FunctionCall(_, fun) => {
-                let f = fn_context.get_function(&fun.name).ok_or_else(|| {
+                let f = fn_context.function(&fun.name).ok_or_else(|| {
                     TransformError::NonExistentFunction(fun.name.clone())
                 })?;
                 let value = f.call(&fun.args, context, fn_context)?;
                 Ok(value)
             }
             PreExp::ArrayAccess(a) => {
-                let value = context.get_addressable_value(a, fn_context)?;
+                let value = context.addressable_value(a, fn_context)?;
                 Ok(value)
             }
             PreExp::UnaryOperation(op, v) => {
@@ -563,7 +563,7 @@ impl PreExp {
                     Err(_) => Err(TransformError::from_wrong_unop(
                         **op,
                         value.get_type(),
-                        op.get_span().clone(),
+                        op.span().clone(),
                     )),
                 }
             }
@@ -576,7 +576,7 @@ impl PreExp {
                         **op,
                         lhs.get_type(),
                         rhs.get_type(),
-                        op.get_span().clone(),
+                        op.span().clone(),
                     )),
                 }
             }
@@ -597,7 +597,7 @@ impl PreExp {
     ) -> Result<f64, TransformError> {
         self.as_primitive(context, fn_context)
             .map(|p| p.as_number())
-            .map_err(|e| e.add_span(self.get_span()))?
+            .map_err(|e| e.add_span(self.span()))?
     }
     pub fn as_number_cast(
         &self,
@@ -606,7 +606,7 @@ impl PreExp {
     ) -> Result<f64, TransformError> {
         self.as_primitive(context, fn_context)
             .map(|p| p.as_number_cast())
-            .map_err(|e| e.add_span(self.get_span()))?
+            .map_err(|e| e.add_span(self.span()))?
     }
     pub fn as_integer(
         &self,
@@ -615,7 +615,7 @@ impl PreExp {
     ) -> Result<i64, TransformError> {
         self.as_primitive(context, fn_context)
             .map(|p| p.as_integer())
-            .map_err(|e| e.add_span(self.get_span()))?
+            .map_err(|e| e.add_span(self.span()))?
     }
     pub fn as_integer_cast(
         &self,
@@ -624,7 +624,7 @@ impl PreExp {
     ) -> Result<i64, TransformError> {
         self.as_primitive(context, fn_context)
             .map(|p| p.as_integer_cast())
-            .map_err(|e| e.add_span(self.get_span()))?
+            .map_err(|e| e.add_span(self.span()))?
     }
     pub fn as_positive_integer(
         &self,
@@ -633,7 +633,7 @@ impl PreExp {
     ) -> Result<u64, TransformError> {
         self.as_primitive(context, fn_context)
             .map(|p| p.as_positive_integer())
-            .map_err(|e| e.add_span(self.get_span()))?
+            .map_err(|e| e.add_span(self.span()))?
     }
     pub fn as_usize(
         &self,
@@ -642,7 +642,7 @@ impl PreExp {
     ) -> Result<usize, TransformError> {
         self.as_primitive(context, fn_context)
             .map(|p| p.as_usize().map(|v| v.to_owned()))
-            .map_err(|e| e.add_span(self.get_span()))?
+            .map_err(|e| e.add_span(self.span()))?
     }
     pub fn as_usize_cast(
         &self,
@@ -651,7 +651,7 @@ impl PreExp {
     ) -> Result<usize, TransformError> {
         self.as_primitive(context, fn_context)
             .map(|p| p.as_usize_cast().map(|v| v.to_owned()))
-            .map_err(|e| e.add_span(self.get_span()))?
+            .map_err(|e| e.add_span(self.span()))?
     }
     pub fn as_string(
         &self,
@@ -660,7 +660,7 @@ impl PreExp {
     ) -> Result<String, TransformError> {
         self.as_primitive(context, fn_context)
             .map(|p| p.as_string().map(|v| v.to_owned()))
-            .map_err(|e| e.add_span(self.get_span()))?
+            .map_err(|e| e.add_span(self.span()))?
     }
     pub fn as_boolean(
         &self,
@@ -669,7 +669,7 @@ impl PreExp {
     ) -> Result<bool, TransformError> {
         self.as_primitive(context, fn_context)
             .map(|p| p.as_boolean())
-            .map_err(|e| e.add_span(self.get_span()))?
+            .map_err(|e| e.add_span(self.span()))?
     }
     pub fn as_graph(
         &self,
@@ -678,7 +678,7 @@ impl PreExp {
     ) -> Result<Graph, TransformError> {
         self.as_primitive(context, fn_context)
             .map(|p| p.as_graph().map(|v| v.to_owned()))
-            .map_err(|e| e.add_span(self.get_span()))?
+            .map_err(|e| e.add_span(self.span()))?
     }
     pub fn as_node(
         &self,
@@ -687,7 +687,7 @@ impl PreExp {
     ) -> Result<GraphNode, TransformError> {
         self.as_primitive(context, fn_context)
             .map(|p| p.as_graph_node().map(|v| v.to_owned()))
-            .map_err(|e| e.add_span(self.get_span()))?
+            .map_err(|e| e.add_span(self.span()))?
     }
     pub fn as_edge(
         &self,
@@ -696,7 +696,7 @@ impl PreExp {
     ) -> Result<GraphEdge, TransformError> {
         self.as_primitive(context, fn_context)
             .map(|p| p.as_graph_edge().map(|v| v.to_owned()))
-            .map_err(|e| e.add_span(self.get_span()))?
+            .map_err(|e| e.add_span(self.span()))?
     }
 
     pub fn as_iterator(
@@ -706,7 +706,7 @@ impl PreExp {
     ) -> Result<IterableKind, TransformError> {
         self.as_primitive(context, fn_context)
             .map(|p| p.as_iterator().map(|v| v.to_owned()))
-            .map_err(|e| e.add_span(self.get_span()))?
+            .map_err(|e| e.add_span(self.span()))?
     }
 
     pub(crate) fn is_leaf(&self) -> bool {
@@ -769,7 +769,7 @@ impl ToLatex for PreExp {
             Self::BinaryOperation(op, lhs, rhs) => {
                 let rhs = rhs.to_latex_with_precedence(op.precedence());
                 let lhs = lhs.to_latex_with_precedence(op.precedence());
-                match op.get_span_value() {
+                match op.value() {
                     BinOp::Div => format!("\\frac{{{}}}{{{}}}", lhs, rhs),
                     _ => format!("{} {} {}", lhs, op.to_latex(), rhs),
                 }
@@ -781,7 +781,7 @@ impl ToLatex for PreExp {
                     format!("{}({})", op.to_latex(), exp.to_latex())
                 }
             }
-            Self::Variable(name) => escape_latex(name.get_span_value()),
+            Self::Variable(name) => escape_latex(name.value()),
             Self::Primitive(p) => p.to_latex(),
             Self::Abs(_, exp) => format!("|{}|", exp.to_latex()),
             Self::CompoundVariable(c) => c.to_latex(),
@@ -827,6 +827,6 @@ impl fmt::Display for PreExp {
 
 impl PreExp {
     pub fn get_span_wasm(&self) -> InputSpan {
-        self.get_span().clone()
+        self.span().clone()
     }
 }

@@ -65,16 +65,16 @@ impl PreModel {
             source,
         }
     }
-    pub fn get_objective(&self) -> &PreObjective {
+    pub fn objective(&self) -> &PreObjective {
         &self.objective
     }
-    pub fn get_constraints(&self) -> &Vec<PreConstraint> {
+    pub fn constraints(&self) -> &Vec<PreConstraint> {
         &self.constraints
     }
-    pub fn get_constants(&self) -> &Vec<Constant> {
+    pub fn constants(&self) -> &Vec<Constant> {
         &self.constants
     }
-    pub fn get_domains(&self) -> &Vec<VariablesDomainDeclaration> {
+    pub fn domains(&self) -> &Vec<VariablesDomainDeclaration> {
         &self.domains
     }
     pub fn transform(
@@ -83,14 +83,14 @@ impl PreModel {
     ) -> Result<Model, TransformError> {
         transform_parsed_problem(self, fns)
     }
-    pub fn get_source(&self) -> Option<String> {
+    pub fn source(&self) -> Option<String> {
         self.source.clone()
     }
-    fn get_static_domain(&self) -> Vec<(String, Spanned<PreVariableType>)> {
+    fn static_domain(&self) -> Vec<(String, Spanned<PreVariableType>)> {
         self.domains
             .iter()
             .flat_map(|d| {
-                d.get_static_variables().into_iter().map(|v| {
+                d.static_variables().into_iter().map(|v| {
                     let (name, span) = v.into_tuple();
                     (name, Spanned::new(d.get_type().clone(), span))
                 })
@@ -102,7 +102,7 @@ impl PreModel {
         fns: &IndexMap<String, Box<dyn RoocFunction>>,
     ) -> Result<(), TransformError> {
         let mut context = TypeCheckerContext::default();
-        let domain = self.get_static_domain();
+        let domain = self.static_domain();
         let std = make_std();
         let fn_context = FunctionContext::new(fns, &std);
         //TODO add span
@@ -112,7 +112,7 @@ impl PreModel {
                 .map(|(k, v)| {
                     (
                         k.clone(),
-                        Spanned::new(v.to_variable_type_without_context(), v.get_span().clone()),
+                        Spanned::new(v.to_variable_type_without_context(), v.span().clone()),
                     )
                 })
                 .collect::<Vec<_>>(),
@@ -131,7 +131,7 @@ impl PreModel {
         fns: &IndexMap<String, Box<dyn RoocFunction>>,
     ) -> IndexMap<u32, TypedToken> {
         let mut context = TypeCheckerContext::default();
-        let domain = self.get_static_domain();
+        let domain = self.static_domain();
         let std = make_std();
         let fn_context = FunctionContext::new(fns, &std);
         context.set_static_domain(domain);
@@ -215,7 +215,7 @@ pub fn js_value_to_fns_map(fns: Vec<JsFunction>) -> IndexMap<String, Box<dyn Roo
     fns.into_iter()
         .map(|f| {
             (
-                f.get_function_name().clone(),
+                f.function_name().clone(),
                 Box::new(f) as Box<dyn RoocFunction>,
             )
         })
@@ -264,26 +264,26 @@ impl TransformErrorWrapper {
     pub fn get_trace(&self) -> JsValue {
         let a = self
             .error
-            .get_trace()
+            .trace()
             .into_iter()
             .map(|(e, _)| e)
             .collect::<Vec<_>>();
         serde_wasm_bindgen::to_value(&a).unwrap()
     }
-    pub fn get_origin_span(&self) -> Option<InputSpan> {
-        self.error.get_origin_span()
+    pub fn origin_span(&self) -> Option<InputSpan> {
+        self.error.origin_span()
     }
-    pub fn get_base_error(&self) -> JsValue {
-        serde_wasm_bindgen::to_value(&self.error.get_base_error()).unwrap()
+    pub fn base_error(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self.error.base_error()).unwrap()
     }
     pub fn stringify_base_error(&self) -> String {
-        self.error.get_base_error().to_string()
+        self.error.base_error().to_string()
     }
-    pub fn get_traced_error(&self) -> String {
-        self.error.get_traced_error()
+    pub fn traced_error(&self) -> String {
+        self.error.traced_error()
     }
-    pub fn get_error_from_source(&self, source: &str) -> Result<String, String> {
-        self.error.get_trace_from_source(source)
+    pub fn error_from_source(&self, source: &str) -> Result<String, String> {
+        self.error.trace_from_source(source)
     }
     pub fn serialize_wasm(&self) -> JsValue {
         serde_wasm_bindgen::to_value(&self.error).unwrap()

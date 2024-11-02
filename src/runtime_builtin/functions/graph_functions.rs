@@ -34,11 +34,11 @@ impl RoocFunction for EdgesOfGraphFn {
         }
     }
 
-    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
         vec![("of_graph".to_string(), PrimitiveKind::Graph)]
     }
 
-    fn get_return_type(
+    fn return_type(
         &self,
         _args: &[PreExp],
         _context: &TypeCheckerContext,
@@ -47,7 +47,7 @@ impl RoocFunction for EdgesOfGraphFn {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphEdge))
     }
 
-    fn get_function_name(&self) -> String {
+    fn function_name(&self) -> String {
         "edges".to_string()
     }
 
@@ -57,7 +57,7 @@ impl RoocFunction for EdgesOfGraphFn {
         context: &mut TypeCheckerContext,
         fn_context: &FunctionContext,
     ) -> Result<(), TransformError> {
-        default_type_check(args, &self.get_type_signature(), context, fn_context)
+        default_type_check(args, &self.type_signature(), context, fn_context)
     }
 }
 
@@ -83,11 +83,11 @@ impl RoocFunction for NodesOfGraphFn {
         }
     }
 
-    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
         vec![("of_graph".to_string(), PrimitiveKind::Graph)]
     }
 
-    fn get_return_type(
+    fn return_type(
         &self,
         _args: &[PreExp],
         _context: &TypeCheckerContext,
@@ -96,7 +96,7 @@ impl RoocFunction for NodesOfGraphFn {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphNode))
     }
 
-    fn get_function_name(&self) -> String {
+    fn function_name(&self) -> String {
         "nodes".to_string()
     }
 
@@ -106,7 +106,7 @@ impl RoocFunction for NodesOfGraphFn {
         context: &mut TypeCheckerContext,
         fn_context: &FunctionContext,
     ) -> Result<(), TransformError> {
-        default_type_check(args, &self.get_type_signature(), context, fn_context)
+        default_type_check(args, &self.type_signature(), context, fn_context)
     }
 }
 
@@ -128,11 +128,11 @@ impl RoocFunction for NeighbourOfNodeFn {
         }
     }
 
-    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
         vec![("of_node".to_string(), PrimitiveKind::GraphNode)]
     }
 
-    fn get_return_type(
+    fn return_type(
         &self,
         _args: &[PreExp],
         _context: &TypeCheckerContext,
@@ -141,7 +141,7 @@ impl RoocFunction for NeighbourOfNodeFn {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphEdge))
     }
 
-    fn get_function_name(&self) -> String {
+    fn function_name(&self) -> String {
         "neigh_edges".to_string()
     }
 
@@ -151,7 +151,7 @@ impl RoocFunction for NeighbourOfNodeFn {
         context: &mut TypeCheckerContext,
         fn_context: &FunctionContext,
     ) -> Result<(), TransformError> {
-        default_type_check(args, &self.get_type_signature(), context, fn_context)
+        default_type_check(args, &self.type_signature(), context, fn_context)
     }
 }
 
@@ -175,14 +175,14 @@ impl RoocFunction for NeighboursOfNodeInGraphFn {
         }
     }
 
-    fn get_type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
         vec![
             ("of_node_name".to_string(), PrimitiveKind::String),
             ("in_graph".to_string(), PrimitiveKind::Graph),
         ]
     }
 
-    fn get_return_type(
+    fn return_type(
         &self,
         _args: &[PreExp],
         _context: &TypeCheckerContext,
@@ -191,7 +191,7 @@ impl RoocFunction for NeighboursOfNodeInGraphFn {
         PrimitiveKind::Iterable(Box::new(PrimitiveKind::GraphEdge))
     }
 
-    fn get_function_name(&self) -> String {
+    fn function_name(&self) -> String {
         "neigh_edges_of".to_string()
     }
 
@@ -207,13 +207,13 @@ impl RoocFunction for NeighboursOfNodeInGraphFn {
                     Err(TransformError::from_wrong_type(
                         PrimitiveKind::String,
                         of_node.get_type(context, fn_context),
-                        of_node.get_span().clone(),
+                        of_node.span().clone(),
                     ))
                 } else if !matches!(in_graph.get_type(context, fn_context), PrimitiveKind::Graph) {
                     Err(TransformError::from_wrong_type(
                         PrimitiveKind::Graph,
                         in_graph.get_type(context, fn_context),
-                        in_graph.get_span().clone(),
+                        in_graph.span().clone(),
                     ))
                 } else {
                     Ok(())

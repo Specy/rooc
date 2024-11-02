@@ -14,7 +14,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .into_iter()
                 .map(|v| match v {
                     Primitive::Boolean(b) => Ok(b),
-                    _ => Err(format!("Expected Boolean but got {}", v.get_type_string())),
+                    _ => Err(format!("Expected Boolean but got {}", v.type_string())),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Primitive::Iterable(IterableKind::Booleans(values)))
@@ -24,7 +24,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .into_iter()
                 .map(|v| match v {
                     Primitive::Number(n) => Ok(n),
-                    _ => Err(format!("Expected Number, got \"{}\"", v.get_type_string(),)),
+                    _ => Err(format!("Expected Number, got \"{}\"", v.type_string(),)),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Primitive::Iterable(IterableKind::Numbers(values)))
@@ -34,7 +34,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .into_iter()
                 .map(|v| match v {
                     Primitive::Integer(i) => Ok(i),
-                    _ => Err(format!("Expected Integer but got {}", v.get_type_string())),
+                    _ => Err(format!("Expected Integer but got {}", v.type_string())),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Primitive::Iterable(IterableKind::Integers(values)))
@@ -46,7 +46,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     Primitive::PositiveInteger(i) => Ok(i),
                     _ => Err(format!(
                         "Expected PositiveInteger but got {}",
-                        v.get_type_string()
+                        v.type_string()
                     )),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
@@ -57,7 +57,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .into_iter()
                 .map(|v| match v {
                     Primitive::String(s) => Ok(s),
-                    _ => Err(format!("Expected String but got {}", v.get_type_string())),
+                    _ => Err(format!("Expected String but got {}", v.type_string())),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Primitive::Iterable(IterableKind::Strings(values)))
@@ -69,7 +69,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     Primitive::GraphEdge(e) => Ok(e),
                     _ => Err(format!(
                         "Expected GraphEdge but got {}",
-                        v.get_type_string()
+                        v.type_string()
                     )),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
@@ -82,7 +82,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                     Primitive::GraphNode(n) => Ok(n),
                     _ => Err(format!(
                         "Expected GraphNode but got {}",
-                        v.get_type_string()
+                        v.type_string()
                     )),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
@@ -93,7 +93,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .into_iter()
                 .map(|v| match v {
                     Primitive::Tuple(t) => Ok(t),
-                    _ => Err(format!("Expected Tuple but got {}", v.get_type_string())),
+                    _ => Err(format!("Expected Tuple but got {}", v.type_string())),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Primitive::Iterable(IterableKind::Tuples(values)))
@@ -103,7 +103,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .into_iter()
                 .map(|v| match v {
                     Primitive::Iterable(i) => Ok(i),
-                    _ => Err(format!("Expected Iterable but got {}", v.get_type_string())),
+                    _ => Err(format!("Expected Iterable but got {}", v.type_string())),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Primitive::Iterable(IterableKind::Iterables(values)))
@@ -114,7 +114,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .into_iter()
                 .map(|v| match v {
                     Primitive::Graph(g) => Ok(g),
-                    _ => Err(format!("Expected Graph but got {}", v.get_type_string())),
+                    _ => Err(format!("Expected Graph but got {}", v.type_string())),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Primitive::Iterable(IterableKind::Graphs(values)))

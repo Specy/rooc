@@ -20,20 +20,20 @@ impl OptimalTableau {
         }
     }
 
-    pub fn get_variables_values(&self) -> &Vec<f64> {
+    pub fn variables_values(&self) -> &Vec<f64> {
         &self.values
     }
-    pub fn get_optimal_value(&self) -> f64 {
+    pub fn optimal_value(&self) -> f64 {
         let flip = if self.flip_result { -1.0 } else { 1.0 };
-        ((self.tableau.get_current_value() + self.tableau.get_value_offset()) * -1.0) * flip
+        ((self.tableau.current_value() + self.tableau.value_offset()) * -1.0) * flip
     }
-    pub fn get_tableau(&self) -> &Tableau {
+    pub fn tableau(&self) -> &Tableau {
         &self.tableau
     }
 
     pub fn as_lp_solution(&self) -> LpSolution<f64> {
-        let values = self.get_variables_values().clone();
-        let value = self.get_optimal_value();
+        let values = self.variables_values().clone();
+        let value = self.optimal_value();
         let assignment = self
             .tableau
             .wasm_get_variables()
@@ -54,7 +54,7 @@ impl OptimalTableau {
         self.values.clone()
     }
     pub fn wasm_get_optimal_value(&self) -> f64 {
-        self.get_optimal_value()
+        self.optimal_value()
     }
     pub fn wasm_get_tableau(&self) -> Tableau {
         self.tableau.clone()
@@ -68,7 +68,7 @@ impl Display for OptimalTableau {
             f,
             "{}\n\nOptimal Value: {}",
             tableau,
-            self.get_optimal_value(),
+            self.optimal_value(),
         )
     }
 }
@@ -116,10 +116,10 @@ impl OptimalTableauWithSteps {
     pub fn new(result: OptimalTableau, steps: Vec<SimplexStep>) -> OptimalTableauWithSteps {
         OptimalTableauWithSteps { result, steps }
     }
-    pub fn get_result(&self) -> &OptimalTableau {
+    pub fn result(&self) -> &OptimalTableau {
         &self.result
     }
-    pub fn get_steps(&self) -> &Vec<SimplexStep> {
+    pub fn steps(&self) -> &Vec<SimplexStep> {
         &self.steps
     }
 }
