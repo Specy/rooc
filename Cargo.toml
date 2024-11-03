@@ -4,7 +4,7 @@ authors = ["Specy <specy.dev@gmail.com>"]
 homepage = "https://rooc.specy.dev"
 repository = "https://github.com/specy/rooc"
 documentation = "https://rooc.specy.dev/docs"
-description = "An optimization language to write and solve linear optimization models"
+description = "A modeling language to write and solve linear optimization models"
 keywords = ["optimization", "DSL", "solver", "mathematics", "linear-programming"]
 categories = ["mathematics", "algorithms", "science", "api-bindings", "data-structures"]
 version = "0.1.0"
@@ -24,7 +24,7 @@ pest_derive = { version = "2.7.14", features = ["grammar-extras"] }
 lazy_static = "1.5.0"
 copper = "0.1.0"
 indexmap = {version =  "2.6.0", features = ["serde"] }
-good_lp = { version = "1.8.1", git = "https://github.com/specy/good_lp", branch = "main", features = ["clarabel-wasm"], default-features = false }
+good_lp = { version = "1.9.0", features = ["clarabel-wasm"], default-features = false }
 microlp = "0.2.4"
 
 [target.'cfg(target_family = "wasm")'.dependencies]
