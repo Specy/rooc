@@ -4,8 +4,8 @@ use core::fmt;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use std::str::FromStr;
-use wasm_bindgen::prelude::*;
-
+#[allow(unused_imports)]
+use crate::prelude::*;
 use crate::enum_with_variants_to_string;
 use crate::parser::il::PreExp;
 use crate::parser::model_transformer::TransformError;
@@ -323,7 +323,9 @@ pub enum VariableType {
     Real,
     IntegerRange(i32, i32),
 }
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IVariablesDomainDeclaration: &'static str = r#"
 export type VariableType = {
     type: "Boolean" | "NonNegativeReal" | "Real"

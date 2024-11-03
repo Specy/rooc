@@ -1,8 +1,8 @@
 use num_traits::Zero;
 use std::fmt::Display;
 
-use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::JsValue;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::math::{float_gt, float_lt, float_ne};
 use crate::solvers::SolverError;
@@ -12,13 +12,14 @@ use crate::transformers::standardizer::to_standard_form;
 use crate::utils::remove_many;
 
 #[derive(Debug, Clone)]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct EqualityConstraint {
     coefficients: Vec<f64>,
     rhs: f64,
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl EqualityConstraint {
     pub fn wasm_get_coefficients(&self) -> Vec<f64> {
         self.coefficients.clone()
@@ -224,7 +225,7 @@ impl EqualityConstraint {
 }
 
 #[derive(Debug, Clone)]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct StandardLinearModel {
     variables: Vec<String>,
     objective_offset: f64,
@@ -354,7 +355,8 @@ impl StandardLinearModel {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl StandardLinearModel {
     pub fn wasm_get_objective(&self) -> Vec<f64> {
         self.objective.clone()

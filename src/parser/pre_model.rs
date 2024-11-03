@@ -4,7 +4,8 @@ use pest::iterators::Pair;
 use pest::Parser;
 use serde::Serialize;
 use std::fmt::Debug;
-use wasm_bindgen::prelude::*;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::bail_missing_token;
 use crate::math::PreVariableType;
@@ -13,7 +14,9 @@ use crate::parser::model_transformer::assert_no_duplicates_in_domain;
 use crate::parser::model_transformer::TransformError;
 use crate::parser::model_transformer::{transform_parsed_problem, Model};
 use crate::primitives::Constant;
-use crate::runtime_builtin::{make_std, JsFunction, RoocFunction};
+use crate::runtime_builtin::{make_std, RoocFunction};
+#[cfg(target_arch = "wasm32")]
+use crate::runtime_builtin::JsFunction;
 use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, TypedToken,
@@ -29,7 +32,7 @@ use super::rules_parser::{
 #[grammar = "parser/grammar.pest"]
 struct PLParser;
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[derive(Debug, Serialize, Clone)]
 pub struct PreModel {
     source: Option<String>,
@@ -39,7 +42,9 @@ pub struct PreModel {
     domains: Vec<VariablesDomainDeclaration>,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IPreProblem: &'static str = r#"
 export type SerializedPreModel = {
     objective: SerializedPreObjective,
@@ -211,6 +216,7 @@ impl ToLatex for PreModel {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 pub fn js_value_to_fns_map(fns: Vec<JsFunction>) -> IndexMap<String, Box<dyn RoocFunction>> {
     fns.into_iter()
         .map(|f| {
@@ -222,7 +228,8 @@ pub fn js_value_to_fns_map(fns: Vec<JsFunction>) -> IndexMap<String, Box<dyn Roo
         .collect()
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl PreModel {
     pub fn transform_wasm(self, fns: Vec<JsFunction>) -> Result<Model, TransformErrorWrapper> {
         let fns = js_value_to_fns_map(fns);
@@ -254,12 +261,14 @@ impl PreModel {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 pub struct TransformErrorWrapper {
     error: TransformError,
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl TransformErrorWrapper {
     pub fn get_trace(&self) -> JsValue {
         let a = self

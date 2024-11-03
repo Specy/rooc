@@ -1,7 +1,8 @@
 use core::fmt;
 use indexmap::IndexMap;
 use serde::Serialize;
-use wasm_bindgen::prelude::*;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::math::{BinOp, UnOp};
 use crate::math::{Comparison, OptimizationType};
@@ -27,7 +28,9 @@ pub enum Exp {
     UnOp(UnOp, Box<Exp>),
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 pub const IExp: &'static str = r#"
 export type SerializedExp = {
     type: "Number",
@@ -309,7 +312,9 @@ pub struct Objective {
     pub rhs: Exp,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 pub const IObjective: &'static str = r#"
 export type SerializedObjective = {
     objective_type: OptimizationType,
@@ -339,7 +344,9 @@ pub struct Constraint {
     rhs: Exp,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 pub const ICondition: &'static str = r#"
 export type SerializedCondition = {
     lhs: SerializedExp,
@@ -368,14 +375,16 @@ impl fmt::Display for Constraint {
 }
 
 #[derive(Debug, Serialize, Clone)]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct Model {
     objective: Objective,
     constraints: Vec<Constraint>,
     domain: IndexMap<String, DomainVariable>,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 pub const IModel: &'static str = r#"
 export type SerializedModel = {
     objective: SerializedObjective,
@@ -425,7 +434,8 @@ impl fmt::Display for Model {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl Model {
     pub fn to_string_wasm(&self) -> String {
         self.to_string()
@@ -468,7 +478,9 @@ pub enum VariableKind {
     Tuple(Vec<Spanned<String>>),
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 pub const IVariableType: &'static str = r#"
 export type SerializedVariableKind = {
     type: "Single",

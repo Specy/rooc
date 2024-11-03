@@ -29,7 +29,7 @@ import {
     WasmPipeRunner
 } from './pkg/rooc.js'
 import {Err, Ok, Result} from 'ts-results-es'
-import {ExtractArgTypes, ExtractReturnArgs, PrimitiveKind} from "./runtime";
+import {ExtractArgTypes, ExtractReturnArgs} from "./runtime";
 
 
 export type ReturnCallback<T extends [string, SerializedPrimitiveKind][]> = ((args: ExtractReturnArgs<T>, staticArgs: ExtractArgTypes<T>) => SerializedPrimitiveKind)
@@ -773,28 +773,28 @@ export class TransformError {
      * @param source
      */
     getMessageFromSource(source: string): string {
-        return this.instance.get_error_from_source(source)
+        return this.instance.error_from_source(source)
     }
 
     /**
      * Converts the error to a string, including the stack trace
      */
     getTracedError(): string {
-        return this.instance.get_traced_error()
+        return this.instance.traced_error()
     }
 
     /**
      * Get the span of the original error, if available
      */
     getOriginSpan(): InputSpan | undefined {
-        return this.instance.get_origin_span()
+        return this.instance.origin_span()
     }
 
     /**
      * Get the base error of the transform error
      */
     getBaseError(): SerializedTransformError {
-        return this.instance.get_base_error()
+        return this.instance.base_error()
     }
 
     /**
@@ -811,13 +811,13 @@ export class TransformError {
         try {
             if (this.source) {
                 try {
-                    return this.instance.get_error_from_source(this.source);
+                    return this.instance.error_from_source(this.source);
                 } catch (e) {
                     console.error(`Error while getting error from source`, e, this.source, this.getOriginSpan())
-                    return this.instance.get_traced_error()
+                    return this.instance.traced_error()
                 }
             } else {
-                return this.instance.get_traced_error();
+                return this.instance.traced_error();
             }
         } catch (e) {
             console.error(e)

@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use indexmap::IndexMap;
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::parser::model_transformer::Model;
 use crate::parser::model_transformer::TransformError;
@@ -145,7 +146,7 @@ impl Display for PipeableData {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[derive(Debug)]
 pub enum PipeDataType {
     String,

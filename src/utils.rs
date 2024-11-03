@@ -3,13 +3,13 @@ use std::{fmt::Debug, ops::Deref, ops::DerefMut};
 
 use pest::{iterators::Pair, Span};
 use serde::{Deserialize, Serialize};
-use serde_wasm_bindgen::Serializer;
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::parser::pre_model::Rule;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct InputSpan {
     //as u32 as realistically we won't have more than 4 billion characters in a file
     pub start_line: u32,
@@ -89,7 +89,9 @@ impl<T: Debug + Serialize> Spanned<T> {
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 pub const ISpanned: &'static str = r#"
 export type SerializedSpanned<T> = {
     value: T,
@@ -116,7 +118,7 @@ impl<T: Debug + Serialize> Deref for Spanned<T> {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[derive(Serialize)]
 pub struct CompilationError {
     kind: Box<ParseError>,
@@ -124,7 +126,9 @@ pub struct CompilationError {
     text: String,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 pub const ICompilationError: &'static str = r#"
 export type SerializedCompilationError = {
     kind: ParseError,
@@ -174,7 +178,8 @@ impl std::fmt::Debug for CompilationError {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl CompilationError {
     pub fn to_error_string_wasm(&self) -> String {
         self.to_error_string()
@@ -201,7 +206,9 @@ pub enum ParseError {
     SemanticError(String),
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 pub const IParseError: &'static str = r#"
 export type ParseError = {
     type: "UnexpectedToken",
@@ -242,6 +249,7 @@ pub fn remove_many<T>(vec: &mut Vec<T>, indices: &[usize]) {
     });
 }
 
+#[cfg(target_arch = "wasm32")]
 pub fn serialize_json_compatible<T>(obj: &T) -> Result<JsValue, serde_wasm_bindgen::Error>
 where
     T: Serialize

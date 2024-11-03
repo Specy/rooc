@@ -1,6 +1,7 @@
 use core::fmt;
 use serde::Serialize;
-use wasm_bindgen::prelude::*;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::iterable_set::IterableSet;
@@ -21,7 +22,9 @@ pub struct AddressableAccess {
     pub accesses: Vec<PreExp>,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IAddressableAccess: &'static str = r#"
 export type SerializedAddressableAccess = {
     name: string,
@@ -65,7 +68,9 @@ pub struct CompoundVariable {
     pub indexes: Vec<PreExp>,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const ICompoundVariable: &'static str = r#"
 export type SerializedCompoundVariable = {
     name: string,
@@ -149,7 +154,9 @@ impl ToLatex for PreObjective {
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IPreObjective: &'static str = r#"
 export type SerializedPreObjective = {
     objective_type: OptimizationType,
@@ -198,7 +205,9 @@ pub struct PreConstraint {
     pub span: InputSpan,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IPreCondition: &'static str = r#"
 export type SerializedPreConstraint = {
     lhs: SerializedPreExp,

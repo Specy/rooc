@@ -1,7 +1,8 @@
 use core::fmt;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::math::{BinOp, UnOp};
 use crate::parser::model_transformer::TransformError;
@@ -19,7 +20,9 @@ pub struct GraphEdge {
     pub weight: Option<f64>,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IGraphEdge: &'static str = r#"
 export type SerializedGraphEdge = {
     from: string,
@@ -60,7 +63,9 @@ pub struct GraphNode {
     edges: IndexMap<String, GraphEdge>,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IGraphNode: &'static str = r#"
 export type SerializedGraphNode = {
     name: string,
@@ -120,7 +125,9 @@ pub struct Graph {
     vertices: Vec<GraphNode>,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IGraph: &'static str = r#"
 export type SerializedGraph = {
     vertices: SerializedGraphNode[]

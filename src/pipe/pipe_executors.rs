@@ -5,9 +5,10 @@ use crate::solvers::{solve_binary_lp_problem, solve_integer_binary_lp_problem, s
 use crate::transformers::Linearizer;
 use crate::RoocParser;
 use crate::runtime_builtin::RoocFunction;
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub enum Pipes {
     CompilerPipe,
     PreModelPipe,

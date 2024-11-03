@@ -2,7 +2,8 @@ use std::{collections::HashMap, fmt::Display};
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::parser::il::{BlockFunctionKind, BlockScopedFunctionKind};
 use crate::parser::model_transformer::TransformError;
@@ -17,7 +18,9 @@ pub enum TokenType {
     Type,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const TOKEN_TYPE: &'static str = r#"
 export type SerializedTokenType = "Function" | "Literal" | "Variable" | "Keyword" | "Type";
 "#;

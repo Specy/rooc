@@ -1,7 +1,8 @@
 use std::fmt::Display;
 
 use serde::Serialize;
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use super::recursive_set_resolver::recursive_set_resolver;
 use crate::math::PreVariableType;
@@ -59,7 +60,9 @@ impl ToLatex for VariableToAssert {
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IVariableToAssert: &str = r#"
 export type SerializedVariableToAssert = {
     type: "Variable",
@@ -78,7 +81,9 @@ pub struct VariablesDomainDeclaration {
     span: InputSpan,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IVariablesDomainDeclaration: &'static str = r#"
 export type SerializedVariablesDomainDeclaration = {
     variables: SerializedSpanned<SerializedVariableToAssert>[],

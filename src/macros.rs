@@ -110,7 +110,7 @@ macro_rules! enum_with_variants_to_string {
     ($vis:vis enum $name:ident derives[$($derive:tt)+] with_wasm { $($variant:ident),* $(,)? }) => {
         #[derive($($derive)*, Serialize)]
         #[serde(tag = "type")]
-        #[wasm_bindgen]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
         $vis enum $name {
             $($variant),*
         }

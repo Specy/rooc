@@ -1,6 +1,7 @@
 use indexmap::IndexMap;
 use serde::Serialize;
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::math::VariableType;
 use crate::parser::domain_declaration::VariablesDomainDeclaration;
@@ -70,7 +71,9 @@ pub struct DomainVariable {
     span: InputSpan,
     usage_count: usize,
 }
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 pub const IModel: &'static str = r#"
 export interface DomainVariable {
     as_type: VariableType;

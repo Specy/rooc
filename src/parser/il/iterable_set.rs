@@ -1,7 +1,8 @@
 use core::fmt;
 
 use serde::Serialize;
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::model_transformer::TransformError;
@@ -20,7 +21,9 @@ pub struct IterableSet {
     pub span: InputSpan,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IIterableSet: &'static str = r#"
 export type SerializedIterableSet = {
     var: SerializedVariableKind,

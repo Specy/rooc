@@ -1,7 +1,8 @@
 use indexmap::IndexMap;
 use num_traits::Zero;
 use std::fmt::Display;
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::math::float_lt;
 use crate::parser::model_transformer::DomainVariable;
@@ -14,7 +15,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct LinearConstraint {
     coefficients: Vec<f64>,
     rhs: f64,
@@ -52,7 +53,8 @@ impl LinearConstraint {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl LinearConstraint {
     pub fn wasm_get_coefficients(&self) -> Vec<f64> {
         self.coefficients.clone()
@@ -66,7 +68,7 @@ impl LinearConstraint {
 }
 
 #[derive(Debug, Clone)]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct LinearModel {
     variables: Vec<String>,
     domain: IndexMap<String, DomainVariable>,
@@ -198,7 +200,8 @@ impl Display for LinearModel {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl LinearModel {
     pub fn wasm_get_objective(&self) -> Vec<f64> {
         self.objective.clone()

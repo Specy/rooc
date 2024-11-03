@@ -1,10 +1,11 @@
 use crate::solvers::{LpSolution, Tableau};
 use core::fmt;
 use std::fmt::Display;
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 #[derive(Debug, Clone)]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct OptimalTableau {
     flip_result: bool,
     values: Vec<f64>,
@@ -36,7 +37,7 @@ impl OptimalTableau {
         let value = self.optimal_value();
         let assignment = self
             .tableau
-            .wasm_get_variables()
+            .variables()
             .iter()
             .zip(values.iter())
             .map(|(var, val)| crate::solvers::Assignment {
@@ -48,7 +49,8 @@ impl OptimalTableau {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl OptimalTableau {
     pub fn wasm_get_variables_values(&self) -> Vec<f64> {
         self.values.clone()
@@ -74,10 +76,13 @@ impl Display for OptimalTableau {
 }
 
 #[derive(Debug, Clone)]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct SimplexStep {
+    #[allow(unused)]
     tableau: Tableau,
+    #[allow(unused)]
     entering: usize,
+    #[allow(unused)]
     leaving: usize,
     #[allow(unused)]
     ratio: f64,
@@ -93,7 +98,8 @@ impl SimplexStep {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl SimplexStep {
     pub fn wasm_get_tableau(&self) -> Tableau {
         self.tableau.clone()
@@ -107,7 +113,7 @@ impl SimplexStep {
 }
 
 #[derive(Debug, Clone)]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct OptimalTableauWithSteps {
     result: OptimalTableau,
     steps: Vec<SimplexStep>,
@@ -124,7 +130,8 @@ impl OptimalTableauWithSteps {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl OptimalTableauWithSteps {
     pub fn wasm_get_result(&self) -> OptimalTableau {
         self.result.clone()

@@ -1,7 +1,8 @@
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::parser::model_transformer::TransformError;
 use crate::traits::ToLatex;
@@ -33,7 +34,9 @@ pub enum IterableKind {
     Anys(Vec<Primitive>)
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IIterableKind: &'static str = r#"
 export type SerializedIterable = 
     | { type: 'Numbers', value: number[] }

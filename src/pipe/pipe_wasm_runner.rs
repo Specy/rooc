@@ -1,28 +1,32 @@
-use crate::parser::model_transformer::Model;
-use crate::parser::pre_model::{js_value_to_fns_map, PreModel};
-use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::JsValue;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
-use crate::pipe::pipe_definitions::{PipeDataType, PipeError, Pipeable, PipeableData};
-use crate::pipe::pipe_executors::{
-    BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe, Pipes,
-    PreModelPipe, RealSolver, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe,
+#[allow(unused)]
+use {
+    crate::pipe::pipe_definitions::{PipeDataType, PipeError, Pipeable, PipeableData},
+    crate::pipe::pipe_executors::{
+        BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe, Pipes,
+        PreModelPipe, RealSolver, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe,
+    },
+    crate::parser::model_transformer::Model,
+    crate::pipe::pipe_runner::PipeRunner,
+    crate::solvers::{OptimalTableau, OptimalTableauWithSteps, Tableau},
+    crate::transformers::LinearModel,
+    crate::transformers::StandardLinearModel,
+    crate::RoocParser,
+    crate::parser::pre_model::PreModel
 };
-use crate::pipe::pipe_runner::PipeRunner;
-use crate::solvers::{OptimalTableau, OptimalTableauWithSteps, Tableau};
-use crate::transformers::LinearModel;
-use crate::transformers::StandardLinearModel;
-use crate::RoocParser;
+#[cfg(target_arch = "wasm32")]
 use crate::runtime_builtin::JsFunction;
 
-#[wasm_bindgen]
-#[allow(unused)]
+#[cfg(target_arch = "wasm32")]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 struct WasmPipeRunner {
     pipe: PipeRunner,
 }
 
-#[wasm_bindgen]
-#[allow(unused)]
+#[cfg(target_arch = "wasm32")]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 impl WasmPipeRunner {
     pub fn new_wasm(steps: Vec<Pipes>) -> Result<WasmPipeRunner, String> {
         let runners = steps
@@ -51,7 +55,7 @@ impl WasmPipeRunner {
     pub fn wasm_run_from_string(
         &self,
         data: String,
-        fns: Vec<JsFunction>
+        fns: Vec<JsFunction>,
     ) -> Result<Vec<WasmPipableData>, WasmPipeError> {
         let data = PipeableData::String(data);
         let fns = js_value_to_fns_map(fns);
@@ -66,19 +70,22 @@ impl WasmPipeRunner {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 pub struct WasmPipeError {
     error: PipeError,
     context: Vec<WasmPipableData>,
 }
 
+#[cfg(target_arch = "wasm32")]
 impl WasmPipeError {
     pub fn new(error: PipeError, context: Vec<WasmPipableData>) -> WasmPipeError {
         WasmPipeError { error, context }
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl WasmPipeError {
     pub fn wasm_get_error(&self) -> String {
         self.error.to_string()
@@ -91,23 +98,29 @@ impl WasmPipeError {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 #[derive(Debug, Clone)]
 pub struct WasmPipableData {
     data: PipeableData,
 }
+
+#[cfg(target_arch = "wasm32")]
 impl WasmPipableData {
     pub fn new(data: PipeableData) -> WasmPipableData {
         WasmPipableData { data }
     }
 }
+
+#[cfg(target_arch = "wasm32")]
 impl From<WasmPipableData> for PipeableData {
     fn from(data: WasmPipableData) -> Self {
         data.data
     }
 }
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[allow(clippy::wrong_self_convention)]
+#[cfg(target_arch = "wasm32")]
 impl WasmPipableData {
     pub fn wasm_get_type(&self) -> PipeDataType {
         self.data.get_type()
@@ -171,7 +184,7 @@ impl WasmPipableData {
             .map(|s| serde_wasm_bindgen::to_value(&s).unwrap())
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
-    
+
     pub fn to_real_solution(self) -> Result<JsValue, JsValue> {
         self.data
             .to_real_solution()

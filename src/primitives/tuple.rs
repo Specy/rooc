@@ -1,7 +1,8 @@
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::math::{BinOp, UnOp};
 use crate::parser::model_transformer::TransformError;
@@ -15,7 +16,9 @@ use super::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tuple(pub Vec<Primitive>);
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const ITuple: &'static str = r#"
 export type SerializedTuple = SerializedPrimitive[]
 "#;

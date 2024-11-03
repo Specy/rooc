@@ -1,6 +1,7 @@
 use indexmap::IndexMap;
 use serde::Serialize;
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::math::PreVariableType;
 use crate::parser::il::AddressableAccess;
@@ -32,14 +33,16 @@ pub trait WithType {
 }
 
 #[derive(Debug, Serialize)]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct TypedToken {
     span: InputSpan,
     value: PrimitiveKind,
     identifier: Option<String>,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const ITypedToken: &'static str = r#"
 export type SerializedTypedToken = {
     span: InputSpan,

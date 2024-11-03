@@ -8,11 +8,11 @@ use std::fmt::Display;
 use term_table::row::Row;
 use term_table::table_cell::TableCell;
 use term_table::Table;
-use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::JsValue;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 #[derive(Debug, Clone)]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct Tableau {
     flip_result: bool,
     variables: Vec<String>,
@@ -46,7 +46,8 @@ impl Display for Tableau {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl Tableau {
     pub fn wasm_get_variables(&self) -> Vec<String> {
         self.variables().to_owned()

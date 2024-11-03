@@ -3,7 +3,8 @@ use std::str::FromStr;
 
 #[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::enum_with_variants_to_string;
 use crate::traits::ToLatex;

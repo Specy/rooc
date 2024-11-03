@@ -1,7 +1,8 @@
 use std::fmt::Debug;
 
 use serde::Serialize;
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use super::function_traits::{
     default_type_check, default_wrong_number_of_arguments, default_wrong_type, RoocFunction,
@@ -61,9 +62,8 @@ impl RoocFunction for EdgesOfGraphFn {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[derive(Debug, Serialize, Clone)]
-
 pub struct NodesOfGraphFn {}
 
 impl RoocFunction for NodesOfGraphFn {

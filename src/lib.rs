@@ -4,14 +4,15 @@ extern crate pest;
 extern crate pest_derive;
 
 use indexmap::IndexMap;
-use wasm_bindgen::prelude::*;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use parser::pre_model::{parse_problem_source, PreModel};
 use utils::CompilationError;
 
 use crate::parser::model_transformer::{transform_parsed_problem, Model};
-use crate::parser::pre_model::js_value_to_fns_map;
-use crate::runtime_builtin::{JsFunction, RoocFunction};
+use crate::runtime_builtin::{RoocFunction};
+
 
 pub mod macros;
 pub mod math;
@@ -28,12 +29,21 @@ pub mod utils;
 
 mod prelude {
     #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen::prelude::*;
+    pub use {
+        wasm_bindgen::prelude::*,
+        wasm_bindgen::JsValue,
+        serde_wasm_bindgen::*,
+        crate::utils::serialize_json_compatible,
+        js_sys::Function,
+        crate::runtime_builtin::JsFunction,
+        crate::parser::pre_model::js_value_to_fns_map,
+        
+    };
 }
 
 
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[derive(Debug, Clone)]
 pub struct RoocParser {
     source: String,
@@ -78,7 +88,8 @@ impl RoocParser {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl RoocParser {
     pub fn new_wasm(source: String) -> Self {
         Self::new(source)

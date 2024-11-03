@@ -2,7 +2,8 @@ use core::fmt;
 use std::str::FromStr;
 
 use serde::{Serialize};
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::enum_with_variants_to_string;
 use crate::parser::il::il_exp::PreExp;
@@ -137,7 +138,9 @@ impl ToLatex for BlockScopedFunction {
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IBlockScopedFunction: &'static str = r#"
 export type SerializedBlockScopedFunction = {
     kind: BlockScopedFunctionKind,
@@ -178,7 +181,9 @@ pub struct BlockFunction {
     pub exps: Vec<PreExp>,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IBlockFunction: &'static str = r#"
 export type SerializedBlockFunction = {
     kind: BlockFunctionKind,

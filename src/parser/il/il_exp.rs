@@ -1,7 +1,8 @@
 use core::fmt;
 
 use serde::{Serialize};
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use crate::math::{BinOp, UnOp};
 use crate::parser::il::block_functions::{
@@ -37,7 +38,9 @@ pub enum PreExp {
     UnaryOperation(Spanned<UnOp>, Box<PreExp>),
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IPreExp: &'static str = r#"
 export type SerializedFunctionCall = {
     args: SerializedPreExp[],

@@ -2,7 +2,8 @@ use core::fmt;
 use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 use super::{
     graph::{Graph, GraphEdge, GraphNode},
@@ -50,7 +51,9 @@ impl PartialEq for Primitive {
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IPrimitive: &'static str = r#"
 export type SerializedPrimitive =
     | { type: 'Number', value: number }
@@ -83,7 +86,9 @@ pub enum PrimitiveKind {
     Any,
 }
 
-#[wasm_bindgen(typescript_custom_section)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
 const IPrimitiveKind: &'static str = r#"
 export type SerializedPrimitiveKind =
     | { type: 'Number' }

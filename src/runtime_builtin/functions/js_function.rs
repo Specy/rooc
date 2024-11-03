@@ -1,18 +1,23 @@
-use crate::parser::il::PreExp;
-use crate::parser::model_transformer::{TransformError, TransformerContext};
-use crate::primitives::{Primitive, PrimitiveKind};
-use crate::runtime_builtin::{default_type_check, RoocFunction};
-use crate::type_checker::type_checker_context::{FunctionContext, TypeCheckerContext, WithType};
-use crate::utils::serialize_json_compatible;
-use js_sys::Function;
-use serde::Serialize;
-use wasm_bindgen::prelude::*;
+#[allow(unused)]
+use {
+    crate::parser::il::PreExp,
+    crate::parser::model_transformer::{TransformError, TransformerContext},
+    crate::primitives::{Primitive, PrimitiveKind},
+    crate::runtime_builtin::{default_type_check, RoocFunction},
+    crate::type_checker::type_checker_context::{FunctionContext, TypeCheckerContext, WithType},
+    serde::Serialize,
+};
+
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 #[derive(Serialize)]
+#[cfg(target_arch = "wasm32")]
 pub enum JsFunctionRuntimeError {
     WrongType(String),
 }
 //TODO implement into
+#[cfg(target_arch = "wasm32")]
 impl JsFunctionRuntimeError {
     pub fn into_js_value(self) -> JsValue {
         serde_wasm_bindgen::to_value(&self).unwrap_or(JsValue::NULL)
@@ -20,12 +25,14 @@ impl JsFunctionRuntimeError {
 }
 
 #[derive(Debug, Clone)]
+#[cfg(target_arch = "wasm32")]
 enum ReturnType {
     Primitive(PrimitiveKind),
     Function(Function),
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 #[derive(Debug, Clone)]
 pub struct JsFunction {
     js_function: Function,
@@ -35,7 +42,8 @@ pub struct JsFunction {
     type_checker: Option<Function>,
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl JsFunction {
     pub fn clone_wasm(&self) -> JsFunction {
         self.clone()
@@ -94,6 +102,7 @@ impl JsFunction {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 impl RoocFunction for JsFunction {
     fn call(
         &self,
