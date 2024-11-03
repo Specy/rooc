@@ -4,6 +4,9 @@
   <p><strong>Mathematical models compiler</strong></p>
 </div>
 
+[![Crates.io](https://img.shields.io/crates/v/rooc.svg)](https://crates.io/crates/rooc)
+[![npm](https://img.shields.io/npm/v/@specy/rooc.svg)](https://www.npmjs.com/package/@specy/rooc)
+
 [Go to the language documentation](https://rooc.specy.app/docs/rooc)
 
 [Go to the library documentation](https://rooc.specy.app/docs/lib)

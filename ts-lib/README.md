@@ -1,14 +1,17 @@
 # ROOC
+An optimization modeling language and solver
+
 <img src='https://github.com/Specy/rooc/blob/main/logo-original.png' width='156px'/>
 
 [Go to the library documentation](https://rooc.specy.app/docs/lib)
+
 [Go to the language documentation ](https://rooc.specy.app/docs/rooc)
 
 
 
 
 # What it is
-**ROOC** is a compiler designed to parse and convert formal optimization models into static formulations. These static formulations can be transformed into linear models which can then be solved using optimization techniques. 
+**ROOC** is a modeling language meant to parse and convert formal optimization models into static formulations. These static formulations can be transformed into linear models which can then be solved using optimization techniques. 
 
 The language provides support for defining formal models, including functions, constants, arrays, graphs, tuples, etc... It also includes built-in utility functions for iterating over graphs, edges, arrays, ranges, and more.
 
