@@ -1,11 +1,13 @@
-use std::fmt::Display;
-use indexmap::IndexMap;
 #[allow(unused_imports)]
 use crate::prelude::*;
+use indexmap::IndexMap;
+use std::fmt::{write, Display};
 
 use crate::parser::model_transformer::Model;
 use crate::parser::model_transformer::TransformError;
 use crate::parser::pre_model::PreModel;
+use crate::primitives::Constant;
+use crate::runtime_builtin::RoocFunction;
 use crate::solvers::VarValue;
 use crate::solvers::{
     CanonicalTransformError, OptimalTableau, OptimalTableauWithSteps, SimplexError, Tableau,
@@ -16,7 +18,6 @@ use crate::transformers::LinearizationError;
 use crate::transformers::StandardLinearModel;
 use crate::utils::CompilationError;
 use crate::{match_pipe_data_to, RoocParser};
-use crate::runtime_builtin::RoocFunction;
 
 #[derive(Debug, Clone)]
 pub enum PipeableData {
@@ -139,9 +140,9 @@ impl Display for PipeableData {
             PipeableData::Tableau(t) => write!(f, "{}", t),
             PipeableData::OptimalTableau(t) => write!(f, "{}", t),
             PipeableData::OptimalTableauWithSteps(t) => write!(f, "{:?}", t),
-            PipeableData::BinarySolution(s) => write!(f, "{:?}", s),
-            PipeableData::IntegerBinarySolution(s) => write!(f, "{:?}", s),
-            PipeableData::RealSolution(s) => write!(f, "{:?}", s),
+            PipeableData::BinarySolution(s) => write!(f, "{}", s),
+            PipeableData::IntegerBinarySolution(s) => write!(f, "{}", s),
+            PipeableData::RealSolution(s) => write!(f, "{}", s),
         }
     }
 }
@@ -204,6 +205,7 @@ pub enum PipeError {
     StepByStepSimplexError(SimplexError, Tableau),
     IntegerBinarySolverError(SolverError),
     RealSolverError(SolverError),
+    Other(String),
 }
 impl Display for PipeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -216,15 +218,14 @@ impl Display for PipeError {
                     expected, got
                 )
             }
+            PipeError::Other(s) => write!(f, "{}", s),
             PipeError::CompilationError { error, source } => {
                 write!(f, "{}", error.to_string_from_source(source))
             }
-            PipeError::TransformError { error, source } => {
-                match error.trace_from_source(source) {
-                    Ok(trace) => write!(f, "{}", trace),
-                    Err(_) => write!(f, "{}", error.traced_error()),
-                }
-            }
+            PipeError::TransformError { error, source } => match error.trace_from_source(source) {
+                Ok(trace) => write!(f, "{}", trace),
+                Err(_) => write!(f, "{}", error.traced_error()),
+            },
             PipeError::LinearizationError(e) => write!(f, "{}", e),
             PipeError::StandardizationError(e) => write!(f, "{}", e),
             PipeError::CanonicalizationError(e) => write!(f, "{}", e),
@@ -235,7 +236,33 @@ impl Display for PipeError {
     }
 }
 
+pub struct PipeContext<'a> {
+    functions: &'a IndexMap<String, Box<dyn RoocFunction>>,
+    constants: Vec<Constant>,
+}
+impl PipeContext<'_> {
+    pub fn new(
+        constants: Vec<Constant>,
+        fns: &IndexMap<String, Box<dyn RoocFunction>>,
+    ) -> PipeContext {
+        PipeContext {
+            constants,
+            functions: fns,
+        }
+    }
+    pub fn constants(&self) -> &Vec<Constant> {
+        &self.constants
+    }
+    pub fn functions(&self) -> &IndexMap<String, Box<dyn RoocFunction>> {
+        &self.functions
+    }
+}
+
 pub trait Pipeable {
     #[allow(clippy::result_large_err)]
-    fn pipe(&self, data: &mut PipeableData, fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<PipeableData, PipeError>;
+    fn pipe(
+        &self,
+        data: &mut PipeableData,
+        pipe_context: &PipeContext,
+    ) -> Result<PipeableData, PipeError>;
 }

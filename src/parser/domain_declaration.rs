@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
-use serde::Serialize;
 #[allow(unused_imports)]
 use crate::prelude::*;
+use serde::Serialize;
 
 use super::recursive_set_resolver::recursive_set_resolver;
 use crate::math::PreVariableType;
@@ -189,11 +189,7 @@ impl TypeCheckable for VariablesDomainDeclaration {
             context.add_scope();
             let types = iter.variable_types(context, fn_context)?;
             for (name, t) in types {
-                context.add_token_type(
-                    t,
-                    name.span().clone(),
-                    Some(name.value().clone()),
-                )?;
+                context.add_token_type(t, name.span().clone(), Some(name.value().clone()))?;
             }
         }
         for variable in &self.variables {

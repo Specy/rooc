@@ -8,12 +8,21 @@ use copper::*;
 use indexmap::IndexMap;
 use num_traits::ToPrimitive;
 use serde::Serialize;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, Serialize, Copy)]
 #[serde(tag = "type", content = "value")]
 pub enum VarValue {
     Bool(bool),
     Int(i32),
+}
+impl Display for VarValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            VarValue::Bool(b) => write!(f, "{}", if *b { "true" } else { "false" }),
+            VarValue::Int(i) => write!(f, "{}", i),
+        }
+    }
 }
 
 pub fn solve_integer_binary_lp_problem(
@@ -86,16 +95,14 @@ pub fn solve_integer_binary_lp_problem(
     };
     let vars = lp.variables();
     for (i, constraint) in lp.constraints().iter().enumerate() {
-        let lhs_binary = process_variables_binary(
-            constraint.coefficients().iter(),
-            vars_binary.iter(),
-            |i| binary_variables.get(&vars[i]).is_some(),
-        );
-        let lhs_integer = process_variables(
-            constraint.coefficients().iter(),
-            vars_integer.iter(),
-            |i| integer_variables.get(&vars[i]).is_some(),
-        );
+        let lhs_binary =
+            process_variables_binary(constraint.coefficients().iter(), vars_binary.iter(), |i| {
+                binary_variables.get(&vars[i]).is_some()
+            });
+        let lhs_integer =
+            process_variables(constraint.coefficients().iter(), vars_integer.iter(), |i| {
+                integer_variables.get(&vars[i]).is_some()
+            });
         if lhs_binary.is_none() || lhs_integer.is_none() {
             return Err(SolverError::TooLarge {
                 name: format!("variable in constraint {}", i + 1),
@@ -139,10 +146,9 @@ pub fn solve_integer_binary_lp_problem(
         process_variables_binary(lp.objective().iter(), vars_binary.iter(), |i| {
             binary_variables.get(&vars[i]).is_some()
         });
-    let objective_integer =
-        process_variables(lp.objective().iter(), vars_integer.iter(), |i| {
-            integer_variables.get(&vars[i]).is_some()
-        });
+    let objective_integer = process_variables(lp.objective().iter(), vars_integer.iter(), |i| {
+        integer_variables.get(&vars[i]).is_some()
+    });
     if objective_binary.is_none() || objective_integer.is_none() {
         return Err(SolverError::TooLarge {
             name: "objective function variable".to_string(),

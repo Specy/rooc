@@ -5,4 +5,3 @@ pub mod model_transformer;
 pub mod pre_model;
 pub mod recursive_set_resolver;
 pub mod rules_parser;
-pub mod tests;

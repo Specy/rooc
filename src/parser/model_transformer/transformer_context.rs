@@ -1,7 +1,7 @@
-use indexmap::IndexMap;
-use serde::Serialize;
 #[allow(unused_imports)]
 use crate::prelude::*;
+use indexmap::IndexMap;
+use serde::Serialize;
 
 use crate::math::VariableType;
 use crate::parser::domain_declaration::VariablesDomainDeclaration;

@@ -1,9 +1,13 @@
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen_test::*;
+
 #[cfg(test)]
 mod parser_tests {
     use indexmap::IndexMap;
-    use crate::RoocParser;
+    use rooc::RoocParser;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_parser_problems() {
         let input = "
 min sum(u in nodes(G)) { x_u }
@@ -27,14 +31,15 @@ define
     x_v as Boolean for v in nodes(G)
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_parser_variants1() {
         let input = "
         min 1
@@ -42,13 +47,14 @@ define
             1 >= 1
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
     }
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_should_allow_st_variant() {
         let input = "
         min 1
@@ -56,14 +62,15 @@ define
             1 >= 1
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_parser_variants2() {
         let input = "
         min 1
@@ -84,31 +91,33 @@ define
             }
     ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_parser_variants3() {
         let input = "
-            min 1 
+            min 1
             s.t.
                 1 + sum(el in R, i in 0..(el + 1)) { i } <= 1 for R in M
             where
                 let M = [[1, 2], [3, 4]]
             ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_parser_variants4() {
         let input = "
             min 1
@@ -124,14 +133,15 @@ define
                 let A = [1, 2, 3, 4]
             ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_prefix_operators() {
         let input = "
             min 1
@@ -144,25 +154,26 @@ define
                 x as Real
             ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_implicit_multiplication() {
         let input = "
         min 1
         s.t.
             10x >= 1
-            10(x + y) + 2 >= 1    
-            10|x + y| + 2>= 1      
+            10(x + y) + 2 >= 1
+            10|x + y| + 2>= 1
 
             (x + y)10 + 2 >= 1
             (x + y)(z - 2) + 2 >= 1
-            (x + y)|x + y| + 2 >= 1  
+            (x + y)|x + y| + 2 >= 1
             (x + y)z + 2 >= 1
 
             |x + y|10 + 2 >= 1
@@ -171,18 +182,19 @@ define
             |x + y|z + 2 >= 1
 
             2(x + y)3|x + y|z + 2 >= 1
-        define 
+        define
             x,y,z as Real
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_satisfiability() {
         let input = "
         solve
@@ -192,56 +204,60 @@ define
             x, y, z as Boolean
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_parser_errors1() {
         let input = "
             min 1
             s.t.
                 A >= 1
-            where 
+            where
                 let A = [1, 2, 3, 4]
             ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect_err("Failed to detect invalid primitive type");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_parser_errors2() {
         let input = "
             min 1
             s.t.
                 M >= M[i] for i in 0..len(M)
-            where 
+            where
                 let M = [[1, 2], [3, 4]]
             ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect_err("Failed to detect invalid primitive type");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_parser_errors3() {
         let input = "
             min 1
             s.t.
              S >= 1
-            where 
+            where
                 let S = \"Hello\"
             ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect_err("Failed to detect invalid primitive type");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_array_iteration() {
         let input = "
         min 1
@@ -254,19 +270,20 @@ define
         where
             let C = [
                 [1,0,0],
-                [0,1,0], 
+                [0,1,0],
                 [0,0,1]
             ]
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_graph_functions_call() {
         let input = "
         min 1
@@ -287,14 +304,15 @@ define
             x_u, x_v as Boolean for (u, v) in edges(G)
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_const_decl_1() {
         let input = "
         min 1
@@ -318,35 +336,37 @@ define
             x_i as Boolean for i in n
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_compound_variable() {
         let input = "
         min 1
-        s.t. 
+        s.t.
             x_u + x_{u + 1} + x_{len(c) + 2} <= x_1 + x_{-1}
-            
+
         where
             let c = [1, 2, 3, 4, 5]
             let u = 1
-        define 
+        define
             x_u, x_{u + 1}, x_{len(c) + 2}, x_1, x_{-1} as Boolean
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_no_const_keywords_1() {
         let input = "
         min 1
@@ -356,14 +376,15 @@ define
             let nodes = [1]
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect_err("Failed to detect invalid identifier name");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect_err("Failed to detect invalid identifier name");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_no_const_keywords_2() {
         let input = "
         min 1
@@ -373,14 +394,15 @@ define
             let a = [1]
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect_err("Failed to detect invalid identifier name");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect_err("Failed to detect invalid identifier name");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_no_const_keywords_3() {
         let input = "
         min 1
@@ -391,14 +413,15 @@ define
         ";
 
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect_err("Failed to detect invalid identifier name");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect_err("Failed to detect invalid identifier name");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_duplicate_domain() {
         let input = "
         min 1
@@ -409,11 +432,12 @@ define
             x_v as Boolean for v in 0..10
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect_err("Failed to detect duplicate domain");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_as_assertions() {
         let input = r"
         min 1
@@ -426,11 +450,12 @@ define
             x as IntegerRange(10, 20)
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_comments() {
         let input = "
         //aaaa
@@ -451,14 +476,15 @@ define
             x as Real //aaa
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to typecheck problem");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_static_variable_check_1() {
         let input = "
         min 1
@@ -466,13 +492,14 @@ define
             x <= 2
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect_err("Failed to detect undeclared static variable");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect_err("Failed to detect undeclared static variable");
     }
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_static_variable_check_2() {
         let input = "
         min 1
@@ -482,13 +509,14 @@ define
             x as Real
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to typecheck problem");
     }
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_static_variable_check_3() {
         let input = "
         min 1
@@ -498,13 +526,14 @@ define
             let x = 2
         ";
         RoocParser::new(input.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse and transform problem");
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to typecheck problem");
     }
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_static_variable_check_4() {
         let input = "
         min 1
@@ -517,11 +546,12 @@ define
         ";
         //TODO should i add this to the compiler too?
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect_err("Failed to typecheck duplicate");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn should_find_domain_type_error() {
         let input = "
         min 1
@@ -533,11 +563,12 @@ define
             x as IntegerRange(0, a)
         ";
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect_err("Failed to find domain type error");
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_dynamic_var_bounds() {
         let input = "
         min 1
@@ -553,7 +584,7 @@ define
             z_3 as IntegerRange(0, len(y))
         ";
         RoocParser::new(input.to_string())
-            .type_check(&IndexMap::new())
+            .type_check(&vec![], &IndexMap::new())
             .expect("Failed to typecheck");
     }
 }

@@ -1,8 +1,8 @@
 use core::fmt;
 
-use serde::Serialize;
 #[allow(unused_imports)]
 use crate::prelude::*;
+use serde::Serialize;
 
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::model_transformer::TransformError;

@@ -1,8 +1,8 @@
 mod r#macro;
-mod pipe_definitions;
-mod pipe_executors;
-mod pipe_runner;
-mod pipe_wasm_runner;
+pub mod pipe_definitions;
+pub mod pipe_executors;
+pub mod pipe_runner;
+pub mod pipe_wasm_runner;
 
 pub use pipe_definitions::*;
 pub use pipe_executors::*;

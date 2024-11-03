@@ -1,8 +1,8 @@
+#[allow(unused_imports)]
+use crate::prelude::*;
 use core::fmt;
 use indexmap::IndexMap;
 use serde::Serialize;
-#[allow(unused_imports)]
-use crate::prelude::*;
 
 use crate::math::{BinOp, UnOp};
 use crate::math::{Comparison, OptimizationType};
@@ -12,6 +12,7 @@ use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::{DomainVariable, TransformerContext};
 use crate::parser::pre_model::PreModel;
 use crate::parser::recursive_set_resolver::recursive_set_resolver;
+use crate::primitives::Constant;
 use crate::runtime_builtin::{make_std, RoocFunction};
 use crate::traits::{escape_latex, ToLatex};
 use crate::type_checker::type_checker_context::FunctionContext;
@@ -445,11 +446,16 @@ impl Model {
     }
 }
 
-pub fn transform_parsed_problem(pre_problem: PreModel, fns: &IndexMap<String, Box<dyn RoocFunction>>) -> Result<Model, TransformError> {
+pub fn transform_parsed_problem(
+    pre_problem: PreModel,
+    mut constants: Vec<Constant>,
+    fns: &IndexMap<String, Box<dyn RoocFunction>>,
+) -> Result<Model, TransformError> {
     let std = make_std();
-    let fn_context = FunctionContext::new(fns,&std);
+    let fn_context = FunctionContext::new(fns, &std);
+    constants.extend(pre_problem.constants().clone());
     let context = TransformerContext::new_from_constants(
-        pre_problem.constants().clone(),
+        constants,
         pre_problem.domains().clone(),
         &fn_context,
     )?;

@@ -1,8 +1,8 @@
 use core::fmt;
 
-use serde::{Serialize};
 #[allow(unused_imports)]
 use crate::prelude::*;
+use serde::Serialize;
 
 use crate::math::VariableType;
 use crate::math::{BinOp, UnOp};

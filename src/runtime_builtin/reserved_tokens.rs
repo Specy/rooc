@@ -1,9 +1,9 @@
 use std::{collections::HashMap, fmt::Display};
 
-use lazy_static::lazy_static;
-use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use crate::prelude::*;
+use lazy_static::lazy_static;
+use serde::{Deserialize, Serialize};
 
 use crate::parser::il::{BlockFunctionKind, BlockScopedFunctionKind};
 use crate::parser::model_transformer::TransformError;

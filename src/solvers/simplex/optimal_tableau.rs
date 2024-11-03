@@ -1,8 +1,8 @@
+#[allow(unused_imports)]
+use crate::prelude::*;
 use crate::solvers::{LpSolution, Tableau};
 use core::fmt;
 use std::fmt::Display;
-#[allow(unused_imports)]
-use crate::prelude::*;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -66,12 +66,7 @@ impl OptimalTableau {
 impl Display for OptimalTableau {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let tableau = self.tableau.to_string();
-        write!(
-            f,
-            "{}\n\nOptimal Value: {}",
-            tableau,
-            self.optimal_value(),
-        )
+        write!(f, "{}\n\nOptimal Value: {}", tableau, self.optimal_value(),)
     }
 }
 

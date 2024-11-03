@@ -1,20 +1,20 @@
 //TODO find a better name for this file
 
-use core::fmt;
-use num_traits::ToPrimitive;
-use serde::Serialize;
-use std::str::FromStr;
-#[allow(unused_imports)]
-use crate::prelude::*;
 use crate::enum_with_variants_to_string;
 use crate::parser::il::PreExp;
 use crate::parser::model_transformer::TransformError;
 use crate::parser::model_transformer::TransformerContext;
+#[allow(unused_imports)]
+use crate::prelude::*;
 use crate::primitives::{Primitive, PrimitiveKind};
 use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, WithType,
 };
+use core::fmt;
+use num_traits::ToPrimitive;
+use serde::Serialize;
+use std::str::FromStr;
 
 enum_with_variants_to_string! {
     pub enum Comparison derives[Debug, PartialEq, Clone, Copy] with_wasm {

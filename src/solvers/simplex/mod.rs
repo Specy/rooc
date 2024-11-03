@@ -1,9 +1,9 @@
-mod fractional_tableau;
-mod optimal_tableau;
-mod simplex_enums;
-mod simplex_solver;
-mod tableau;
-mod utils;
+pub mod fractional_tableau;
+pub mod optimal_tableau;
+pub mod simplex_enums;
+pub mod simplex_solver;
+pub mod tableau;
+pub mod utils;
 
 pub use fractional_tableau::*;
 pub use optimal_tableau::*;

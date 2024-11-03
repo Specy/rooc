@@ -1,11 +1,11 @@
+#[allow(unused_imports)]
+use crate::prelude::*;
 use core::fmt;
 use indexmap::IndexMap;
 use pest::iterators::Pair;
 use pest::Parser;
 use serde::Serialize;
 use std::fmt::Debug;
-#[allow(unused_imports)]
-use crate::prelude::*;
 
 use crate::bail_missing_token;
 use crate::math::PreVariableType;
@@ -13,10 +13,10 @@ use crate::parser::il::{PreConstraint, PreObjective};
 use crate::parser::model_transformer::assert_no_duplicates_in_domain;
 use crate::parser::model_transformer::TransformError;
 use crate::parser::model_transformer::{transform_parsed_problem, Model};
-use crate::primitives::Constant;
-use crate::runtime_builtin::{make_std, RoocFunction};
+use crate::primitives::{Constant, Primitive};
 #[cfg(target_arch = "wasm32")]
 use crate::runtime_builtin::JsFunction;
+use crate::runtime_builtin::{make_std, RoocFunction};
 use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, TypedToken,
@@ -30,7 +30,7 @@ use super::rules_parser::{
 
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]
-struct PLParser;
+pub(crate) struct PLParser;
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[derive(Debug, Serialize, Clone)]
@@ -70,6 +70,25 @@ impl PreModel {
             source,
         }
     }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        PreObjective,
+        Vec<PreConstraint>,
+        Vec<Constant>,
+        Vec<VariablesDomainDeclaration>,
+        Option<String>,
+    ) {
+        (
+            self.objective,
+            self.constraints,
+            self.constants,
+            self.domains,
+            self.source,
+        )
+    }
+
     pub fn objective(&self) -> &PreObjective {
         &self.objective
     }
@@ -84,14 +103,15 @@ impl PreModel {
     }
     pub fn transform(
         self,
+        constants: Vec<Constant>,
         fns: &IndexMap<String, Box<dyn RoocFunction>>,
     ) -> Result<Model, TransformError> {
-        transform_parsed_problem(self, fns)
+        transform_parsed_problem(self, constants, fns)
     }
     pub fn source(&self) -> Option<String> {
         self.source.clone()
     }
-    fn static_domain(&self) -> Vec<(String, Spanned<PreVariableType>)> {
+    fn static_variables_domain(&self) -> Vec<(String, Spanned<PreVariableType>)> {
         self.domains
             .iter()
             .flat_map(|d| {
@@ -104,10 +124,11 @@ impl PreModel {
     }
     pub fn create_type_checker(
         &self,
+        constants: &Vec<Constant>,
         fns: &IndexMap<String, Box<dyn RoocFunction>>,
     ) -> Result<(), TransformError> {
         let mut context = TypeCheckerContext::default();
-        let domain = self.static_domain();
+        let domain = self.static_variables_domain();
         let std = make_std();
         let fn_context = FunctionContext::new(fns, &std);
         //TODO add span
@@ -123,8 +144,11 @@ impl PreModel {
                 .collect::<Vec<_>>(),
         )?;
         context.set_static_domain(domain);
-        for constants in &self.constants {
-            constants.type_check(&mut context, &fn_context)?;
+        for constant in constants {
+            constant.type_check(&mut context, &fn_context)?
+        }
+        for constant in &self.constants {
+            constant.type_check(&mut context, &fn_context)?;
         }
         for domain in &self.domains {
             domain.type_check(&mut context, &fn_context)?;
@@ -136,7 +160,7 @@ impl PreModel {
         fns: &IndexMap<String, Box<dyn RoocFunction>>,
     ) -> IndexMap<u32, TypedToken> {
         let mut context = TypeCheckerContext::default();
-        let domain = self.static_domain();
+        let domain = self.static_variables_domain();
         let std = make_std();
         let fn_context = FunctionContext::new(fns, &std);
         context.set_static_domain(domain);
@@ -231,9 +255,21 @@ pub fn js_value_to_fns_map(fns: Vec<JsFunction>) -> IndexMap<String, Box<dyn Roo
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[cfg(target_arch = "wasm32")]
 impl PreModel {
-    pub fn transform_wasm(self, fns: Vec<JsFunction>) -> Result<Model, TransformErrorWrapper> {
+    pub fn transform_wasm(
+        self,
+        constants: JsValue,
+        fns: Vec<JsFunction>,
+    ) -> Result<Model, TransformErrorWrapper> {
+        let constants: Vec<(String, Primitive)> = serde_wasm_bindgen::from_value(constants)
+            .map_err(|e| TransformErrorWrapper {
+                error: TransformError::Other(e.to_string()),
+            })?;
+        let constants = constants
+            .into_iter()
+            .map(|v| Constant::from_primitive(&v.0, v.1))
+            .collect();
         let fns = js_value_to_fns_map(fns);
-        self.transform(&fns)
+        self.transform(constants, &fns)
             .map_err(|e| TransformErrorWrapper { error: e })
     }
     pub fn serialize_wasm(&self) -> JsValue {
@@ -242,9 +278,21 @@ impl PreModel {
     pub fn format_wasm(&self) -> String {
         self.to_string()
     }
-    pub fn type_check_wasm(self, fns: Vec<JsFunction>) -> Result<(), TransformErrorWrapper> {
+    pub fn type_check_wasm(
+        self,
+        constants: JsValue,
+        fns: Vec<JsFunction>,
+    ) -> Result<(), TransformErrorWrapper> {
+        let constants: Vec<(String, Primitive)> = serde_wasm_bindgen::from_value(constants)
+            .map_err(|e| TransformErrorWrapper {
+                error: TransformError::Other(e.to_string()),
+            })?;
+        let constants = constants
+            .into_iter()
+            .map(|v| Constant::from_primitive(&v.0, v.1))
+            .collect();
         let fns = js_value_to_fns_map(fns);
-        self.create_type_checker(&fns)
+        self.create_type_checker(&constants, &fns)
             .map(|_| ())
             .map_err(|e| TransformErrorWrapper { error: e })
     }
@@ -332,7 +380,7 @@ impl fmt::Display for PreModel {
     }
 }
 
-pub fn parse_problem_source(source: &String) -> Result<PreModel, CompilationError> {
+pub fn parse_problem_source(source: &str) -> Result<PreModel, CompilationError> {
     let problem = PLParser::parse(Rule::problem, source);
     match problem {
         Ok(mut problem) => {
@@ -341,7 +389,7 @@ pub fn parse_problem_source(source: &String) -> Result<PreModel, CompilationErro
                 return Err(CompilationError::new(
                     ParseError::MissingToken("Failed to parse, missing problem".to_string()),
                     InputSpan::default(),
-                    source.clone(),
+                    source.to_string(),
                 ));
             }
             let problem = problem.unwrap();

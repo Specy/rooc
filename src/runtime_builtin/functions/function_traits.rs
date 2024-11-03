@@ -59,7 +59,7 @@ pub fn default_type_check(
         {
             continue;
         }
-            //allow anything that can be converted to a number
+        //allow anything that can be converted to a number
         if kind == &PrimitiveKind::Number && arg_type.is_numeric() {
             continue;
         }
@@ -76,7 +76,8 @@ pub fn default_type_check(
             return Err(TransformError::WrongArgument {
                 expected: kind.clone(),
                 got: arg_type,
-            }.add_span(arg.span()));
+            }
+            .add_span(arg.span()));
         }
     }
 
@@ -202,5 +203,7 @@ pub trait RoocFunction: Debug {
         args: &[PreExp],
         context: &mut TypeCheckerContext,
         fn_context: &FunctionContext,
-    ) -> Result<(), TransformError>;
+    ) -> Result<(), TransformError> {
+        default_type_check(args, &self.type_signature(), context, fn_context)
+    }
 }

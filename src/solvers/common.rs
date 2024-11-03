@@ -5,6 +5,7 @@ use copper::{VarId, VarIdBinary};
 use indexmap::IndexMap;
 use num_traits::ToPrimitive;
 use serde::Serialize;
+use std::fmt::{write, Display, Formatter};
 
 #[derive(Debug)]
 pub enum SolverError {
@@ -93,18 +94,39 @@ impl std::fmt::Display for SolverError {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct Assignment<T: Clone + Serialize + Copy> {
+pub struct Assignment<T: Clone + Serialize + Copy + Display> {
     pub name: String,
     pub value: T,
 }
 
+impl<T: Clone + Serialize + Copy + Display> Display for Assignment<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} = {}", self.name, self.value)
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
-pub struct LpSolution<T: Clone + Serialize + Copy> {
+pub struct LpSolution<T: Clone + Serialize + Copy + Display> {
     assignment: Vec<Assignment<T>>,
     value: f64,
 }
 
-impl<T: Clone + Serialize + Copy> LpSolution<T> {
+impl<T: Clone + Serialize + Copy + Display> Display for LpSolution<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Optimal value: {}\n\n", self.value);
+        write!(
+            f,
+            "Variables:\n{}",
+            self.assignment
+                .iter()
+                .map(|a| a.to_string())
+                .collect::<Vec<_>>()
+                .join("\n")
+        )
+    }
+}
+
+impl<T: Clone + Serialize + Copy + Display> LpSolution<T> {
     pub fn new(assignment: Vec<Assignment<T>>, value: f64) -> Self {
         Self { assignment, value }
     }

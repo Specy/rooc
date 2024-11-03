@@ -4,7 +4,10 @@ use crate::transformers::LinearModel;
 use microlp::{OptimizationDirection, Problem};
 
 #[allow(unused)]
-pub fn solve_real_lp_problem_slow_simplex(lp: &LinearModel, limit: i64) -> Result<LpSolution<f64>, SolverError> {
+pub fn solve_real_lp_problem_slow_simplex(
+    lp: &LinearModel,
+    limit: i64,
+) -> Result<LpSolution<f64>, SolverError> {
     let standard = lp.clone().into_standard_form()?;
     let mut canonical_form = standard
         .into_tableau()
@@ -20,7 +23,6 @@ pub fn solve_real_lp_problem_slow_simplex(lp: &LinearModel, limit: i64) -> Resul
         },
     }
 }
-
 
 pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64>, SolverError> {
     let domain = lp.domain();
@@ -46,7 +48,6 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
     let mut problem = Problem::new(opt_type);
     let variables = lp.variables();
 
-    
     let obj = lp.objective();
     let mut vars_microlp = Vec::with_capacity(obj.len());
     for (i, name) in variables.iter().enumerate() {
@@ -70,7 +71,7 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
         };
         vars_microlp.push(var);
     }
-    
+
     for cons in lp.constraints() {
         let coeffs = cons
             .coefficients()

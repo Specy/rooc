@@ -7,7 +7,7 @@ documentation = "https://rooc.specy.dev/docs"
 description = "A modeling language to write and solve linear optimization models"
 keywords = ["optimization", "DSL", "solver", "mathematics", "linear-programming"]
 categories = ["mathematics", "algorithms", "science", "api-bindings", "data-structures"]
-version = "0.1.0"
+version = "0.1.1"
 license = "GPL-3.0"
 edition = "2021"
 
@@ -26,6 +26,9 @@ copper = "0.1.0"
 indexmap = {version =  "2.6.0", features = ["serde"] }
 good_lp = { version = "1.9.0", features = ["clarabel-wasm"], default-features = false }
 microlp = "0.2.4"
+
+[target.'cfg(target_family = "wasm")'.dev-dependencies]
+wasm-bindgen-test = "0.3.0"
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 js-sys = "0.3.72"

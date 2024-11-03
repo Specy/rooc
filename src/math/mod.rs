@@ -1,7 +1,6 @@
-mod math_enums;
-mod math_utils;
-mod operators;
-mod tests;
+pub mod math_enums;
+pub mod math_utils;
+pub mod operators;
 
 pub use math_enums::*;
 pub use math_utils::*;

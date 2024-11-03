@@ -1,7 +1,7 @@
-use core::fmt;
-use serde::Serialize;
 #[allow(unused_imports)]
 use crate::prelude::*;
+use core::fmt;
+use serde::Serialize;
 
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::iterable_set::IterableSet;
@@ -249,11 +249,7 @@ impl TypeCheckable for PreConstraint {
             context.add_scope();
             let types = iter.variable_types(context, fn_context)?;
             for (name, t) in types {
-                context.add_token_type(
-                    t,
-                    name.span().clone(),
-                    Some(name.value().clone()),
-                )?;
+                context.add_token_type(t, name.span().clone(), Some(name.value().clone()))?;
             }
         }
         match (
@@ -273,7 +269,9 @@ impl TypeCheckable for PreConstraint {
         for _ in &self.iteration {
             context.pop_scope()?;
         }
-        if (!lhs_type.is_numeric() && !lhs_type.is_any())  || (!rhs_type.is_numeric() && !rhs_type.is_any()) {
+        if (!lhs_type.is_numeric() && !lhs_type.is_any())
+            || (!rhs_type.is_numeric() && !rhs_type.is_any())
+        {
             let err = TransformError::Other(format!(
                 "Expected comparison of \"Number\", got \"{}\" {} \"{}\"",
                 lhs_type, self.constraint_type, rhs_type

@@ -1,9 +1,12 @@
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen_test::*;
 #[cfg(test)]
 mod primitive_tests {
     use indexmap::IndexMap;
-    use crate::RoocParser;
+    use rooc::RoocParser;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_spreadability() {
         let source = "
         min 1
@@ -24,7 +27,7 @@ mod primitive_tests {
                 x_u, x_v as Boolean for (u, v) in edges(G)  
         ";
         RoocParser::new(source.to_string())
-            .parse_and_transform(&IndexMap::new())
+            .parse_and_transform(vec![], &IndexMap::new())
             .expect("Failed to parse");
     }
 }

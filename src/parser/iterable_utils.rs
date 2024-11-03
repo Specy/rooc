@@ -67,10 +67,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .into_iter()
                 .map(|v| match v {
                     Primitive::GraphEdge(e) => Ok(e),
-                    _ => Err(format!(
-                        "Expected GraphEdge but got {}",
-                        v.type_string()
-                    )),
+                    _ => Err(format!("Expected GraphEdge but got {}", v.type_string())),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Primitive::Iterable(IterableKind::Edges(values)))
@@ -80,10 +77,7 @@ pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitiv
                 .into_iter()
                 .map(|v| match v {
                     Primitive::GraphNode(n) => Ok(n),
-                    _ => Err(format!(
-                        "Expected GraphNode but got {}",
-                        v.type_string()
-                    )),
+                    _ => Err(format!("Expected GraphNode but got {}", v.type_string())),
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Primitive::Iterable(IterableKind::Nodes(values)))

@@ -1,16 +1,19 @@
-use crate::math::{float_eq, float_ne};
-use crate::pipe::PipeRunner;
-use crate::pipe::{
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen_test::*;
+
+use indexmap::IndexMap;
+use rooc::math::{float_eq, float_ne};
+use rooc::pipe::{
     BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe,
     PreModelPipe, RealSolver, StandardLinearModelPipe, TableauPipe,
 };
-use crate::pipe::{PipeDataType, PipeError, PipeableData, StepByStepSimplexPipe};
-use crate::solvers::common::LpSolution;
-use crate::solvers::linear_integer_binary::VarValue;
+use rooc::pipe::{PipeContext, PipeRunner};
+use rooc::pipe::{PipeDataType, PipeError, PipeableData, StepByStepSimplexPipe};
+use rooc::solvers::common::LpSolution;
+use rooc::solvers::linear_integer_binary::VarValue;
 #[allow(unused_imports)]
-use crate::solvers::simplex::{CanonicalTransformError, OptimalTableau, SimplexError};
-use crate::solvers::OptimalTableauWithSteps;
-use indexmap::IndexMap;
+use rooc::solvers::simplex::{CanonicalTransformError, OptimalTableau, SimplexError};
+use rooc::solvers::OptimalTableauWithSteps;
 
 #[allow(unused)]
 #[allow(clippy::result_large_err)]
@@ -23,7 +26,10 @@ fn solve(source: &str) -> Result<(OptimalTableauWithSteps, LpSolution<f64>), Pip
         Box::new(RealSolver::new()),
     ]);
 
-    let result = pipe_runner.run(PipeableData::String(source.to_string()), &IndexMap::new());
+    let result = pipe_runner.run(
+        PipeableData::String(source.to_string()),
+        &PipeContext::new(vec![], &IndexMap::new()),
+    );
     let simplex = match result {
         Ok(data) => {
             let last = data.last().unwrap();
@@ -47,7 +53,10 @@ fn solve(source: &str) -> Result<(OptimalTableauWithSteps, LpSolution<f64>), Pip
         Box::new(StepByStepSimplexPipe::new()),
     ]);
 
-    let result = pipe_runner.run(PipeableData::String(source.to_string()), &IndexMap::new());
+    let result = pipe_runner.run(
+        PipeableData::String(source.to_string()),
+        &PipeContext::new(vec![], &IndexMap::new()),
+    );
     let simplex2 = match result {
         Ok(data) => {
             let last = data.last().unwrap();
@@ -91,7 +100,10 @@ fn solve_binary(source: &str) -> Result<LpSolution<bool>, PipeError> {
         Box::new(BinarySolverPipe::new()),
     ]);
 
-    let result = pipe_runner.run(PipeableData::String(source.to_string()), &IndexMap::new());
+    let result = pipe_runner.run(
+        PipeableData::String(source.to_string()),
+        &PipeContext::new(vec![], &IndexMap::new()),
+    );
     match result {
         Ok(data) => {
             let last = data.last().unwrap();
@@ -118,7 +130,10 @@ fn solve_integer_binary(source: &str) -> Result<LpSolution<VarValue>, PipeError>
         Box::new(IntegerBinarySolverPipe::new()),
     ]);
 
-    let result = pipe_runner.run(PipeableData::String(source.to_string()), &IndexMap::new());
+    let result = pipe_runner.run(
+        PipeableData::String(source.to_string()),
+        &PipeContext::new(vec![], &IndexMap::new()),
+    );
     match result {
         Ok(data) => {
             let last = data.last().unwrap();
@@ -219,6 +234,7 @@ fn assert_precision(a: f64, b: f64) -> bool {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn should_solve_correctly() {
     let source = r#"
     max x_1 + 2x_2
@@ -236,6 +252,7 @@ fn should_solve_correctly() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn should_solve_correctly2() {
     let source = r#"
     max 2x_1 + 3x_2 + 4x_3 + 5x_4
@@ -256,6 +273,7 @@ fn should_solve_correctly2() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn should_solve_correctly_3() {
     let source = r#"
     min x_1 - x_2
@@ -266,13 +284,15 @@ fn should_solve_correctly_3() {
         x_1, x_2 as NonNegativeReal
      "#;
     let solution = solve(source).unwrap();
-    assert_correct_solution(solution, -2.0, vec![
-        vec![0.0, 2.0, 0.0, 5.0],
-        vec![0.66486, 2.66486]
-    ]);
+    assert_correct_solution(
+        solution,
+        -2.0,
+        vec![vec![0.0, 2.0, 0.0, 5.0], vec![0.66486, 2.66486]],
+    );
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn should_find_unbounded_2d() {
     let source = r#"
     max x_1 + x_2
@@ -293,6 +313,7 @@ fn should_find_unbounded_2d() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn should_find_unbounded_4d() {
     let source = r#"
         max x_1 + x_2 + x_3 + x_4
@@ -314,6 +335,7 @@ fn should_find_unbounded_4d() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn should_solve_degen_2d() {
     let source = r#"
     max x_1 + 2x_2
@@ -330,6 +352,7 @@ fn should_solve_degen_2d() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 #[ignore] //TODO normal simplex doesn't correctly calculate optimal value, 10 is missing
 fn should_solve_degen_4d() {
     let source = r#"
@@ -348,12 +371,13 @@ fn should_solve_degen_4d() {
         94.0,
         vec![
             vec![0.0, 8.0, 0.0, 10.0, 0.0, 4.0, 0.0, 0.0],
-            vec![4.34136, 8.0, 1.68587, 10.0]
+            vec![4.34136, 8.0, 1.68587, 10.0],
         ],
     );
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn should_solve_multiple_solutions() {
     let source = r#"
     max 2x_1 + x_2
@@ -370,12 +394,13 @@ fn should_solve_multiple_solutions() {
         18.0,
         vec![
             vec![22.0 / 3.0, 10.0 / 3.0, 0.0, 8.0, 0.0],
-            vec![6.03716, 5.92566]
+            vec![6.03716, 5.92566],
         ],
     );
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn infeasible_starting_basis() {
     let source = r#"
     max x_2
@@ -397,6 +422,7 @@ fn infeasible_starting_basis() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn should_solve_diet() {
     let source = r#"
     min sum((cost, i) in enumerate(C)) { cost * x_i }
@@ -425,14 +451,15 @@ fn should_solve_diet() {
     assert_correct_solution(
         solution,
         6.04444,
-        vec![
-            vec![1.32592, 4.11111, 1.0, 0.0, 0.0, 26.62962, 100.0, 100.0, 43.37037, 3.67407,
-            0.88888, 4.0, 0.32592, 3.11111, 0.0]
-        ],
+        vec![vec![
+            1.32592, 4.11111, 1.0, 0.0, 0.0, 26.62962, 100.0, 100.0, 43.37037, 3.67407, 0.88888,
+            4.0, 0.32592, 3.11111, 0.0,
+        ]],
     );
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 #[should_panic]
 fn should_be_unbounded() {
     let source = r#"
@@ -449,12 +476,14 @@ define
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 #[should_panic]
 fn should_transform_free_variables() {
     todo!("Create this test plis")
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn should_solve_binary_problem() {
     let source = r#"
     //knapsack problem
@@ -478,6 +507,7 @@ fn should_solve_binary_problem() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn should_solve_integer_problem() {
     let source = r#"
     max 2x_1 + 3x_2 
@@ -494,6 +524,7 @@ fn should_solve_integer_problem() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 #[should_panic]
 fn should_detect_invalid_domain() {
     let source = r#"
@@ -508,6 +539,7 @@ fn should_detect_invalid_domain() {
     solve(source).unwrap();
 }
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 #[should_panic]
 fn should_detect_invalid_domain_2() {
     let source = r#"
@@ -522,6 +554,7 @@ fn should_detect_invalid_domain_2() {
     solve_integer_binary(source).unwrap();
 }
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 #[should_panic]
 fn should_detect_invalid_domain_3() {
     let source = r#"
@@ -537,6 +570,7 @@ fn should_detect_invalid_domain_3() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn should_solve_dynamic_domain() {
     let source = r#"
     max sum((value, i) in enumerate(arr)) { x_i }

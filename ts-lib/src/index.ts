@@ -31,6 +31,7 @@ import {
 import {Err, Ok, Result} from 'ts-results-es'
 import {ExtractArgTypes, ExtractReturnArgs} from "./runtime";
 
+export type ConstantEntry = [name: string, value: SerializedPrimitive]
 
 export type ReturnCallback<T extends [string, SerializedPrimitiveKind][]> = ((args: ExtractReturnArgs<T>, staticArgs: ExtractArgTypes<T>) => SerializedPrimitiveKind)
 
@@ -167,11 +168,12 @@ export class RoocParser {
 
     /**
      * Compiles the source code into a Model
+     * @param data additional constants given to the runtime
      * @param fns additional functions that can be used in the transformation process
      */
-    compileAndTransform(fns: RoocFunction[] = []): Result<Model, string> {
+    compileAndTransform(data: ConstantEntry[] = [],fns: RoocFunction[] = []): Result<Model, string> {
         try {
-            return Ok(new Model(this.instance.parse_and_transform_wasm(cloneJsFunction(fns))))
+            return Ok(new Model(this.instance.parse_and_transform_wasm(data, cloneJsFunction(fns))))
         } catch (e) {
             return Err(e)
         }
@@ -247,11 +249,12 @@ export class PreModel {
 
     /**
      * Transforms the PreModel into a Model
+     * @param data additional constants added to the runtime
      * @param fns additional functions that can be used in the transformation process
      */
-    transform(fns: RoocFunction[] = []): Result<Model, TransformError> {
+    transform(data: ConstantEntry[] = [],fns: RoocFunction[] = []): Result<Model, TransformError> {
         try {
-            return Ok(new Model(this.instance.transform_wasm(cloneJsFunction(fns))))
+            return Ok(new Model(this.instance.transform_wasm(data, cloneJsFunction(fns))))
         } catch (e) {
             return Err(new TransformError(e, this.source))
         }
@@ -259,11 +262,12 @@ export class PreModel {
 
     /**
      * Executes type checking on the PreModel, reporting any type errors that are found
+     * @param data additional constants added to the runtime
      * @param fns additional functions that can be used in the type checking process
      */
-    typeCheck(fns: RoocFunction[] = []): Result<null, TransformError> {
+    typeCheck(data: ConstantEntry[] = [], fns: RoocFunction[] = []): Result<null, TransformError> {
         try {
-            this.instance.type_check_wasm(cloneJsFunction(fns))
+            this.instance.type_check_wasm(data, cloneJsFunction(fns))
             return Ok(null)
         } catch (e) {
             return Err(new TransformError(e, this.source))
@@ -732,13 +736,14 @@ export class RoocRunnablePipe {
     /**
      * Run the pipe on a source code
      * @param source the source code to run the pipe on
+     * @param data additional data provided to the runtime
      * @param fns additional functions that can be used in the transformation process
      * @returns each step of the pipe returns some data, if there was an error, it's previous context is returned too
      */
-    run(source: string, fns: RoocFunction[] = []): Result<RoocData[], { error: String, context: RoocData[] }> {
+    run(source: string, data: ConstantEntry[] = [], fns: RoocFunction[] = []): Result<RoocData[], { error: String, context: RoocData[] }> {
         try {
-            const data = this.instance.wasm_run_from_string(source, cloneJsFunction(fns))
-            return Ok(data.map(toRoocData))
+            const result = this.instance.wasm_run_from_string(source, data, cloneJsFunction(fns))
+            return Ok(result.map(toRoocData))
         } catch (e) {
             if (e instanceof WasmPipeError) {
                 return Err({error: e.wasm_get_error(), context: e.wasm_to_context().map(toRoocData)})

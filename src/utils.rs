@@ -1,10 +1,10 @@
 use core::fmt;
 use std::{fmt::Debug, ops::Deref, ops::DerefMut};
 
-use pest::{iterators::Pair, Span};
-use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use crate::prelude::*;
+use pest::{iterators::Pair, Span};
+use serde::{Deserialize, Serialize};
 
 use crate::parser::pre_model::Rule;
 
@@ -240,7 +240,7 @@ impl fmt::Display for ParseError {
     }
 }
 
-pub fn remove_many<T>(vec: &mut Vec<T>, indices: &[usize]) {
+pub(crate) fn remove_many<T>(vec: &mut Vec<T>, indices: &[usize]) {
     let mut i = 0; // ugh
     vec.retain(|_| {
         let keep = !indices.contains(&i);
@@ -252,8 +252,8 @@ pub fn remove_many<T>(vec: &mut Vec<T>, indices: &[usize]) {
 #[cfg(target_arch = "wasm32")]
 pub fn serialize_json_compatible<T>(obj: &T) -> Result<JsValue, serde_wasm_bindgen::Error>
 where
-    T: Serialize
+    T: Serialize,
 {
-    let s = Serializer::new().serialize_maps_as_objects(true);
+    let s = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
     obj.serialize(&s)
 }

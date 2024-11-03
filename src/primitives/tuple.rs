@@ -1,8 +1,8 @@
 use core::fmt;
 
-use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use crate::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::math::{BinOp, UnOp};
 use crate::parser::model_transformer::TransformError;

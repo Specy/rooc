@@ -2,9 +2,9 @@ use core::fmt;
 use std::str::FromStr;
 
 #[allow(unused_imports)]
-use serde::{Deserialize, Serialize};
-#[allow(unused_imports)]
 use crate::prelude::*;
+#[allow(unused_imports)]
+use serde::{Deserialize, Serialize};
 
 use crate::enum_with_variants_to_string;
 use crate::traits::ToLatex;

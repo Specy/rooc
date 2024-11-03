@@ -1,8 +1,8 @@
 use core::fmt;
 
-use serde::{Serialize};
 #[allow(unused_imports)]
 use crate::prelude::*;
+use serde::Serialize;
 
 use crate::math::{BinOp, UnOp};
 use crate::parser::il::block_functions::{
@@ -130,9 +130,7 @@ impl TypeCheckable for PreExp {
                     Some(_) => Ok(()),
                     None => match context.static_domain_variable_of(name) {
                         Some(_) => Ok(()),
-                        None => Err(TransformError::UndeclaredVariable(
-                            name.value().clone(),
-                        )),
+                        None => Err(TransformError::UndeclaredVariable(name.value().clone())),
                     }
                     .map_err(|e| e.add_span(name.span())),
                 }
@@ -210,11 +208,9 @@ impl TypeCheckable for PreExp {
             Self::Abs(_, exp) => {
                 exp.populate_token_type_map(context, fn_context);
             }
-            Self::Primitive(p) => context.add_token_type_or_undefined(
-                p.value().get_type(),
-                p.span().clone(),
-                None,
-            ),
+            Self::Primitive(p) => {
+                context.add_token_type_or_undefined(p.value().get_type(), p.span().clone(), None)
+            }
             Self::Variable(name) => match context.value_of(name) {
                 Some(value) => context.add_token_type_or_undefined(
                     value.clone(),

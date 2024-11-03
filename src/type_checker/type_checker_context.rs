@@ -1,14 +1,14 @@
-use indexmap::IndexMap;
-use serde::Serialize;
 #[allow(unused_imports)]
 use crate::prelude::*;
+use indexmap::IndexMap;
+use serde::Serialize;
 
 use crate::math::PreVariableType;
 use crate::parser::il::AddressableAccess;
 use crate::parser::il::PreExp;
 use crate::parser::model_transformer::Frame;
 use crate::parser::model_transformer::TransformError;
-use crate::runtime_builtin::{RoocFunction};
+use crate::runtime_builtin::RoocFunction;
 use crate::utils::Spanned;
 use crate::{
     primitives::PrimitiveKind, runtime_builtin::check_if_reserved_token, utils::InputSpan,
@@ -84,7 +84,7 @@ pub struct FunctionContext<'a> {
 impl<'a> FunctionContext<'a> {
     pub fn new(
         functions: &'a IndexMap<String, Box<dyn RoocFunction>>,
-        builtin_functions: &'a  IndexMap<String, Box<dyn RoocFunction>>,
+        builtin_functions: &'a IndexMap<String, Box<dyn RoocFunction>>,
     ) -> Self {
         Self {
             functions,

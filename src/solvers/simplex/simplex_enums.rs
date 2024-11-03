@@ -1,8 +1,8 @@
+#[allow(unused_imports)]
+use crate::prelude::*;
 use core::fmt;
 use serde::Serialize;
 use std::fmt::Display;
-#[allow(unused_imports)]
-use crate::prelude::*;
 
 #[derive(Serialize)]
 pub enum StepAction {

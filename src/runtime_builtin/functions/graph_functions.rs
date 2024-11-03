@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
-use serde::Serialize;
 #[allow(unused_imports)]
 use crate::prelude::*;
+use serde::Serialize;
 
 use super::function_traits::{
     default_type_check, default_wrong_number_of_arguments, default_wrong_type, RoocFunction,

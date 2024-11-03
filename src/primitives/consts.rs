@@ -1,8 +1,8 @@
 use core::fmt;
 
-use serde::Serialize;
 #[allow(unused_imports)]
 use crate::prelude::*;
+use serde::Serialize;
 
 use super::primitive::{Primitive, PrimitiveKind};
 use crate::parser::il::PreExp;
@@ -10,6 +10,7 @@ use crate::parser::model_transformer::TransformError;
 use crate::parser::model_transformer::TransformerContext;
 use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::FunctionContext;
+use crate::utils::InputSpan;
 use crate::{
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::Spanned,
@@ -33,16 +34,12 @@ export type SerializedConstant = {
 
 impl ToLatex for Constant {
     fn to_latex(&self) -> String {
-        format!(
-            "{} &= {}",
-            self.name.value(),
-            self.value.to_latex()
-        )
+        format!("{} &= {}", self.name.value(), self.value.to_latex())
     }
 }
 
 impl Constant {
-    pub fn new(name: Spanned<String>, value: PreExp) -> Self {
+    pub(crate) fn new(name: Spanned<String>, value: PreExp) -> Self {
         Self { name, value }
     }
 
@@ -52,6 +49,14 @@ impl Constant {
         fn_context: &FunctionContext,
     ) -> Result<Primitive, TransformError> {
         self.value.as_primitive(context, fn_context)
+    }
+
+    pub fn from_primitive(name: &str, primitive: Primitive) -> Self {
+        let primitive = Spanned::new(primitive, InputSpan::default());
+        Self::new(
+            Spanned::new(name.to_string(), InputSpan::default()),
+            PreExp::Primitive(primitive),
+        )
     }
 }
 

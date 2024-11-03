@@ -1,8 +1,8 @@
+#[allow(unused_imports)]
+use crate::prelude::*;
 use indexmap::IndexMap;
 use num_traits::Zero;
 use std::fmt::Display;
-#[allow(unused_imports)]
-use crate::prelude::*;
 
 use crate::math::float_lt;
 use crate::parser::model_transformer::DomainVariable;

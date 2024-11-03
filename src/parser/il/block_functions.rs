@@ -1,9 +1,9 @@
 use core::fmt;
 use std::str::FromStr;
 
-use serde::{Serialize};
 #[allow(unused_imports)]
 use crate::prelude::*;
+use serde::Serialize;
 
 use crate::enum_with_variants_to_string;
 use crate::parser::il::il_exp::PreExp;

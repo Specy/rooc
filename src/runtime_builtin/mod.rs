@@ -1,4 +1,4 @@
-mod functions;
+pub mod functions;
 mod reserved_tokens;
 mod rooc_std;
 

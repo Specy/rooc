@@ -1,7 +1,7 @@
 <div align="center">
   <h1><code>ROOC</code></h1>
   <img src='./logo-original.png' width='156px'/>
-  <p><strong>Mathematical models compiler</strong></p>
+  <p><strong>Optimization modeling language</strong></p>
 </div>
 
 [![Crates.io](https://img.shields.io/crates/v/rooc.svg)](https://crates.io/crates/rooc)
@@ -20,6 +20,12 @@
 The language provides support for defining formal models, including functions, constants, arrays, graphs, tuples, etc... It also includes built-in utility functions for iterating over graphs, edges, arrays, ranges, and more.
 
 The library is compiled as a WebAssembly (WASM) module and integrated into the [web editor](https://rooc.specy.app), which features Language Server Protocol (LSP) support for type checking, code completion, and documentation.
+
+# Examples
+For examples of using the rust lib look at the [examples folder](https://github.com/Specy/rooc/tree/main/examples)
+
+For examples of models [look in the rooc docs](https://rooc.specy.app/docs/rooc/examples)
+
 
 # Implemented Features 
 - [x] Language

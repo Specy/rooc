@@ -1,8 +1,8 @@
 use core::fmt;
 
-use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use crate::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::parser::model_transformer::TransformError;
 use crate::traits::ToLatex;
@@ -31,7 +31,7 @@ pub enum IterableKind {
     Tuples(Vec<Tuple>),
     Booleans(Vec<bool>),
     Iterables(Vec<IterableKind>),
-    Anys(Vec<Primitive>)
+    Anys(Vec<Primitive>),
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
@@ -56,6 +56,11 @@ impl IterableKind {
     pub fn get_type(&self) -> PrimitiveKind {
         PrimitiveKind::Iterable(Box::new(self.inner_type()))
     }
+
+    pub fn into_primitive(self) -> Primitive {
+        Primitive::Iterable(self)
+    }
+
     pub fn inner_type(&self) -> PrimitiveKind {
         match self {
             IterableKind::Numbers(_) => PrimitiveKind::Number,

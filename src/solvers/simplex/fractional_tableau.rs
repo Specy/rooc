@@ -1,4 +1,3 @@
-
 use crate::solvers::simplex::Tableau;
 use num_rational::Rational64;
 use num_traits::cast::FromPrimitive;

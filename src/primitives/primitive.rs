@@ -1,9 +1,9 @@
 use core::fmt;
 use std::fmt::Display;
 
-use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use crate::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use super::{
     graph::{Graph, GraphEdge, GraphNode},

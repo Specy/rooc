@@ -1,4 +1,6 @@
 use crate::math::{float_ge, float_gt, float_le, float_lt};
+#[allow(unused_imports)]
+use crate::prelude::*;
 use crate::solvers::{
     FractionalTableau, OptimalTableau, OptimalTableauWithSteps, SimplexError, SimplexStep,
     StepAction,
@@ -8,8 +10,6 @@ use std::fmt::Display;
 use term_table::row::Row;
 use term_table::table_cell::TableCell;
 use term_table::Table;
-#[allow(unused_imports)]
-use crate::prelude::*;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -158,10 +158,7 @@ impl Tableau {
                     iteration += 1;
                 }
                 Ok(StepAction::Finished) => {
-                    return Ok(OptimalTableau::new(
-                        self.variables_values(),
-                        self.clone(),
-                    ));
+                    return Ok(OptimalTableau::new(self.variables_values(), self.clone()));
                 }
                 Err(e) => {
                     return Err(e);

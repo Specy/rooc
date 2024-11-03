@@ -1,23 +1,25 @@
 #[allow(unused_imports)]
 use crate::prelude::*;
 
+use crate::pipe::PipeContext;
+use crate::primitives::{Constant, Primitive};
+#[cfg(target_arch = "wasm32")]
+use crate::runtime_builtin::JsFunction;
 #[allow(unused)]
 use {
+    crate::parser::model_transformer::Model,
+    crate::parser::pre_model::PreModel,
     crate::pipe::pipe_definitions::{PipeDataType, PipeError, Pipeable, PipeableData},
     crate::pipe::pipe_executors::{
         BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe, Pipes,
         PreModelPipe, RealSolver, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe,
     },
-    crate::parser::model_transformer::Model,
     crate::pipe::pipe_runner::PipeRunner,
     crate::solvers::{OptimalTableau, OptimalTableauWithSteps, Tableau},
     crate::transformers::LinearModel,
     crate::transformers::StandardLinearModel,
     crate::RoocParser,
-    crate::parser::pre_model::PreModel
 };
-#[cfg(target_arch = "wasm32")]
-use crate::runtime_builtin::JsFunction;
 
 #[cfg(target_arch = "wasm32")]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -55,11 +57,18 @@ impl WasmPipeRunner {
     pub fn wasm_run_from_string(
         &self,
         data: String,
+        constants: JsValue,
         fns: Vec<JsFunction>,
     ) -> Result<Vec<WasmPipableData>, WasmPipeError> {
         let data = PipeableData::String(data);
+        let constants: Vec<(String, Primitive)> = serde_wasm_bindgen::from_value(constants)
+            .map_err(|e| WasmPipeError::new(PipeError::Other(e.to_string()), vec![]))?;
+        let constants = constants
+            .into_iter()
+            .map(|v| Constant::from_primitive(&v.0, v.1))
+            .collect();
         let fns = js_value_to_fns_map(fns);
-        match self.pipe.run(data, &fns) {
+        match self.pipe.run(data, &PipeContext::new(constants, &fns)) {
             Ok(results) => Ok(results.into_iter().map(WasmPipableData::new).collect()),
             Err((e, results)) => {
                 let results: Vec<WasmPipableData> =
