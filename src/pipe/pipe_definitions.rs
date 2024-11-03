@@ -1,7 +1,7 @@
 #[allow(unused_imports)]
 use crate::prelude::*;
 use indexmap::IndexMap;
-use std::fmt::{write, Display};
+use std::fmt::{Display};
 
 use crate::parser::model_transformer::Model;
 use crate::parser::model_transformer::TransformError;

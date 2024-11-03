@@ -1,11 +1,11 @@
 <script lang="ts">
-    import type {BinaryIntegerSolution} from "@specy/rooc";
+    import type {LpSolution} from "@specy/rooc";
     import Column from "$cmp/layout/Column.svelte";
     import Var from "$cmp/pipe/Var.svelte";
     import {formatNum} from "$cmp/pipe/utils";
 
     interface Props {
-        realSolution: BinaryIntegerSolution<number>;
+        realSolution: LpSolution<number>;
     }
 
     let { realSolution }: Props = $props();

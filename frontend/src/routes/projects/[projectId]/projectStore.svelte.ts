@@ -1,4 +1,4 @@
-import type{ Project} from "$stores/userProjectsStore.svelte";
+import type {Project} from "$stores/userProjectsStore.svelte";
 import {makeRoocFunction, type RoocData, type RoocFunction, RoocParser, RoocRunnablePipe} from "@specy/rooc";
 import {roocJsStd} from "$lib/Rooc/roocJsStd";
 import {runSandboxedCode} from "$lib/sandbox/sandbox";
@@ -56,7 +56,7 @@ export function createCompilerStore(project: Project) {
             compiling = true
             await new Promise(resolve => setTimeout(resolve, 100))
             const pipe = new RoocRunnablePipe(project.pipes.map(p => p.pipe))
-            const res = pipe.run(project.content, [
+            const res = pipe.run(project.content, [], [
                 ...roocJsStd(),
                 ...userDefinedFunctions
             ])

@@ -279,8 +279,8 @@ export class PreModel {
      * and the type is the type of the token
      * @param fns
      */
-    createTypeMap(fns: RoocFunction[] = []): Map<number, SerializedTypedToken> {
-        return this.instance.create_token_type_map_wasm(cloneJsFunction(fns))
+    createTypeMap(data: ConstantEntry[] = [], fns: RoocFunction[] = []): Map<number, SerializedTypedToken> {
+        return this.instance.create_token_type_map_wasm(data, cloneJsFunction(fns))
     }
 
     /**

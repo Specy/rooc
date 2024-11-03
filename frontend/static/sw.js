@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 importScripts('https://storage.googleapis.com/workbox-cdn/releases/5.0.0/workbox-sw.js');
-const VERSION = 'v1.0.1';
+const VERSION = 'v1.0.2';
 
 
 workbox.routing.registerRoute(

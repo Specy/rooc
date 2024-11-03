@@ -157,6 +157,7 @@ impl PreModel {
     }
     pub fn create_token_type_map(
         &self,
+        constants: &Vec<Constant>,
         fns: &IndexMap<String, Box<dyn RoocFunction>>,
     ) -> IndexMap<u32, TypedToken> {
         let mut context = TypeCheckerContext::default();
@@ -164,8 +165,11 @@ impl PreModel {
         let std = make_std();
         let fn_context = FunctionContext::new(fns, &std);
         context.set_static_domain(domain);
-        for constants in &self.constants {
-            constants.populate_token_type_map(&mut context, &fn_context);
+        for constant in constants {
+            constant.populate_token_type_map(&mut context, &fn_context);
+        }
+        for constant in &self.constants {
+            constant.populate_token_type_map(&mut context, &fn_context);
         }
         for domain in &self.domains {
             domain.populate_token_type_map(&mut context, &fn_context);
@@ -296,9 +300,14 @@ impl PreModel {
             .map(|_| ())
             .map_err(|e| TransformErrorWrapper { error: e })
     }
-    pub fn create_token_type_map_wasm(&self, fns: Vec<JsFunction>) -> JsValue {
+    pub fn create_token_type_map_wasm(&self, constants: JsValue, fns: Vec<JsFunction>) -> JsValue {
         let fns = js_value_to_fns_map(fns);
-        serde_wasm_bindgen::to_value(&self.create_token_type_map(&fns)).unwrap()
+        let constants: Vec<(String, Primitive)> = serde_wasm_bindgen::from_value(constants).unwrap_or_default();
+        let constants = constants
+            .into_iter()
+            .map(|v| Constant::from_primitive(&v.0, v.1))
+            .collect();
+        serde_wasm_bindgen::to_value(&self.create_token_type_map(&constants, &fns)).unwrap()
     }
     pub fn to_latex_wasm(&self) -> String {
         self.to_latex()

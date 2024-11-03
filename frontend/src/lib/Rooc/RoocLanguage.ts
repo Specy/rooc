@@ -215,7 +215,7 @@ export function createRoocHoverProvider(ref: RoocFnRef) {
             const parser = new RoocParser(text)
             const parsed = parser.compile()
             if (parsed.isOk()) {
-                const items = parsed.value.createTypeMap([
+                const items = parsed.value.createTypeMap([],[
                     ...roocJsStd(),
                     ...ref.current
                 ])
@@ -274,7 +274,7 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel, edit: typ
                 severity: MarkerSeverity.Error
             })
         } else {
-            const typeCheck = parsed.value.typeCheck([
+            const typeCheck = parsed.value.typeCheck([],[
                 ...roocJsStd(),
                 ...ref.current
             ])

@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { run } from 'svelte/legacy';
 
     import type {OptimalTableauWithSteps} from "@specy/rooc";
     import Column from "$cmp/layout/Column.svelte";

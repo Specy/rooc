@@ -1,10 +1,10 @@
 <script lang="ts">
-    import type {BinaryIntegerSolution, VarValue} from "@specy/rooc";
+    import type {LpSolution, VarValue} from "@specy/rooc";
     import Column from "$cmp/layout/Column.svelte";
     import Var from "$cmp/pipe/Var.svelte";
 
     interface Props {
-        binarySolution: BinaryIntegerSolution<VarValue>;
+        binarySolution: LpSolution<VarValue>;
     }
 
     let { binarySolution }: Props = $props();

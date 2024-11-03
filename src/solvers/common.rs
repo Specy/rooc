@@ -5,6 +5,7 @@ use copper::{VarId, VarIdBinary};
 use indexmap::IndexMap;
 use num_traits::ToPrimitive;
 use serde::Serialize;
+#[allow(unused)]
 use std::fmt::{write, Display, Formatter};
 
 #[derive(Debug)]
@@ -113,7 +114,7 @@ pub struct LpSolution<T: Clone + Serialize + Copy + Display> {
 
 impl<T: Clone + Serialize + Copy + Display> Display for LpSolution<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Optimal value: {}\n\n", self.value);
+        write!(f, "Optimal value: {}\n\n", self.value)?;
         write!(
             f,
             "Variables:\n{}",

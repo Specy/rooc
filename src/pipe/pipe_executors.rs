@@ -1,11 +1,7 @@
-use indexmap::IndexMap;
-
 use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
 use crate::pipe::PipeContext;
 #[allow(unused_imports)]
 use crate::prelude::*;
-use crate::primitives::Constant;
-use crate::runtime_builtin::RoocFunction;
 use crate::solvers::{
     solve_binary_lp_problem, solve_integer_binary_lp_problem, solve_real_lp_problem_clarabel,
 };
