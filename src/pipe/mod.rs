@@ -10,4 +10,4 @@ pub use pipe_runner::*;
 #[allow(unused_imports)]
 pub use pipe_wasm_runner::*;
 #[allow(unused_imports)]
-pub use r#macro::*;
+use r#macro::*;

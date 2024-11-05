@@ -268,10 +268,7 @@ pub fn parse_primitive(const_value: &Pair<Rule>) -> Result<Primitive, Compilatio
                 .into_inner()
                 .map(|v| parse_primitive(&v))
                 .collect::<Result<Vec<_>, CompilationError>>()?;
-            let values = flatten_primitive_array_values(values).map_err(|e| {
-                CompilationError::from_pair(ParseError::UnexpectedToken(e), const_value, false)
-            })?;
-            Ok(values)
+            Ok(flatten_primitive_array_values(values))
         }
         Rule::graph => {
             let inner = const_value.clone().into_inner();

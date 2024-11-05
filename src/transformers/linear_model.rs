@@ -146,6 +146,7 @@ impl Default for LinearModel {
 }
 
 /// Errors that can occur when manipulating a LinearModel.
+#[derive(Debug)]
 pub enum LinearModelError {
     /// Indicates that the number of coefficients provided exceeds the number of variables in the model.
     TooManyCoefficients,

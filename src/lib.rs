@@ -56,6 +56,7 @@ use parser::pre_model::{parse_problem_source, PreModel};
 
 use crate::parser::model_transformer::{transform_parsed_problem, Model};
 
+#[macro_use]
 mod macros;
 mod math;
 mod parser;

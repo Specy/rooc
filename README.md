@@ -9,8 +9,7 @@
 
 [Go to the language documentation](https://rooc.specy.app/docs/rooc)
 
-[Go to the library documentation](https://rooc.specy.app/docs/lib)
-
+[Go to the library documentation](https://rooc.specy.app/docs/rooc)
 
 **ROOC** stands for the courses I took in university—*Ricerca Operativa* (Operational Research) and *Ottimizzazione Combinatoria* (Combinatorial Optimization)—which deal with solving optimization models.
 

@@ -37,7 +37,7 @@
 	"type": "module",
 	"dependencies": {
 		"@ctrl/tinycolor": "^4.1.0",
-		"@specy/rooc": "^1.2.6",
+		"@specy/rooc": "^1.2.7",
 		"@sveltejs/adapter-static": "^3.0.5",
 		"@types/clone-deep": "^4.0.4",
 		"@types/color": "^3.0.6",

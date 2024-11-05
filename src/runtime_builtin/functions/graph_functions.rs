@@ -17,7 +17,7 @@ use crate::{
 };
 
 #[derive(Debug, Serialize, Clone)]
-pub struct EdgesOfGraphFn {}
+pub(crate) struct EdgesOfGraphFn {}
 impl RoocFunction for EdgesOfGraphFn {
     fn call(
         &self,
