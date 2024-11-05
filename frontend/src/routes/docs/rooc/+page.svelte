@@ -27,7 +27,12 @@
     </p>
     <p>
         If you are looking for the typescript library documentation, look <a href={link}
+                                                                             target="_blank"
                                                                              style="color: var(--accent-10); text-decoration: underline">Here</a>
+    </p>
+    <p>
+        If you are looking for the rust library documentation, look <a href="https://docs.rs/rooc/latest/rooc/" target="_blank"
+                                                                       style="color: var(--accent-10); text-decoration: underline">Here</a>
     </p>
     <h1>
         Getting started
@@ -56,7 +61,7 @@
     </h1>
     <p>
         If you want to contribute to the project, you can find the source code on <a
-                href="https://github.com/Specy/rooc" style="color: var(--accent-10); text-decoration: underline">Github</a>.
+            href="https://github.com/Specy/rooc" style="color: var(--accent-10); text-decoration: underline">Github</a>.
         <br/>
     </p>
 </Page>
@@ -68,6 +73,7 @@
     a {
         color: var(--accent-10);
     }
+
     ul {
         font-size: 1.2rem;
     }
