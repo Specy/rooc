@@ -1,8 +1,8 @@
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_test::*;
 
 #[cfg(test)]
 mod parser_tests {
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::wasm_bindgen_test;
     use indexmap::IndexMap;
     use rooc::RoocParser;
 

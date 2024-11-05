@@ -17,20 +17,43 @@ use super::{
     primitive_traits::{ApplyOp, OperatorError, Spreadable},
     tuple::Tuple,
 };
-
+/// Represents different types of iterable collections in the system.
+///
+/// Each variant stores a vector of values of a specific primitive type.
+/// This allows for type-safe iteration and operations over collections
+/// of homogeneous elements.
+///
+/// # Example
+/// ```
+/// use rooc::IterableKind;
+///
+/// let numbers = IterableKind::Numbers(vec![1.0, 2.0, 3.0]);
+/// let strings = IterableKind::Strings(vec!["a".to_string(), "b".to_string()]);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value")]
 pub enum IterableKind {
+    /// Collection of floating point numbers
     Numbers(Vec<f64>),
+    /// Collection of signed integers
     Integers(Vec<i64>),
+    /// Collection of unsigned integers
     PositiveIntegers(Vec<u64>),
+    /// Collection of strings
     Strings(Vec<String>),
+    /// Collection of graph edges
     Edges(Vec<GraphEdge>),
+    /// Collection of graph nodes
     Nodes(Vec<GraphNode>),
+    /// Collection of graphs
     Graphs(Vec<Graph>),
+    /// Collection of tuples
     Tuples(Vec<Tuple>),
+    /// Collection of boolean values
     Booleans(Vec<bool>),
+    /// Nested collection of iterables
     Iterables(Vec<IterableKind>),
+    /// Collection of any primitive type
     Anys(Vec<Primitive>),
 }
 
@@ -53,14 +76,22 @@ export type SerializedIterable =
 "#;
 
 impl IterableKind {
+    /// Gets the primitive type of this iterable collection.
+    ///
+    /// # Returns
+    /// A `PrimitiveKind::Iterable` containing the type of elements in the collection
     pub fn get_type(&self) -> PrimitiveKind {
         PrimitiveKind::Iterable(Box::new(self.inner_type()))
     }
 
+    /// Converts this iterable into a primitive value.
     pub fn into_primitive(self) -> Primitive {
         Primitive::Iterable(self)
     }
 
+    /// Gets the type of elements contained in this iterable.
+    ///
+    /// For nested iterables, returns the type of the innermost elements.
     pub fn inner_type(&self) -> PrimitiveKind {
         match self {
             IterableKind::Numbers(_) => PrimitiveKind::Number,
@@ -102,6 +133,8 @@ impl IterableKind {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+
+    /// Converts this iterable into a vector of primitive values.
     pub fn to_primitives(self) -> Vec<Primitive> {
         match self {
             IterableKind::Numbers(v) => v.iter().map(|n| Primitive::Number(*n)).collect(),
@@ -126,7 +159,16 @@ impl IterableKind {
         }
     }
 
-    //TODO refactor this
+    /// Reads a value from the iterable at the specified indexes.
+    ///
+    /// For nested iterables, the indexes specify the path to the desired element.
+    ///
+    /// # Arguments
+    /// * `indexes` - Vector of indexes specifying the path to the desired element
+    ///
+    /// # Returns
+    /// * `Ok(Primitive)` - The value at the specified indexes
+    /// * `Err(TransformError)` - If the indexes are out of bounds
     pub fn read(&self, indexes: Vec<usize>) -> Result<Primitive, TransformError> {
         if indexes.is_empty() {
             return Ok(Primitive::Undefined);
@@ -196,6 +238,11 @@ impl IterableKind {
             indexes[0], self
         )))
     }
+
+    /// Returns the nesting depth of this iterable.
+    ///
+    /// For non-nested iterables, returns 1.
+    /// For nested iterables, returns the maximum nesting depth.
     pub fn depth(&self) -> usize {
         let mut current = self;
         let mut depth = 1;
@@ -208,6 +255,11 @@ impl IterableKind {
         }
         depth
     }
+
+    /// Returns a string representation of the iterable with proper indentation.
+    ///
+    /// # Arguments
+    /// * `depth` - The current indentation depth
     pub fn to_string_depth(&self, depth: usize) -> String {
         match self {
             IterableKind::Iterables(v) => {
@@ -221,6 +273,11 @@ impl IterableKind {
             _ => format!("{}{}", "    ".repeat(depth), self),
         }
     }
+
+    /// Returns a LaTeX representation of the iterable.
+    ///
+    /// # Arguments
+    /// * `include_block` - Whether to wrap the output in a matrix block
     pub fn latexify(&self, include_block: bool) -> String {
         match self {
             IterableKind::Numbers(v) => latexify_vec(v, include_block),
@@ -248,7 +305,6 @@ impl IterableKind {
         }
     }
 }
-
 fn latexify_vec<T>(v: &[T], include_block: bool) -> String
 where
     T: ToLatex,

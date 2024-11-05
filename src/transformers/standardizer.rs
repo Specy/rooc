@@ -6,6 +6,40 @@ use crate::transformers::linear_model::{LinearConstraint, LinearModel};
 use crate::transformers::standard_linear_model::{EqualityConstraint, StandardLinearModel};
 use crate::utils::{remove_many, InputSpan};
 
+/// Converts a linear programming model into standard form.
+///
+/// Standard form requires:
+/// - All constraints are equalities
+/// - All variables are non-negative
+/// - The objective function is minimization
+///
+/// # Arguments
+/// * `problem` - The linear model to convert
+///
+/// # Returns
+/// * `Ok(StandardLinearModel)` - The model in standard form
+/// * `Err(SolverError)` - If the model cannot be converted
+///
+/// # Example
+/// ```
+/// use rooc::{OptimizationType, VariableType, Comparison, to_standard_form, LinearModel};
+/// use rooc::model_transformer::DomainVariable;
+/// 
+/// let mut model = LinearModel::new();
+/// 
+/// // Add variables
+/// model.add_variable("x", VariableType::NonNegativeReal);
+/// model.add_variable("y", VariableType::NonNegativeReal);
+///
+/// // Set objective function: minimize x + 2y
+/// model.set_objective(vec![1.0, 2.0], OptimizationType::Min);
+///
+/// // Add constraint: x + y <= 10
+/// model.add_constraint(vec![1.0, 1.0], Comparison::LessOrEqual, 10.0);
+/// 
+/// let standard_form = to_standard_form(model).unwrap();
+/// 
+/// ```
 pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, SolverError> {
     let (
         mut objective,
@@ -132,12 +166,28 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
     ))
 }
 
+/// Context for tracking the normalization process of converting constraints to standard form.
+///
+/// This struct maintains indices for surplus and slack variables that are added during normalization,
+/// as well as the total count of variables in the system.
 pub struct NormalizationContext {
+    /// Counter for surplus variables added to handle <= constraints
     pub surplus_index: usize,
+    /// Counter for slack variables added to handle >= constraints
     pub slack_index: usize,
+    /// Total number of variables in the system
     pub total_variables: usize,
 }
 
+/// Converts a linear constraint to standard form by adding slack or surplus variables as needed.
+///
+/// # Arguments
+/// * `constraint` - The linear constraint to normalize
+/// * `context` - Mutable reference to the normalization context
+///
+/// # Returns
+/// * `Ok((EqualityConstraint, Option<String>))` - The normalized constraint and optionally the name of any added variable
+/// * `Err(SolverError)` - If the constraint cannot be normalized
 pub fn normalize_constraint(
     constraint: LinearConstraint,
     context: &mut NormalizationContext,

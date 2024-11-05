@@ -19,6 +19,8 @@ use crate::transformers::StandardLinearModel;
 use crate::utils::CompilationError;
 use crate::{match_pipe_data_to, RoocParser};
 
+
+/// The data that can be passed between pipes
 #[derive(Debug, Clone)]
 pub enum PipeableData {
     String(String),
@@ -38,6 +40,7 @@ pub enum PipeableData {
 #[allow(clippy::result_large_err)]
 #[allow(clippy::wrong_self_convention)]
 impl PipeableData {
+    /// Gets the type of the data
     pub fn get_type(&self) -> PipeDataType {
         match self {
             PipeableData::String(_) => PipeDataType::String,
@@ -149,6 +152,7 @@ impl Display for PipeableData {
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[derive(Debug)]
+/// The type of data that can be passed between pipes
 pub enum PipeDataType {
     String,
     Parser,
@@ -236,6 +240,10 @@ impl Display for PipeError {
     }
 }
 
+
+/// The context in which a pipe is executed
+/// 
+/// It contains the functions and constants that can be used in the pipe
 pub struct PipeContext<'a> {
     functions: &'a IndexMap<String, Box<dyn RoocFunction>>,
     constants: Vec<Constant>,
@@ -259,6 +267,7 @@ impl PipeContext<'_> {
 }
 
 pub trait Pipeable {
+    /// The function that is called when the pipe is executed
     #[allow(clippy::result_large_err)]
     fn pipe(
         &self,

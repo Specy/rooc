@@ -25,16 +25,30 @@ use crate::type_checker::type_checker_context::{
 use crate::utils::{InputSpan, Spanned};
 
 #[derive(Debug, Clone, Serialize)]
+/// Represents an expression in the intermediate language before final transformation.
+/// 
+/// This enum captures different types of expressions that can appear in the source code,
+/// including primitives, variables, function calls, and mathematical operations.
 pub enum PreExp {
+    /// A primitive value like numbers, strings, booleans
     Primitive(Spanned<Primitive>),
+    /// Absolute value expression, e.g. |x|
     Abs(InputSpan, Box<PreExp>),
+    /// A block function like average, min, max, etc.
     BlockFunction(Spanned<BlockFunction>),
+    /// A simple variable reference like 'x'
     Variable(Spanned<String>),
+    /// A compound variable like 'x_y'
     CompoundVariable(Spanned<CompoundVariable>),
+    /// Array access expression like 'arr[i]'
     ArrayAccess(Spanned<AddressableAccess>),
+    /// A block function with a scope, like a summation or a product
     BlockScopedFunction(Spanned<BlockScopedFunction>),
+    /// A function call expression
     FunctionCall(InputSpan, FunctionCall),
+    /// A binary operation like addition, multiplication
     BinaryOperation(Spanned<BinOp>, Box<PreExp>, Box<PreExp>),
+    /// A unary operation like negation
     UnaryOperation(Spanned<UnOp>, Box<PreExp>),
 }
 

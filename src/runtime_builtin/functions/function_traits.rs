@@ -13,20 +13,22 @@ use core::fmt;
 use pest::Span;
 use serde::Serialize;
 use std::fmt::Debug;
-/*TODO
-the PreExp should have only the function call which includes the parameters expressions and the function name
-the actual function (which can be kept like this trait, but implemented as a struct, only the `call` method should be implemented)
-should be saved inside the transformer context, this way there can also be user defined functions, and functions builtin
-perhaps i could add instance functions to objects too
- */
 
+/// Represents a function call with its arguments, name and source span.
 #[derive(Debug, Clone, Serialize)]
 pub struct FunctionCall {
     pub args: Vec<PreExp>,
     pub name: String,
     span: InputSpan,
 }
+
 impl FunctionCall {
+    /// Creates a new FunctionCall instance.
+    ///
+    /// # Arguments
+    /// * `args` - Vector of PreExp arguments to the function
+    /// * `name` - Name of the function being called
+    /// * `span` - Source code span for error reporting
     pub fn new(args: Vec<PreExp>, name: String, span: Span) -> Self {
         Self {
             args,
@@ -36,6 +38,17 @@ impl FunctionCall {
     }
 }
 
+/// The default type check implementation, it performs type checking of function arguments against expected types.
+///
+/// # Arguments
+/// * `args` - The actual arguments passed to the function
+/// * `expected` - Vector of expected argument names and their types
+/// * `context` - Type checker context
+/// * `fn_context` - Function context containing function definitions
+///
+/// # Returns
+/// * `Ok(())` if type checking succeeds
+/// * `Err(TransformError)` if there's a type mismatch
 pub fn default_type_check(
     args: &[PreExp],
     expected: &[(String, PrimitiveKind)],
@@ -84,6 +97,13 @@ pub fn default_type_check(
     Ok(())
 }
 
+/// Creates a type error for wrong argument types.
+///
+/// # Arguments
+/// * `args` - The actual arguments passed
+/// * `fun` - The function being called
+/// * `context` - Type checker context
+/// * `fn_context` - Function context
 pub fn default_wrong_type(
     args: &[PreExp],
     fun: &dyn RoocFunction,
@@ -101,6 +121,10 @@ pub fn default_wrong_type(
     }
 }
 
+/// Creates an error for wrong number of arguments.
+///
+/// # Arguments
+/// * `fun` - The function being called
 pub fn default_wrong_number_of_arguments(fun: &dyn RoocFunction) -> TransformError {
     TransformError::WrongNumberOfArguments {
         signature: fun.type_signature(),
@@ -157,6 +181,10 @@ impl ToLatex for FunctionCall {
     }
 }
 
+/// Converts a function call to LaTeX format.
+///
+/// # Arguments
+/// * `function` - The function call to convert
 pub fn default_rooc_function_to_latex(function: &FunctionCall) -> String {
     format!(
         "{}({})",
@@ -170,6 +198,10 @@ pub fn default_rooc_function_to_latex(function: &FunctionCall) -> String {
     )
 }
 
+/// Converts a function call to a string representation.
+///
+/// # Arguments
+/// * `function` - The function call to convert
 pub fn default_rooc_function_to_string(function: &FunctionCall) -> String {
     format!(
         "{}({})",
@@ -183,21 +215,52 @@ pub fn default_rooc_function_to_string(function: &FunctionCall) -> String {
     )
 }
 
+/// Trait defining the interface for Rooc functions.
+///
+/// This trait must be implemented by all functions that can be called within the Rooc language.
 pub trait RoocFunction: Debug {
+    /// Executes the function with given arguments.
+    ///
+    /// # Arguments
+    /// * `args` - Vector of arguments to the function
+    /// * `context` - Transformer context
+    /// * `fn_context` - Function context
+    ///
+    /// # Returns
+    /// * `Ok(Primitive)` containing the function result
+    /// * `Err(TransformError)` if execution fails
     fn call(
         &self,
         args: &[PreExp],
         context: &TransformerContext,
         fn_context: &FunctionContext,
     ) -> Result<Primitive, TransformError>;
+
+    /// Returns the type signature of the function.
     fn type_signature(&self) -> Vec<(String, PrimitiveKind)>;
+
+    /// Determines the return type of the function given its arguments.
+    ///
+    /// # Arguments
+    /// * `args` - The arguments to the function
+    /// * `context` - Type checker context
+    /// * `fn_context` - Function context
     fn return_type(
         &self,
         args: &[PreExp],
         context: &TypeCheckerContext,
         fn_context: &FunctionContext,
     ) -> PrimitiveKind;
+
+    /// Returns the name of the function.
     fn function_name(&self) -> String;
+
+    /// Type checks the function call.
+    ///
+    /// # Arguments
+    /// * `args` - The arguments to check
+    /// * `context` - Type checker context
+    /// * `fn_context` - Function context
     fn type_check(
         &self,
         args: &[PreExp],

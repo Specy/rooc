@@ -1,9 +1,8 @@
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_test::*;
-
 #[cfg(test)]
 mod math_tests {
-    use rooc::math::{
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::wasm_bindgen_test;
+    use rooc::{
         math_enums::{Comparison, OptimizationType},
         operators::{BinOp, UnOp},
     };
@@ -45,7 +44,7 @@ mod math_tests {
         let optimization_types_enum = [OptimizationType::Min, OptimizationType::Max];
         for (i, op) in optimization_types.iter().enumerate() {
             assert_eq!(
-                op.parse::<rooc::math::math_enums::OptimizationType>()
+                op.parse::<rooc::math_enums::OptimizationType>()
                     .expect("Failed to parse"),
                 optimization_types_enum[i]
             );

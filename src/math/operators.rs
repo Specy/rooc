@@ -19,6 +19,9 @@ enum_with_variants_to_string! {
     }
 }
 impl Operator {
+    /// Returns the precedence level of the operator.
+    /// 
+    /// Higher precedence values indicate that the operator should be evaluated first.
     pub fn precedence(&self) -> u8 {
         match self {
             Operator::Add | Operator::Sub => 1,
@@ -26,6 +29,11 @@ impl Operator {
             Operator::Neg => 3,
         }
     }
+
+    /// Determines if the operator is left associative.
+    /// 
+    /// Left associative operators are evaluated from left to right.
+    /// For example, a - b - c is evaluated as (a - b) - c.
     pub fn is_left_associative(&self) -> bool {
         match self {
             Operator::Add | Operator::Sub | Operator::Mul | Operator::Div => true,
@@ -62,17 +70,22 @@ enum_with_variants_to_string! {
 }
 
 impl BinOp {
+    /// Returns the precedence level of the binary operator.
     pub fn precedence(&self) -> u8 {
         match self {
             BinOp::Add | BinOp::Sub => 1,
             BinOp::Mul | BinOp::Div => 2,
         }
     }
+
+    /// Determines if the binary operator is left associative.
     pub fn is_left_associative(&self) -> bool {
         match self {
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div => true,
         }
     }
+
+    /// Converts a binary operator to the corresponding general Operator enum.
     pub fn to_operator(&self) -> Operator {
         match self {
             BinOp::Add => Operator::Add,
@@ -119,33 +132,40 @@ impl FromStr for BinOp {
         }
     }
 }
+
 enum_with_variants_to_string! {
     pub enum UnOp derives[Debug, PartialEq, Clone, Copy] with_wasm {
         Neg,
     }
 }
-impl ToLatex for UnOp {
-    fn to_latex(&self) -> String {
-        match self {
-            UnOp::Neg => "-".to_string(),
-        }
-    }
-}
 
 impl UnOp {
+    /// Returns the precedence level of the unary operator.
     pub fn precedence(&self) -> u8 {
         match self {
             UnOp::Neg => 3,
         }
     }
+
+    /// Determines if the unary operator is left associative.
     pub fn is_left_associative(&self) -> bool {
         match self {
             UnOp::Neg => false,
         }
     }
+
+    /// Converts a unary operator to the corresponding general Operator enum.
     pub fn to_operator(&self) -> Operator {
         match self {
             UnOp::Neg => Operator::Neg,
+        }
+    }
+}
+
+impl ToLatex for UnOp {
+    fn to_latex(&self) -> String {
+        match self {
+            UnOp::Neg => "-".to_string(),
         }
     }
 }

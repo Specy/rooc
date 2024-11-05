@@ -20,20 +20,43 @@ use crate::{
     wrong_argument,
 };
 
+/// Represents a primitive value in the system.
+///
+/// This enum contains all possible primitive types that can be used in expressions and calculations.
+/// Each variant represents a different type of value with its associated data.
+///
+/// # Example
+/// ```
+/// use rooc::Primitive;
+///
+/// let num = Primitive::Number(42.0);
+/// let text = Primitive::String("Hello".to_string());
+/// let flag = Primitive::Boolean(true);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value")]
 pub enum Primitive {
+    /// A floating point number
     Number(f64),
+    /// A signed integer
     Integer(i64),
+    /// An unsigned integer
     PositiveInteger(u64),
+    /// A text string
     String(String),
-    //TODO instead of making these, make a recursive IterableKind
+    /// An iterable collection of values
     Iterable(IterableKind),
+    /// A graph structure
     Graph(Graph),
+    /// An edge in a graph
     GraphEdge(GraphEdge),
+    /// A node in a graph
     GraphNode(GraphNode),
+    /// An ordered collection of primitives
     Tuple(Tuple),
+    /// A boolean value
     Boolean(bool),
+    /// Represents an undefined value
     Undefined,
 }
 
@@ -72,17 +95,29 @@ export type SerializedPrimitive =
 #[derive(Debug, Clone, Serialize, PartialEq, Deserialize)]
 #[serde(tag = "type", content = "value")]
 pub enum PrimitiveKind {
+    /// Floating point number type
     Number,
+    /// Signed integer type
     Integer,
+    /// Unsigned integer type
     PositiveInteger,
+    /// String type
     String,
+    /// Iterable type containing elements of the specified kind
     Iterable(Box<PrimitiveKind>),
+    /// Graph type
     Graph,
+    /// Graph edge type
     GraphEdge,
+    /// Graph node type
     GraphNode,
+    /// Tuple type containing a sequence of primitive kinds
     Tuple(Vec<PrimitiveKind>),
+    /// Boolean type
     Boolean,
+    /// Undefined type
     Undefined,
+    /// Any type (used for type checking)
     Any,
 }
 
@@ -106,6 +141,13 @@ export type SerializedPrimitiveKind =
 "#;
 
 impl PrimitiveKind {
+    /// Creates a PrimitiveKind from a Primitive value.
+    ///
+    /// # Arguments
+    /// * `p` - The primitive value to get the type from
+    ///
+    /// # Returns
+    /// The corresponding PrimitiveKind for the given Primitive
     pub fn from_primitive(p: &Primitive) -> Self {
         match p {
             Primitive::Number(_) => PrimitiveKind::Number,
@@ -121,6 +163,8 @@ impl PrimitiveKind {
             Primitive::Undefined => PrimitiveKind::Undefined,
         }
     }
+
+    /// Checks if the type is numeric (Number, Integer, PositiveInteger, or Boolean).
     pub fn is_numeric(&self) -> bool {
         matches!(
             self,
@@ -136,6 +180,12 @@ impl PrimitiveKind {
     pub fn is_iterable(&self) -> bool {
         matches!(self, PrimitiveKind::Iterable(_))
     }
+
+    /// Returns the types that this primitive kind can be spread into.
+    ///
+    /// # Returns
+    /// * `Ok(Vec<PrimitiveKind>)` - The types this kind can be spread into
+    /// * `Err(TransformError)` - If the type cannot be spread
     pub fn can_spread_into(&self) -> Result<Vec<PrimitiveKind>, TransformError> {
         match self {
             PrimitiveKind::Tuple(t) => Ok(t.clone()),
@@ -213,6 +263,8 @@ impl Primitive {
     pub fn get_type(&self) -> PrimitiveKind {
         PrimitiveKind::from_primitive(self)
     }
+
+    /// Gets a string representation of this primitive's type.
     pub fn type_string(&self) -> String {
         self.get_type().to_string()
     }
@@ -221,6 +273,12 @@ impl Primitive {
             Primitive::Number(n) => Ok(*n)
             ; (self))
     }
+
+    /// Attempts to get the value as a number, converting from compatible types.
+    ///
+    /// # Returns
+    /// * `Ok(f64)` - The numeric value
+    /// * `Err(TransformError)` - If the value cannot be converted to a number
     pub fn as_number_cast(&self) -> Result<f64, TransformError> {
         match self {
             Primitive::Number(n) => Ok(*n),
@@ -235,6 +293,12 @@ impl Primitive {
             Primitive::Integer(n) => Ok(*n)
             ; (self))
     }
+
+    /// Attempts to get the value as an integer, converting from compatible types.
+    ///
+    /// # Returns
+    /// * `Ok(i64)` - The integer value
+    /// * `Err(TransformError)` - If the value cannot be converted to an integer
     pub fn as_integer_cast(&self) -> Result<i64, TransformError> {
         match self {
             Primitive::Integer(n) => Ok(*n),
@@ -255,6 +319,12 @@ impl Primitive {
             Primitive::PositiveInteger(n) => Ok(*n as usize)
             ; (self))
     }
+
+    /// Attempts to get the value as a usize, converting from compatible types.
+    ///
+    /// # Returns
+    /// * `Ok(usize)` - The unsigned size value
+    /// * `Err(TransformError)` - If the value cannot be converted to a usize
     pub fn as_usize_cast(&self) -> Result<usize, TransformError> {
         match self {
             Primitive::PositiveInteger(n) => Ok(*n as usize),

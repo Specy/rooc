@@ -18,10 +18,13 @@ use crate::{
     utils::{InputSpan, Spanned},
 };
 
+/// Represents a variable or compound variable that will be used in type assertions
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "value")]
 pub enum VariableToAssert {
+    /// Simple variable name
     Variable(String),
+    /// Compound variable with indexes
     CompoundVariable(CompoundVariable),
 }
 
@@ -73,11 +76,16 @@ export type SerializedVariableToAssert = {
 }
 "#;
 
+/// Represents a single domain declaration for variables, defining their type and iteration scope
 #[derive(Debug, Clone, Serialize)]
 pub struct VariablesDomainDeclaration {
+    /// Variables included in this domain
     variables: Vec<Spanned<VariableToAssert>>,
+    /// Type for all variables in this domain
     as_type: PreVariableType,
+    /// Optional iteration scopes to iterate compound variables
     iteration: Vec<IterableSet>,
+    /// Source code span for error reporting
     span: InputSpan,
 }
 
@@ -94,6 +102,7 @@ export type SerializedVariablesDomainDeclaration = {
 "#;
 
 impl VariablesDomainDeclaration {
+    /// Creates a new domain declaration
     pub fn new(
         variables: Vec<Spanned<VariableToAssert>>,
         as_type: PreVariableType,
@@ -108,12 +117,17 @@ impl VariablesDomainDeclaration {
         }
     }
 
+    /// Returns reference to variables in this domain
     pub fn variables(&self) -> &Vec<Spanned<VariableToAssert>> {
         &self.variables
     }
+
+    /// Returns reference to the type of variables in this domain
     pub fn get_type(&self) -> &PreVariableType {
         &self.as_type
     }
+
+    /// Returns static (non-compound) variables from this domain
     pub fn static_variables(&self) -> Vec<Spanned<String>> {
         self.variables
             .iter()
@@ -125,10 +139,13 @@ impl VariablesDomainDeclaration {
             })
             .collect()
     }
+
+    /// Returns reference to iteration sets
     pub fn iteration(&self) -> &Vec<IterableSet> {
         &self.iteration
     }
 
+    /// Computes the domain values for the current context state
     fn compute_domain_values(
         &self,
         context: &mut TransformerContext,
@@ -154,6 +171,8 @@ impl VariablesDomainDeclaration {
             .collect::<Result<Vec<(String, Spanned<VariableType>)>, TransformError>>()
             .map_err(|e| e.add_span(&self.span))
     }
+
+    /// Computes the complete domain by evaluating all iterations
     pub fn compute_domain(
         &self,
         context: &mut TransformerContext,

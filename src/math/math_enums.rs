@@ -65,13 +65,16 @@ impl FromStr for Comparison {
         }
     }
 }
+
 enum_with_variants_to_string! {
+    
     pub enum OptimizationType derives[Debug, PartialEq, Clone] with_wasm {
         Min,
         Max,
         Satisfy
     }
 }
+
 impl ToLatex for OptimizationType {
     fn to_latex(&self) -> String {
         match self {
@@ -106,12 +109,16 @@ impl FromStr for OptimizationType {
     }
 }
 
+/// Represents the type of a variable before type checking and transformation
 #[derive(Debug, Clone, Serialize)]
 pub enum PreVariableType {
+    /// Boolean variable (0 or 1)
     Boolean,
-    //TODO should i add bounds here too?
+    /// Real number greater than or equal to zero
     NonNegativeReal,
+    /// Any real number
     Real,
+    /// Integer within a specified range [min, max]
     IntegerRange(PreExp, PreExp),
 }
 
@@ -153,6 +160,7 @@ impl FromStr for PreVariableType {
 }
 
 impl PreVariableType {
+    /// Returns a list of all available variable type names as strings
     pub fn kinds_to_string() -> Vec<String> {
         vec![
             "Boolean".to_string(),
@@ -162,6 +170,8 @@ impl PreVariableType {
         ]
     }
 
+    /// Converts PreVariableType to VariableType without using context
+    /// This is a simplified conversion that uses default values for ranges
     pub fn to_variable_type_without_context(&self) -> VariableType {
         match self {
             PreVariableType::Boolean => VariableType::Boolean,
@@ -188,6 +198,9 @@ impl PreVariableType {
             }
         }
     }
+
+    /// Converts PreVariableType to VariableType using the provided context
+    /// for evaluating range expressions
     pub fn to_variable_type(
         &self,
         context: &TransformerContext,
@@ -315,12 +328,17 @@ impl fmt::Display for PreVariableType {
     }
 }
 
+/// Represents the final, resolved type of a variable after being compiled
 #[derive(Debug, PartialEq, Clone, Copy, Serialize)]
 #[serde(tag = "type", content = "value")]
 pub enum VariableType {
+    /// Boolean variable (0 or 1)
     Boolean,
+    /// Real number greater than or equal to zero
     NonNegativeReal,
+    /// Any real number
     Real,
+    /// Integer within a specified range [min, max]
     IntegerRange(i32, i32),
 }
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
@@ -336,6 +354,7 @@ export type VariableType = {
 "#;
 
 impl VariableType {
+    /// Returns a list of all available variable type names as strings
     pub fn kinds_to_string() -> Vec<String> {
         vec![
             "Boolean".to_string(),

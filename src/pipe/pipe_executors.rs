@@ -9,6 +9,7 @@ use crate::transformers::Linearizer;
 use crate::RoocParser;
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+/// Enum that represents the different pipes that can be executed
 pub enum Pipes {
     CompilerPipe,
     PreModelPipe,
@@ -23,6 +24,7 @@ pub enum Pipes {
 }
 
 //-------------------- Source Compiler --------------------
+/// Pipe that compiles the source code into a parser
 pub struct CompilerPipe {}
 impl Default for CompilerPipe {
     fn default() -> Self {
@@ -44,6 +46,7 @@ impl Pipeable for CompilerPipe {
     }
 }
 //-------------------- Pre Model --------------------
+/// Pipe that transforms the parsed code into a pre model
 pub struct PreModelPipe {}
 impl Default for PreModelPipe {
     fn default() -> Self {
@@ -69,6 +72,7 @@ impl Pipeable for PreModelPipe {
     }
 }
 //-------------------- Model --------------------
+/// Pipe that transforms the pre model into a model
 pub struct ModelPipe {}
 impl Default for ModelPipe {
     fn default() -> Self {
@@ -109,6 +113,7 @@ impl Pipeable for ModelPipe {
     }
 }
 //-------------------- Linear Model --------------------
+/// Pipe that transforms the model into a linear model
 pub struct LinearModelPipe {}
 impl Default for LinearModelPipe {
     fn default() -> Self {
@@ -132,6 +137,7 @@ impl Pipeable for LinearModelPipe {
     }
 }
 //-------------------- Standard Linear Model --------------------
+/// Pipe that transforms the linear model into a standard linear model
 pub struct StandardLinearModelPipe {}
 impl Default for StandardLinearModelPipe {
     fn default() -> Self {
@@ -155,6 +161,7 @@ impl Pipeable for StandardLinearModelPipe {
     }
 }
 //-------------------- Tableau --------------------
+/// Pipe that transforms the standard linear model into a tableau for the simplex algorithm
 pub struct TableauPipe {}
 impl Default for TableauPipe {
     fn default() -> Self {
@@ -178,6 +185,7 @@ impl Pipeable for TableauPipe {
     }
 }
 //-------------------- Simplex --------------------
+/// Pipe that solves the linear model using a real solver
 pub struct RealSolver {}
 impl Default for RealSolver {
     fn default() -> Self {
@@ -202,6 +210,7 @@ impl Pipeable for RealSolver {
     }
 }
 //-------------------- Step by step Simplex  --------------------
+/// Pipe that solves the linear model using a step by step simplex algorithm
 pub struct StepByStepSimplexPipe {}
 impl Default for StepByStepSimplexPipe {
     fn default() -> Self {
@@ -227,7 +236,7 @@ impl Pipeable for StepByStepSimplexPipe {
 
 //-------------------- Dual --------------------
 
-pub struct DualPipe {}
+struct DualPipe {}
 impl Default for DualPipe {
     fn default() -> Self {
         Self::new()
@@ -249,6 +258,8 @@ impl Pipeable for DualPipe {
 }
 
 //-------------------- Binary solver --------------------
+
+/// Pipe that solves the linear model using a binary solver
 pub struct BinarySolverPipe {}
 impl Default for BinarySolverPipe {
     fn default() -> Self {
@@ -272,6 +283,7 @@ impl Pipeable for BinarySolverPipe {
     }
 }
 //-------------------- Integer Binary solver --------------------
+/// Pipe that solves the linear model using an integer binary solver
 pub struct IntegerBinarySolverPipe {}
 impl Default for IntegerBinarySolverPipe {
     fn default() -> Self {

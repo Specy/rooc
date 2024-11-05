@@ -1,12 +1,20 @@
 use crate::primitives::{IterableKind, Primitive, PrimitiveKind};
 
-//TODO make this a macro
+/// Flattens an array of primitives into a single primitive iterable.
+/// The resulting iterable type is determined by the type of the first element.
+///
+/// # Arguments
+/// * `values` - Vector of primitives to flatten
+///
+/// # Returns
+/// A single Primitive containing an IterableKind with the flattened values
 pub fn flatten_primitive_array_values(values: Vec<Primitive>) -> Result<Primitive, String> {
     let first = values.first();
     if first.is_none() {
         return Ok(Primitive::Iterable(IterableKind::Anys(vec![])));
     }
     let first_kind = first.unwrap().get_type();
+    //TODO try to make this return a Mixed Primitive if the types are different, instead of failing
     match first_kind {
         PrimitiveKind::Any => Ok(Primitive::Iterable(IterableKind::Numbers(vec![]))), //can never happen
         PrimitiveKind::Boolean => {

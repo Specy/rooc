@@ -5,6 +5,10 @@ use crate::parser::model_transformer::TransformError;
 
 use super::primitive::{Primitive, PrimitiveKind};
 
+/// Trait for types that can have operators applied to them.
+///
+/// Defines operations for applying binary and unary operators to values,
+/// as well as checking operator compatibility.
 pub trait ApplyOp {
     type Target;
     type TargetType;
@@ -15,28 +19,48 @@ pub trait ApplyOp {
     fn can_apply_unary_op(op: UnOp) -> bool;
 }
 
+/// Trait for types that can be spread into a sequence of primitives.
+///
+/// Implementors can convert themselves into a vector of primitive values.
 pub trait Spreadable {
+    /// Converts self into a vector of primitives.
+    ///
+    /// # Returns
+    /// * `Ok(Vec<Primitive>)` - The sequence of primitives
+    /// * `Err(TransformError)` - If the value cannot be spread
     fn to_primitive_set(self) -> Result<Vec<Primitive>, TransformError>;
 }
 
+/// Represents errors that can occur during operator application.
+#[derive(Debug)]
 pub enum OperatorError {
+    /// The operand type was incompatible with the operator
     IncompatibleType {
         operator: BinOp,
         expected: PrimitiveKind,
         found: PrimitiveKind,
     },
+    /// The binary operator is not supported for the type
     UnsupportedBinOperation {
         operator: BinOp,
         found: PrimitiveKind,
     },
+    /// The unary operator is not supported for the type
     UnsupportedUnOperation {
         operator: UnOp,
         found: PrimitiveKind,
     },
+    /// An undefined value was used in an operation
     UndefinedUse,
 }
 
 impl OperatorError {
+    /// Creates a new incompatible type error.
+    ///
+    /// # Arguments
+    /// * `op` - The binary operator that was used
+    /// * `expected` - The expected primitive type
+    /// * `found` - The actual primitive type
     pub fn incompatible_type(op: BinOp, expected: PrimitiveKind, found: PrimitiveKind) -> Self {
         OperatorError::IncompatibleType {
             operator: op,
@@ -44,12 +68,24 @@ impl OperatorError {
             found,
         }
     }
+
+    /// Creates a new unsupported binary operation error.
+    ///
+    /// # Arguments
+    /// * `op` - The unsupported binary operator
+    /// * `found` - The primitive type that doesn't support the operator
     pub fn unsupported_bin_operation(op: BinOp, found: PrimitiveKind) -> Self {
         OperatorError::UnsupportedBinOperation {
             operator: op,
             found,
         }
     }
+
+    /// Creates a new unsupported unary operation error.
+    ///
+    /// # Arguments
+    /// * `op` - The unsupported unary operator
+    /// * `found` - The primitive type that doesn't support the operator
     pub fn unsupported_un_operation(op: UnOp, found: PrimitiveKind) -> Self {
         OperatorError::UnsupportedUnOperation {
             operator: op,

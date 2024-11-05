@@ -1,3 +1,49 @@
+//! # ROOC
+//! ROOC is a modeling language for defining and solving optimization problems.
+//! 
+//! Write everything as a single source file:
+//! ```rust
+//!use indexmap::IndexMap;
+//!use rooc::pipe::{
+//!    BinarySolverPipe, LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData,
+//!    PreModelPipe,
+//!};
+//!let source = "
+//!max sum((value, i) in enumerate(values)) { value * x_i }
+//!s.t.
+//!    sum((weight, i) in enumerate(weights)) { weight * x_i } <= capacity
+//!where
+//!    let weights = [10, 60, 30, 40, 30, 20, 20, 2]
+//!    let values = [1, 10, 15, 40, 60, 90, 100, 15]
+//!    let capacity = 102
+//!define
+//!    x_i as Boolean for i in 0..len(weights)";
+//!//use pipes to solve the problem
+//!let pipe_runner = PipeRunner::new(vec![
+//!    Box::new(rooc::pipe::CompilerPipe::new()),
+//!    Box::new(PreModelPipe::new()),
+//!    Box::new(ModelPipe::new()),
+//!    Box::new(LinearModelPipe::new()),
+//!    Box::new(BinarySolverPipe::new()),
+//!]);
+//!let result = pipe_runner
+//!    .run(
+//!        PipeableData::String(source.to_string()),
+//!        &PipeContext::new(vec![], &IndexMap::new()),
+//!    )
+//!    .unwrap();
+//!let last = result
+//!    .into_iter()
+//!    .last()
+//!    .unwrap()
+//!    .to_binary_solution()
+//!        .unwrap();
+//!
+//!println!("{}", last)
+//! ```
+//! Or extend the language with your own functionality and data
+
+
 extern crate core;
 extern crate pest;
 #[macro_use]
@@ -8,23 +54,29 @@ use crate::prelude::*;
 use indexmap::IndexMap;
 
 use parser::pre_model::{parse_problem_source, PreModel};
-use utils::CompilationError;
 
 use crate::parser::model_transformer::{transform_parsed_problem, Model};
-use crate::primitives::{Constant, Primitive};
-use crate::runtime_builtin::RoocFunction;
 
 mod macros;
-pub mod math;
-pub mod parser;
-pub mod pipe;
-pub mod primitives;
-pub mod runtime_builtin;
-pub mod solvers;
+mod math;
+mod parser;
+mod primitives;
+mod runtime_builtin;
+mod solvers;
 mod traits;
-pub mod transformers;
+mod transformers;
+mod utils;
 pub mod type_checker;
-pub mod utils;
+pub mod pipe;
+
+
+pub use math::*;
+pub use parser::*;
+pub use primitives::*;
+pub use runtime_builtin::*;
+pub use solvers::*;
+pub use transformers::*;
+pub use utils::*;
 
 mod prelude {
     #[cfg(target_arch = "wasm32")]
@@ -35,6 +87,33 @@ mod prelude {
     };
 }
 
+/// A parser for the Rooc optimization modeling language.
+///
+/// This struct provides functionality to parse, format, transform and type check
+/// Rooc source code. It serves as the main entry point for processing Rooc programs.
+///
+/// # Example
+/// ```
+///    use indexmap::IndexMap;
+///    use rooc::{Linearizer, RoocParser, solve_integer_binary_lp_problem};
+///
+///    let source = "
+///    max sum((value, i) in enumerate(values)) { value * x_i }
+///    s.t.
+///        sum((weight, i) in enumerate(weights)) { weight * x_i } <= capacity
+///    where
+///        let weights = [10, 60, 30, 40, 30, 20, 20, 2]
+///        let values = [1, 10, 15, 40, 60, 90, 100, 15]
+///        let capacity = 102
+///    define
+///        x_i as Boolean for i in 0..len(weights)";
+///    let rooc = RoocParser::new(source.to_string());
+///    let parsed = rooc.parse().unwrap();
+///    let model = parsed.transform(vec![], &IndexMap::new()).unwrap();
+///    let linear = Linearizer::linearize(model).unwrap();
+///    let solution = solve_integer_binary_lp_problem(&linear).unwrap();
+///    println!("{}", solution)
+/// ```
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[derive(Debug, Clone)]
 pub struct RoocParser {
@@ -42,16 +121,42 @@ pub struct RoocParser {
 }
 
 impl RoocParser {
+    /// Creates a new RoocParser instance with the given source code.
+    ///
+    /// # Arguments
+    /// * `source` - The Rooc source code as a String
     pub fn new(source: String) -> Self {
         Self { source }
     }
+
+    /// Parses the source code into a PreModel representation.
+    ///
+    /// # Returns
+    /// * `Ok(PreModel)` - The parsed representation of the program
+    /// * `Err(CompilationError)` - If parsing fails
     pub fn parse(&self) -> Result<PreModel, CompilationError> {
         parse_problem_source(&self.source)
     }
+
+    /// Formats the source code according to Rooc's formatting rules.
+    ///
+    /// # Returns
+    /// * `Ok(String)` - The formatted source code
+    /// * `Err(CompilationError)` - If parsing fails during formatting
     pub fn format(&self) -> Result<String, CompilationError> {
         let parsed = self.parse()?;
         Ok(parsed.to_string())
     }
+
+    /// Parses and transforms the source code into a Model representation.
+    ///
+    /// # Arguments
+    /// * `constants` - Vector of constant definitions to be used during transformation
+    /// * `fns` - Map of function names to their implementations
+    ///
+    /// # Returns
+    /// * `Ok(Model)` - The transformed model
+    /// * `Err(String)` - Error message if parsing or transformation fails
     pub fn parse_and_transform(
         &self,
         constants: Vec<Constant>,
@@ -68,6 +173,16 @@ impl RoocParser {
                 .unwrap_or(e.traced_error())),
         }
     }
+
+    /// Type checks the source code against provided constants and functions.
+    ///
+    /// # Arguments
+    /// * `constants` - Vector of constants to check against
+    /// * `fns` - Map of function names to their implementations
+    ///
+    /// # Returns
+    /// * `Ok(())` - If type checking succeeds
+    /// * `Err(String)` - Error message if type checking fails
     pub fn type_check(
         &self,
         constants: &Vec<Constant>,

@@ -8,6 +8,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::parser::pre_model::Rule;
 
+/// Represents a span of text in the input source, tracking location information.
+///
+/// This struct stores the starting line, column, absolute position and length of a span of text,
+/// along with a flag indicating if the span has been modified.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct InputSpan {
@@ -20,6 +24,10 @@ pub struct InputSpan {
 }
 
 impl InputSpan {
+    /// Creates a new InputSpan from a Pest parser Pair.
+    ///
+    /// # Arguments
+    /// * `pair` - Reference to a Pest parser Pair
     pub fn from_pair(pair: &Pair<Rule>) -> Self {
         let (start_line, start_column) = pair.line_col();
         let start = pair.as_span().start();
@@ -32,6 +40,11 @@ impl InputSpan {
             tempered: false,
         }
     }
+
+    /// Creates a new InputSpan from a Pest Span.
+    ///
+    /// # Arguments
+    /// * `span` - A Pest Span object
     pub fn from_span(span: Span) -> Self {
         let (start_line, column_start) = span.start_pos().line_col();
         Self {
@@ -43,6 +56,14 @@ impl InputSpan {
         }
     }
 
+    /// Extracts the text corresponding to this span from the given source text.
+    ///
+    /// # Arguments
+    /// * `text` - The source text to extract from
+    ///
+    /// # Returns
+    /// * `Ok(&str)` - The extracted text slice if the span is valid
+    /// * `Err(String)` - Error message if the span is out of bounds
     pub fn span_text<'a>(&self, text: &'a str) -> Result<&'a str, String> {
         let end = (self.start + self.len) as usize;
         let start = self.start as usize;
@@ -58,6 +79,10 @@ impl InputSpan {
     }
 }
 
+/// A wrapper type that associates a value with its location in source code.
+///
+/// # Type Parameters
+/// * `T` - The type of value being wrapped, must implement Debug and Serialize
 #[derive(Clone, Serialize)]
 pub struct Spanned<T>
 where
@@ -68,22 +93,39 @@ where
 }
 
 impl<T: Debug + Serialize> Spanned<T> {
+    /// Creates a new Spanned value.
+    ///
+    /// # Arguments
+    /// * `value` - The value to wrap
+    /// * `span` - The source location information
     pub fn new(value: T, span: InputSpan) -> Self {
         Self { value, span }
     }
+
+    /// Returns a reference to the span information.
     pub fn span(&self) -> &InputSpan {
         &self.span
     }
 
+    /// Consumes the Spanned and returns a tuple of the value and span.
     pub fn into_tuple(self) -> (T, InputSpan) {
         (self.value, self.span)
     }
+
+    /// Returns a reference to the wrapped value.
     pub fn value(&self) -> &T {
         &self.value
     }
+
+    /// Consumes the Spanned and returns just the wrapped value.
     pub fn into_span_value(self) -> T {
         self.value
     }
+
+    /// Extracts the text corresponding to this span from the given source text.
+    ///
+    /// # Arguments
+    /// * `text` - The source text to extract from
     pub fn span_text<'a>(&self, text: &'a str) -> Result<&'a str, String> {
         self.span.span_text(text)
     }
@@ -118,6 +160,7 @@ impl<T: Debug + Serialize> Deref for Spanned<T> {
     }
 }
 
+/// Represents a compilation error with location information and error details.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[derive(Serialize)]
 pub struct CompilationError {
@@ -138,6 +181,12 @@ export type SerializedCompilationError = {
 "#;
 
 impl CompilationError {
+    /// Creates a new CompilationError.
+    ///
+    /// # Arguments
+    /// * `kind` - The type of parse error
+    /// * `span` - Location information for the error
+    /// * `text` - Additional error message text
     pub fn new(kind: ParseError, span: InputSpan, text: String) -> Self {
         Self {
             kind: Box::new(kind),
@@ -145,6 +194,13 @@ impl CompilationError {
             text,
         }
     }
+
+    /// Creates a CompilationError from a Pest parser Pair.
+    ///
+    /// # Arguments
+    /// * `kind` - The type of parse error
+    /// * `pair` - Reference to the Pest parser Pair
+    /// * `exclude_string` - Whether to exclude the parsed string from the error message
     pub fn from_pair(kind: ParseError, pair: &Pair<Rule>, exclude_string: bool) -> Self {
         let text = if exclude_string {
             "".to_string()
@@ -155,6 +211,10 @@ impl CompilationError {
         Self::new(kind, span, text)
     }
 
+    /// Formats the error message using the original source text.
+    ///
+    /// # Arguments
+    /// * `source` - The original source text
     pub fn to_string_from_source(&self, source: &str) -> String {
         let span_text = self.span.span_text(source);
         let span_text = span_text.unwrap_or("");
@@ -163,6 +223,8 @@ impl CompilationError {
             self.span.start_line, self.span.start_column, span_text, self.kind
         )
     }
+
+    /// Returns a formatted error string without source context.
     pub fn to_error_string(&self) -> String {
         format!("{} {}", self.kind, self.text)
     }
@@ -198,11 +260,15 @@ impl CompilationError {
     }
 }
 
+/// Represents different types of parsing errors that can occur during compilation.
 #[derive(Debug, Serialize)]
 #[serde(tag = "type", content = "value")]
 pub enum ParseError {
+    /// Indicates an unexpected token was encountered during parsing
     UnexpectedToken(String),
+    /// Indicates a required token was not found during parsing
     MissingToken(String),
+    /// Indicates a semantic error in the parsed code
     SemanticError(String),
 }
 
@@ -240,6 +306,11 @@ impl fmt::Display for ParseError {
     }
 }
 
+/// Removes multiple elements from a vector by their indices.
+///
+/// # Arguments
+/// * `vec` - The vector to remove elements from
+/// * `indices` - Slice containing the indices to remove
 pub(crate) fn remove_many<T>(vec: &mut Vec<T>, indices: &[usize]) {
     let mut i = 0; // ugh
     vec.retain(|_| {

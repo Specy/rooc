@@ -11,6 +11,7 @@ use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standardizer::to_standard_form;
 use crate::utils::remove_many;
 
+/// Represents a linear equality constraint in standard form: ax = b where a is a vector of coefficients and b is a constant.
 #[derive(Debug, Clone)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct EqualityConstraint {
@@ -29,6 +30,7 @@ impl EqualityConstraint {
     }
 }
 
+/// Represents an independent variable in a linear system, identified by its position and value in the constraint matrix.
 #[derive(Debug, Clone)]
 struct IndependentVariable {
     row: usize,
@@ -37,6 +39,15 @@ struct IndependentVariable {
 }
 
 impl StandardLinearModel {
+    /// Converts the standard form linear model into a tableau representation suitable for the simplex method.
+    ///
+    /// This method implements two approaches:
+    /// 1. Direct conversion if enough independent variables are found
+    /// 2. Two-phase simplex method using artificial variables if direct conversion is not possible
+    ///
+    /// # Returns
+    /// * `Ok(Tableau)` - A valid tableau in canonical form
+    /// * `Err(CanonicalTransformError)` - If the model cannot be converted to a tableau
     pub fn into_tableau(self) -> Result<Tableau, CanonicalTransformError> {
         let mut usable_independent_vars: Vec<IndependentVariable> = Vec::new();
         //find independent variables by checking if the column has a single value, and if so, add it to the independent list
@@ -193,6 +204,18 @@ impl StandardLinearModel {
 }
 
 impl EqualityConstraint {
+    /// Creates a new equality constraint, normalizing it so the right-hand side is non-negative.
+    ///
+    /// # Arguments
+    /// * `coefficients` - Vector of coefficients for the constraint
+    /// * `rhs` - Right-hand side constant value
+    ///
+    /// # Example
+    /// ```
+    /// use rooc::EqualityConstraint;
+    /// let constraint = EqualityConstraint::new(vec![2.0, -1.0, 3.0], -4.0);
+    /// // Normalizes to: -2x + y - 3z = 4
+    /// ```
     pub fn new(coefficients: Vec<f64>, rhs: f64) -> EqualityConstraint {
         match float_lt(rhs, 0.0) {
             true => EqualityConstraint {
@@ -202,28 +225,53 @@ impl EqualityConstraint {
             false => EqualityConstraint { coefficients, rhs },
         }
     }
+
+    /// Returns a reference to the coefficient vector.
     pub fn coefficients(&self) -> &Vec<f64> {
         &self.coefficients
     }
+
+    /// Returns a mutable reference to the coefficient vector.
     pub fn coefficients_mut(&mut self) -> &mut Vec<f64> {
         &mut self.coefficients
     }
 
+    /// Removes coefficients at the specified indices from the constraint.
+    ///
+    /// # Arguments
+    /// * `indexes` - Slice of indices to remove
     pub fn remove_coefficients_by_index(&mut self, indexes: &[usize]) {
         remove_many(self.coefficients.as_mut(), indexes);
     }
 
+    /// Returns the coefficient at the specified index.
+    ///
+    /// # Arguments
+    /// * `index` - Index of the coefficient to retrieve
     pub fn coefficient(&self, index: usize) -> f64 {
         self.coefficients[index]
     }
+
+    /// Returns the right-hand side constant value.
     pub fn rhs(&self) -> f64 {
         self.rhs
     }
+
+    /// Ensures the coefficient vector has the specified size by padding with zeros if necessary.
+    ///
+    /// # Arguments
+    /// * `size` - Required size of the coefficient vector
     pub fn ensure_size(&mut self, size: usize) {
         self.coefficients.resize(size, 0.0);
     }
 }
 
+/// Represents a linear optimization model in standard form.
+///
+/// Standard form requires:
+/// - All constraints are equations (=)
+/// - All variables are non-negative
+/// - Objective function is minimization
 #[derive(Debug, Clone)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct StandardLinearModel {
@@ -235,6 +283,14 @@ pub struct StandardLinearModel {
 }
 
 impl StandardLinearModel {
+    /// Creates a new standard form linear model.
+    ///
+    /// # Arguments
+    /// * `objective` - Vector of objective function coefficients
+    /// * `constraints` - Vector of equality constraints
+    /// * `variables` - Vector of variable names
+    /// * `objective_offset` - Constant term in the objective function
+    /// * `flip_objective` - Whether to flip the objective function (for maximization problems)
     pub fn new(
         mut objective: Vec<f64>,
         mut constraints: Vec<EqualityConstraint>,
@@ -254,12 +310,22 @@ impl StandardLinearModel {
             flip_objective,
         }
     }
+
+    /// Converts a general linear model to standard form.
+    ///
+    /// # Arguments
+    /// * `linear_problem` - The linear model to convert
+    ///
+    /// # Returns
+    /// * `Ok(StandardLinearModel)` - The converted model in standard form
+    /// * `Err(SolverError)` - If conversion fails
     pub fn from_linear_problem(
         linear_problem: LinearModel,
     ) -> Result<StandardLinearModel, SolverError> {
         to_standard_form(linear_problem)
     }
 }
+
 impl Display for StandardLinearModel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let constraints = self.constraints.iter().map(|c| {
@@ -318,6 +384,12 @@ impl Display for StandardLinearModel {
     }
 }
 
+/// Formats a variable term with its coefficient for display.
+///
+/// # Arguments
+/// * `name` - Variable name
+/// * `value` - Coefficient value
+/// * `is_first` - Whether this is the first term in an expression
 pub fn format_var(name: &str, value: f64, is_first: bool) -> String {
     let sign = if float_lt(value, 0.0) {
         "- "
@@ -335,21 +407,30 @@ pub fn format_var(name: &str, value: f64, is_first: bool) -> String {
 }
 
 impl StandardLinearModel {
+    /// Returns the right-hand side vector (b) of the constraint system Ax = b.
     fn b_vec(&self) -> Vec<f64> {
         self.constraints.iter().map(|c| c.rhs).collect()
     }
+
+    /// Returns the objective function coefficients vector (c).
     fn c_vec(&self) -> Vec<f64> {
         self.objective.clone()
     }
+
+    /// Returns the constraint coefficient matrix (A) of the system Ax = b.
     fn a_matrix(&self) -> Vec<Vec<f64>> {
         self.constraints
             .iter()
             .map(|c| c.coefficients.clone())
             .collect()
     }
+
+    /// Returns a clone of the variable names vector.
     fn variables(&self) -> Vec<String> {
         self.variables.clone()
     }
+
+    /// Returns the objective function's constant offset term.
     fn objective_offset(&self) -> f64 {
         self.objective_offset
     }

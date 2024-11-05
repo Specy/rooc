@@ -33,12 +33,19 @@ use super::rules_parser::{
 pub(crate) struct PLParser;
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+/// Represents a pre-transformed optimization model containing the objective,
+/// constraints, constants and domain declarations
 #[derive(Debug, Serialize, Clone)]
 pub struct PreModel {
+    /// Original source code if available
     source: Option<String>,
+    /// Objective function to optimize
     objective: PreObjective,
+    /// List of constraints that must be satisfied
     constraints: Vec<PreConstraint>,
+    /// Constant declarations
     constants: Vec<Constant>,
+    /// Domain declarations for variables
     domains: Vec<VariablesDomainDeclaration>,
 }
 
@@ -71,6 +78,7 @@ impl PreModel {
         }
     }
 
+    /// Decomposes the model into its constituent parts
     pub fn into_parts(
         self,
     ) -> (

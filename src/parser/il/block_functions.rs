@@ -100,10 +100,15 @@ impl fmt::Display for BlockFunctionKind {
     }
 }
 
+/// A function that operates over a set of values with iteration variables.
+/// This represents functions like sum, product, etc. that iterate over a set.
 #[derive(Debug, Serialize, Clone)]
 pub struct BlockScopedFunction {
+    /// The type of block scoped function (sum, product, etc)
     pub kind: BlockScopedFunctionKind,
+    /// The iteration variables and their domains
     pub iters: Vec<IterableSet>,
+    /// The expression to evaluate for each iteration
     pub exp: Box<PreExp>,
 }
 
@@ -150,9 +155,17 @@ export type SerializedBlockScopedFunction = {
 "#;
 
 impl BlockScopedFunction {
+    /// Creates a new BlockScopedFunction.
+    ///
+    /// # Arguments
+    /// * `kind` - The type of block scoped function
+    /// * `iters` - Vector of iteration variables and their domains
+    /// * `exp` - The expression to evaluate for each iteration
     pub fn new(kind: BlockScopedFunctionKind, iters: Vec<IterableSet>, exp: Box<PreExp>) -> Self {
         Self { kind, iters, exp }
     }
+
+    /// Returns the span (source location) of the function body expression
     pub fn body_span(&self) -> InputSpan {
         self.exp.span().clone()
     }
@@ -175,9 +188,14 @@ impl fmt::Display for BlockScopedFunction {
     }
 }
 
+/// A function that operates on a fixed set of expressions.
+/// This represents functions like min, max, avg that take a set of arguments
+/// and compute a single result.
 #[derive(Debug, Serialize, Clone)]
 pub struct BlockFunction {
+    /// The type of block function (min, max, avg)
     pub kind: BlockFunctionKind,
+    /// The expressions to evaluate
     pub exps: Vec<PreExp>,
 }
 
@@ -192,6 +210,11 @@ export type SerializedBlockFunction = {
 "#;
 
 impl BlockFunction {
+    /// Creates a new BlockFunction.
+    ///
+    /// # Arguments
+    /// * `kind` - The type of block function
+    /// * `exps` - Vector of expressions to evaluate
     pub fn new(kind: BlockFunctionKind, exps: Vec<PreExp>) -> Self {
         Self { kind, exps }
     }

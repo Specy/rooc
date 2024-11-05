@@ -1,8 +1,8 @@
-pub mod array_functions;
+pub(crate) mod array_functions;
 pub mod function_traits;
-pub mod graph_functions;
-pub mod js_function;
-pub mod number_functions;
+pub(crate) mod graph_functions;
+pub(crate) mod js_function;
+pub(crate) mod number_functions;
 
 pub use array_functions::*;
 pub use function_traits::*;

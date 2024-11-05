@@ -10,6 +10,14 @@ use std::collections::VecDeque;
 use std::fmt::Display;
 
 impl Exp {
+    /// Converts an expression into a linear form.
+    ///
+    /// # Arguments
+    /// * `linearizer_context` - The context containing variables and constraints
+    ///
+    /// # Returns
+    /// * `Ok(LinearizationContext)` - The linearized expression
+    /// * `Err(LinearizationError)` - If the expression cannot be linearized
     fn linearize(
         &self,
         linearizer_context: &mut Linearizer,
@@ -100,13 +108,21 @@ impl Exp {
     }
 }
 
+/// Represents an intermediate linear constraint during the linearization process.
 #[derive(Debug)]
-pub struct MidLinearConstraint {
+struct MidLinearConstraint {
     lhs: IndexMap<String, f64>,
     rhs: f64,
     comparison: Comparison,
 }
+
 impl MidLinearConstraint {
+    /// Creates a new intermediate linear constraint.
+    ///
+    /// # Arguments
+    /// * `lhs` - Map of variable names to their coefficients
+    /// * `rhs` - Right-hand side constant
+    /// * `comparison` - Comparison operator
     pub fn new(lhs: IndexMap<String, f64>, rhs: f64, comparison: Comparison) -> Self {
         MidLinearConstraint {
             lhs,
@@ -114,6 +130,12 @@ impl MidLinearConstraint {
             comparison,
         }
     }
+
+    /// Creates a new constraint from a linearization context.
+    ///
+    /// # Arguments
+    /// * `context` - The linearization context
+    /// * `comparison` - The comparison operator
     pub fn new_from_linearized_context(
         context: LinearizationContext,
         comparison: Comparison,
@@ -124,14 +146,25 @@ impl MidLinearConstraint {
             comparison,
         }
     }
+
+    /// Converts the constraint's variables to a coefficient vector based on variable ordering.
+    ///
+    /// # Arguments
+    /// * `vars` - Mapping of variable names to their positions
     pub fn to_coefficient_vector(&self, vars: &IndexMap<String, usize>) -> Vec<f64> {
         extract_coeffs(&self.lhs, vars)
     }
+
+    /// Converts to a final LinearConstraint.
+    ///
+    /// # Arguments
+    /// * `vars` - Mapping of variable names to their positions
     pub fn to_linear_constraint(self, vars: &IndexMap<String, usize>) -> LinearConstraint {
         let coeffs = self.to_coefficient_vector(vars);
         LinearConstraint::new(coeffs, self.comparison, self.rhs)
     }
 }
+
 impl Display for MidLinearConstraint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut lhs = String::new();
@@ -147,6 +180,7 @@ impl Display for MidLinearConstraint {
     }
 }
 
+/// Manages the linearization process for expressions and constraints.
 #[derive(Default)]
 pub struct Linearizer {
     constraints: VecDeque<Constraint>,
@@ -160,9 +194,16 @@ pub struct Linearizer {
 }
 
 impl Linearizer {
+    /// Creates a new empty Linearizer.
     pub fn new() -> Self {
         Self::default()
     }
+
+    /// Creates a Linearizer with initial constraints and domain.
+    ///
+    /// # Arguments
+    /// * `constraints` - Initial constraints to process
+    /// * `domain` - Variable domain information
     pub fn new_from(
         constraints: Vec<Constraint>,
         domain: IndexMap<String, DomainVariable>,
@@ -173,16 +214,30 @@ impl Linearizer {
             ..Self::default()
         }
     }
+
+    /// Adds a constraint to be processed.
+    ///
+    /// # Arguments
+    /// * `constraint` - The constraint to add
     pub fn add_constraint(&mut self, constraint: Constraint) {
         self.constraints.push_front(constraint);
     }
 
+    /// Returns a reference to the current constraints.
     pub fn constraints(&self) -> &VecDeque<Constraint> {
         &self.constraints
     }
+
+    /// Removes and returns the next constraint to process.
     pub fn pop_constraint(&mut self) -> Option<Constraint> {
         self.constraints.pop_front()
     }
+
+    /// Declares a new variable in the domain.
+    ///
+    /// # Arguments
+    /// * `name` - Variable name
+    /// * `as_type` - Variable type
     pub fn declare_variable(
         &mut self,
         name: String,
@@ -196,6 +251,8 @@ impl Linearizer {
         self.domain.insert(name, var);
         Ok(())
     }
+
+    /// Returns names of all variables that are used in constraints.
     pub fn used_variables(&self) -> Vec<String> {
         self.domain
             .iter()
@@ -203,6 +260,15 @@ impl Linearizer {
             .map(|(name, _)| name.clone())
             .collect()
     }
+
+    /// Converts a model into linear form.
+    ///
+    /// # Arguments
+    /// * `model` - The model to linearize
+    ///
+    /// # Returns
+    /// * `Ok(LinearModel)` - The linearized model
+    /// * `Err(LinearizationError)` - If linearization fails
     pub fn linearize(model: Model) -> Result<LinearModel, LinearizationError> {
         let (objective, constraints, domain) = model.into_components();
 
@@ -237,7 +303,7 @@ impl Linearizer {
             .collect();
         let objective_coeffs = extract_coeffs(&linearized_objective.current_vars, &vars_indexes);
         let objective_offset = linearized_objective.current_rhs;
-        Ok(LinearModel::new(
+        Ok(LinearModel::new_from_parts(
             objective_coeffs,
             objective_type,
             objective_offset,
@@ -278,7 +344,10 @@ impl Display for LinearizationError {
         }
     }
 }
-pub struct LinearizationContext {
+
+/// Represents the intermediate state during expression linearization.
+/// Contains a map of variables to their coefficients and a constant term (RHS).
+struct LinearizationContext {
     current_vars: IndexMap<String, f64>,
     current_rhs: f64,
 }
@@ -290,22 +359,40 @@ impl Default for LinearizationContext {
 }
 
 impl LinearizationContext {
+    /// Creates a new empty linearization context.
     pub fn new() -> Self {
         LinearizationContext {
             current_vars: IndexMap::new(),
             current_rhs: 0.0,
         }
     }
+
+    /// Creates a new context with a single variable term.
+    ///
+    /// # Arguments
+    /// * `name` - Name of the variable
+    /// * `multiplier` - Coefficient for the variable
     pub fn from_var(name: String, multiplier: f64) -> Self {
         let mut context = LinearizationContext::new();
         context.add_var(name, multiplier);
         context
     }
+
+    /// Creates a new context with only a constant term.
+    ///
+    /// # Arguments
+    /// * `rhs` - The constant value
     pub fn from_rhs(rhs: f64) -> Self {
         let mut context = LinearizationContext::new();
         context.add_rhs(rhs);
         context
     }
+
+    /// Adds a variable term to the context, combining coefficients if the variable already exists.
+    ///
+    /// # Arguments
+    /// * `name` - Name of the variable
+    /// * `multiplier` - Coefficient to add for the variable
     #[allow(clippy::all)]
     pub fn add_var(&mut self, name: String, multiplier: f64) {
         if self.current_vars.contains_key(&name) {
@@ -316,36 +403,69 @@ impl LinearizationContext {
         }
     }
 
+    /// Adds another context to this one, combining like terms.
+    ///
+    /// # Arguments
+    /// * `other` - The context to add
     pub fn merge_add(&mut self, other: LinearizationContext) {
         for (name, multiplier) in other.current_vars {
             self.add_var(name, multiplier);
         }
         self.add_rhs(other.current_rhs);
     }
+
+    /// Subtracts another context from this one.
+    ///
+    /// # Arguments
+    /// * `other` - The context to subtract
     pub fn merge_sub(&mut self, other: LinearizationContext) {
         for (name, multiplier) in other.current_vars {
             self.add_var(name, -multiplier);
         }
         self.add_rhs(-other.current_rhs);
     }
+
+    /// Adds a constant term to the RHS.
+    ///
+    /// # Arguments
+    /// * `rhs` - The constant value to add
     pub fn add_rhs(&mut self, rhs: f64) {
         self.current_rhs += rhs;
     }
+
+    /// Returns a reference to the map of variables and their coefficients.
     pub fn vars(&self) -> &IndexMap<String, f64> {
         &self.current_vars
     }
+
+    /// Returns the constant term (RHS).
     pub fn rhs(&self) -> f64 {
         self.current_rhs
     }
+
+    /// Checks if a variable exists in the context.
+    ///
+    /// # Arguments
+    /// * `name` - Name of the variable to check
     pub fn has_var(&self, name: &String) -> bool {
         self.current_vars.contains_key(name)
     }
+
+    /// Multiplies all coefficients and the RHS by a scalar value.
+    ///
+    /// # Arguments
+    /// * `multiplier` - The scalar value to multiply by
     pub fn mul_by(&mut self, multiplier: f64) {
         for (_, val) in self.current_vars.iter_mut() {
             *val *= multiplier;
         }
         self.current_rhs *= multiplier;
     }
+
+    /// Divides all coefficients and the RHS by a scalar value.
+    ///
+    /// # Arguments
+    /// * `divisor` - The scalar value to divide by
     pub fn div_by(&mut self, divisor: f64) {
         for (_, val) in self.current_vars.iter_mut() {
             *val /= divisor;
@@ -353,6 +473,7 @@ impl LinearizationContext {
         self.current_rhs /= divisor;
     }
 
+    /// Returns true if the context has no variable terms.
     pub fn has_no_vars(&self) -> bool {
         self.current_vars.is_empty()
     }

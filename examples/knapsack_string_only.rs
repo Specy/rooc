@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
-use rooc::solvers::solve_integer_binary_lp_problem;
-use rooc::transformers::Linearizer;
+use rooc::solve_integer_binary_lp_problem;
+use rooc::Linearizer;
 use rooc::RoocParser;
 
 fn main() {

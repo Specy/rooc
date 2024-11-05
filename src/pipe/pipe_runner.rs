@@ -1,6 +1,7 @@
 use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
 use crate::pipe::PipeContext;
 
+/// Pipe runner that runs a sequence of pipes
 pub struct PipeRunner {
     pipes: Vec<Box<dyn Pipeable>>,
 }
@@ -10,6 +11,11 @@ impl PipeRunner {
         PipeRunner { pipes }
     }
 
+    /// Runs the pipe runner
+    /// 
+    /// # Arguments
+    /// * `data` - The data to be piped to the first pipe
+    /// * `context` - The context that will be available to all pipes
     pub fn run(
         &self,
         data: PipeableData,

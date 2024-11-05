@@ -1,11 +1,41 @@
 use crate::math::{Comparison, OptimizationType, VariableType};
+use crate::parser::model_transformer::DomainVariable;
 use crate::solvers::common::{find_invalid_variables, Assignment, LpSolution, SolverError};
 use crate::transformers::LinearModel;
 use copper::views::ViewExt;
 use copper::*;
 use num_traits::ToPrimitive;
 
+/// Solves a binary linear programming problem.
+///
+/// Takes a linear model containing only boolean variables and returns an optimal solution
+/// or an error if the problem cannot be solved.
+///
+/// # Arguments
+/// * `lp` - The linear programming model to solve, must contain only boolean variables
+///
+/// # Returns
+/// * `Ok(LpSolution<bool>)` - The optimal solution if found
+/// * `Err(SolverError)` - Various error conditions that prevented finding a solution
+///
+/// # Example
+/// ```
+/// use rooc::{VariableType, Comparison, OptimizationType, solve_binary_lp_problem, LinearModel};
+/// 
+/// let mut model = LinearModel::new();
+/// model.add_variable("x1", VariableType::Boolean);
+/// model.add_variable("x2", VariableType::Boolean);
+/// 
+/// // Add constraint: x1 + x2 <= 1
+/// model.add_constraint(vec![1.0, 1.0], Comparison::LessOrEqual, 1.0);
+/// 
+/// // Set objective: maximize x1 + 2*x2
+/// model.set_objective(vec![1.0, 2.0], OptimizationType::Max);
+///
+/// let solution = solve_binary_lp_problem(&model).unwrap();
+/// ```
 pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<LpSolution<bool>, SolverError> {
+
     let non_binary_variables =
         find_invalid_variables(lp.domain(), |var| matches!(var, VariableType::Boolean));
     if !non_binary_variables.is_empty() {

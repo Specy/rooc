@@ -26,7 +26,7 @@ lazy_static::lazy_static! {
     };
 }
 //TODO add implicit multiplication: 2x = 2 * x, should this be as a preprocessor? or part of the grammar?
-pub fn parse_exp(exp_to_parse: Pair<Rule>) -> Result<PreExp, CompilationError> {
+pub(crate) fn parse_exp(exp_to_parse: Pair<Rule>) -> Result<PreExp, CompilationError> {
     PRATT_PARSER
         .map_primary(parse_exp_leaf)
         .map_infix(|lhs, op, rhs| {
@@ -58,7 +58,7 @@ pub fn parse_exp(exp_to_parse: Pair<Rule>) -> Result<PreExp, CompilationError> {
         .parse(exp_to_parse.into_inner())
 }
 
-pub fn parse_exp_leaf(exp: Pair<Rule>) -> Result<PreExp, CompilationError> {
+pub(crate) fn parse_exp_leaf(exp: Pair<Rule>) -> Result<PreExp, CompilationError> {
     let span = InputSpan::from_pair(&exp);
     match exp.as_rule() {
         Rule::function => {

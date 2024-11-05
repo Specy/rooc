@@ -1,9 +1,8 @@
 use indexmap::IndexMap;
-use rooc::pipe::PipeContext;
 #[allow(unused)]
 use rooc::pipe::{
     CompilerPipe, LinearModelPipe, ModelPipe, PipeRunner, PipeableData, PreModelPipe, RealSolver,
-    StandardLinearModelPipe,
+    StandardLinearModelPipe, PipeContext
 };
 
 #[allow(unused)]

@@ -11,58 +11,121 @@ use crate::primitives::PrimitiveKind;
 use crate::runtime_builtin::TokenType;
 use crate::utils::{InputSpan, Spanned};
 
+/// Represents errors that can occur during model transformation.
+///
+/// This enum contains various error types that may arise when transforming
+/// a pre-model into a complete optimization model, including variable declaration errors,
+/// type mismatches, function errors, and operator errors.
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "value")]
 pub enum TransformError {
+    /// Error when a variable is used but not declared
     UndeclaredVariable(String),
+    
+    /// Error when a variable's domain is referenced but not declared
     UndeclaredVariableDomain(String),
+    
+    /// Error when attempting to declare a variable that already exists
     AlreadyDeclaredVariable(String),
+    
+    /// Error when attempting to declare a domain for a variable that already has one.
+    /// Contains a vector of (variable name, (count, variable type)) tuples.
     AlreadyDeclaredDomainVariable(Vec<(String, (i32, Spanned<VariableType>))>),
+    
+    /// Error when a value is outside its valid range
     OutOfBounds(String),
+    
+    /// Error when an argument has the wrong type
     WrongArgument {
+        /// The type that was provided
         got: PrimitiveKind,
+        /// The type that was expected
         expected: PrimitiveKind,
     },
+    
+    /// Error when an argument's type doesn't match any of the allowed types
     WrongExpectedArgument {
+        /// The type that was provided
         got: PrimitiveKind,
+        /// List of allowed types
         one_of: Vec<PrimitiveKind>,
     },
+    
+    /// Error with source location information
     SpannedError {
+        /// The underlying error with location info
         spanned_error: Spanned<Box<TransformError>>,
+        /// Optional additional context
         value: Option<String>,
     },
+    
+    /// Error when referencing a function that doesn't exist
     NonExistentFunction(String),
+    
+    /// Error when calling a function with incorrect argument types
     WrongFunctionSignature {
+        /// Expected parameter types
         signature: Vec<(String, PrimitiveKind)>,
+        /// Actual argument types provided
         got: Vec<PrimitiveKind>,
     },
+    
+    /// Error when calling a function with wrong number of arguments
     WrongNumberOfArguments {
+        /// Expected parameter types
         signature: Vec<(String, PrimitiveKind)>,
+        /// Actual arguments provided
         args: Vec<PreExp>,
     },
+    
+    /// Error when binary operator cannot be applied to given types
     BinOpError {
+        /// The binary operator
         operator: BinOp,
+        /// Type of left operand
         lhs: PrimitiveKind,
+        /// Type of right operand
         rhs: PrimitiveKind,
     },
+    
+    /// Error when unary operator cannot be applied to given type
     UnOpError {
+        /// The unary operator
         operator: UnOp,
+        /// Type of the operand
         exp: PrimitiveKind,
     },
+    
+    /// Error when attempting to spread a type that cannot be spread
     Unspreadable(PrimitiveKind),
+    
+    /// Error when spreading a type into incompatible variables
     SpreadError {
+        /// Type being spread
         to_spread: PrimitiveKind,
+        /// Names of target variables
         in_variables: Vec<String>,
     },
+    
+    /// Error when attempting to define something that already exists
     AlreadyDefined {
+        /// Name of the item
         name: String,
+        /// Type of the token
         kind: TokenType,
     },
+    
+    /// Error when a value exceeds maximum allowed size
     TooLarge {
+        /// Description of the error
         message: String,
+        /// Actual value
         got: i64,
+        /// Maximum allowed value
         max: i64,
     },
+    
+    /// Generic error with custom message
     Other(String),
 }
 
@@ -280,7 +343,12 @@ impl fmt::Display for TransformError {
     }
 }
 
+/// Provides utility methods for handling and formatting transform errors.
 impl TransformError {
+    /// Creates a detailed error message with stack trace information.
+    ///
+    /// # Returns
+    /// A formatted string containing the error message followed by the stack trace
     pub fn traced_error(&self) -> String {
         let error = self.to_string();
         let trace = self.trace();
@@ -301,9 +369,24 @@ impl TransformError {
             .join("\n");
         format!("{}\n{}", error, trace)
     }
+
+    /// Creates a type mismatch error with source location information.
+    ///
+    /// # Arguments
+    /// * `expected` - The expected primitive type
+    /// * `got` - The actual primitive type received
+    /// * `span` - Location information for the error
     pub fn from_wrong_type(expected: PrimitiveKind, got: PrimitiveKind, span: InputSpan) -> Self {
         TransformError::WrongArgument { got, expected }.add_span(&span)
     }
+
+    /// Creates a binary operator error with source location information.
+    ///
+    /// # Arguments
+    /// * `operator` - The binary operator that failed
+    /// * `lhs` - Type of the left-hand operand
+    /// * `rhs` - Type of the right-hand operand
+    /// * `span` - Location information for the error
     pub fn from_wrong_binop(
         operator: BinOp,
         lhs: PrimitiveKind,
@@ -312,15 +395,35 @@ impl TransformError {
     ) -> Self {
         TransformError::BinOpError { operator, lhs, rhs }.add_span(&span)
     }
+
+    /// Creates a unary operator error with source location information.
+    ///
+    /// # Arguments
+    /// * `operator` - The unary operator that failed
+    /// * `exp` - Type of the operand
+    /// * `span` - Location information for the error
     pub fn from_wrong_unop(operator: UnOp, exp: PrimitiveKind, span: InputSpan) -> Self {
         TransformError::UnOpError { operator, exp }.add_span(&span)
     }
+
+    /// Adds source location information to an existing error.
+    ///
+    /// # Arguments
+    /// * `span` - Location information to add
+    ///
+    /// # Returns
+    /// A new error with the added span information
     pub fn add_span(self, span: &InputSpan) -> TransformError {
         TransformError::SpannedError {
             spanned_error: Spanned::new(Box::new(self), span.clone()),
             value: None,
         }
     }
+
+    /// Gets the stack trace of nested errors.
+    ///
+    /// # Returns
+    /// A vector of spans and optional origin strings representing the error trace
     pub fn trace(&self) -> Vec<(InputSpan, Option<String>)> {
         match self {
             TransformError::SpannedError {
@@ -351,10 +454,20 @@ impl TransformError {
             _ => Vec::new(),
         }
     }
+
+    /// Gets the source location of the original error.
+    ///
+    /// # Returns
+    /// The span of the first error in the trace, if any
     pub fn origin_span(&self) -> Option<InputSpan> {
         let trace = self.trace();
         trace.first().map(|(span, _)| span.clone())
     }
+
+    /// Gets the root error, stripping any span information.
+    ///
+    /// # Returns
+    /// A reference to the underlying error without span information
     pub fn base_error(&self) -> &TransformError {
         match self {
             TransformError::SpannedError {
@@ -364,6 +477,14 @@ impl TransformError {
             _ => self,
         }
     }
+
+    /// Creates a detailed error message with source code snippets.
+    ///
+    /// # Arguments
+    /// * `source` - The source code text
+    ///
+    /// # Returns
+    /// A formatted error message with relevant code snippets, or an error if the spans are invalid
     pub fn trace_from_source(&self, source: &str) -> Result<String, String> {
         let trace = self.trace();
         let trace = trace

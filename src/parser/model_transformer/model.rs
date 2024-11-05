@@ -18,14 +18,30 @@ use crate::traits::{escape_latex, ToLatex};
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{primitives::Primitive, utils::Spanned};
 
+/// Represents a mathematical expression in the optimization model.
+/// 
+/// This enum defines the possible forms an expression can take, including:
+/// - Numeric literals
+/// - Variables
+/// - Absolute value expressions
+/// - Min/max of multiple expressions
+/// - Binary operations (add, subtract, multiply, divide)
+/// - Unary operations (negation)
 #[derive(Debug, Clone, Serialize)]
 pub enum Exp {
+    /// A numeric literal value
     Number(f64),
-    Variable(String),
+    /// A named variable
+    Variable(String), 
+    /// Absolute value of an expression
     Abs(Box<Exp>),
+    /// Minimum of multiple expressions
     Min(Vec<Exp>),
+    /// Maximum of multiple expressions 
     Max(Vec<Exp>),
+    /// Binary operation between two expressions
     BinOp(BinOp, Box<Exp>, Box<Exp>),
+    /// Unary operation on an expression
     UnOp(UnOp, Box<Exp>),
 }
 
@@ -65,13 +81,33 @@ export type SerializedExp = {
 "#;
 
 impl Exp {
+    /// Creates a new binary operation expression.
+    ///
+    /// # Arguments
+    /// * `op` - The binary operator
+    /// * `lhs` - Left-hand side expression
+    /// * `rhs` - Right-hand side expression
+    ///
+    /// # Returns
+    /// A boxed binary operation expression
     pub fn make_binop(op: BinOp, lhs: Exp, rhs: Exp) -> Box<Self> {
         Exp::BinOp(op, lhs.to_box(), rhs.to_box()).to_box()
     }
 
+    /// Converts an expression into a boxed expression.
     pub fn to_box(self) -> Box<Exp> {
         Box::new(self)
     }
+
+    /// Converts a pre-expression into an expression.
+    ///
+    /// # Arguments
+    /// * `pre_exp` - The pre-expression to convert
+    /// * `context` - Transformer context containing variable information
+    /// * `fn_context` - Function context containing function definitions
+    ///
+    /// # Returns
+    /// The converted expression or a transform error
     pub fn from_pre_exp(
         pre_exp: &PreExp,
         context: &mut TransformerContext,
@@ -80,6 +116,15 @@ impl Exp {
         pre_exp.into_exp(context, fn_context)
     }
 
+    /// Simplifies the expression by applying algebraic rules.
+    ///
+    /// Performs simplifications like:
+    /// - Evaluating constant expressions
+    /// - Removing identity operations (x + 0, x * 1)
+    /// - Simplifying operations with zero
+    ///
+    /// # Returns
+    /// A new simplified expression
     pub fn simplify(&self) -> Exp {
         //implement the simplify function by using e-graphs egg
         match self {
@@ -192,6 +237,16 @@ impl Exp {
         }
     }
 
+    /// Flattens nested expressions by applying distributive properties.
+    ///
+    /// Applies transformations like:
+    /// - (a + b)c = ac + bc
+    /// - (a - b)c = ac - bc
+    /// - -(a)b = -ab
+    /// - (a + b)/c = a/c + b/c
+    ///
+    /// # Returns
+    /// A new flattened expression
     pub fn flatten(self) -> Exp {
         match self {
             Exp::BinOp(op, lhs, rhs) => match (op, *lhs, *rhs) {
@@ -238,10 +293,21 @@ impl Exp {
         }
     }
 
+    /// Checks if the expression is a leaf node (number or variable).
+    ///
+    /// # Returns
+    /// true if the expression is a number or variable, false otherwise
     pub fn is_leaf(&self) -> bool {
         !matches!(self, Exp::BinOp(_, _, _) | Exp::UnOp(_, _))
     }
 
+    /// Converts the expression to a string with proper operator precedence.
+    ///
+    /// # Arguments
+    /// * `last_operator` - The operator from the parent expression for precedence comparison
+    ///
+    /// # Returns
+    /// String representation with appropriate parentheses based on operator precedence
     pub fn to_string_with_precedence(&self, last_operator: BinOp) -> String {
         let last_precedence = last_operator.precedence();
         match self {
@@ -307,9 +373,12 @@ impl fmt::Display for Exp {
     }
 }
 
+/// Represents an optimization objective (minimize/maximize an expression).
 #[derive(Debug, Serialize, Clone)]
 pub struct Objective {
+    /// Type of optimization (minimize or maximize)
     pub objective_type: OptimizationType,
+    /// Expression to optimize
     pub rhs: Exp,
 }
 
@@ -324,6 +393,11 @@ export type SerializedObjective = {
 "#;
 
 impl Objective {
+    /// Creates a new optimization objective.
+    ///
+    /// # Arguments
+    /// * `objective_type` - Whether to minimize or maximize
+    /// * `rhs` - Expression to optimize
     pub fn new(objective_type: OptimizationType, rhs: Exp) -> Self {
         Self {
             objective_type,
@@ -338,6 +412,7 @@ impl fmt::Display for Objective {
     }
 }
 
+/// Represents a constraint in the optimization model (lhs comparison rhs).
 #[derive(Debug, Clone, Serialize)]
 pub struct Constraint {
     lhs: Exp,
@@ -357,6 +432,12 @@ export type SerializedCondition = {
 "#;
 
 impl Constraint {
+    /// Creates a new constraint.
+    ///
+    /// # Arguments
+    /// * `lhs` - Left-hand side expression
+    /// * `constraint_type` - Type of comparison (=, ≤, ≥, <, >)
+    /// * `rhs` - Right-hand side expression
     pub fn new(lhs: Exp, constraint_type: Comparison, rhs: Exp) -> Self {
         Self {
             lhs,
@@ -364,6 +445,11 @@ impl Constraint {
             rhs,
         }
     }
+
+    /// Decomposes the constraint into its components.
+    ///
+    /// # Returns
+    /// A tuple of (lhs, comparison, rhs)
     pub fn into_parts(self) -> (Exp, Comparison, Exp) {
         (self.lhs, self.constraint_type, self.rhs)
     }
@@ -375,6 +461,12 @@ impl fmt::Display for Constraint {
     }
 }
 
+/// Represents a complete optimization model.
+///
+/// Contains:
+/// - An objective function to optimize
+/// - A set of constraints that must be satisfied
+/// - Domain information for variables
 #[derive(Debug, Serialize, Clone)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct Model {
@@ -395,6 +487,12 @@ export type SerializedModel = {
 "#;
 
 impl Model {
+    /// Creates a new optimization model.
+    ///
+    /// # Arguments
+    /// * `objective` - The objective function to optimize
+    /// * `constraints` - Vector of constraints that must be satisfied
+    /// * `domain` - Map of variable names to their domains
     pub fn new(
         objective: Objective,
         constraints: Vec<Constraint>,
@@ -406,18 +504,31 @@ impl Model {
             domain,
         }
     }
+
+    /// Decomposes the model into its components.
+    ///
+    /// # Returns
+    /// A tuple of (objective, constraints, domain)
     pub fn into_components(self) -> (Objective, Vec<Constraint>, IndexMap<String, DomainVariable>) {
         (self.objective, self.constraints, self.domain)
     }
+
+    /// Gets a reference to the objective function.
     pub fn objective(&self) -> &Objective {
         &self.objective
     }
+
+    /// Gets a reference to the constraints.
     pub fn constraints(&self) -> &Vec<Constraint> {
         &self.constraints
     }
+
+    /// Gets a reference to the variable domains.
     pub fn domain(&self) -> &IndexMap<String, DomainVariable> {
         &self.domain
     }
+
+    /// Gets a mutable reference to the variable domains.
     pub fn domain_mut(&mut self) -> &mut IndexMap<String, DomainVariable> {
         &mut self.domain
     }
@@ -446,41 +557,16 @@ impl Model {
     }
 }
 
-pub fn transform_parsed_problem(
-    pre_problem: PreModel,
-    mut constants: Vec<Constant>,
-    fns: &IndexMap<String, Box<dyn RoocFunction>>,
-) -> Result<Model, TransformError> {
-    let std = make_std();
-    let fn_context = FunctionContext::new(fns, &std);
-    constants.extend(pre_problem.constants().clone());
-    let context = TransformerContext::new_from_constants(
-        constants,
-        pre_problem.domains().clone(),
-        &fn_context,
-    )?;
-    transform_model(pre_problem, context, &fn_context)
-}
-
-/*
-this function gets a set, defined by a number of variables with a certain name, and an iterator,
-it should return a vector of vectors, where each vector is a set of values for the variables
-ex:
-checks that the iterator has at least the same number of elements as the set, and then returns the values in the iterator
-    in:  set {i, j} and iterator [[0, 0], [1, 1]]
-    out: [[0, 0], [1, 1]]
-    in:  set {i} and iterator [[0, 0], [1, 1]]
-    out: [[0], [1]]
-    in:  set {i, j, k} and iterator [[0, 0], [1, 1]]
-    out: error!
-*/
-
+/// Represents a set of primitive values.
 pub type PrimitiveSet = Vec<Primitive>;
 
+/// Represents different kinds of variables in the model.
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "value")]
 pub enum VariableKind {
+    /// A single variable with a name
     Single(Spanned<String>),
+    /// A tuple of variables with names
     Tuple(Vec<Spanned<String>>),
 }
 
@@ -530,6 +616,15 @@ impl fmt::Display for VariableKind {
     }
 }
 
+/// Transforms a pre-constraint into a constraint.
+///
+/// # Arguments
+/// * `constraint` - The pre-constraint to transform
+/// * `context` - Transformer context containing variable information
+/// * `fn_context` - Function context containing function definitions
+///
+/// # Returns
+/// The transformed constraint or a transform error
 pub fn transform_constraint(
     constraint: &PreConstraint,
     context: &mut TransformerContext,
@@ -540,6 +635,15 @@ pub fn transform_constraint(
     Ok(Constraint::new(lhs, constraint.constraint_type, rhs))
 }
 
+/// Transforms a pre-constraint with iteration into multiple constraints.
+///
+/// # Arguments
+/// * `constraint` - The pre-constraint to transform
+/// * `context` - Transformer context containing variable information
+/// * `fn_context` - Function context containing function definitions
+///
+/// # Returns
+/// A vector of transformed constraints or a transform error
 pub fn transform_constraint_with_iteration(
     constraint: &PreConstraint,
     context: &mut TransformerContext,
@@ -561,6 +665,15 @@ pub fn transform_constraint_with_iteration(
     Ok(results)
 }
 
+/// Transforms a pre-objective into an objective.
+///
+/// # Arguments
+/// * `objective` - The pre-objective to transform
+/// * `context` - Transformer context containing variable information
+/// * `fn_context` - Function context containing function definitions
+///
+/// # Returns
+/// The transformed objective or a transform error
 pub fn transform_objective(
     objective: &PreObjective,
     context: &mut TransformerContext,
@@ -570,6 +683,15 @@ pub fn transform_objective(
     Ok(Objective::new(objective.objective_type.clone(), rhs))
 }
 
+/// Transforms a pre-model into a complete optimization model.
+///
+/// # Arguments
+/// * `problem` - The pre-model to transform
+/// * `context` - Transformer context containing variable information
+/// * `fn_context` - Function context containing function definitions
+///
+/// # Returns
+/// The transformed model or a transform error
 pub fn transform_model(
     problem: PreModel,
     mut context: TransformerContext,
@@ -586,4 +708,29 @@ pub fn transform_model(
     }
     let domain = context.into_components();
     Ok(Model::new(objective, constraints, domain))
+}
+
+/// Transforms a parsed problem into a complete optimization model.
+///
+/// # Arguments
+/// * `pre_problem` - The parsed pre-model
+/// * `constants` - Vector of constant values
+/// * `fns` - Map of function names to implementations
+///
+/// # Returns
+/// The transformed model or a transform error
+pub fn transform_parsed_problem(
+    pre_problem: PreModel,
+    mut constants: Vec<Constant>,
+    fns: &IndexMap<String, Box<dyn RoocFunction>>,
+) -> Result<Model, TransformError> {
+    let std = make_std();
+    let fn_context = FunctionContext::new(fns, &std);
+    constants.extend(pre_problem.constants().clone());
+    let context = TransformerContext::new_from_constants(
+        constants,
+        pre_problem.domains().clone(),
+        &fn_context,
+    )?;
+    transform_model(pre_problem, context, &fn_context)
 }

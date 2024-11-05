@@ -10,10 +10,13 @@ use num_traits::ToPrimitive;
 use serde::Serialize;
 use std::fmt::{Display, Formatter};
 
+/// Represents a variable value that can be either boolean or integer.
 #[derive(Debug, Clone, Serialize, Copy)]
 #[serde(tag = "type", content = "value")]
 pub enum VarValue {
+    /// A boolean value (true/false)
     Bool(bool),
+    /// An integer value
     Int(i32),
 }
 impl Display for VarValue {
@@ -25,6 +28,36 @@ impl Display for VarValue {
     }
 }
 
+/// Solves a mixed integer-binary linear programming problem.
+///
+/// Takes a linear model containing boolean and integer variables and returns an optimal solution
+/// or an error if the problem cannot be solved.
+///
+/// # Arguments
+/// * `lp` - The linear programming model to solve
+///
+/// # Returns
+/// * `Ok(LpSolution<VarValue>)` - The optimal solution if found
+/// * `Err(SolverError)` - Various error conditions that prevented finding a solution
+///
+/// # Example
+/// ```
+/// use rooc::{VariableType, Comparison, OptimizationType, solve_integer_binary_lp_problem, LinearModel};
+///
+/// let mut model = LinearModel::new();
+/// 
+/// // Add a boolean variable x1 and an integer variable x2
+/// model.add_variable("x1", VariableType::Boolean);
+/// model.add_variable("x2", VariableType::IntegerRange(0, 10));
+///
+/// // Add constraint: x1 + x2 <= 5 
+/// model.add_constraint(vec![1.0, 1.0], Comparison::LessOrEqual, 5.0);
+///
+/// // Set objective: maximize x1 + 2*x2
+/// model.set_objective(vec![1.0, 2.0], OptimizationType::Max);
+///
+/// let solution = solve_integer_binary_lp_problem(&model).unwrap();
+/// ```
 pub fn solve_integer_binary_lp_problem(
     lp: &LinearModel,
 ) -> Result<LpSolution<VarValue>, SolverError> {

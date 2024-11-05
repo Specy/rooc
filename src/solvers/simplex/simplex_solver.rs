@@ -3,6 +3,35 @@ use crate::solvers::{find_invalid_variables, Assignment, LpSolution, SimplexErro
 use crate::transformers::LinearModel;
 use microlp::{OptimizationDirection, Problem};
 
+/// Solves a linear programming problem with real variables using a basic simplex algorithm.
+///
+/// This is a slower implementation that uses a custom tableau-based simplex method.
+/// For better performance, prefer using `solve_real_lp_problem_micro_lp`.
+///
+/// # Arguments
+/// * `lp` - The linear programming model to solve
+/// * `limit` - Maximum number of iterations before giving up
+///
+/// # Returns
+/// * `Ok(LpSolution<f64>)` - The optimal solution if found
+/// * `Err(SolverError)` - Various error conditions that prevented finding a solution
+///
+/// # Example
+/// ```
+/// use rooc::{VariableType, Comparison, OptimizationType, solve_real_lp_problem_slow_simplex, LinearModel};
+///
+/// let mut model = LinearModel::new();
+/// model.add_variable("x1", VariableType::NonNegativeReal);
+/// model.add_variable("x2", VariableType::NonNegativeReal);
+///
+/// // Add constraint: x1 + x2 <= 5
+/// model.add_constraint(vec![1.0, 1.0], Comparison::LessOrEqual, 5.0);
+///
+/// // Set objective: maximize x1 + 2*x2
+/// model.set_objective(vec![1.0, 2.0], OptimizationType::Min);
+///
+/// let solution = solve_real_lp_problem_slow_simplex(&model, 1000).unwrap();
+/// ```
 #[allow(unused)]
 pub fn solve_real_lp_problem_slow_simplex(
     lp: &LinearModel,
@@ -24,6 +53,34 @@ pub fn solve_real_lp_problem_slow_simplex(
     }
 }
 
+/// Solves a linear programming problem with real variables using the microlp solver.
+///
+/// This is the recommended solver for linear programming problems with real variables
+/// as it provides better performance than the basic simplex implementation.
+///
+/// # Arguments
+/// * `lp` - The linear programming model to solve, must contain only real or non-negative real variables
+///
+/// # Returns
+/// * `Ok(LpSolution<f64>)` - The optimal solution if found
+/// * `Err(SolverError)` - Various error conditions that prevented finding a solution
+///
+/// # Example
+/// ```
+/// use rooc::{VariableType, Comparison, OptimizationType, solve_real_lp_problem_micro_lp, LinearModel};
+///
+/// let mut model = LinearModel::new();
+/// model.add_variable("x1", VariableType::NonNegativeReal);
+/// model.add_variable("x2", VariableType::Real);
+///
+/// // Add constraint: x1 + x2 <= 5
+/// model.add_constraint(vec![1.0, 1.0], Comparison::LessOrEqual, 5.0);
+///
+/// // Set objective: maximize x1 + 2*x2
+/// model.set_objective(vec![1.0, 2.0], OptimizationType::Max);
+///
+/// let solution = solve_real_lp_problem_micro_lp(&model).unwrap();
+/// ```
 pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64>, SolverError> {
     let domain = lp.domain();
     let invalid_variables = find_invalid_variables(domain, |var| {

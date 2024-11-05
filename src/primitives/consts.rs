@@ -17,6 +17,7 @@ use crate::{
 };
 
 #[derive(Debug, Serialize, Clone)]
+/// A constant value with a name and a value
 pub struct Constant {
     pub name: Spanned<String>,
     pub value: PreExp,
@@ -43,6 +44,7 @@ impl Constant {
         Self { name, value }
     }
 
+    /// Get the primitive value of the constant, it evaluates the value of the expression
     pub fn as_primitive(
         &self,
         context: &TransformerContext,
@@ -51,6 +53,7 @@ impl Constant {
         self.value.as_primitive(context, fn_context)
     }
 
+    /// Create a new constant from a primitive value
     pub fn from_primitive(name: &str, primitive: Primitive) -> Self {
         let primitive = Spanned::new(primitive, InputSpan::default());
         Self::new(

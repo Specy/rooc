@@ -13,26 +13,52 @@ use crate::runtime_builtin::check_if_reserved_token;
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::utils::{InputSpan, Spanned};
 
+/// Represents a single scope frame containing variable bindings.
+/// Used to implement variable scoping and shadowing.
 #[derive(Debug)]
 pub struct Frame<T> {
     pub variables: IndexMap<String, T>,
 }
 
 impl<T> Frame<T> {
+    /// Creates a new empty frame.
     pub fn new() -> Self {
         Self {
             variables: IndexMap::new(),
         }
     }
+
+    /// Creates a new frame initialized with the given variable bindings.
+    ///
+    /// # Arguments
+    /// * `constants` - Initial variable bindings to populate the frame with
     pub fn from_map(constants: IndexMap<String, T>) -> Self {
         Self {
             variables: constants,
         }
     }
 
+    /// Looks up the value of a variable in this frame.
+    ///
+    /// # Arguments
+    /// * `name` - Name of the variable to look up
+    ///
+    /// # Returns
+    /// * `Some(&T)` if the variable exists in this frame
+    /// * `None` if the variable is not found
     pub fn value(&self, name: &str) -> Option<&T> {
         self.variables.get(name)
     }
+
+    /// Declares a new variable in this frame.
+    ///
+    /// # Arguments
+    /// * `name` - Name of the variable to declare
+    /// * `value` - Value to bind to the variable
+    ///
+    /// # Returns
+    /// * `Ok(())` if declaration succeeds
+    /// * `Err(TransformError)` if variable already exists
     pub fn declare_variable(&mut self, name: &str, value: T) -> Result<(), TransformError> {
         if self.has_variable(name) {
             return Err(TransformError::AlreadyDeclaredVariable(name.to_string()));
@@ -40,6 +66,16 @@ impl<T> Frame<T> {
         self.variables.insert(name.to_string(), value);
         Ok(())
     }
+
+    /// Updates the value of an existing variable.
+    ///
+    /// # Arguments
+    /// * `name` - Name of variable to update
+    /// * `value` - New value to assign
+    ///
+    /// # Returns
+    /// * `Ok(())` if update succeeds
+    /// * `Err(TransformError)` if variable doesn't exist
     pub fn update_variable(&mut self, name: &str, value: T) -> Result<(), TransformError> {
         if !self.has_variable(name) {
             return Err(TransformError::UndeclaredVariable(name.to_string()));
@@ -47,9 +83,23 @@ impl<T> Frame<T> {
         self.variables.insert(name.to_string(), value);
         Ok(())
     }
+
+    /// Checks if a variable exists in this frame.
+    ///
+    /// # Arguments
+    /// * `name` - Name of variable to check
     pub fn has_variable(&self, name: &str) -> bool {
         self.variables.contains_key(name)
     }
+
+    /// Removes a variable from this frame and returns its value.
+    ///
+    /// # Arguments
+    /// * `name` - Name of variable to remove
+    ///
+    /// # Returns
+    /// * `Ok(T)` containing the removed value if successful
+    /// * `Err(TransformError)` if variable doesn't exist
     pub fn drop_variable(&mut self, name: &str) -> Result<T, TransformError> {
         if !self.variables.contains_key(name) {
             return Err(TransformError::UndeclaredVariable(name.to_string()));
@@ -65,12 +115,14 @@ impl<T> Default for Frame<T> {
     }
 }
 
+/// Represents a variable in the domain of a model, tracking its type and usage.
 #[derive(Debug, Clone, Serialize)]
 pub struct DomainVariable {
     as_type: VariableType,
     span: InputSpan,
     usage_count: usize,
 }
+
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
 #[allow(non_upper_case_globals)]
 #[cfg(target_arch = "wasm32")]
@@ -83,6 +135,11 @@ export interface DomainVariable {
 "#;
 
 impl DomainVariable {
+    /// Creates a new domain variable with the given type and source location.
+    ///
+    /// # Arguments
+    /// * `as_type` - The variable's type
+    /// * `span` - Source code location information
     pub fn new(as_type: VariableType, span: InputSpan) -> Self {
         Self {
             as_type,
@@ -90,23 +147,34 @@ impl DomainVariable {
             usage_count: 0,
         }
     }
+
+    /// Increments the usage count of this variable.
     pub fn increment_usage(&mut self) {
         self.usage_count += 1;
     }
+
+    /// Returns the number of times this variable has been used.
     pub fn usage_count(&self) -> usize {
         self.usage_count
     }
+
+    /// Returns whether this variable has been used at least once.
     pub fn is_used(&self) -> bool {
         self.usage_count > 0
     }
+
+    /// Returns the source location information for this variable.
     pub fn span(&self) -> &InputSpan {
         &self.span
     }
+
+    /// Returns the type of this variable.
     pub fn get_type(&self) -> &VariableType {
         &self.as_type
     }
 }
 
+/// Maintains the context for transforming a model, including variable scopes and domains.
 #[derive(Debug)]
 pub struct TransformerContext {
     frames: Vec<Frame<Primitive>>,
@@ -122,6 +190,11 @@ impl Default for TransformerContext {
 }
 
 impl TransformerContext {
+    /// Creates a new transformer context with initial variable bindings and domains.
+    ///
+    /// # Arguments
+    /// * `primitives` - Initial variable bindings
+    /// * `domain` - Initial variable domains
     pub fn new(
         primitives: IndexMap<String, Primitive>,
         domain: IndexMap<String, DomainVariable>,
@@ -132,6 +205,17 @@ impl TransformerContext {
             domain,
         }
     }
+
+    /// Creates a new transformer context from constants and domain declarations.
+    ///
+    /// # Arguments
+    /// * `constants` - List of constants to initialize
+    /// * `domain` - List of domain declarations
+    /// * `fn_context` - Function context for evaluating expressions
+    ///
+    /// # Returns
+    /// * `Ok(Self)` if initialization succeeds
+    /// * `Err(TransformError)` if there are duplicate or invalid declarations
     pub fn new_from_constants<'a>(
         constants: Vec<Constant>,
         domain: Vec<VariablesDomainDeclaration>,
@@ -163,6 +247,14 @@ impl TransformerContext {
         Ok(context)
     }
 
+    /// Flattens a list of primitive values into a single string identifier.
+    ///
+    /// # Arguments
+    /// * `compound_indexes` - List of primitive values to flatten
+    ///
+    /// # Returns
+    /// * `Ok(String)` containing the flattened identifier
+    /// * `Err(TransformError)` if any values have invalid types
     pub fn flatten_variable_name(
         &self,
         compound_indexes: &[Primitive],
@@ -191,23 +283,49 @@ impl TransformerContext {
         Ok(flattened.join("_"))
     }
 
+    /// Adds a new scope frame with existing variable bindings.
+    ///
+    /// # Arguments
+    /// * `frame` - Frame containing variable bindings to add
     pub fn add_populated_scope(&mut self, frame: Frame<Primitive>) {
         self.frames.push(frame);
     }
+
+    /// Replaces the current scope frame with a new one.
+    ///
+    /// # Arguments
+    /// * `frame` - New frame to replace the current one with
     pub fn replace_last_frame(&mut self, frame: Frame<Primitive>) {
         self.frames.pop();
         self.frames.push(frame);
     }
+
+    /// Adds a new empty scope frame.
     pub fn add_scope(&mut self) {
         let frame = Frame::new();
         self.frames.push(frame);
     }
+
+    /// Removes and returns the current scope frame.
+    ///
+    /// # Returns
+    /// * `Ok(Frame)` containing the removed frame if successful
+    /// * `Err(TransformError)` if there is only one frame remaining
     pub fn pop_scope(&mut self) -> Result<Frame<Primitive>, TransformError> {
         if self.frames.len() <= 1 {
             return Err(TransformError::Other("Missing frame to pop".to_string()));
         }
         Ok(self.frames.pop().unwrap())
     }
+
+    /// Looks up a variable's value across all scope frames.
+    ///
+    /// # Arguments
+    /// * `name` - Name of variable to look up
+    ///
+    /// # Returns
+    /// * `Some(&Primitive)` if variable is found
+    /// * `None` if variable doesn't exist
     pub fn value(&self, name: &str) -> Option<&Primitive> {
         for frame in self.frames.iter().rev() {
             match frame.value(name) {
@@ -217,9 +335,27 @@ impl TransformerContext {
         }
         None
     }
+
+    /// Gets the domain type of a variable.
+    ///
+    /// # Arguments
+    /// * `name` - Name of variable to look up
+    ///
+    /// # Returns
+    /// * `Some(&VariableType)` if variable has a domain
+    /// * `None` if variable has no domain
     pub fn variable_domain(&self, name: &str) -> Option<&VariableType> {
         self.domain.get(name).map(|v| &v.as_type)
     }
+
+    /// Increments the usage count for a domain variable.
+    ///
+    /// # Arguments
+    /// * `name` - Name of variable to increment
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(TransformError)` if variable has no domain
     pub fn increment_domain_variable_usage(&mut self, name: &str) -> Result<(), TransformError> {
         match self.domain.get_mut(name) {
             Some(v) => {
@@ -229,11 +365,15 @@ impl TransformerContext {
             None => Err(TransformError::UndeclaredVariableDomain(name.to_string())),
         }
     }
+
+    /// Resets the usage count for all domain variables to zero.
     pub fn reset_domain(&mut self) {
         for (_, v) in self.domain.iter_mut() {
             v.usage_count = 0;
         }
     }
+
+    /// Returns a list of all used domain variables and their types.
     pub fn used_domain_variables(&self) -> Vec<(&String, &VariableType)> {
         self.domain
             .iter()
@@ -241,6 +381,12 @@ impl TransformerContext {
             .map(|(k, v)| (k, &v.as_type))
             .collect()
     }
+
+    /// Checks if a variable exists in any scope frame.
+    ///
+    /// # Arguments
+    /// * `name` - Name of variable to check
+    /// * `strict` - If true, checks all frames; if false, only checks current frame
     pub fn exists_variable(&self, name: &str, strict: bool) -> bool {
         if strict {
             for frame in self.frames.iter().rev() {
@@ -256,6 +402,17 @@ impl TransformerContext {
         }
         false
     }
+
+    /// Declares a new variable in the current scope frame.
+    ///
+    /// # Arguments
+    /// * `name` - Name of variable to declare
+    /// * `value` - Value to bind to the variable
+    /// * `strict` - If true, fails if variable exists in any frame
+    ///
+    /// # Returns
+    /// * `Ok(())` if declaration succeeds
+    /// * `Err(TransformError)` if variable already exists or name is reserved
     pub fn declare_variable(
         &mut self,
         name: &str,
@@ -272,6 +429,16 @@ impl TransformerContext {
         let frame = self.frames.last_mut().unwrap();
         frame.declare_variable(name, value)
     }
+
+    /// Updates an existing variable in any scope frame.
+    ///
+    /// # Arguments
+    /// * `name` - Name of variable to update
+    /// * `value` - New value to assign
+    ///
+    /// # Returns
+    /// * `Ok(())` if update succeeds
+    /// * `Err(TransformError)` if variable doesn't exist
     pub fn update_variable(&mut self, name: &str, value: Primitive) -> Result<(), TransformError> {
         if name == "_" {
             return Ok(());
@@ -283,6 +450,15 @@ impl TransformerContext {
         }
         Err(TransformError::UndeclaredVariable(name.to_string()))
     }
+
+    /// Removes a variable from any scope frame.
+    ///
+    /// # Arguments
+    /// * `name` - Name of variable to remove
+    ///
+    /// # Returns
+    /// * `Ok(Primitive)` containing the removed value if successful
+    /// * `Err(TransformError)` if variable doesn't exist
     pub fn remove_variable(&mut self, name: &str) -> Result<Primitive, TransformError> {
         if name == "_" {
             return Ok(Primitive::Undefined);
@@ -295,6 +471,15 @@ impl TransformerContext {
         Err(TransformError::UndeclaredVariable(name.to_string()))
     }
 
+    /// Creates a flattened variable name from a base name and list of indexes.
+    ///
+    /// # Arguments
+    /// * `name` - Base variable name
+    /// * `indexes` - List of index values to append
+    ///
+    /// # Returns
+    /// * `Ok(String)` containing the flattened name
+    /// * `Err(TransformError)` if flattening fails
     pub fn flatten_compound_variable(
         &self,
         name: &String,
@@ -305,6 +490,15 @@ impl TransformerContext {
         Ok(name)
     }
 
+    /// Gets the value of an addressable variable access.
+    ///
+    /// # Arguments
+    /// * `addressable_access` - The variable access to evaluate
+    /// * `fn_context` - Function context for evaluating expressions
+    ///
+    /// # Returns
+    /// * `Ok(Primitive)` containing the accessed value if successful
+    /// * `Err(TransformError)` if access fails
     pub fn addressable_value(
         &self,
         addressable_access: &AddressableAccess,
@@ -326,12 +520,22 @@ impl TransformerContext {
             )),
         }
     }
+
+    /// Consumes the context and returns its domain map.
     pub fn into_components(self) -> IndexMap<String, DomainVariable> {
         self.domain
     }
 }
 
-pub fn assert_no_duplicates_in_domain(
+/// Checks for duplicate variable declarations in a domain.
+///
+/// # Arguments
+/// * `domain` - List of variable declarations to check
+///
+/// # Returns
+/// * `Ok(())` if no duplicates found
+/// * `Err(TransformError)` if duplicates exist
+pub(crate) fn assert_no_duplicates_in_domain(
     domain: &[(String, Spanned<VariableType>)],
 ) -> Result<(), TransformError> {
     let acc: IndexMap<String, (i32, Spanned<VariableType>)> = IndexMap::new();

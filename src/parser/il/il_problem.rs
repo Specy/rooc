@@ -16,9 +16,12 @@ use crate::{
     utils::InputSpan,
 };
 
+/// Represents array-like access to a variable, such as `x[1][2]`.
 #[derive(Debug, Serialize, Clone)]
 pub struct AddressableAccess {
+    /// Name of the variable being accessed
     pub name: String,
+    /// Vector of expressions used as array indices
     pub accesses: Vec<PreExp>,
 }
 
@@ -33,6 +36,11 @@ export type SerializedAddressableAccess = {
 "#;
 
 impl AddressableAccess {
+    /// Creates a new AddressableAccess with the given name and access expressions.
+    ///
+    /// # Arguments
+    /// * `name` - Name of the variable being accessed
+    /// * `accesses` - Vector of expressions used as array indices
     pub fn new(name: String, accesses: Vec<PreExp>) -> Self {
         Self { name, accesses }
     }
@@ -62,9 +70,12 @@ impl fmt::Display for AddressableAccess {
     }
 }
 
+/// Represents a variable with subscript indices, such as x_1_2.
 #[derive(Debug, Serialize, Clone)]
 pub struct CompoundVariable {
+    /// Name of the variable
     pub name: String,
+    /// Vector of expressions used as subscript indices
     pub indexes: Vec<PreExp>,
 }
 
@@ -79,10 +90,23 @@ export type SerializedCompoundVariable = {
 "#;
 
 impl CompoundVariable {
+    /// Creates a new CompoundVariable with the given name and index expressions.
+    ///
+    /// # Arguments
+    /// * `name` - Name of the variable
+    /// * `indexes` - Vector of expressions used as subscript indices
     pub fn new(name: String, indexes: Vec<PreExp>) -> Self {
         Self { name, indexes }
     }
 
+    /// Evaluates all index expressions to primitive values.
+    ///
+    /// # Arguments
+    /// * `context` - Transformer context for evaluation
+    /// * `fn_context` - Function context for evaluation
+    ///
+    /// # Returns
+    /// Vector of evaluated primitive values for each index
     pub fn compute_indexes(
         &self,
         context: &TransformerContext,
@@ -140,9 +164,12 @@ impl fmt::Display for CompoundVariable {
     }
 }
 
+/// Represents an optimization objective in a mathematical programming problem.
 #[derive(Debug, Serialize, Clone)]
 pub struct PreObjective {
+    /// Type of optimization (minimize or maximize)
     pub objective_type: OptimizationType,
+    /// Expression to optimize
     pub rhs: PreExp,
 }
 
@@ -182,6 +209,11 @@ impl TypeCheckable for PreObjective {
 }
 
 impl PreObjective {
+    /// Creates a new optimization objective.
+    ///
+    /// # Arguments
+    /// * `objective_type` - Whether to minimize or maximize
+    /// * `rhs` - Expression to optimize
     pub fn new(objective_type: OptimizationType, rhs: PreExp) -> Self {
         Self {
             objective_type,
@@ -196,12 +228,20 @@ impl fmt::Display for PreObjective {
     }
 }
 
+/// Represents a constraint in a mathematical programming problem.
+///
+/// # Examp
 #[derive(Debug, Serialize, Clone)]
 pub struct PreConstraint {
+    /// Left-hand side expression
     pub lhs: PreExp,
+    /// Type of comparison (<=, =, >=, etc)
     pub constraint_type: Comparison,
+    /// Right-hand side expression
     pub rhs: PreExp,
+    /// Optional iteration sets for quantified constraints
     pub iteration: Vec<IterableSet>,
+    /// Source location information
     pub span: InputSpan,
 }
 
@@ -219,6 +259,14 @@ export type SerializedPreConstraint = {
 "#;
 
 impl PreConstraint {
+    /// Creates a new constraint.
+    ///
+    /// # Arguments
+    /// * `lhs` - Left-hand side expression
+    /// * `constraint_type` - Type of comparison
+    /// * `rhs` - Right-hand side expression
+    /// * `iteration` - Vector of iteration sets for quantified constraints
+    /// * `span` - Source location information
     pub fn new(
         lhs: PreExp,
         constraint_type: Comparison,

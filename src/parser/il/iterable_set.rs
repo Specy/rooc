@@ -14,10 +14,17 @@ use crate::type_checker::type_checker_context::{
 };
 use crate::utils::{InputSpan, Spanned};
 
+/// Represents an iterable set expression in the intermediate language.
+/// 
+/// An iterable set binds a variable or tuple of variables to elements from an iterator expression.
+/// For example: `x in 1..10` or `(a,b) in pairs(matrix)`.
 #[derive(Debug, Serialize, Clone)]
 pub struct IterableSet {
+    /// The variable(s) being bound
     pub var: VariableKind,
+    /// The iterator expression producing values
     pub iterator: Spanned<PreExp>,
+    /// Source code location information
     pub span: InputSpan,
 }
 
@@ -41,6 +48,12 @@ impl ToLatex for IterableSet {
 }
 
 impl IterableSet {
+    /// Creates a new IterableSet.
+    ///
+    /// # Arguments
+    /// * `var` - The variable(s) to bind iterator values to
+    /// * `iterator` - The iterator expression
+    /// * `span` - Source location information
     pub fn new(var: VariableKind, iterator: Spanned<PreExp>, span: InputSpan) -> Self {
         Self {
             var,
@@ -48,6 +61,12 @@ impl IterableSet {
             span,
         }
     }
+
+    /// Populates type information for variables in the type checker context.
+    ///
+    /// # Arguments
+    /// * `context` - The type checker context to populate
+    /// * `fn_context` - Function context for type checking
     pub fn populate_token_type_map(
         &self,
         context: &mut TypeCheckerContext,
@@ -88,6 +107,16 @@ impl IterableSet {
             },
         }
     }
+
+    /// Gets the types of variables bound by this iterable set.
+    ///
+    /// # Arguments
+    /// * `context` - Type checker context
+    /// * `fn_context` - Function context for type checking
+    ///
+    /// # Returns
+    /// * `Ok(Vec<(Spanned<String>, PrimitiveKind)>)` - List of variable names and their types
+    /// * `Err(TransformError)` - If type checking fails
     pub fn variable_types(
         &self,
         context: &TypeCheckerContext,
