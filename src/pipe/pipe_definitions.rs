@@ -1,7 +1,7 @@
 #[allow(unused_imports)]
 use crate::prelude::*;
 use indexmap::IndexMap;
-use std::fmt::{Display};
+use std::fmt::Display;
 
 use crate::parser::model_transformer::Model;
 use crate::parser::model_transformer::TransformError;
@@ -18,7 +18,6 @@ use crate::transformers::LinearizationError;
 use crate::transformers::StandardLinearModel;
 use crate::utils::CompilationError;
 use crate::{match_pipe_data_to, RoocParser};
-
 
 /// The data that can be passed between pipes
 #[derive(Debug, Clone)]
@@ -240,9 +239,8 @@ impl Display for PipeError {
     }
 }
 
-
 /// The context in which a pipe is executed
-/// 
+///
 /// It contains the functions and constants that can be used in the pipe
 pub struct PipeContext<'a> {
     functions: &'a IndexMap<String, Box<dyn RoocFunction>>,

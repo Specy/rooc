@@ -20,7 +20,7 @@ enum_with_variants_to_string! {
 }
 impl Operator {
     /// Returns the precedence level of the operator.
-    /// 
+    ///
     /// Higher precedence values indicate that the operator should be evaluated first.
     pub fn precedence(&self) -> u8 {
         match self {
@@ -31,7 +31,7 @@ impl Operator {
     }
 
     /// Determines if the operator is left associative.
-    /// 
+    ///
     /// Left associative operators are evaluated from left to right.
     /// For example, a - b - c is evaluated as (a - b) - c.
     pub fn is_left_associative(&self) -> bool {

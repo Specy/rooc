@@ -7,13 +7,14 @@ use pest::Parser;
 use serde::Serialize;
 use std::fmt::Debug;
 
-use crate::bail_missing_token;
+#[allow(unused)]
+use crate::{bail_missing_token, Primitive};
 use crate::math::PreVariableType;
 use crate::parser::il::{PreConstraint, PreObjective};
 use crate::parser::model_transformer::assert_no_duplicates_in_domain;
 use crate::parser::model_transformer::TransformError;
 use crate::parser::model_transformer::{transform_parsed_problem, Model};
-use crate::primitives::{Constant, Primitive};
+use crate::primitives::{Constant};
 #[cfg(target_arch = "wasm32")]
 use crate::runtime_builtin::JsFunction;
 use crate::runtime_builtin::{make_std, RoocFunction};
@@ -310,7 +311,8 @@ impl PreModel {
     }
     pub fn create_token_type_map_wasm(&self, constants: JsValue, fns: Vec<JsFunction>) -> JsValue {
         let fns = js_value_to_fns_map(fns);
-        let constants: Vec<(String, Primitive)> = serde_wasm_bindgen::from_value(constants).unwrap_or_default();
+        let constants: Vec<(String, Primitive)> =
+            serde_wasm_bindgen::from_value(constants).unwrap_or_default();
         let constants = constants
             .into_iter()
             .map(|v| Constant::from_primitive(&v.0, v.1))

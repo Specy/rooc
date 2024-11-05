@@ -16,7 +16,7 @@ use crate::{
 };
 
 /// Represents a linear constraint in the form: coefficients * variables comparison_operator rhs
-/// 
+///
 /// For example: 2x + 3y <= 5 would be represented as:
 /// - coefficients: [2.0, 3.0]
 /// - constraint_type: LessOrEqual
@@ -106,11 +106,11 @@ impl LinearConstraint {
 /// Represents a complete linear programming model including variables, constraints, and objective function.
 ///
 /// # Example
-/// ```
+/// ```rust
 /// use rooc::{OptimizationType, VariableType, Comparison, LinearModel};
 /// use rooc::model_transformer::DomainVariable;
 /// let mut model = LinearModel::new();
-/// 
+///
 /// // Add variables
 /// model.add_variable("x", VariableType::NonNegativeReal);
 /// model.add_variable("y", VariableType::NonNegativeReal);
@@ -212,7 +212,9 @@ impl LinearModel {
 
     /// Ensures all vectors in the model have consistent sizes.
     fn ensure_sizes(&mut self) {
-        self.constraints.iter_mut().for_each(|c| c.ensure_size(self.variables.len()));
+        self.constraints
+            .iter_mut()
+            .for_each(|c| c.ensure_size(self.variables.len()));
         self.objective.resize(self.variables.len(), 0.0);
     }
 
@@ -223,7 +225,10 @@ impl LinearModel {
     /// * `domain` - Type/domain of the variable (e.g., Boolean, Integer, etc.)
     pub fn add_variable(&mut self, name: &str, domain: VariableType) {
         self.variables.push(name.to_string());
-        self.domain.insert(name.to_string(), DomainVariable::new(domain, InputSpan::default()));
+        self.domain.insert(
+            name.to_string(),
+            DomainVariable::new(domain, InputSpan::default()),
+        );
         self.ensure_sizes();
     }
 
@@ -237,12 +242,18 @@ impl LinearModel {
     /// # Returns
     /// * `Ok(())` if successful
     /// * `Err(LinearModelError)` if too many coefficients provided
-    pub fn add_constraint(&mut self, mut coefficients: Vec<f64>, constraint_type: Comparison, rhs: f64) -> Result<(), LinearModelError> {
+    pub fn add_constraint(
+        &mut self,
+        mut coefficients: Vec<f64>,
+        constraint_type: Comparison,
+        rhs: f64,
+    ) -> Result<(), LinearModelError> {
         if coefficients.len() > self.variables.len() {
             return Err(LinearModelError::TooManyCoefficients);
         }
         coefficients.resize(self.variables.len(), 0.0);
-        self.constraints.push(LinearConstraint::new(coefficients, constraint_type, rhs));
+        self.constraints
+            .push(LinearConstraint::new(coefficients, constraint_type, rhs));
         Ok(())
     }
 
@@ -255,7 +266,11 @@ impl LinearModel {
     /// # Returns
     /// * `Ok(())` if successful
     /// * `Err(LinearModelError)` if too many coefficients provided
-    pub fn set_objective(&mut self, mut objective: Vec<f64>, optimization_type: OptimizationType) -> Result<(), LinearModelError> {
+    pub fn set_objective(
+        &mut self,
+        mut objective: Vec<f64>,
+        optimization_type: OptimizationType,
+    ) -> Result<(), LinearModelError> {
         if objective.len() > self.variables.len() {
             return Err(LinearModelError::TooManyCoefficients);
         }

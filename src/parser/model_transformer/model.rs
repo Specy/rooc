@@ -19,7 +19,7 @@ use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{primitives::Primitive, utils::Spanned};
 
 /// Represents a mathematical expression in the optimization model.
-/// 
+///
 /// This enum defines the possible forms an expression can take, including:
 /// - Numeric literals
 /// - Variables
@@ -32,12 +32,12 @@ pub enum Exp {
     /// A numeric literal value
     Number(f64),
     /// A named variable
-    Variable(String), 
+    Variable(String),
     /// Absolute value of an expression
     Abs(Box<Exp>),
     /// Minimum of multiple expressions
     Min(Vec<Exp>),
-    /// Maximum of multiple expressions 
+    /// Maximum of multiple expressions
     Max(Vec<Exp>),
     /// Binary operation between two expressions
     BinOp(BinOp, Box<Exp>, Box<Exp>),

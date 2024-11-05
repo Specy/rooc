@@ -1,8 +1,6 @@
 #[allow(unused_imports)]
 use crate::prelude::*;
 
-use crate::pipe::PipeContext;
-use crate::primitives::{Constant, Primitive};
 #[cfg(target_arch = "wasm32")]
 use crate::runtime_builtin::JsFunction;
 #[allow(unused)]
@@ -15,10 +13,12 @@ use {
         PreModelPipe, RealSolver, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe,
     },
     crate::pipe::pipe_runner::PipeRunner,
+    crate::pipe::PipeContext,
     crate::solvers::{OptimalTableau, OptimalTableauWithSteps, Tableau},
     crate::transformers::LinearModel,
     crate::transformers::StandardLinearModel,
     crate::RoocParser,
+    crate::{Constant, Primitive},
 };
 
 #[cfg(target_arch = "wasm32")]

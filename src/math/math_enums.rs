@@ -67,7 +67,7 @@ impl FromStr for Comparison {
 }
 
 enum_with_variants_to_string! {
-    
+
     pub enum OptimizationType derives[Debug, PartialEq, Clone] with_wasm {
         Min,
         Max,

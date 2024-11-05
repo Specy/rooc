@@ -26,7 +26,7 @@ use crate::{
 /// Each variant represents a different type of value with its associated data.
 ///
 /// # Example
-/// ```
+/// ```rust
 /// use rooc::Primitive;
 ///
 /// let num = Primitive::Number(42.0);

@@ -12,7 +12,7 @@ impl PipeRunner {
     }
 
     /// Runs the pipe runner
-    /// 
+    ///
     /// # Arguments
     /// * `data` - The data to be piped to the first pipe
     /// * `context` - The context that will be available to all pipes

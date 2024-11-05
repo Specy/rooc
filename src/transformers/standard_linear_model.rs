@@ -211,7 +211,7 @@ impl EqualityConstraint {
     /// * `rhs` - Right-hand side constant value
     ///
     /// # Example
-    /// ```
+    /// ```rust
     /// use rooc::EqualityConstraint;
     /// let constraint = EqualityConstraint::new(vec![2.0, -1.0, 3.0], -4.0);
     /// // Normalizes to: -2x + y - 3z = 4

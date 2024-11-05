@@ -17,7 +17,7 @@ use microlp::{OptimizationDirection, Problem};
 /// * `Err(SolverError)` - Various error conditions that prevented finding a solution
 ///
 /// # Example
-/// ```
+/// ```rust
 /// use rooc::{VariableType, Comparison, OptimizationType, solve_real_lp_problem_slow_simplex, LinearModel};
 ///
 /// let mut model = LinearModel::new();
@@ -66,7 +66,7 @@ pub fn solve_real_lp_problem_slow_simplex(
 /// * `Err(SolverError)` - Various error conditions that prevented finding a solution
 ///
 /// # Example
-/// ```
+/// ```rust
 /// use rooc::{VariableType, Comparison, OptimizationType, solve_real_lp_problem_micro_lp, LinearModel};
 ///
 /// let mut model = LinearModel::new();

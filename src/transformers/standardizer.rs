@@ -21,12 +21,12 @@ use crate::utils::{remove_many, InputSpan};
 /// * `Err(SolverError)` - If the model cannot be converted
 ///
 /// # Example
-/// ```
+/// ```rust
 /// use rooc::{OptimizationType, VariableType, Comparison, to_standard_form, LinearModel};
 /// use rooc::model_transformer::DomainVariable;
-/// 
+///
 /// let mut model = LinearModel::new();
-/// 
+///
 /// // Add variables
 /// model.add_variable("x", VariableType::NonNegativeReal);
 /// model.add_variable("y", VariableType::NonNegativeReal);
@@ -36,9 +36,9 @@ use crate::utils::{remove_many, InputSpan};
 ///
 /// // Add constraint: x + y <= 10
 /// model.add_constraint(vec![1.0, 1.0], Comparison::LessOrEqual, 10.0);
-/// 
+///
 /// let standard_form = to_standard_form(model).unwrap();
-/// 
+///
 /// ```
 pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, SolverError> {
     let (

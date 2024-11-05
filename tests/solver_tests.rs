@@ -5,18 +5,18 @@ pub mod solver_tests {
     use wasm_bindgen_test::*;
 
     use indexmap::IndexMap;
-    use rooc::{float_eq, float_ne};
+    use rooc::common::LpSolution;
+    use rooc::linear_integer_binary::VarValue;
     use rooc::pipe::{
         BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe,
         PreModelPipe, RealSolver, StandardLinearModelPipe, TableauPipe,
     };
     use rooc::pipe::{PipeContext, PipeRunner};
     use rooc::pipe::{PipeDataType, PipeError, PipeableData, StepByStepSimplexPipe};
-    use rooc::common::LpSolution;
-    use rooc::linear_integer_binary::VarValue;
     #[allow(unused_imports)]
     use rooc::simplex::{CanonicalTransformError, OptimalTableau, SimplexError};
     use rooc::OptimalTableauWithSteps;
+    use rooc::{float_eq, float_ne};
 
     #[allow(unused)]
     #[allow(clippy::result_large_err)]

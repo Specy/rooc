@@ -1,6 +1,6 @@
 //! # ROOC
 //! ROOC is a modeling language for defining and solving optimization problems.
-//! 
+//!
 //! Write everything as a single source file:
 //! ```rust
 //!use indexmap::IndexMap;
@@ -43,7 +43,6 @@
 //! ```
 //! Or extend the language with your own functionality and data
 
-
 extern crate core;
 extern crate pest;
 #[macro_use]
@@ -60,15 +59,14 @@ use crate::parser::model_transformer::{transform_parsed_problem, Model};
 mod macros;
 mod math;
 mod parser;
+pub mod pipe;
 mod primitives;
 mod runtime_builtin;
 mod solvers;
 mod traits;
 mod transformers;
-mod utils;
 pub mod type_checker;
-pub mod pipe;
-
+mod utils;
 
 pub use math::*;
 pub use parser::*;
@@ -81,7 +79,7 @@ pub use utils::*;
 mod prelude {
     #[cfg(target_arch = "wasm32")]
     pub use {
-        crate::parser::pre_model::js_value_to_fns_map, crate::runtime_builtin::JsFunction,
+        crate::parser::pre_model::js_value_to_fns_map,
         crate::utils::serialize_json_compatible, js_sys::Function, serde_wasm_bindgen,
         wasm_bindgen::prelude::*, wasm_bindgen::JsValue,
     };
@@ -93,7 +91,7 @@ mod prelude {
 /// Rooc source code. It serves as the main entry point for processing Rooc programs.
 ///
 /// # Example
-/// ```
+/// ```rust
 ///    use indexmap::IndexMap;
 ///    use rooc::{Linearizer, RoocParser, solve_integer_binary_lp_problem};
 ///

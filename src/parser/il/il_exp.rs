@@ -26,7 +26,7 @@ use crate::utils::{InputSpan, Spanned};
 
 #[derive(Debug, Clone, Serialize)]
 /// Represents an expression in the intermediate language before final transformation.
-/// 
+///
 /// This enum captures different types of expressions that can appear in the source code,
 /// including primitives, variables, function calls, and mathematical operations.
 pub enum PreExp {

@@ -41,16 +41,16 @@ impl Display for VarValue {
 /// * `Err(SolverError)` - Various error conditions that prevented finding a solution
 ///
 /// # Example
-/// ```
+/// ```rust
 /// use rooc::{VariableType, Comparison, OptimizationType, solve_integer_binary_lp_problem, LinearModel};
 ///
 /// let mut model = LinearModel::new();
-/// 
+///
 /// // Add a boolean variable x1 and an integer variable x2
 /// model.add_variable("x1", VariableType::Boolean);
 /// model.add_variable("x2", VariableType::IntegerRange(0, 10));
 ///
-/// // Add constraint: x1 + x2 <= 5 
+/// // Add constraint: x1 + x2 <= 5
 /// model.add_constraint(vec![1.0, 1.0], Comparison::LessOrEqual, 5.0);
 ///
 /// // Set objective: maximize x1 + 2*x2

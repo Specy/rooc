@@ -15,7 +15,7 @@ use crate::type_checker::type_checker_context::{
 use crate::utils::{InputSpan, Spanned};
 
 /// Represents an iterable set expression in the intermediate language.
-/// 
+///
 /// An iterable set binds a variable or tuple of variables to elements from an iterator expression.
 /// For example: `x in 1..10` or `(a,b) in pairs(matrix)`.
 #[derive(Debug, Serialize, Clone)]

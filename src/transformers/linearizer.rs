@@ -123,6 +123,7 @@ impl MidLinearConstraint {
     /// * `lhs` - Map of variable names to their coefficients
     /// * `rhs` - Right-hand side constant
     /// * `comparison` - Comparison operator
+    #[allow(unused)]
     pub fn new(lhs: IndexMap<String, f64>, rhs: f64, comparison: Comparison) -> Self {
         MidLinearConstraint {
             lhs,
@@ -433,6 +434,7 @@ impl LinearizationContext {
         self.current_rhs += rhs;
     }
 
+    #[allow(unused)]
     /// Returns a reference to the map of variables and their coefficients.
     pub fn vars(&self) -> &IndexMap<String, f64> {
         &self.current_vars
@@ -443,6 +445,7 @@ impl LinearizationContext {
         self.current_rhs
     }
 
+    #[allow(unused)]
     /// Checks if a variable exists in the context.
     ///
     /// # Arguments

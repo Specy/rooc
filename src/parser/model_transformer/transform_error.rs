@@ -21,20 +21,20 @@ use crate::utils::{InputSpan, Spanned};
 pub enum TransformError {
     /// Error when a variable is used but not declared
     UndeclaredVariable(String),
-    
+
     /// Error when a variable's domain is referenced but not declared
     UndeclaredVariableDomain(String),
-    
+
     /// Error when attempting to declare a variable that already exists
     AlreadyDeclaredVariable(String),
-    
+
     /// Error when attempting to declare a domain for a variable that already has one.
     /// Contains a vector of (variable name, (count, variable type)) tuples.
     AlreadyDeclaredDomainVariable(Vec<(String, (i32, Spanned<VariableType>))>),
-    
+
     /// Error when a value is outside its valid range
     OutOfBounds(String),
-    
+
     /// Error when an argument has the wrong type
     WrongArgument {
         /// The type that was provided
@@ -42,7 +42,7 @@ pub enum TransformError {
         /// The type that was expected
         expected: PrimitiveKind,
     },
-    
+
     /// Error when an argument's type doesn't match any of the allowed types
     WrongExpectedArgument {
         /// The type that was provided
@@ -50,7 +50,7 @@ pub enum TransformError {
         /// List of allowed types
         one_of: Vec<PrimitiveKind>,
     },
-    
+
     /// Error with source location information
     SpannedError {
         /// The underlying error with location info
@@ -58,10 +58,10 @@ pub enum TransformError {
         /// Optional additional context
         value: Option<String>,
     },
-    
+
     /// Error when referencing a function that doesn't exist
     NonExistentFunction(String),
-    
+
     /// Error when calling a function with incorrect argument types
     WrongFunctionSignature {
         /// Expected parameter types
@@ -69,7 +69,7 @@ pub enum TransformError {
         /// Actual argument types provided
         got: Vec<PrimitiveKind>,
     },
-    
+
     /// Error when calling a function with wrong number of arguments
     WrongNumberOfArguments {
         /// Expected parameter types
@@ -77,7 +77,7 @@ pub enum TransformError {
         /// Actual arguments provided
         args: Vec<PreExp>,
     },
-    
+
     /// Error when binary operator cannot be applied to given types
     BinOpError {
         /// The binary operator
@@ -87,7 +87,7 @@ pub enum TransformError {
         /// Type of right operand
         rhs: PrimitiveKind,
     },
-    
+
     /// Error when unary operator cannot be applied to given type
     UnOpError {
         /// The unary operator
@@ -95,10 +95,10 @@ pub enum TransformError {
         /// Type of the operand
         exp: PrimitiveKind,
     },
-    
+
     /// Error when attempting to spread a type that cannot be spread
     Unspreadable(PrimitiveKind),
-    
+
     /// Error when spreading a type into incompatible variables
     SpreadError {
         /// Type being spread
@@ -106,7 +106,7 @@ pub enum TransformError {
         /// Names of target variables
         in_variables: Vec<String>,
     },
-    
+
     /// Error when attempting to define something that already exists
     AlreadyDefined {
         /// Name of the item
@@ -114,7 +114,7 @@ pub enum TransformError {
         /// Type of the token
         kind: TokenType,
     },
-    
+
     /// Error when a value exceeds maximum allowed size
     TooLarge {
         /// Description of the error
@@ -124,7 +124,7 @@ pub enum TransformError {
         /// Maximum allowed value
         max: i64,
     },
-    
+
     /// Generic error with custom message
     Other(String),
 }

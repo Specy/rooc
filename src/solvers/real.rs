@@ -22,7 +22,7 @@ use indexmap::IndexMap;
 /// * `Err(SolverError)` - Various error conditions that prevented finding a solution
 ///
 /// # Example
-/// ```
+/// ```rust
 /// use rooc::{VariableType, Comparison, OptimizationType, solve_real_lp_problem_clarabel, LinearModel};
 ///
 /// let mut model = LinearModel::new();

@@ -24,7 +24,7 @@ use super::{
 /// of homogeneous elements.
 ///
 /// # Example
-/// ```
+/// ```rust
 /// use rooc::IterableKind;
 ///
 /// let numbers = IterableKind::Numbers(vec![1.0, 2.0, 3.0]);

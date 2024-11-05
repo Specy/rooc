@@ -14,14 +14,14 @@ use super::{
 };
 
 /// A tuple type that holds an ordered collection of `Primitive` values.
-/// 
+///
 /// Tuples are immutable sequences that can store different types of primitives.
 /// They are primarily used for grouping related values together.
 ///
 /// # Example
-/// ```
+/// ```rust
 /// use rooc::{Primitive, Tuple};
-/// 
+///
 /// let primitives = vec![
 ///     Primitive::Integer(1),
 ///     Primitive::String("hello".to_string())

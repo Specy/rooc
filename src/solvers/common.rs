@@ -22,10 +22,7 @@ pub enum SolverError {
     /// A variable's value exceeds the maximum allowed value.
     /// - `name`: Name of the variable
     /// - `value`: The value that was too large
-    TooLarge {
-        name: String,
-        value: f64,
-    },
+    TooLarge { name: String, value: f64 },
 
     /// The solver failed to find a solution.
     DidNotSolve,
@@ -159,7 +156,7 @@ impl<T: Clone + Serialize + Copy + Display> Display for LpSolution<T> {
 
 impl<T: Clone + Serialize + Copy + Display> LpSolution<T> {
     /// Creates a new solution with the given assignments and objective value.
-    /// 
+    ///
     /// # Arguments
     /// * `assignment` - Vector of variable assignments
     /// * `value` - The objective function value at this solution
