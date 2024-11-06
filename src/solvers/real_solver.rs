@@ -82,7 +82,7 @@ pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64
         let mut good_lp_constraint = Expression::with_capacity(vars.len());
         for (i, c) in constraint.coefficients().iter().enumerate() {
             let name = &vars[i];
-            let existing = created_vars.get(name).unwrap().clone();
+            let existing = *created_vars.get(name).unwrap();
             good_lp_constraint += (*c) * existing;
         }
         let constraint = match constraint.constraint_type() {

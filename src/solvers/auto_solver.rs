@@ -71,7 +71,7 @@ pub fn auto_solver(lp: &LinearModel) -> Result<LpSolution<MILPValue>, SolverErro
 fn bool_to_milp(val: LpSolution<bool>) -> LpSolution<MILPValue> {
     let values = val
         .assignment()
-        .into_iter()
+        .iter()
         .map(|v| Assignment {
             name: v.name.clone(),
             value: MILPValue::Bool(v.value),
@@ -83,7 +83,7 @@ fn bool_to_milp(val: LpSolution<bool>) -> LpSolution<MILPValue> {
 fn int_bool_to_milp(val: LpSolution<IntOrBoolValue>) -> LpSolution<MILPValue> {
     let values = val
         .assignment()
-        .into_iter()
+        .iter()
         .map(|v| {
             let value = match v.value {
                 IntOrBoolValue::Int(v) => MILPValue::Int(v),
@@ -101,7 +101,7 @@ fn int_bool_to_milp(val: LpSolution<IntOrBoolValue>) -> LpSolution<MILPValue> {
 fn real_to_milp(val: LpSolution<f64>) -> LpSolution<MILPValue> {
     let values = val
         .assignment()
-        .into_iter()
+        .iter()
         .map(|v| Assignment {
             value: MILPValue::Real(v.value),
             name: v.name.clone(),

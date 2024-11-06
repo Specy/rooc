@@ -26,7 +26,7 @@ For examples of using the rust lib look at the [examples folder](https://github.
 For examples of models [look in the rooc docs](https://rooc.specy.app/docs/rooc/examples)
 
 ## Solvers
-Currently in ROOC you can solve only Linear models which can be:
+Currently in ROOC you can solve any linear models which can be:
 - MILP
 - Integer or binary only
 - Binary only

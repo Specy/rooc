@@ -337,19 +337,19 @@ impl Pipeable for MILPSolverPipe {
 
 //-------------------- Auto solver --------------------
 /// Pipe that solves linear models by automatically picking the right solver
-pub struct AutoSolver {}
-impl Default for AutoSolver {
+pub struct AutoSolverPipe {}
+impl Default for AutoSolverPipe {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl AutoSolver {
-    pub fn new() -> AutoSolver {
-        AutoSolver {}
+impl AutoSolverPipe {
+    pub fn new() -> AutoSolverPipe {
+        AutoSolverPipe {}
     }
 }
-impl Pipeable for AutoSolver {
+impl Pipeable for AutoSolverPipe {
     fn pipe(&self, data: &mut PipeableData, _: &PipeContext) -> Result<PipeableData, PipeError> {
         let linear_model = data.as_linear_model()?;
         let solution = auto_solver(linear_model);

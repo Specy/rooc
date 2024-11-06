@@ -9,9 +9,9 @@ use {
     crate::parser::pre_model::PreModel,
     crate::pipe::pipe_definitions::{PipeDataType, PipeError, Pipeable, PipeableData},
     crate::pipe::pipe_executors::{
-        BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe, Pipes,
-        PreModelPipe, RealSolver, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe,
-        AutoSolver, MILPSolverPipe
+        AutoSolverPipe, BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe,
+        MILPSolverPipe, ModelPipe, Pipes, PreModelPipe, RealSolver, StandardLinearModelPipe,
+        StepByStepSimplexPipe, TableauPipe,
     },
     crate::pipe::pipe_runner::PipeRunner,
     crate::pipe::PipeContext,
@@ -47,7 +47,7 @@ impl WasmPipeRunner {
                     Pipes::BinarySolverPipe => Box::new(BinarySolverPipe::new()),
                     Pipes::IntegerBinarySolverPipe => Box::new(IntegerBinarySolverPipe::new()),
                     Pipes::MILPSolverPipe => Box::new(MILPSolverPipe::new()),
-                    Pipes::AutoSolverPipe => Box::new(AutoSolver::new()),
+                    Pipes::AutoSolverPipe => Box::new(AutoSolverPipe::new()),
                 };
                 item
             })

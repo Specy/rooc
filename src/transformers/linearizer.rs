@@ -160,7 +160,7 @@ impl MidLinearConstraint {
     ///
     /// # Arguments
     /// * `vars` - Mapping of variable names to their positions
-    pub fn to_linear_constraint(self, vars: &IndexMap<String, usize>) -> LinearConstraint {
+    pub fn into_linear_constraint(self, vars: &IndexMap<String, usize>) -> LinearConstraint {
         let coeffs = self.to_coefficient_vector(vars);
         LinearConstraint::new(coeffs, self.comparison, self.rhs)
     }
@@ -300,7 +300,7 @@ impl Linearizer {
             .collect();
         let linear_constraints: Vec<LinearConstraint> = linear_constraints
             .into_iter()
-            .map(|c| c.to_linear_constraint(&vars_indexes))
+            .map(|c| c.into_linear_constraint(&vars_indexes))
             .collect();
         let objective_coeffs = extract_coeffs(&linearized_objective.current_vars, &vars_indexes);
         let objective_offset = linearized_objective.current_rhs;

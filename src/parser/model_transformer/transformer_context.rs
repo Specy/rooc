@@ -216,7 +216,7 @@ impl TransformerContext {
     /// # Returns
     /// * `Ok(Self)` if initialization succeeds
     /// * `Err(TransformError)` if there are duplicate or invalid declarations
-    pub fn new_from_constants<'a>(
+    pub fn new_from_constants(
         constants: Vec<Constant>,
         domain: Vec<VariablesDomainDeclaration>,
         fn_context: &FunctionContext,
@@ -224,13 +224,13 @@ impl TransformerContext {
         let mut context = Self::default();
 
         for constant in constants {
-            let value = constant.as_primitive(&context, &fn_context)?;
+            let value = constant.as_primitive(&context, fn_context)?;
             let name = constant.name.value();
             context.declare_variable(name, value, true)?; //TODO should this be strict or allow for redeclaration?
         }
         let computed_domain = domain
             .into_iter()
-            .map(|d| d.compute_domain(&mut context, &fn_context))
+            .map(|d| d.compute_domain(&mut context, fn_context))
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
             .flatten()

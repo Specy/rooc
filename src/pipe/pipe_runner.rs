@@ -27,7 +27,7 @@ impl PipeRunner {
         let mut results = vec![data];
         for pipe in &self.pipes {
             let next = results.last_mut().unwrap();
-            let result = match pipe.pipe(next, &context) {
+            let result = match pipe.pipe(next, context) {
                 Ok(data) => data,
                 Err(e) => return Err((e, results)),
             };

@@ -266,7 +266,7 @@ impl PipeContext<'_> {
         &self.constants
     }
     pub fn functions(&self) -> &IndexMap<String, Box<dyn RoocFunction>> {
-        &self.functions
+        self.functions
     }
 }
 

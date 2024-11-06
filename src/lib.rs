@@ -4,11 +4,7 @@
 //! Write everything as a single source file:
 //! ```rust
 //!use indexmap::IndexMap;
-//!use rooc::pipe::{
-//!    LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData,
-//!    PreModelPipe,
-//!};
-//! use rooc::pipe::Pipes::AutoSolverPipe;
+//!use rooc::pipe::{AutoSolverPipe, LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData, PreModelPipe};
 //!let source = "
 //!max sum((value, i) in enumerate(values)) { value * x_i }
 //!s.t.
@@ -37,7 +33,7 @@
 //!    .into_iter()
 //!    .last()
 //!    .unwrap()
-//!    .to_binary_solution()
+//!    .to_milp_solution()
 //!        .unwrap();
 //!
 //!println!("{}", last)
