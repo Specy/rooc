@@ -40,11 +40,17 @@ use indexmap::IndexMap;
 pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64>, SolverError> {
     let domain = lp.domain();
     let invalid_variables = find_invalid_variables(domain, |var| {
-        matches!(var, VariableType::Real(_, _) | VariableType::NonNegativeReal(_, _))
+        matches!(
+            var,
+            VariableType::Real(_, _) | VariableType::NonNegativeReal(_, _)
+        )
     });
     if !invalid_variables.is_empty() {
         return Err(SolverError::InvalidDomain {
-            expected: vec![VariableType::Real(f64::NEG_INFINITY, f64::INFINITY), VariableType::NonNegativeReal(0.0, f64::INFINITY)],
+            expected: vec![
+                VariableType::Real(f64::NEG_INFINITY, f64::INFINITY),
+                VariableType::NonNegativeReal(0.0, f64::INFINITY),
+            ],
             got: invalid_variables,
         });
     }

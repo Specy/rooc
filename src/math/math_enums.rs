@@ -11,6 +11,7 @@ use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, WithType,
 };
 use crate::{enum_with_variants_to_string, InputSpan, Spanned};
+use core::f64;
 use core::fmt;
 use num_traits::ToPrimitive;
 use serde::Serialize;
@@ -220,55 +221,43 @@ impl PreVariableType {
             PreVariableType::Boolean => VariableType::Boolean,
             PreVariableType::NonNegativeReal(min, max) => {
                 let min = match min {
-                    Some(exp) => match exp {
-                        PreExp::Primitive(p) => match **p {
-                            Primitive::Integer(v) => v.to_f64().unwrap_or(0.0),
-                            Primitive::PositiveInteger(v) => v.to_f64().unwrap_or(0.0),
-                            Primitive::Number(v) => v,
-                            _ => 0.0,
-                        },
+                    Some(PreExp::Primitive(p)) => match **p {
+                        Primitive::Integer(v) => v.to_f64().unwrap_or(0.0),
+                        Primitive::PositiveInteger(v) => v.to_f64().unwrap_or(0.0),
+                        Primitive::Number(v) => v,
                         _ => 0.0,
                     },
-                    None => 0.0,
+                    _ => 0.0,
                 };
                 let max = match max {
-                    Some(exp) => match exp {
-                        PreExp::Primitive(p) => match **p {
-                            Primitive::Integer(v) => v.to_f64().unwrap_or(f64::MAX),
-                            Primitive::PositiveInteger(v) => v.to_f64().unwrap_or(f64::MAX),
-                            Primitive::Number(v) => v,
-                            _ => f64::INFINITY,
-                        },
+                    Some(PreExp::Primitive(p)) => match **p {
+                        Primitive::Integer(v) => v.to_f64().unwrap_or(f64::INFINITY),
+                        Primitive::PositiveInteger(v) => v.to_f64().unwrap_or(f64::INFINITY),
+                        Primitive::Number(v) => v,
                         _ => f64::INFINITY,
                     },
-                    None => f64::INFINITY,
+                    _ => f64::INFINITY,
                 };
                 VariableType::NonNegativeReal(min, max)
             }
             PreVariableType::Real(min, max) => {
                 let min = match min {
-                    Some(exp) => match exp {
-                        PreExp::Primitive(p) => match **p {
-                            Primitive::Integer(v) => v.to_f64().unwrap_or(f64::MIN),
-                            Primitive::PositiveInteger(v) => v.to_f64().unwrap_or(f64::MIN),
-                            Primitive::Number(v) => v,
-                            _ => f64::NEG_INFINITY,
-                        },
+                    Some(PreExp::Primitive(p)) => match **p {
+                        Primitive::Integer(v) => v.to_f64().unwrap_or(f64::NEG_INFINITY),
+                        Primitive::PositiveInteger(v) => v.to_f64().unwrap_or(f64::NEG_INFINITY),
+                        Primitive::Number(v) => v,
                         _ => f64::NEG_INFINITY,
                     },
-                    None => f64::NEG_INFINITY,
+                    _ => f64::NEG_INFINITY,
                 };
                 let max = match max {
-                    Some(exp) => match exp {
-                        PreExp::Primitive(p) => match **p {
-                            Primitive::Integer(v) => v.to_f64().unwrap_or(f64::MAX),
-                            Primitive::PositiveInteger(v) => v.to_f64().unwrap_or(f64::MAX),
-                            Primitive::Number(v) => v,
-                            _ => f64::INFINITY,
-                        },
+                    Some(PreExp::Primitive(p)) => match **p {
+                        Primitive::Integer(v) => v.to_f64().unwrap_or(f64::INFINITY),
+                        Primitive::PositiveInteger(v) => v.to_f64().unwrap_or(f64::INFINITY),
+                        Primitive::Number(v) => v,
                         _ => f64::INFINITY,
                     },
-                    None => f64::INFINITY,
+                    _ => f64::INFINITY,
                 };
                 VariableType::Real(min, max)
             }
@@ -495,7 +484,7 @@ impl TypeCheckable for PreVariableType {
         &self,
         context: &mut TypeCheckerContext,
         fn_context: &FunctionContext,
-    ) { 
+    ) {
         match self {
             PreVariableType::Boolean => {}
             PreVariableType::NonNegativeReal(min, max) | PreVariableType::Real(min, max) => {
@@ -604,15 +593,27 @@ impl fmt::Display for VariableType {
                 _ => format!(
                     "NonNegativeReal({}, {})",
                     min,
-                    if *max == f64::INFINITY { "Infinity".to_string() } else { max.to_string() }
+                    if *max == f64::INFINITY {
+                        "Infinity".to_string()
+                    } else {
+                        max.to_string()
+                    }
                 ),
             },
             VariableType::Real(min, max) => match (*min, *max) {
                 (f64::NEG_INFINITY, f64::INFINITY) => "Real".to_string(),
                 _ => format!(
                     "Real({}, {})",
-                    if *min == f64::NEG_INFINITY { "MinusInfinity".to_string() } else { min.to_string() },
-                    if *max == f64::INFINITY { "Infinity".to_string() } else { max.to_string() }
+                    if *min == f64::NEG_INFINITY {
+                        "MinusInfinity".to_string()
+                    } else {
+                        min.to_string()
+                    },
+                    if *max == f64::INFINITY {
+                        "Infinity".to_string()
+                    } else {
+                        max.to_string()
+                    }
                 ),
             },
             VariableType::IntegerRange(min, max) => format!("IntegerRange({}, {})", min, max),
@@ -622,19 +623,26 @@ impl fmt::Display for VariableType {
     }
 }
 
-
 impl ToLatex for VariableType {
     fn to_latex(&self) -> String {
-    match self {
+        match self {
             VariableType::Boolean => "\\{0,1\\}".to_string(),
             VariableType::NonNegativeReal(min, max) => match (*min, *max) {
                 (0.0, f64::INFINITY) => "\\mathbb{R}^+_0".to_string(),
                 _ => format!(
                     "\\{{{} \\in \\mathbb{{R}}^+_0 | {} \\leq {} \\leq {}\\}}",
                     "x",
-                    if *min == 0.0 { "0".to_string() } else { min.to_string() },
-                    "x", 
-                    if *max == f64::INFINITY { "\\infty".to_string() } else { max.to_string() }
+                    if *min == 0.0 {
+                        "0".to_string()
+                    } else {
+                        min.to_string()
+                    },
+                    "x",
+                    if *max == f64::INFINITY {
+                        "\\infty".to_string()
+                    } else {
+                        max.to_string()
+                    }
                 ),
             },
             VariableType::Real(min, max) => match (*min, *max) {
@@ -642,15 +650,23 @@ impl ToLatex for VariableType {
                 _ => format!(
                     "\\{{{} \\in \\mathbb{{R}} | {} \\leq {} \\leq {}\\}}",
                     "x",
-                    if *min == f64::NEG_INFINITY { "-\\infty".to_string() } else { min.to_string() },
+                    if *min == f64::NEG_INFINITY {
+                        "-\\infty".to_string()
+                    } else {
+                        min.to_string()
+                    },
                     "x",
-                    if *max == f64::INFINITY { "\\infty".to_string() } else { max.to_string() }
+                    if *max == f64::INFINITY {
+                        "\\infty".to_string()
+                    } else {
+                        max.to_string()
+                    }
                 ),
             },
             VariableType::IntegerRange(min, max) => format!(
                 "\\{{{} \\in \\mathbb{{Z}} | {} \\leq {} \\leq {}\\}}",
                 min, min, "x", max
             ),
-        } 
+        }
     }
 }

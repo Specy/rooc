@@ -84,7 +84,10 @@ pub fn solve_real_lp_problem_slow_simplex(
 pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64>, SolverError> {
     let domain = lp.domain();
     let invalid_variables = find_invalid_variables(domain, |var| {
-        matches!(var, VariableType::Real(_, _) | VariableType::NonNegativeReal(_, _))
+        matches!(
+            var,
+            VariableType::Real(_, _) | VariableType::NonNegativeReal(_, _)
+        )
     });
     if !invalid_variables.is_empty() {
         return Err(SolverError::InvalidDomain {

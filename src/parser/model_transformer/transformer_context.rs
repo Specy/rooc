@@ -10,7 +10,7 @@ use crate::parser::model_transformer::transform_error::TransformError;
 use crate::primitives::Constant;
 use crate::primitives::{Primitive, PrimitiveKind};
 use crate::runtime_builtin::check_if_reserved_token;
-use crate::type_checker::type_checker_context::{FunctionContext};
+use crate::type_checker::type_checker_context::FunctionContext;
 use crate::utils::{InputSpan, Spanned};
 
 /// Represents a single scope frame containing variable bindings.
@@ -205,7 +205,6 @@ impl TransformerContext {
             domain,
         }
     }
-    
 
     /// Creates a new transformer context from constants and domain declarations.
     ///

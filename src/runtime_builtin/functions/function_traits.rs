@@ -279,6 +279,11 @@ pub trait RoocFunction: Debug {
         context: &mut TypeCheckerContext,
         fn_context: &FunctionContext,
     ) -> Result<(), TransformError> {
-        default_type_check(args, &self.type_signature(args, context, fn_context), context, fn_context)
+        default_type_check(
+            args,
+            &self.type_signature(args, context, fn_context),
+            context,
+            fn_context,
+        )
     }
 }

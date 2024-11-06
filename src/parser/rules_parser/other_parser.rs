@@ -188,18 +188,26 @@ pub fn parse_as_assertion_type(pair: &Pair<Rule>) -> Result<PreVariableType, Com
         match str {
             "IntegerRange" => {
                 if min.is_none() || max.is_none() {
-                    return err_unexpected_token!("IntegerRange must have min and max values: {}", pair);
+                    return err_unexpected_token!(
+                        "IntegerRange must have min and max values: {}",
+                        pair
+                    );
                 }
-                return Ok(PreVariableType::IntegerRange(min.unwrap(), max.unwrap()))
+                return Ok(PreVariableType::IntegerRange(min.unwrap(), max.unwrap()));
             }
             "NonNegativeReal" => return Ok(PreVariableType::NonNegativeReal(min, max)),
             "Real" => return Ok(PreVariableType::Real(min, max)),
-            _ => return err_unexpected_token!("Unknown variable type \"{}\", expected one of \"{}\"", pair, PreVariableType::kinds_to_string().join(", ")),
+            _ => {
+                return err_unexpected_token!(
+                    "Unknown variable type \"{}\", expected one of \"{}\"",
+                    pair,
+                    PreVariableType::kinds_to_string().join(", ")
+                )
+            }
         }
-
     }
     if str == "IntegerRange" {
-       return  err_unexpected_token!("IntegerRange must have min and max: {}", pair);
+        return err_unexpected_token!("IntegerRange must have min and max: {}", pair);
     }
     match as_type.as_str().parse() {
         Ok(kind) => Ok(kind),

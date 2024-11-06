@@ -1,3 +1,4 @@
+use crate::functions::ZipArrays;
 use crate::parser::il::PreExp;
 use crate::runtime_builtin::functions::NumericRange;
 use crate::runtime_builtin::functions::{
@@ -6,9 +7,8 @@ use crate::runtime_builtin::functions::{
 use crate::runtime_builtin::functions::{EnumerateArray, LenOfIterableFn};
 use crate::runtime_builtin::functions::{FunctionCall, RoocFunction};
 use crate::traits::ToLatex;
-use indexmap::IndexMap;
 use crate::{Constant, Primitive};
-use crate::functions::ZipArrays;
+use indexmap::IndexMap;
 
 pub fn make_std() -> IndexMap<String, Box<dyn RoocFunction>> {
     let mut m: IndexMap<String, Box<dyn RoocFunction>> = IndexMap::new();
@@ -25,8 +25,6 @@ pub fn make_std() -> IndexMap<String, Box<dyn RoocFunction>> {
     m.insert("zip".to_string(), Box::new(ZipArrays {}));
     m
 }
-
-
 
 pub fn make_std_constants() -> Vec<Constant> {
     vec![

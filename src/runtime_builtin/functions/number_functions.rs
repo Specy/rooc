@@ -42,7 +42,7 @@ impl RoocFunction for NumericRange {
                 };
                 Ok(Primitive::Iterable(IterableKind::Integers(range)))
             }
-            _ =>  Err(default_wrong_number_of_arguments(self, args, fn_context))
+            _ => Err(default_wrong_number_of_arguments(self, args, fn_context)),
         }
     }
 
@@ -51,7 +51,7 @@ impl RoocFunction for NumericRange {
         _args: &[PreExp],
         _context: &TypeCheckerContext,
         _fn_context: &FunctionContext,
-    )  -> Vec<(String, PrimitiveKind)> {
+    ) -> Vec<(String, PrimitiveKind)> {
         vec![
             ("from".to_string(), PrimitiveKind::Integer),
             ("to".to_string(), PrimitiveKind::Integer),

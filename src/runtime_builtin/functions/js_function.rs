@@ -128,7 +128,7 @@ impl RoocFunction for JsFunction {
         Ok(primitive)
     }
 
-    //TODO implement runtime function 
+    //TODO implement runtime function
     fn type_signature(
         &self,
         _args: &[PreExp],

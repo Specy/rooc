@@ -84,7 +84,10 @@ impl Exp {
                     );
                     linearizer_context.add_constraint(constraint)
                 }
-                linearizer_context.declare_variable(var_name.clone(), VariableType::Real(f64::NEG_INFINITY, f64::INFINITY))?;
+                linearizer_context.declare_variable(
+                    var_name.clone(),
+                    VariableType::Real(f64::NEG_INFINITY, f64::INFINITY),
+                )?;
                 Ok(LinearizationContext::from_var(var_name, 1.0))
             }
             Exp::Max(exps) => {
@@ -98,7 +101,10 @@ impl Exp {
                     );
                     linearizer_context.add_constraint(constraint)
                 }
-                linearizer_context.declare_variable(var_name.clone(), VariableType::Real(f64::NEG_INFINITY, f64::INFINITY))?;
+                linearizer_context.declare_variable(
+                    var_name.clone(),
+                    VariableType::Real(f64::NEG_INFINITY, f64::INFINITY),
+                )?;
                 Ok(LinearizationContext::from_var(var_name, 1.0))
             }
             Exp::Abs(_) => Err(LinearizationError::UnimplementedExpression(Box::new(
@@ -285,7 +291,7 @@ impl Linearizer {
             let res = exp.linearize(&mut context)?;
             linear_constraints.push(MidLinearConstraint::new_from_linearized_context(res, op));
         }
-        
+
         let mut vars = context.used_variables();
         vars.sort();
         let domain = context

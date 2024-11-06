@@ -116,7 +116,7 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
                         ));
                     }
                 }
-                _ => ()
+                _ => (),
             },
             _ => (),
         }

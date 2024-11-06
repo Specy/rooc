@@ -31,9 +31,7 @@ impl RoocFunction for EdgesOfGraphFn {
                 let edges = graph.to_edges();
                 Ok(Primitive::Iterable(IterableKind::Edges(edges)))
             }
-            _ => Err(default_wrong_number_of_arguments(
-                self, args, fn_context,
-            )),
+            _ => Err(default_wrong_number_of_arguments(self, args, fn_context)),
         }
     }
 
@@ -42,7 +40,7 @@ impl RoocFunction for EdgesOfGraphFn {
         _args: &[PreExp],
         _context: &TypeCheckerContext,
         _fn_context: &FunctionContext,
-    )  -> Vec<(String, PrimitiveKind)> {
+    ) -> Vec<(String, PrimitiveKind)> {
         vec![("of_graph".to_string(), PrimitiveKind::Graph)]
     }
 
@@ -58,7 +56,6 @@ impl RoocFunction for EdgesOfGraphFn {
     fn function_name(&self) -> String {
         "edges".to_string()
     }
-
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -78,9 +75,7 @@ impl RoocFunction for NodesOfGraphFn {
                 let nodes = graph.to_nodes();
                 Ok(Primitive::Iterable(IterableKind::Nodes(nodes)))
             }
-            _ => Err(default_wrong_number_of_arguments(
-                self, args, fn_context,
-            )),
+            _ => Err(default_wrong_number_of_arguments(self, args, fn_context)),
         }
     }
 
@@ -89,7 +84,7 @@ impl RoocFunction for NodesOfGraphFn {
         _args: &[PreExp],
         _context: &TypeCheckerContext,
         _fn_context: &FunctionContext,
-    )  -> Vec<(String, PrimitiveKind)> {
+    ) -> Vec<(String, PrimitiveKind)> {
         vec![("of_graph".to_string(), PrimitiveKind::Graph)]
     }
 
@@ -121,9 +116,7 @@ impl RoocFunction for NeighbourOfNodeFn {
                 let node = of_node.as_node(context, fn_context)?;
                 Ok(Primitive::Iterable(IterableKind::Edges(node.to_edges())))
             }
-            _ => Err(default_wrong_number_of_arguments(
-                self, args, fn_context,
-            )),
+            _ => Err(default_wrong_number_of_arguments(self, args, fn_context)),
         }
     }
 
@@ -180,9 +173,7 @@ impl RoocFunction for NeighboursOfNodeInGraphFn {
                 let neighbours = graph.into_neighbours_of(&node)?;
                 Ok(Primitive::Iterable(IterableKind::Edges(neighbours)))
             }
-            _ => Err(default_wrong_number_of_arguments(
-                self, args, fn_context,
-            )),
+            _ => Err(default_wrong_number_of_arguments(self, args, fn_context)),
         }
     }
 
@@ -191,7 +182,7 @@ impl RoocFunction for NeighboursOfNodeInGraphFn {
         _args: &[PreExp],
         _context: &TypeCheckerContext,
         _fn_context: &FunctionContext,
-    )  -> Vec<(String, PrimitiveKind)> {
+    ) -> Vec<(String, PrimitiveKind)> {
         vec![
             ("of_node_name".to_string(), PrimitiveKind::String),
             ("in_graph".to_string(), PrimitiveKind::Graph),
