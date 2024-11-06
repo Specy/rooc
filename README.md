@@ -25,6 +25,14 @@ For examples of using the rust lib look at the [examples folder](https://github.
 
 For examples of models [look in the rooc docs](https://rooc.specy.app/docs/rooc/examples)
 
+## Solvers
+Currently in ROOC you can solve only Linear models which can be:
+- MILP
+- Integer or binary only
+- Binary only
+- Real only 
+
+
 
 # Implemented Features 
 - [x] Language
@@ -51,6 +59,7 @@ For examples of models [look in the rooc docs](https://rooc.specy.app/docs/rooc/
   - [x] Integer solvers
   - [x] Binary problem solution
   - [x] Integer/Binary problem solution
+  - [x] MILP problem solution
   - [ ] Logic constraints
 - [x] UI
   - [x] Compilation to WASM
@@ -68,7 +77,7 @@ For examples of models [look in the rooc docs](https://rooc.specy.app/docs/rooc/
 
 # Example
 Given the formal model of the [Dominating set](https://en.wikipedia.org/wiki/Dominating_set) problem, which shows most of the features of the language:
-```rust
+```lua
 min sum(u in nodes(G)) { x_u }
 s.t. 
     x_v + sum((_, u) in neigh_edges(v)) { x_u } >= 1 for v in nodes(G)
@@ -116,5 +125,3 @@ The model can then be solved using the `Binary solver` pipeline, which will solv
 ```
 F	F	F	F	T	F	F	F	T	T
 ```
-# Notes
-This project is purely educational, it shouldn't be used to solve serious problems as it won't be optimized for big models

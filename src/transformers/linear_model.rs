@@ -5,7 +5,6 @@ use indexmap::IndexMap;
 use num_traits::Zero;
 use std::fmt::Display;
 
-
 use crate::math::{float_lt, VariableType};
 use crate::parser::model_transformer::DomainVariable;
 use crate::solvers::SolverError;

@@ -5,7 +5,7 @@ pub mod solver_tests {
 
     use indexmap::IndexMap;
     use rooc::common::LpSolution;
-    use rooc::linear_integer_binary::IntOrBoolValue;
+    use rooc::linear_integer_binary_solver::IntOrBoolValue;
     use rooc::pipe::{
         BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, MILPSolverPipe,
         ModelPipe, PreModelPipe, RealSolver, StandardLinearModelPipe, TableauPipe,
@@ -290,7 +290,7 @@ pub mod solver_tests {
                     }
                 }
                 (MILPValue::Real(v), MILPValue::Real(e)) => {
-                    if float_ne(*v,*e) {
+                    if float_ne(*v, *e) {
                         panic!(
                             "{:?}!={:?} Expected  {:?} but got {:?}",
                             v, e, expected, variables
@@ -706,7 +706,7 @@ define
                 MILPValue::Real(6.5),
                 MILPValue::Int(1),
             ],
-            false
+            false,
         )
     }
 }

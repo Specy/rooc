@@ -27,7 +27,7 @@ impl Display for MILPValue {
 }
 /// Solves a mixed-integer linear programming problem using the MicroLP solver.
 ///
-/// Takes a linear model containing real, non-negative real, boolean, and integer variables and returns 
+/// Takes a linear model containing real, non-negative real, boolean, and integer variables and returns
 /// an optimal solution or an error if the problem cannot be solved.
 ///
 /// # Arguments
@@ -43,7 +43,7 @@ impl Display for MILPValue {
 ///
 /// let mut model = LinearModel::new();
 /// model.add_variable("x", VariableType::NonNegativeReal);
-/// model.add_variable("y", VariableType::NonNegativeReal); 
+/// model.add_variable("y", VariableType::NonNegativeReal);
 /// model.add_variable("z", VariableType::IntegerRange(0, 10));
 ///
 /// // Machine time constraint: 3x + 2y + z <= 20
@@ -114,34 +114,31 @@ pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, 
     }
     match problem.solve() {
         Ok(s) => {
-            let assignment = microlp_vars.iter().zip(variables).map(|(v, name)| {
-                let value = s.var_value_rounded(*v);
-                let var_domain = domain.get(name).unwrap();
-                let value = match var_domain.get_type() {
-                    VariableType::Real | VariableType::NonNegativeReal => {
-                        MILPValue::Real(value)
+            let assignment = microlp_vars
+                .iter()
+                .zip(variables)
+                .map(|(v, name)| {
+                    let value = s.var_value_rounded(*v);
+                    let var_domain = domain.get(name).unwrap();
+                    let value = match var_domain.get_type() {
+                        VariableType::Real | VariableType::NonNegativeReal => {
+                            MILPValue::Real(value)
+                        }
+                        VariableType::IntegerRange(_, _) => MILPValue::Int(value as i32),
+                        VariableType::Boolean => MILPValue::Bool(value != 0.0),
+                    };
+                    Assignment {
+                        name: name.clone(),
+                        value,
                     }
-                    VariableType::IntegerRange(_,_) => {
-                        MILPValue::Int(value as i32)
-                    }
-                    VariableType::Boolean => {
-                        MILPValue::Bool(value != 0.0)
-                    }
-                };
-                Assignment {
-                    name: name.clone(),
-                    value
-                }
-            }).collect();
+                })
+                .collect();
             Ok(LpSolution::new(assignment, s.objective()))
         }
-        Err(e) => {
-            Err(match e {
-                Error::InternalError(s) => SolverError::Other(s),
-                Error::Unbounded => SolverError::Unbounded,
-                Error::Infeasible => SolverError::Infisible
-            })
-        }
+        Err(e) => Err(match e {
+            Error::InternalError(s) => SolverError::Other(s),
+            Error::Unbounded => SolverError::Unbounded,
+            Error::Infeasible => SolverError::Infisible,
+        }),
     }
-
 }

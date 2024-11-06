@@ -98,18 +98,18 @@ mod rooc_macros {
             $vis enum $name {
                 $($variant),*
             }
-    
+
             impl $name {
                 pub fn kinds() -> Vec<Self> {
                     vec![$(Self::$variant),*]
                 }
-    
+
                 pub fn kinds_to_string() -> Vec<String> {
                     Self::kinds().iter().map(|k| k.to_string()).collect()
                 }
             }
         };
-            
+
         ($vis:vis enum $name:ident derives[$($derive:tt)+] with_wasm { $($variant:ident),* $(,)? }) => {
             #[derive($($derive)*, Serialize)]
             #[serde(tag = "type")]
@@ -121,12 +121,12 @@ mod rooc_macros {
                 pub fn kinds() -> Vec<$name> {
                     vec![$(Self::$variant),*]
                 }
-    
+
                 pub fn kinds_to_string() -> Vec<String> {
                     Self::kinds().iter().map(|k| k.to_string()).collect()
                 }
             }
-    
+
         };
     }
 }

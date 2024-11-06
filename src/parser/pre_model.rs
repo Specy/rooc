@@ -7,14 +7,12 @@ use pest::Parser;
 use serde::Serialize;
 use std::fmt::Debug;
 
-#[allow(unused)]
-use crate::{bail_missing_token, Primitive};
 use crate::math::PreVariableType;
 use crate::parser::il::{PreConstraint, PreObjective};
 use crate::parser::model_transformer::assert_no_duplicates_in_domain;
 use crate::parser::model_transformer::TransformError;
 use crate::parser::model_transformer::{transform_parsed_problem, Model};
-use crate::primitives::{Constant};
+use crate::primitives::Constant;
 #[cfg(target_arch = "wasm32")]
 use crate::runtime_builtin::JsFunction;
 use crate::runtime_builtin::{make_std, RoocFunction};
@@ -23,6 +21,8 @@ use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, TypedToken,
 };
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
+#[allow(unused)]
+use crate::{bail_missing_token, Primitive};
 
 use super::domain_declaration::VariablesDomainDeclaration;
 use super::rules_parser::{

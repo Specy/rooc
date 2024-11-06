@@ -26,7 +26,6 @@ pub(crate) fn float_ge_precision(a: f64, b: f64, _precision: u8) -> bool {
 
 const NEAR_ZERO_PRECISION: u8 = 5;
 
-
 /// Checks if two numbers are the same within 5 decimal digits
 pub fn float_eq(a: f64, b: f64) -> bool {
     float_eq_precision(a, b, NEAR_ZERO_PRECISION)

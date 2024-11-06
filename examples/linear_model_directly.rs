@@ -1,4 +1,6 @@
-use rooc::{solve_real_lp_problem_clarabel, Comparison, LinearModel, OptimizationType, VariableType};
+use rooc::{
+    solve_real_lp_problem_clarabel, Comparison, LinearModel, OptimizationType, VariableType,
+};
 
 fn main() {
     let mut model = LinearModel::new();

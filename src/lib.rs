@@ -5,9 +5,10 @@
 //! ```rust
 //!use indexmap::IndexMap;
 //!use rooc::pipe::{
-//!    BinarySolverPipe, LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData,
+//!    LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData,
 //!    PreModelPipe,
 //!};
+//! use rooc::pipe::Pipes::AutoSolverPipe;
 //!let source = "
 //!max sum((value, i) in enumerate(values)) { value * x_i }
 //!s.t.
@@ -24,7 +25,7 @@
 //!    Box::new(PreModelPipe::new()),
 //!    Box::new(ModelPipe::new()),
 //!    Box::new(LinearModelPipe::new()),
-//!    Box::new(BinarySolverPipe::new()),
+//!    Box::new(AutoSolverPipe::new()),
 //!]);
 //!let result = pipe_runner
 //!    .run(
@@ -80,9 +81,8 @@ pub use utils::*;
 mod prelude {
     #[cfg(target_arch = "wasm32")]
     pub use {
-        crate::parser::pre_model::js_value_to_fns_map,
-        crate::utils::serialize_json_compatible, js_sys::Function, serde_wasm_bindgen,
-        wasm_bindgen::prelude::*, wasm_bindgen::JsValue,
+        crate::parser::pre_model::js_value_to_fns_map, crate::utils::serialize_json_compatible,
+        js_sys::Function, serde_wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen::JsValue,
     };
 }
 

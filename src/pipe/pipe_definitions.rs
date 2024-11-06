@@ -34,7 +34,7 @@ pub enum PipeableData {
     BinarySolution(LpSolution<bool>),
     IntegerBinarySolution(LpSolution<IntOrBoolValue>),
     RealSolution(LpSolution<f64>),
-    MILPSolution(LpSolution<MILPValue>)
+    MILPSolution(LpSolution<MILPValue>),
 }
 
 #[allow(clippy::result_large_err)]
@@ -55,7 +55,7 @@ impl PipeableData {
             PipeableData::BinarySolution(_) => PipeDataType::BinarySolution,
             PipeableData::IntegerBinarySolution(_) => PipeDataType::IntegerBinarySolution,
             PipeableData::RealSolution(_) => PipeDataType::RealSolution,
-            PipeableData::MILPSolution(_) => PipeDataType::MILPSolution
+            PipeableData::MILPSolution(_) => PipeDataType::MILPSolution,
         }
     }
     //TODO make this macros
@@ -171,7 +171,7 @@ pub enum PipeDataType {
     BinarySolution,
     IntegerBinarySolution,
     RealSolution,
-    MILPSolution
+    MILPSolution,
 }
 impl Display for PipeDataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -188,7 +188,7 @@ impl Display for PipeDataType {
             PipeDataType::BinarySolution => "BinarySolution".to_string(),
             PipeDataType::IntegerBinarySolution => "IntegerBinarySolution".to_string(),
             PipeDataType::RealSolution => "RealSolution".to_string(),
-            PipeDataType::MILPSolution => "MILPSolution".to_string()
+            PipeDataType::MILPSolution => "MILPSolution".to_string(),
         };
 
         f.write_str(&s)
