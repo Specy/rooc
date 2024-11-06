@@ -16,22 +16,21 @@ fn main() {
             x + 3y + 4z = 1
      */
     let source = r#"
-    min x_1 + 2x_2 - x_3 
-s.t. 
-    //this is a comment
-    -x_1 + x_2 = 5
-    2x_1 - x_2 - x_3 <= 3
-define 
-    x_1 as Real
-    x_2, x_3 as NonNegativeReal
+    max 0
+    s.t.
+        1 <= x + a + b + c for (a, b, c) in zip(aa,bb,cc)
+    where 
+        let aa = [1,2,3]
+        let bb = [4,5,6,7]
+        let cc = [1,2]
+    define
+        x as Real
     "#
     .to_string();
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
         Box::new(PreModelPipe::new()),
         Box::new(ModelPipe::new()),
-        Box::new(LinearModelPipe::new()),
-        Box::new(RealSolver::new()),
     ]);
 
     let (result) = pipe_runner.run(

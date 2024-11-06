@@ -1,4 +1,4 @@
-const hljskeywords = ["where", "for", "min", "max", "in", "s.t.", "as", "define", "let"]
+const hljskeywords = ["where", "for", "min", "max", "in", "s.t.", "as", "define", "let", "subject", "to"]
 const hljsLiterals = ["true", "false"]
 const hljsOperators = ["+", "-", "/", "*", "!", "&", "|", "<=", ">=", "="]
 export const highlightJsGrammar = {

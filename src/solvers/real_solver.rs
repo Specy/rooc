@@ -26,8 +26,8 @@ use indexmap::IndexMap;
 /// use rooc::{VariableType, Comparison, OptimizationType, solve_real_lp_problem_clarabel, LinearModel};
 ///
 /// let mut model = LinearModel::new();
-/// model.add_variable("x1", VariableType::NonNegativeReal);
-/// model.add_variable("x2", VariableType::Real);
+/// model.add_variable("x1", VariableType::non_negative_real());
+/// model.add_variable("x2", VariableType::real());
 ///
 /// // Add constraint: x1 + x2 <= 5
 /// model.add_constraint(vec![1.0, 1.0], Comparison::LessOrEqual, 5.0);
@@ -40,11 +40,11 @@ use indexmap::IndexMap;
 pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64>, SolverError> {
     let domain = lp.domain();
     let invalid_variables = find_invalid_variables(domain, |var| {
-        matches!(var, VariableType::Real | VariableType::NonNegativeReal)
+        matches!(var, VariableType::Real(_, _) | VariableType::NonNegativeReal(_, _))
     });
     if !invalid_variables.is_empty() {
         return Err(SolverError::InvalidDomain {
-            expected: vec![VariableType::Real, VariableType::NonNegativeReal],
+            expected: vec![VariableType::Real(f64::NEG_INFINITY, f64::INFINITY), VariableType::NonNegativeReal(0.0, f64::INFINITY)],
             got: invalid_variables,
         });
     }
@@ -58,8 +58,8 @@ pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64
     for (name, var) in domain.iter() {
         let def = VariableDefinition::new().name(name);
         let def = match var.get_type() {
-            VariableType::Real => def.min(f32::MIN).max(f32::MAX),
-            VariableType::NonNegativeReal => def.min(0.0).max(f32::MAX),
+            VariableType::Real(min, max) => def.min(*min).max(*max),
+            VariableType::NonNegativeReal(min, max) => def.min(*min).max(*max),
             _ => panic!(),
         };
         let var = variables.add(def);

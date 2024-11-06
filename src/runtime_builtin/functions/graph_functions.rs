@@ -31,11 +31,18 @@ impl RoocFunction for EdgesOfGraphFn {
                 let edges = graph.to_edges();
                 Ok(Primitive::Iterable(IterableKind::Edges(edges)))
             }
-            _ => Err(default_wrong_number_of_arguments(self)),
+            _ => Err(default_wrong_number_of_arguments(
+                self, args, fn_context,
+            )),
         }
     }
 
-    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(
+        &self,
+        _args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
+    )  -> Vec<(String, PrimitiveKind)> {
         vec![("of_graph".to_string(), PrimitiveKind::Graph)]
     }
 
@@ -52,14 +59,6 @@ impl RoocFunction for EdgesOfGraphFn {
         "edges".to_string()
     }
 
-    fn type_check(
-        &self,
-        args: &[PreExp],
-        context: &mut TypeCheckerContext,
-        fn_context: &FunctionContext,
-    ) -> Result<(), TransformError> {
-        default_type_check(args, &self.type_signature(), context, fn_context)
-    }
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -79,11 +78,18 @@ impl RoocFunction for NodesOfGraphFn {
                 let nodes = graph.to_nodes();
                 Ok(Primitive::Iterable(IterableKind::Nodes(nodes)))
             }
-            _ => Err(default_wrong_number_of_arguments(self)),
+            _ => Err(default_wrong_number_of_arguments(
+                self, args, fn_context,
+            )),
         }
     }
 
-    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(
+        &self,
+        _args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
+    )  -> Vec<(String, PrimitiveKind)> {
         vec![("of_graph".to_string(), PrimitiveKind::Graph)]
     }
 
@@ -98,15 +104,6 @@ impl RoocFunction for NodesOfGraphFn {
 
     fn function_name(&self) -> String {
         "nodes".to_string()
-    }
-
-    fn type_check(
-        &self,
-        args: &[PreExp],
-        context: &mut TypeCheckerContext,
-        fn_context: &FunctionContext,
-    ) -> Result<(), TransformError> {
-        default_type_check(args, &self.type_signature(), context, fn_context)
     }
 }
 
@@ -124,11 +121,18 @@ impl RoocFunction for NeighbourOfNodeFn {
                 let node = of_node.as_node(context, fn_context)?;
                 Ok(Primitive::Iterable(IterableKind::Edges(node.to_edges())))
             }
-            _ => Err(default_wrong_number_of_arguments(self)),
+            _ => Err(default_wrong_number_of_arguments(
+                self, args, fn_context,
+            )),
         }
     }
 
-    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(
+        &self,
+        _args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
+    ) -> Vec<(String, PrimitiveKind)> {
         vec![("of_node".to_string(), PrimitiveKind::GraphNode)]
     }
 
@@ -151,7 +155,12 @@ impl RoocFunction for NeighbourOfNodeFn {
         context: &mut TypeCheckerContext,
         fn_context: &FunctionContext,
     ) -> Result<(), TransformError> {
-        default_type_check(args, &self.type_signature(), context, fn_context)
+        default_type_check(
+            args,
+            &self.type_signature(args, context, fn_context),
+            context,
+            fn_context,
+        )
     }
 }
 
@@ -171,11 +180,18 @@ impl RoocFunction for NeighboursOfNodeInGraphFn {
                 let neighbours = graph.into_neighbours_of(&node)?;
                 Ok(Primitive::Iterable(IterableKind::Edges(neighbours)))
             }
-            _ => Err(default_wrong_number_of_arguments(self)),
+            _ => Err(default_wrong_number_of_arguments(
+                self, args, fn_context,
+            )),
         }
     }
 
-    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(
+        &self,
+        _args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
+    )  -> Vec<(String, PrimitiveKind)> {
         vec![
             ("of_node_name".to_string(), PrimitiveKind::String),
             ("in_graph".to_string(), PrimitiveKind::Graph),

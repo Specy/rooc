@@ -7,6 +7,8 @@ use crate::runtime_builtin::functions::{EnumerateArray, LenOfIterableFn};
 use crate::runtime_builtin::functions::{FunctionCall, RoocFunction};
 use crate::traits::ToLatex;
 use indexmap::IndexMap;
+use crate::{Constant, Primitive};
+use crate::functions::ZipArrays;
 
 pub fn make_std() -> IndexMap<String, Box<dyn RoocFunction>> {
     let mut m: IndexMap<String, Box<dyn RoocFunction>> = IndexMap::new();
@@ -20,8 +22,18 @@ pub fn make_std() -> IndexMap<String, Box<dyn RoocFunction>> {
     );
     m.insert("enumerate".to_string(), Box::new(EnumerateArray {}));
     m.insert("range".to_string(), Box::new(NumericRange {}));
-
+    m.insert("zip".to_string(), Box::new(ZipArrays {}));
     m
+}
+
+
+
+pub fn make_std_constants() -> Vec<Constant> {
+    vec![
+        Constant::from_primitive("Infinity", Primitive::Number(f64::INFINITY)),
+        Constant::from_primitive("MinusInfinity", Primitive::Number(f64::NEG_INFINITY)),
+        Constant::from_primitive("PI", Primitive::Number(std::f64::consts::PI)),
+    ]
 }
 
 pub fn std_fn_to_latex(fun: &FunctionCall) -> Option<String> {

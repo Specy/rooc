@@ -21,21 +21,6 @@ mod rooc_macros {
     }
 
     #[macro_export]
-    macro_rules! bail_incorrect_type_signature_of_fn {
-        ($self:expr, $context:expr) => {
-            bail_incorrect_type_signature!(
-                $self.get_type_signature(),
-                $self
-                    .get_parameters()
-                    .iter()
-                    .map(|a| a.get_type($context))
-                    .collect::<Vec<_>>(),
-                $self.get_span()
-            )
-        };
-    }
-
-    #[macro_export]
     macro_rules! bail_wrong_argument {
         ($expected_type: expr, $current_arg:expr) => {
             Err(wrong_argument!($expected_type, $current_arg))

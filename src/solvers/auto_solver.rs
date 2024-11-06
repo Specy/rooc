@@ -21,8 +21,8 @@ use crate::{
 /// use rooc::{VariableType, Comparison, OptimizationType, auto_solver, LinearModel};
 ///
 /// let mut model = LinearModel::new();
-/// model.add_variable("x", VariableType::NonNegativeReal);
-/// model.add_variable("y", VariableType::NonNegativeReal);
+/// model.add_variable("x", VariableType::non_negative_real());
+/// model.add_variable("y", VariableType::non_negative_real());
 /// model.add_variable("z", VariableType::IntegerRange(0, 10));
 ///
 /// // Machine time constraint: 3x + 2y + z <= 20
@@ -53,7 +53,7 @@ pub fn auto_solver(lp: &LinearModel) -> Result<LpSolution<MILPValue>, SolverErro
     let has_real = domain.values().any(|v| {
         matches!(
             v.get_type(),
-            VariableType::NonNegativeReal | VariableType::Real
+            VariableType::NonNegativeReal(_, _) | VariableType::Real(_, _)
         )
     });
     match (has_binary, has_integer, has_real) {

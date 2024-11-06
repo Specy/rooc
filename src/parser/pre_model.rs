@@ -15,7 +15,7 @@ use crate::parser::model_transformer::{transform_parsed_problem, Model};
 use crate::primitives::Constant;
 #[cfg(target_arch = "wasm32")]
 use crate::runtime_builtin::JsFunction;
-use crate::runtime_builtin::{make_std, RoocFunction};
+use crate::runtime_builtin::{make_std, make_std_constants, RoocFunction};
 use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, TypedToken,
@@ -153,6 +153,9 @@ impl PreModel {
                 .collect::<Vec<_>>(),
         )?;
         context.set_static_domain(domain);
+        for constant in make_std_constants() {
+            constant.type_check(&mut context, &fn_context)?
+        }
         for constant in constants {
             constant.type_check(&mut context, &fn_context)?
         }
@@ -174,6 +177,9 @@ impl PreModel {
         let std = make_std();
         let fn_context = FunctionContext::new(fns, &std);
         context.set_static_domain(domain);
+        for constant in make_std_constants() {
+            constant.populate_token_type_map(&mut context, &fn_context);
+        }
         for constant in constants {
             constant.populate_token_type_map(&mut context, &fn_context);
         }

@@ -4,8 +4,8 @@ use rooc::{
 
 fn main() {
     let mut model = LinearModel::new();
-    model.add_variable("x1", VariableType::NonNegativeReal);
-    model.add_variable("x2", VariableType::Real);
+    model.add_variable("x1", VariableType::non_negative_real());
+    model.add_variable("x2", VariableType::real());
 
     // Add constraint: x1 + x2 <= 5
     model.add_constraint(vec![1.0, 1.0], Comparison::LessOrEqual, 5.0);

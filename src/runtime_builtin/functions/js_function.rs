@@ -128,7 +128,13 @@ impl RoocFunction for JsFunction {
         Ok(primitive)
     }
 
-    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    //TODO implement runtime function 
+    fn type_signature(
+        &self,
+        _args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
+    ) -> Vec<(String, PrimitiveKind)> {
         self.arg_types.clone()
     }
 

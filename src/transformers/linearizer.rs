@@ -84,7 +84,7 @@ impl Exp {
                     );
                     linearizer_context.add_constraint(constraint)
                 }
-                linearizer_context.declare_variable(var_name.clone(), VariableType::Real)?;
+                linearizer_context.declare_variable(var_name.clone(), VariableType::Real(f64::NEG_INFINITY, f64::INFINITY))?;
                 Ok(LinearizationContext::from_var(var_name, 1.0))
             }
             Exp::Max(exps) => {
@@ -98,7 +98,7 @@ impl Exp {
                     );
                     linearizer_context.add_constraint(constraint)
                 }
-                linearizer_context.declare_variable(var_name.clone(), VariableType::Real)?;
+                linearizer_context.declare_variable(var_name.clone(), VariableType::Real(f64::NEG_INFINITY, f64::INFINITY))?;
                 Ok(LinearizationContext::from_var(var_name, 1.0))
             }
             Exp::Abs(_) => Err(LinearizationError::UnimplementedExpression(Box::new(
@@ -272,7 +272,6 @@ impl Linearizer {
     /// * `Err(LinearizationError)` - If linearization fails
     pub fn linearize(model: Model) -> Result<LinearModel, LinearizationError> {
         let (objective, constraints, domain) = model.into_components();
-
         let mut context = Linearizer::new_from(constraints, domain);
         let mut linear_constraints: Vec<MidLinearConstraint> = Vec::new();
         let objective_type = objective.objective_type.clone();
@@ -286,6 +285,7 @@ impl Linearizer {
             let res = exp.linearize(&mut context)?;
             linear_constraints.push(MidLinearConstraint::new_from_linearized_context(res, op));
         }
+        
         let mut vars = context.used_variables();
         vars.sort();
         let domain = context

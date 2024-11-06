@@ -112,8 +112,8 @@ impl LinearConstraint {
 /// let mut model = LinearModel::new();
 ///
 /// // Add variables
-/// model.add_variable("x", VariableType::NonNegativeReal);
-/// model.add_variable("y", VariableType::NonNegativeReal);
+/// model.add_variable("x", VariableType::non_negative_real());
+/// model.add_variable("y", VariableType::non_negative_real());
 ///
 /// // Set objective function: minimize x + 2y
 /// model.set_objective(vec![1.0, 2.0], OptimizationType::Min);

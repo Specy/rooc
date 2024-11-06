@@ -42,8 +42,8 @@ impl Display for MILPValue {
 /// use rooc::{VariableType, Comparison, OptimizationType, solve_milp_lp_problem, LinearModel};
 ///
 /// let mut model = LinearModel::new();
-/// model.add_variable("x", VariableType::NonNegativeReal);
-/// model.add_variable("y", VariableType::NonNegativeReal);
+/// model.add_variable("x", VariableType::non_negative_real());
+/// model.add_variable("y", VariableType::non_negative_real());
 /// model.add_variable("z", VariableType::IntegerRange(0, 10));
 ///
 /// // Machine time constraint: 3x + 2y + z <= 20
@@ -78,10 +78,10 @@ pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, 
         let var_domain = domain.get(var).unwrap();
         let coeff = objective[i];
         let added_var = match var_domain.get_type() {
-            VariableType::Real => problem.add_var(coeff, (f64::NEG_INFINITY, f64::INFINITY)),
+            VariableType::Real(min, max) => problem.add_var(coeff, (*min, *max)),
             VariableType::Boolean => problem.add_binary_var(coeff),
             VariableType::IntegerRange(min, max) => problem.add_integer_var(coeff, (*min, *max)),
-            VariableType::NonNegativeReal => problem.add_var(coeff, (0.0, f64::INFINITY)),
+            VariableType::NonNegativeReal(min, max) => problem.add_var(coeff, (*min, *max)),
         };
         microlp_vars.push(added_var);
     }
@@ -121,7 +121,7 @@ pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, 
                     let value = s.var_value_rounded(*v);
                     let var_domain = domain.get(name).unwrap();
                     let value = match var_domain.get_type() {
-                        VariableType::Real | VariableType::NonNegativeReal => {
+                        VariableType::Real(_, _) | VariableType::NonNegativeReal(_, _) => {
                             MILPValue::Real(value)
                         }
                         VariableType::IntegerRange(_, _) => MILPValue::Int(value as i32),

@@ -21,8 +21,8 @@ use microlp::{OptimizationDirection, Problem};
 /// use rooc::{VariableType, Comparison, OptimizationType, solve_real_lp_problem_slow_simplex, LinearModel};
 ///
 /// let mut model = LinearModel::new();
-/// model.add_variable("x1", VariableType::NonNegativeReal);
-/// model.add_variable("x2", VariableType::NonNegativeReal);
+/// model.add_variable("x1", VariableType::non_negative_real());
+/// model.add_variable("x2", VariableType::non_negative_real());
 ///
 /// // Add constraint: x1 + x2 <= 5
 /// model.add_constraint(vec![1.0, 1.0], Comparison::LessOrEqual, 5.0);
@@ -70,8 +70,8 @@ pub fn solve_real_lp_problem_slow_simplex(
 /// use rooc::{VariableType, Comparison, OptimizationType, solve_real_lp_problem_micro_lp, LinearModel};
 ///
 /// let mut model = LinearModel::new();
-/// model.add_variable("x1", VariableType::NonNegativeReal);
-/// model.add_variable("x2", VariableType::Real);
+/// model.add_variable("x1", VariableType::non_negative_real());
+/// model.add_variable("x2", VariableType::real());
 ///
 /// // Add constraint: x1 + x2 <= 5
 /// model.add_constraint(vec![1.0, 1.0], Comparison::LessOrEqual, 5.0);
@@ -84,11 +84,14 @@ pub fn solve_real_lp_problem_slow_simplex(
 pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64>, SolverError> {
     let domain = lp.domain();
     let invalid_variables = find_invalid_variables(domain, |var| {
-        matches!(var, VariableType::Real | VariableType::NonNegativeReal)
+        matches!(var, VariableType::Real(_, _) | VariableType::NonNegativeReal(_, _))
     });
     if !invalid_variables.is_empty() {
         return Err(SolverError::InvalidDomain {
-            expected: vec![VariableType::Real, VariableType::NonNegativeReal],
+            expected: vec![
+                VariableType::Real(f64::NEG_INFINITY, f64::INFINITY),
+                VariableType::NonNegativeReal(0.0, f64::INFINITY),
+            ],
             got: invalid_variables,
         });
     }
@@ -117,11 +120,14 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
             )));
         };
         let var = match domain.get_type() {
-            VariableType::NonNegativeReal => problem.add_var(obj[i], (0.0, f64::INFINITY)),
-            VariableType::Real => problem.add_var(obj[i], (f64::NEG_INFINITY, f64::INFINITY)),
+            VariableType::NonNegativeReal(min, max) => problem.add_var(obj[i], (*min, *max)),
+            VariableType::Real(min, max) => problem.add_var(obj[i], (*min, *max)),
             _ => {
                 return Err(SolverError::InvalidDomain {
-                    expected: vec![VariableType::Real, VariableType::NonNegativeReal],
+                    expected: vec![
+                        VariableType::Real(f64::NEG_INFINITY, f64::INFINITY),
+                        VariableType::NonNegativeReal(0.0, f64::INFINITY),
+                    ],
                     got: vec![(name.clone(), domain.clone())],
                 })
             }

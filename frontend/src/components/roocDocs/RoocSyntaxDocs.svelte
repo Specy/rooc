@@ -209,7 +209,10 @@ define
         the
         constraints to define compound variables.
         <br/>
-        The domains are "Real", "NonNegativeReal", "Boolean" and "IntegerRange(min, max)"
+        The domains are "Real", "NonNegativeReal", "Boolean" and "IntegerRange".
+        <br/>
+        You can define a minimum and maximum value for each domain except for the "Boolean" domain.
+        They are required for the "IntegerRange" domain, and optional for Real (which defaults to -inf and inf) and NonNegativeReal (which defaults to 0 and inf).
     </p>
 
     <Card padding="0.8rem 1rem">

@@ -59,7 +59,12 @@ impl RoocFunction for Doubler {
         }
     }
 
-    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(
+        &self,
+        _args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
+    ) -> Vec<(String, PrimitiveKind)> {
         vec![(
             "of_array".to_string(),
             PrimitiveKind::Iterable(Box::new(PrimitiveKind::Integer)),

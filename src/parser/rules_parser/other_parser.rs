@@ -179,26 +179,27 @@ pub fn parse_as_assertion_type(pair: &Pair<Rule>) -> Result<PreVariableType, Com
         return err_unexpected_token!("Expected type assertion but got: {}", pair);
     }
     let as_type = as_type.unwrap();
-    if as_type.as_str() == "IntegerRange" {
-        if as_data.is_none() {
-            return err_unexpected_token!("Expected values for IntegerRange but got: {}", pair);
-        }
-        let as_data = as_data.unwrap();
+    let str = as_type.as_str();
+    if let Some(as_data) = as_data {
         let mut values = as_data.clone().into_inner();
-        let min = values.next();
-        let max = values.next();
-        if min.is_none() || max.is_none() {
-            return err_unexpected_token!(
-                "Expected min and max for IntegerRange but got: {}",
-                pair
-            );
+        let min = values.next().map(|v| parse_exp(v)).transpose()?;
+        let max = values.next().map(|v| parse_exp(v)).transpose()?;
+
+        match str {
+            "IntegerRange" => {
+                if min.is_none() || max.is_none() {
+                    return err_unexpected_token!("IntegerRange must have min and max values: {}", pair);
+                }
+                return Ok(PreVariableType::IntegerRange(min.unwrap(), max.unwrap()))
+            }
+            "NonNegativeReal" => return Ok(PreVariableType::NonNegativeReal(min, max)),
+            "Real" => return Ok(PreVariableType::Real(min, max)),
+            _ => return err_unexpected_token!("Unknown variable type \"{}\", expected one of \"{}\"", pair, PreVariableType::kinds_to_string().join(", ")),
         }
-        let min = parse_exp(min.unwrap());
-        let max = parse_exp(max.unwrap());
-        if min.is_err() || max.is_err() {
-            return err_unexpected_token!("Expected integer for IntegerRange but got: {}", pair);
-        }
-        return Ok(PreVariableType::IntegerRange(min.unwrap(), max.unwrap()));
+
+    }
+    if str == "IntegerRange" {
+       return  err_unexpected_token!("IntegerRange must have min and max: {}", pair);
     }
     match as_type.as_str().parse() {
         Ok(kind) => Ok(kind),

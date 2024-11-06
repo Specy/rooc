@@ -503,35 +503,58 @@ pub mod solver_tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn should_solve_diet() {
         let source = r#"
-    min sum((cost, i) in enumerate(C)) { cost * x_i }
-    s.t.
-        sum(i in 0..F) { a[i][j] * x_i } >= Nmin[j] for j in 0..len(Nmin)
-        sum(i in 0..F) { a[i][j] * x_i } <= Nmax[j] for j in 0..len(Nmax)
-        x_i <= Fmax[i] for i in 0..N
-        x_i >= Fmin[i] for i in 0..N
-        where
-        let C = [1.5, 0.5, 2.0]
-        let Nmin = [50, 200, 0]
-        let Nmax = [150, 300, 70]
-        let Fmin = [1, 1, 1]
-        let Fmax = [5, 5, 5]
-        let a = [
-            [30, 0, 5], // Chicken
-            [2, 45, 0], // Rice
-            [2, 15, 20] // Avocado
-        ]
-        let F = len(a)
-        let N = len(Nmax)
-    define
-        x_i as NonNegativeReal for i in 0..N
+//This is a simple diet problem
+//minimize the cost of the diet
+min sum((cost, i) in enumerate(C)) { cost * x_i }
+s.t.  
+    //the diet must have at least of nutrient j
+    sum(i in 0..F) { a[i][j] * x_i} >= Nmin[j] for j in 0..len(Nmin)
+    //the diet must have at most of nutrient j
+    sum(i in 0..F) { a[i][j] * x_i } <= Nmax[j] for j in 0..len(Nmax)
+where    
+    // Cost of chicken, rice, avocado
+    let C = [1.5, 0.5, 2.0]
+    // Min and max of: protein, carbs, fats
+    let Nmin = [50, 200, 0] 
+    let Nmax = [150, 300, 70]
+    // Min and max servings of each food    
+    let Fmin = [1, 1, 1] 
+    let Fmax = [5, 5, 5]
+    let a = [
+        //protein, carbs, fats        
+        [30, 0, 5], // Chicken
+        [2, 45, 0], // Rice
+        [2, 15, 20] // Avocado    
+    ]
+    // Number of foods
+    let F = len(a)
+    // Number of nutrients
+    let N = len(Nmax)
+define
+    //bound the amount of each serving of food i
+    x_i as NonNegativeReal(Fmin[i], Fmax[i]) for i in 0..N  
+
     "#;
         let solution = solve(source).unwrap();
         assert_correct_solution(
             solution,
             6.04444,
             vec![vec![
-                1.32592, 4.11111, 1.0, 0.0, 0.0, 26.62962, 100.0, 100.0, 43.37037, 3.67407,
-                0.88888, 4.0, 0.32592, 3.11111, 0.0,
+                1.3259259259259264,
+                4.111111111111111,
+                0.9999999999999998,
+                0.0,
+                0.0,
+                26.62962962962963,
+                100.0,
+                100.0,
+                43.37037037037037,
+                0.32592592592592595,
+                3.6740740740740745,
+                3.111111111111111,
+                0.8888888888888888,
+                0.0,
+                4.0,
             ]],
         );
     }
@@ -709,4 +732,5 @@ define
             false,
         )
     }
+
 }

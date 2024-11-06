@@ -28,8 +28,8 @@ use crate::utils::{remove_many, InputSpan};
 /// let mut model = LinearModel::new();
 ///
 /// // Add variables
-/// model.add_variable("x", VariableType::NonNegativeReal);
-/// model.add_variable("y", VariableType::NonNegativeReal);
+/// model.add_variable("x", VariableType::NonNegativeReal(0.0, f64::INFINITY));
+/// model.add_variable("y", VariableType::non_negative_real());
 ///
 /// // Set objective function: minimize x + 2y
 /// model.set_objective(vec![1.0, 2.0], OptimizationType::Min);
@@ -55,22 +55,79 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
         total_variables: variables.len(),
     };
     let invalid_variables = find_invalid_variables(&domain, |var| {
-        matches!(var, VariableType::Real | VariableType::NonNegativeReal)
+        matches!(
+            var,
+            VariableType::Real(_, _) | VariableType::NonNegativeReal(_, _)
+        )
     });
     if !invalid_variables.is_empty() {
         return Err(SolverError::InvalidDomain {
-            expected: vec![VariableType::Real, VariableType::NonNegativeReal],
+            expected: vec![
+                VariableType::Real(f64::NEG_INFINITY, f64::INFINITY),
+                VariableType::NonNegativeReal(0.0, f64::INFINITY),
+            ],
             got: invalid_variables,
         });
     }
+    //add constraints for variables that have bounds
+    for (i, variable) in variables.iter().enumerate() {
+        let domain_type = domain.get(variable).unwrap().get_type();
 
+        match domain_type {
+            VariableType::Real(min, max) => match (*min, *max) {
+                (f64::NEG_INFINITY, f64::INFINITY) => continue,
+                (min, max) if min != f64::NEG_INFINITY || max != f64::INFINITY => {
+                    let mut coeffs = vec![0.0; variables.len()];
+                    coeffs[i] = 1.0;
+                    if min != f64::NEG_INFINITY {
+                        constraints.push(LinearConstraint::new(
+                            coeffs.clone(),
+                            Comparison::GreaterOrEqual,
+                            min,
+                        ));
+                    }
+                    if max != f64::INFINITY {
+                        constraints.push(LinearConstraint::new(
+                            coeffs,
+                            Comparison::LessOrEqual,
+                            max,
+                        ));
+                    }
+                }
+                _ => (),
+            },
+            VariableType::NonNegativeReal(min, max) => match (*min, *max) {
+                (0.0, f64::INFINITY) => continue,
+                (min, max) if min != 0.0 || max != f64::INFINITY => {
+                    let mut coeffs = vec![0.0; variables.len()];
+                    coeffs[i] = 1.0;
+                    if min != 0.0 {
+                        constraints.push(LinearConstraint::new(
+                            coeffs.clone(),
+                            Comparison::GreaterOrEqual,
+                            min,
+                        ));
+                    }
+                    if max != f64::INFINITY {
+                        constraints.push(LinearConstraint::new(
+                            coeffs,
+                            Comparison::LessOrEqual,
+                            max,
+                        ));
+                    }
+                }
+                _ => ()
+            },
+            _ => (),
+        }
+    }
     //we now need to replace all free variables with positive variables
     let free_variables = variables
         .iter()
         .enumerate()
         .filter_map(|(i, v)| {
             let domain_variable = domain.get(v).unwrap();
-            if *domain_variable.get_type() == VariableType::Real {
+            if matches!(domain_variable.get_type(), VariableType::Real(_, _)) {
                 Some(i)
             } else {
                 None
@@ -86,11 +143,17 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
         variables.push(var_name2.clone());
         domain.insert(
             var_name1.clone(),
-            DomainVariable::new(VariableType::NonNegativeReal, InputSpan::default()),
+            DomainVariable::new(
+                VariableType::NonNegativeReal(0.0, f64::INFINITY),
+                InputSpan::default(),
+            ),
         );
         domain.insert(
             var_name2.clone(),
-            DomainVariable::new(VariableType::NonNegativeReal, InputSpan::default()),
+            DomainVariable::new(
+                VariableType::NonNegativeReal(0.0, f64::INFINITY),
+                InputSpan::default(),
+            ),
         );
         context.total_variables += 1; //we add two variables, but one is removed, so only one is added
         constraints.iter_mut().for_each(|c| {
@@ -132,7 +195,10 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
                 variables.push(variable.clone());
                 domain.insert(
                     variable,
-                    DomainVariable::new(VariableType::NonNegativeReal, InputSpan::default()),
+                    DomainVariable::new(
+                        VariableType::NonNegativeReal(0.0, f64::INFINITY),
+                        InputSpan::default(),
+                    ),
                 );
                 context.total_variables += 1;
             };

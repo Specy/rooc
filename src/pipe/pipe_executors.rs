@@ -131,7 +131,8 @@ impl LinearModelPipe {
 impl Pipeable for LinearModelPipe {
     fn pipe(&self, data: &mut PipeableData, _: &PipeContext) -> Result<PipeableData, PipeError> {
         let model = data.as_model()?;
-        let linearizer = Linearizer::linearize(model.clone());
+        let model = model.clone();
+        let linearizer = Linearizer::linearize(model);
         match linearizer {
             Ok(linear) => Ok(PipeableData::LinearModel(linear)),
             Err(e) => Err(PipeError::LinearizationError(e)),

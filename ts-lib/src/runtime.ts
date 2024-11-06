@@ -143,6 +143,15 @@ export const FN_neigh_edges_of = makeRuntimeFunction("neigh_edges_of", [
     {type: "Iterable", value: {type: "GraphEdge"}},
     "Returns the neighbour edges of a node name in a graph"
 )
+
+export const FN_zip = makeRuntimeFunction("zip", [
+        {name: "arg1", value: {type: "Iterable", value: {type: "Any"}}},
+        {name: "arg2", value: {type: "Iterable", value: {type: "Any"}}},
+    ],
+    {type: "Iterable", value: {type: "Tuple", value: [{type: "Any"}, {type: "Any"}]}},
+    "Zips two or more iterables together, returning a tuple of the elements, the length of the resulting iterable is the length of the shortest iterable"
+)
+
 export const FN_rangeArray = makeRuntimeFunction("range", [
         {
             name: "from",
@@ -181,6 +190,7 @@ export const ROOC_RUNTIME_FUNCTIONS = new Map<string, RuntimeFunction<NamedParam
     [FN_neigh_edges.name, FN_neigh_edges],
     [FN_neigh_edges_of.name, FN_neigh_edges_of],
     [FN_rangeArray.name, FN_rangeArray],
+    [FN_zip.name, FN_zip],
 ])
 
 export type RuntimeBlockScopedFunction = {

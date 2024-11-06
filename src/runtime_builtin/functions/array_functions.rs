@@ -30,11 +30,16 @@ impl RoocFunction for EnumerateArray {
                 }
                 Ok(Primitive::Iterable(IterableKind::Tuples(result)))
             }
-            _ => Err(default_wrong_number_of_arguments(self)),
+            _ => Err(default_wrong_number_of_arguments(self, args, fn_context)),
         }
     }
 
-    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(
+        &self,
+        _args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
+    ) -> Vec<(String, PrimitiveKind)> {
         vec![(
             "of_iterable".to_string(),
             PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
@@ -103,11 +108,16 @@ impl RoocFunction for LenOfIterableFn {
                 let value = of_iterable.as_iterator(context, fn_context)?;
                 Ok(Primitive::PositiveInteger(value.len() as u64))
             }
-            _ => Err(default_wrong_number_of_arguments(self)),
+            _ => Err(default_wrong_number_of_arguments(self, args, fn_context)),
         }
     }
 
-    fn type_signature(&self) -> Vec<(String, PrimitiveKind)> {
+    fn type_signature(
+        &self,
+        _args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
+    ) -> Vec<(String, PrimitiveKind)> {
         vec![(
             "of_iterable".to_string(),
             PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
@@ -147,5 +157,110 @@ impl RoocFunction for LenOfIterableFn {
             }
             _ => Err(default_wrong_type(args, self, context, fn_context)),
         }
+    }
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ZipArrays {}
+
+impl RoocFunction for ZipArrays {
+    fn call(
+        &self,
+        args: &[PreExp],
+        context: &TransformerContext,
+        fn_context: &FunctionContext,
+    ) -> Result<Primitive, TransformError> {
+        match args {
+            [] => Ok(Primitive::Iterable(IterableKind::Anys(vec![]))),
+            iterables => {
+                let iterables = iterables
+                    .iter()
+                    .map(|arg| arg.as_iterator(context, fn_context))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let len = iterables.len();
+                if len == 0 {
+                    return Ok(Primitive::Iterable(IterableKind::Anys(vec![])));
+                }
+                let primitives = iterables
+                    .into_iter()
+                    .map(|iter| iter.to_primitives())
+                    .collect::<Vec<_>>();
+                let shortest = primitives.iter().map(|p| p.len()).min().unwrap();
+                let mut result = Vec::new();
+                for i in 0..shortest {
+                    result.push(Tuple::new(
+                        primitives.iter().map(|p| p[i].clone()).collect::<Vec<_>>(),
+                    ));
+                }
+                Ok(Primitive::Iterable(IterableKind::Tuples(result)))
+            }
+        }
+    }
+
+    fn type_signature(
+        &self,
+        args: &[PreExp],
+        _context: &TypeCheckerContext,
+        _fn_context: &FunctionContext,
+    ) -> Vec<(String, PrimitiveKind)> {
+        let pars = args.len();
+        (0..pars)
+            .map(|i| {
+                (
+                    "arg".to_string() + &i.to_string(),
+                    PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
+                )
+            })
+            .collect()
+    }
+
+    fn return_type(
+        &self,
+        args: &[PreExp],
+        context: &TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> PrimitiveKind {
+        let tuple_types = args
+            .iter()
+            .map(|arg| arg.get_type(context, fn_context))
+            .collect::<Vec<_>>();
+        let all_iterable = tuple_types
+            .iter()
+            .all(|t| matches!(t, PrimitiveKind::Iterable(_)));
+        if !all_iterable {
+            PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any))
+        } else {
+            let inner_types = tuple_types
+                .iter()
+                .map(|t| match t {
+                    PrimitiveKind::Iterable(inner) => *inner.clone(),
+                    _ => unreachable!(),
+                })
+                .collect::<Vec<_>>();
+            PrimitiveKind::Iterable(Box::new(PrimitiveKind::Tuple(inner_types)))
+        }
+    }
+
+    fn function_name(&self) -> String {
+        "zip".to_string()
+    }
+
+    fn type_check(
+        &self,
+        args: &[PreExp],
+        context: &mut TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> Result<(), TransformError> {
+        for arg in args {
+            let arg_type = arg.get_type(context, fn_context);
+            if !matches!(arg_type, PrimitiveKind::Iterable(_)) {
+                return Err(TransformError::from_wrong_type(
+                    PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)),
+                    arg_type,
+                    arg.span().clone(),
+                ));
+            }
+        }
+        Ok(())
     }
 }

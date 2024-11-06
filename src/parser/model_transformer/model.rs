@@ -13,7 +13,7 @@ use crate::parser::model_transformer::transformer_context::{DomainVariable, Tran
 use crate::parser::pre_model::PreModel;
 use crate::parser::recursive_set_resolver::recursive_set_resolver;
 use crate::primitives::Constant;
-use crate::runtime_builtin::{make_std, RoocFunction};
+use crate::runtime_builtin::{make_std, make_std_constants, RoocFunction};
 use crate::traits::{escape_latex, ToLatex};
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{primitives::Primitive, utils::Spanned};
@@ -163,8 +163,7 @@ impl Exp {
                                 *op,
                                 Exp::Number(lhs).to_box(),
                                 Exp::BinOp(op2, inner_lhs.to_box(), inner_rhs.to_box()).to_box(),
-                            )
-                            .simplify();
+                            );
                         }
                         if let Exp::Number(rhs) = inner_lhs {
                             let val = match op {
@@ -721,16 +720,15 @@ pub fn transform_model(
 /// The transformed model or a transform error
 pub fn transform_parsed_problem(
     pre_problem: PreModel,
-    mut constants: Vec<Constant>,
+    constants: Vec<Constant>,
     fns: &IndexMap<String, Box<dyn RoocFunction>>,
 ) -> Result<Model, TransformError> {
     let std = make_std();
     let fn_context = FunctionContext::new(fns, &std);
-    constants.extend(pre_problem.constants().clone());
-    let context = TransformerContext::new_from_constants(
-        constants,
-        pre_problem.domains().clone(),
-        &fn_context,
-    )?;
+    let mut c = make_std_constants();
+    c.extend(constants);
+    c.extend(pre_problem.constants().clone());
+    let context =
+        TransformerContext::new_from_constants(c, pre_problem.domains().clone(), &fn_context)?;
     transform_model(pre_problem, context, &fn_context)
 }

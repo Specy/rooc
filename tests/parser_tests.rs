@@ -425,7 +425,7 @@ define
         let input = "
         min 1
         s.t.
-            x <= 2
+            x <= PI
         define
             x_u as Real for u in 0..10
             x_v as Boolean for v in 0..10
@@ -441,7 +441,7 @@ define
         let input = r"
         min 1
         s.t.
-            x <= 2
+            x <= PI / 2
         define
             a as Real
             b as Boolean

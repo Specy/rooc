@@ -110,7 +110,7 @@ pub fn default_wrong_type(
     context: &TypeCheckerContext,
     fn_context: &FunctionContext,
 ) -> TransformError {
-    let type_signature = fun.type_signature();
+    let type_signature = fun.type_signature(args, context, fn_context);
     let args = args.to_owned();
     TransformError::WrongFunctionSignature {
         signature: type_signature,
@@ -125,9 +125,16 @@ pub fn default_wrong_type(
 ///
 /// # Arguments
 /// * `fun` - The function being called
-pub fn default_wrong_number_of_arguments(fun: &dyn RoocFunction) -> TransformError {
+/// * `args` - The arguments passed
+/// * `context` - Type checker context
+/// * `fn_context` - Function context
+pub fn default_wrong_number_of_arguments(
+    fun: &dyn RoocFunction,
+    args: &[PreExp],
+    fn_context: &FunctionContext,
+) -> TransformError {
     TransformError::WrongNumberOfArguments {
-        signature: fun.type_signature(),
+        signature: fun.type_signature(args, &TypeCheckerContext::default(), fn_context),
         args: vec![],
     }
 }
@@ -237,7 +244,12 @@ pub trait RoocFunction: Debug {
     ) -> Result<Primitive, TransformError>;
 
     /// Returns the type signature of the function.
-    fn type_signature(&self) -> Vec<(String, PrimitiveKind)>;
+    fn type_signature(
+        &self,
+        args: &[PreExp],
+        context: &TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> Vec<(String, PrimitiveKind)>;
 
     /// Determines the return type of the function given its arguments.
     ///
@@ -267,6 +279,6 @@ pub trait RoocFunction: Debug {
         context: &mut TypeCheckerContext,
         fn_context: &FunctionContext,
     ) -> Result<(), TransformError> {
-        default_type_check(args, &self.type_signature(), context, fn_context)
+        default_type_check(args, &self.type_signature(args, context, fn_context), context, fn_context)
     }
 }
