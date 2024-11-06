@@ -8,7 +8,7 @@ use crate::parser::model_transformer::TransformError;
 use crate::parser::pre_model::PreModel;
 use crate::primitives::Constant;
 use crate::runtime_builtin::RoocFunction;
-use crate::solvers::VarValue;
+use crate::solvers::IntOrBoolValue;
 use crate::solvers::{
     CanonicalTransformError, OptimalTableau, OptimalTableauWithSteps, SimplexError, Tableau,
 };
@@ -17,7 +17,7 @@ use crate::transformers::LinearModel;
 use crate::transformers::LinearizationError;
 use crate::transformers::StandardLinearModel;
 use crate::utils::CompilationError;
-use crate::{match_pipe_data_to, RoocParser};
+use crate::{match_pipe_data_to, MILPValue, RoocParser};
 
 /// The data that can be passed between pipes
 #[derive(Debug, Clone)]
@@ -32,8 +32,9 @@ pub enum PipeableData {
     OptimalTableau(OptimalTableau),
     OptimalTableauWithSteps(OptimalTableauWithSteps),
     BinarySolution(LpSolution<bool>),
-    IntegerBinarySolution(LpSolution<VarValue>),
+    IntegerBinarySolution(LpSolution<IntOrBoolValue>),
     RealSolution(LpSolution<f64>),
+    MILPSolution(LpSolution<MILPValue>)
 }
 
 #[allow(clippy::result_large_err)]
@@ -54,6 +55,7 @@ impl PipeableData {
             PipeableData::BinarySolution(_) => PipeDataType::BinarySolution,
             PipeableData::IntegerBinarySolution(_) => PipeDataType::IntegerBinarySolution,
             PipeableData::RealSolution(_) => PipeDataType::RealSolution,
+            PipeableData::MILPSolution(_) => PipeDataType::MILPSolution
         }
     }
     //TODO make this macros
@@ -90,8 +92,11 @@ impl PipeableData {
     pub fn to_real_solution(self) -> Result<LpSolution<f64>, PipeError> {
         match_pipe_data_to!(self, RealSolution, RealSolution)
     }
+    pub fn to_milp_solution(self) -> Result<LpSolution<MILPValue>, PipeError> {
+        match_pipe_data_to!(self, MILPSolution, MILPSolution)
+    }
 
-    pub fn to_integer_binary_solution(self) -> Result<LpSolution<VarValue>, PipeError> {
+    pub fn to_integer_binary_solution(self) -> Result<LpSolution<IntOrBoolValue>, PipeError> {
         match_pipe_data_to!(self, IntegerBinarySolution, IntegerBinarySolution)
     }
     pub fn as_string_data(&self) -> Result<&String, PipeError> {
@@ -100,7 +105,7 @@ impl PipeableData {
     pub fn as_binary_solution(&self) -> Result<&LpSolution<bool>, PipeError> {
         match_pipe_data_to!(self, BinarySolution, BinarySolution)
     }
-    pub fn as_integer_binary_solution(&self) -> Result<&LpSolution<VarValue>, PipeError> {
+    pub fn as_integer_binary_solution(&self) -> Result<&LpSolution<IntOrBoolValue>, PipeError> {
         match_pipe_data_to!(self, IntegerBinarySolution, IntegerBinarySolution)
     }
     pub fn as_real_solution(&self) -> Result<&LpSolution<f64>, PipeError> {
@@ -145,6 +150,7 @@ impl Display for PipeableData {
             PipeableData::BinarySolution(s) => write!(f, "{}", s),
             PipeableData::IntegerBinarySolution(s) => write!(f, "{}", s),
             PipeableData::RealSolution(s) => write!(f, "{}", s),
+            PipeableData::MILPSolution(s) => write!(f, "{}", s),
         }
     }
 }
@@ -165,6 +171,7 @@ pub enum PipeDataType {
     BinarySolution,
     IntegerBinarySolution,
     RealSolution,
+    MILPSolution
 }
 impl Display for PipeDataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -181,6 +188,7 @@ impl Display for PipeDataType {
             PipeDataType::BinarySolution => "BinarySolution".to_string(),
             PipeDataType::IntegerBinarySolution => "IntegerBinarySolution".to_string(),
             PipeDataType::RealSolution => "RealSolution".to_string(),
+            PipeDataType::MILPSolution => "MILPSolution".to_string()
         };
 
         f.write_str(&s)
@@ -206,8 +214,7 @@ pub enum PipeError {
     StandardizationError(SolverError),
     CanonicalizationError(CanonicalTransformError),
     StepByStepSimplexError(SimplexError, Tableau),
-    IntegerBinarySolverError(SolverError),
-    RealSolverError(SolverError),
+    SolverError(SolverError),
     Other(String),
 }
 impl Display for PipeError {
@@ -233,8 +240,7 @@ impl Display for PipeError {
             PipeError::StandardizationError(e) => write!(f, "{}", e),
             PipeError::CanonicalizationError(e) => write!(f, "{}", e),
             PipeError::StepByStepSimplexError(e, _) => write!(f, "{}", e),
-            PipeError::IntegerBinarySolverError(e) => write!(f, "{}", e),
-            PipeError::RealSolverError(e) => write!(f, "{}", e),
+            PipeError::SolverError(e) => write!(f, "{}", e),
         }
     }
 }

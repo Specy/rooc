@@ -13,17 +13,17 @@ use std::fmt::{Display, Formatter};
 /// Represents a variable value that can be either boolean or integer.
 #[derive(Debug, Clone, Serialize, Copy)]
 #[serde(tag = "type", content = "value")]
-pub enum VarValue {
+pub enum IntOrBoolValue {
     /// A boolean value (true/false)
     Bool(bool),
     /// An integer value
     Int(i32),
 }
-impl Display for VarValue {
+impl Display for IntOrBoolValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            VarValue::Bool(b) => write!(f, "{}", if *b { "true" } else { "false" }),
-            VarValue::Int(i) => write!(f, "{}", i),
+            IntOrBoolValue::Bool(b) => write!(f, "{}", if *b { "true" } else { "false" }),
+            IntOrBoolValue::Int(i) => write!(f, "{}", i),
         }
     }
 }
@@ -60,7 +60,7 @@ impl Display for VarValue {
 /// ```
 pub fn solve_integer_binary_lp_problem(
     lp: &LinearModel,
-) -> Result<LpSolution<VarValue>, SolverError> {
+) -> Result<LpSolution<IntOrBoolValue>, SolverError> {
     let invalid_variables = find_invalid_variables(lp.domain(), |var| {
         matches!(
             var,
@@ -220,7 +220,7 @@ pub fn solve_integer_binary_lp_problem(
                     let name = *rev_binary_variables.get(&v).unwrap();
                     Assignment {
                         name: name.clone(),
-                        value: VarValue::Bool(*n),
+                        value: IntOrBoolValue::Bool(*n),
                     }
                 })
                 .chain(
@@ -232,11 +232,11 @@ pub fn solve_integer_binary_lp_problem(
                             let name = *rev_integer_variables.get(&v).unwrap();
                             Assignment {
                                 name: name.clone(),
-                                value: VarValue::Int(*n),
+                                value: IntOrBoolValue::Int(*n),
                             }
                         }),
                 )
-                .collect::<Vec<Assignment<VarValue>>>();
+                .collect::<Vec<Assignment<IntOrBoolValue>>>();
             assignment.sort_by(|a, b| a.name.cmp(&b.name));
             let value = solution[objective] as f64 + lp.objective_offset();
             let sol = LpSolution::new(assignment, value);

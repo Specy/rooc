@@ -1,13 +1,14 @@
 <script lang="ts">
-    import type {LpSolution, VarValue} from "@specy/rooc";
+    import type {LpSolution, MILPValue, VarValue} from "@specy/rooc";
     import Column from "$cmp/layout/Column.svelte";
     import Var from "$cmp/pipe/Var.svelte";
+    import {formatNum} from "$cmp/pipe/utils";
 
     interface Props {
-        binarySolution: LpSolution<VarValue>;
+        milpSolution: LpSolution<MILPValue | VarValue>;
     }
 
-    let { binarySolution }: Props = $props();
+    let { milpSolution }: Props = $props();
 
 </script>
 
@@ -17,7 +18,7 @@
         <table>
             <thead>
             <tr>
-                {#each binarySolution.assignment as assignment}
+                {#each milpSolution.assignment as assignment}
                     <th>
                         <Var value={assignment.name} />
                     </th>
@@ -26,11 +27,13 @@
             </thead>
             <tbody>
             <tr>
-                {#each binarySolution.assignment as assignment}
+                {#each milpSolution.assignment as assignment}
                     <td
                         class={assignment.value.type === 'Bool' ? assignment.value.value ? 'T' : 'F' : "int"}
                     >
-                        {assignment.value.type === 'Bool' ? assignment.value.value ? 'T' : 'F' : assignment.value.value}
+                        {assignment.value.type === 'Bool' ? assignment.value.value ? 'T' : 'F' : undefined}
+                        {assignment.value.type === "Int" ?  assignment.value.value : undefined}
+                        {assignment.value.type === "Real" ? formatNum(assignment.value.value) : undefined}
                     </td>
                 {/each}
             </tr>
@@ -39,7 +42,7 @@
 
     </div>
     <div style="font-size: 1.5rem">
-        Optimal value: {binarySolution.value}
+        Optimal value: {formatNum(milpSolution.value)}
     </div>
 </Column>
 

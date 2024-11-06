@@ -1,22 +1,21 @@
 #[cfg(test)]
 pub mod solver_tests {
-
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
     use indexmap::IndexMap;
     use rooc::common::LpSolution;
-    use rooc::linear_integer_binary::VarValue;
+    use rooc::linear_integer_binary::IntOrBoolValue;
     use rooc::pipe::{
-        BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, ModelPipe,
-        PreModelPipe, RealSolver, StandardLinearModelPipe, TableauPipe,
+        BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, MILPSolverPipe,
+        ModelPipe, PreModelPipe, RealSolver, StandardLinearModelPipe, TableauPipe,
     };
     use rooc::pipe::{PipeContext, PipeRunner};
     use rooc::pipe::{PipeDataType, PipeError, PipeableData, StepByStepSimplexPipe};
     #[allow(unused_imports)]
     use rooc::simplex::{CanonicalTransformError, OptimalTableau, SimplexError};
-    use rooc::OptimalTableauWithSteps;
     use rooc::{float_eq, float_ne};
+    use rooc::{MILPValue, OptimalTableauWithSteps};
 
     #[allow(unused)]
     #[allow(clippy::result_large_err)]
@@ -124,7 +123,7 @@ pub mod solver_tests {
 
     #[allow(unused)]
     #[allow(clippy::result_large_err)]
-    fn solve_integer_binary(source: &str) -> Result<LpSolution<VarValue>, PipeError> {
+    fn solve_integer_binary(source: &str) -> Result<LpSolution<IntOrBoolValue>, PipeError> {
         let pipe_runner = PipeRunner::new(vec![
             Box::new(CompilerPipe::new()),
             Box::new(PreModelPipe::new()),
@@ -142,6 +141,36 @@ pub mod solver_tests {
                 let last = data.last().unwrap();
                 match last {
                     PipeableData::IntegerBinarySolution(data) => Ok(data.clone()),
+                    _ => Err(PipeError::InvalidData {
+                        expected: PipeDataType::IntegerBinarySolution,
+                        got: last.get_type(),
+                    }),
+                }
+            }
+            Err((error, _context)) => Err(error),
+        }
+    }
+
+    #[allow(unused)]
+    #[allow(clippy::result_large_err)]
+    fn solve_milp(source: &str) -> Result<LpSolution<MILPValue>, PipeError> {
+        let pipe_runner = PipeRunner::new(vec![
+            Box::new(CompilerPipe::new()),
+            Box::new(PreModelPipe::new()),
+            Box::new(ModelPipe::new()),
+            Box::new(LinearModelPipe::new()),
+            Box::new(MILPSolverPipe::new()),
+        ]);
+
+        let result = pipe_runner.run(
+            PipeableData::String(source.to_string()),
+            &PipeContext::new(vec![], &IndexMap::new()),
+        );
+        match result {
+            Ok(data) => {
+                let last = data.last().unwrap();
+                match last {
+                    PipeableData::MILPSolution(data) => Ok(data.clone()),
                     _ => Err(PipeError::InvalidData {
                         expected: PipeDataType::IntegerBinarySolution,
                         got: last.get_type(),
@@ -201,7 +230,11 @@ pub mod solver_tests {
     }
 
     #[allow(unused)]
-    fn assert_variables_integer(variables: &[VarValue], expected: &[VarValue], lax_var_num: bool) {
+    fn assert_variables_integer(
+        variables: &[IntOrBoolValue],
+        expected: &[IntOrBoolValue],
+        lax_var_num: bool,
+    ) {
         if variables.len() != expected.len() && !lax_var_num {
             panic!(
                 "Different length, expected {:?} but got {:?}",
@@ -210,7 +243,7 @@ pub mod solver_tests {
         }
         for (v, e) in variables.iter().zip(expected.iter()) {
             match (v, e) {
-                (VarValue::Bool(v), VarValue::Bool(e)) => {
+                (IntOrBoolValue::Bool(v), IntOrBoolValue::Bool(e)) => {
                     if *v != *e {
                         panic!(
                             "{:?}!={:?} Expected  {:?} but got {:?}",
@@ -218,8 +251,46 @@ pub mod solver_tests {
                         );
                     }
                 }
-                (VarValue::Int(v), VarValue::Int(e)) => {
+                (IntOrBoolValue::Int(v), IntOrBoolValue::Int(e)) => {
                     if *v != *e {
+                        panic!(
+                            "{:?}!={:?} Expected  {:?} but got {:?}",
+                            v, e, expected, variables
+                        );
+                    }
+                }
+                _ => panic!("Different types"),
+            }
+        }
+    }
+    #[allow(unused)]
+    fn assert_variables_milp(variables: &[MILPValue], expected: &[MILPValue], lax_var_num: bool) {
+        if variables.len() != expected.len() && !lax_var_num {
+            panic!(
+                "Different length, expected {:?} but got {:?}",
+                expected, variables
+            );
+        }
+        for (v, e) in variables.iter().zip(expected.iter()) {
+            match (v, e) {
+                (MILPValue::Bool(v), MILPValue::Bool(e)) => {
+                    if *v != *e {
+                        panic!(
+                            "{:?}!={:?} Expected  {:?} but got {:?}",
+                            v, e, expected, variables
+                        );
+                    }
+                }
+                (MILPValue::Int(v), MILPValue::Int(e)) => {
+                    if *v != *e {
+                        panic!(
+                            "{:?}!={:?} Expected  {:?} but got {:?}",
+                            v, e, expected, variables
+                        );
+                    }
+                }
+                (MILPValue::Real(v), MILPValue::Real(e)) => {
+                    if float_ne(*v,*e) {
                         panic!(
                             "{:?}!={:?} Expected  {:?} but got {:?}",
                             v, e, expected, variables
@@ -527,7 +598,11 @@ define
         let solution = solve_integer_binary(source).unwrap();
         assert_precision(solution.value(), 21.0);
         let assignment = solution.assignment_values();
-        assert_variables_integer(&assignment, &[VarValue::Int(0), VarValue::Int(7)], false);
+        assert_variables_integer(
+            &assignment,
+            &[IntOrBoolValue::Int(0), IntOrBoolValue::Int(7)],
+            false,
+        );
     }
 
     #[test]
@@ -594,12 +669,44 @@ define
         assert_variables_integer(
             &assignment,
             &[
-                VarValue::Int(1),
-                VarValue::Int(2),
-                VarValue::Int(3),
-                VarValue::Int(4),
+                IntOrBoolValue::Int(1),
+                IntOrBoolValue::Int(2),
+                IntOrBoolValue::Int(3),
+                IntOrBoolValue::Int(4),
             ],
             false,
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_milp_problem() {
+        let source = "
+max 50 * x + 40 * y + 45 * z
+s.t.
+    // Machine time constraint
+    3 * x + 2 * y + 1 * z <= 20     
+     // Labor time constraint  
+    2 * x + 1 * y + 3 * z <= 15    
+     // Minimum production constraint for Product A  
+    x >= 2     
+    // Maximum production constraint for Product B                      
+    y <= 7                            
+define
+    x, y as NonNegativeReal
+    z as IntegerRange(0, 10)";
+
+        let result = solve_milp(source).unwrap();
+        assert_precision(result.value(), 405.0);
+        let assignment = result.assignment_values();
+        assert_variables_milp(
+            &assignment,
+            &[
+                MILPValue::Real(2.0),
+                MILPValue::Real(6.5),
+                MILPValue::Int(1),
+            ],
+            false
+        )
     }
 }

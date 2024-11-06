@@ -6,7 +6,10 @@ use crate::solvers::{
     solve_binary_lp_problem, solve_integer_binary_lp_problem, solve_real_lp_problem_clarabel,
 };
 use crate::transformers::Linearizer;
-use crate::RoocParser;
+use crate::{
+    solve_milp_lp_problem, Assignment, IntOrBoolValue, LpSolution, MILPValue, RoocParser,
+    VariableType,
+};
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 /// Enum that represents the different pipes that can be executed
@@ -21,6 +24,8 @@ pub enum Pipes {
     StepByStepSimplexPipe,
     BinarySolverPipe,
     IntegerBinarySolverPipe,
+    MILPSolverPipe,
+    AutoSolverPipe,
 }
 
 //-------------------- Source Compiler --------------------
@@ -198,6 +203,7 @@ impl RealSolver {
         RealSolver {}
     }
 }
+
 impl Pipeable for RealSolver {
     fn pipe(&self, data: &mut PipeableData, _: &PipeContext) -> Result<PipeableData, PipeError> {
         let model = data.as_linear_model()?.clone();
@@ -205,7 +211,7 @@ impl Pipeable for RealSolver {
         let assignment = solve_real_lp_problem_clarabel(&model);
         match assignment {
             Ok(optimal) => Ok(PipeableData::RealSolution(optimal)),
-            Err(e) => Err(PipeError::RealSolverError(e)),
+            Err(e) => Err(PipeError::SolverError(e)),
         }
     }
 }
@@ -278,7 +284,7 @@ impl Pipeable for BinarySolverPipe {
         let binary_solution = solve_binary_lp_problem(linear_model);
         match binary_solution {
             Ok(solution) => Ok(PipeableData::BinarySolution(solution)),
-            Err(e) => Err(PipeError::IntegerBinarySolverError(e)),
+            Err(e) => Err(PipeError::SolverError(e)),
         }
     }
 }
@@ -302,7 +308,123 @@ impl Pipeable for IntegerBinarySolverPipe {
         let integer_binary_solution = solve_integer_binary_lp_problem(linear_model);
         match integer_binary_solution {
             Ok(solution) => Ok(PipeableData::IntegerBinarySolution(solution)),
-            Err(e) => Err(PipeError::IntegerBinarySolverError(e)),
+            Err(e) => Err(PipeError::SolverError(e)),
         }
     }
+}
+
+//-------------------- MILP solver --------------------
+/// Pipe that solves linear models using a MILP solver
+pub struct MILPSolverPipe {}
+impl Default for MILPSolverPipe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl MILPSolverPipe {
+    pub fn new() -> MILPSolverPipe {
+        MILPSolverPipe {}
+    }
+}
+impl Pipeable for MILPSolverPipe {
+    fn pipe(&self, data: &mut PipeableData, _: &PipeContext) -> Result<PipeableData, PipeError> {
+        let linear_model = data.as_linear_model()?;
+        let integer_binary_solution = solve_milp_lp_problem(linear_model);
+        match integer_binary_solution {
+            Ok(solution) => Ok(PipeableData::MILPSolution(solution)),
+            Err(e) => Err(PipeError::SolverError(e)),
+        }
+    }
+}
+
+//-------------------- Auto solver --------------------
+/// Pipe that solves linear models by automatically picking the right solver
+pub struct AutoSolver {}
+impl Default for AutoSolver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AutoSolver {
+    pub fn new() -> AutoSolver {
+        AutoSolver {}
+    }
+}
+impl Pipeable for AutoSolver {
+    fn pipe(&self, data: &mut PipeableData, _: &PipeContext) -> Result<PipeableData, PipeError> {
+        let linear_model = data.as_linear_model()?;
+        let domain = linear_model.domain();
+        let has_binary = domain
+            .values()
+            .any(|v| *v.get_type() == VariableType::Boolean);
+        let has_integer = domain
+            .values()
+            .any(|v| matches!(v.get_type(), VariableType::IntegerRange(_, _)));
+        let has_real = domain.values().any(|v| {
+            matches!(
+                v.get_type(),
+                VariableType::NonNegativeReal | VariableType::Real
+            )
+        });
+        let solution = match (has_binary, has_integer, has_real) {
+            (true, true, true) => solve_milp_lp_problem(linear_model),
+            (true, true, false) => solve_integer_binary_lp_problem(linear_model).map(int_bool_to_milp),
+            (true, false, true) => solve_milp_lp_problem(linear_model),
+            (true, false, false) => solve_binary_lp_problem(linear_model).map(bool_to_milp),
+            (false, true, true) => solve_milp_lp_problem(linear_model),
+            (false, true, false) => solve_integer_binary_lp_problem(linear_model).map(int_bool_to_milp),
+            (false, false, true) => solve_real_lp_problem_clarabel(linear_model).map(real_to_milp),
+            (false, false, false) => Ok(LpSolution::new(vec![], 0.0)),
+        };
+        match solution {
+            Ok(solution) => Ok(PipeableData::MILPSolution(solution)),
+            Err(e) => Err(PipeError::SolverError(e)),
+        }
+    }
+}
+
+fn bool_to_milp(val: LpSolution<bool>) -> LpSolution<MILPValue> {
+    let values = val
+        .assignment()
+        .into_iter()
+        .map(|v| Assignment {
+            name: v.name.clone(),
+            value: MILPValue::Bool(v.value),
+        })
+        .collect();
+    LpSolution::new(values, val.value())
+}
+
+fn int_bool_to_milp(val: LpSolution<IntOrBoolValue>) -> LpSolution<MILPValue> {
+    let values = val
+        .assignment()
+        .into_iter()
+        .map(|v| {
+            let value = match v.value {
+                IntOrBoolValue::Int(v) => MILPValue::Int(v),
+                IntOrBoolValue::Bool(v) => MILPValue::Bool(v),
+            };
+            Assignment {
+                name: v.name.clone(),
+                value,
+            }
+        })
+        .collect();
+    LpSolution::new(values, val.value())
+}
+
+
+fn real_to_milp(val: LpSolution<f64>) -> LpSolution<MILPValue> {
+    let values = val
+    .assignment()
+    .into_iter()
+    .map(|v| {
+        Assignment {
+            value: MILPValue::Real(v.value),
+            name: v.name.clone()
+        }
+    }).collect();
+    LpSolution::new(values, val.value())
 }

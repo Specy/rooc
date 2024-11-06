@@ -3,15 +3,13 @@ import type {PipePreset} from "$lib/pipePresets";
 
 //this is so that i dont import the runtime that uses wasm in the frontend
 const defaultPipe = {
-    name: "Simplex solver Step by Step",
+    name: "Auto solver",
     pipes: [
         0,
         1,
         2,
         3,
-        4,
-        5,
-        6
+        11
     ]
 } satisfies PipePreset
 

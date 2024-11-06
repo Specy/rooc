@@ -7,7 +7,7 @@ documentation = "https://rooc.specy.app/docs/rooc"
 description = "A modeling language to write and solve linear optimization models"
 keywords = ["optimization", "DSL", "solver", "mathematics", "linear-programming"]
 categories = ["mathematics", "algorithms", "science", "api-bindings", "data-structures"]
-version = "0.1.4"
+version = "0.1.5"
 license = "GPL-3.0"
 edition = "2021"
 
@@ -15,7 +15,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0.214", features = ["derive"] }
 num-rational = "0.4.2"
 num-traits = "0.2.19"
 term-table = "1.4.0"
@@ -25,7 +25,7 @@ lazy_static = "1.5.0"
 copper = "0.1.0"
 indexmap = {version =  "2.6.0", features = ["serde"] }
 good_lp = { version = "1.9.0", features = ["clarabel-wasm"], default-features = false }
-microlp = "0.2.4"
+microlp = "0.2.5"
 
 [target.'cfg(target_family = "wasm")'.dev-dependencies]
 wasm-bindgen-test = "0.3.0"

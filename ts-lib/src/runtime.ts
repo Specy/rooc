@@ -1,4 +1,4 @@
-import type {SerializedPrimitive, SerializedPrimitiveKind, SerializedIterable} from "./pkg/rooc";
+import type {SerializedIterable, SerializedPrimitive, SerializedPrimitiveKind} from "./pkg/rooc";
 import Fuse from 'fuse.js'
 
 export const PrimitiveKind = {
@@ -10,18 +10,17 @@ export const PrimitiveKind = {
     Graph: {type: 'Graph'},
     GraphEdge: {type: 'GraphEdge'},
     GraphNode: {type: 'GraphNode'},
-    Tuple: <T extends SerializedPrimitiveKind>(value: T[]) => ({type: 'Tuple', value} as const) ,
+    Tuple: <T extends SerializedPrimitiveKind>(value: T[]) => ({type: 'Tuple', value} as const),
     Boolean: {type: 'Boolean'},
     Undefined: {type: 'Undefined'},
     Any: {type: 'Any'},
 } as const
 
 
-
 export type ExtractReturnArgs<T extends [string, SerializedPrimitiveKind][]> = {
     [K in keyof T]: T[K] extends [string, infer Type extends SerializedPrimitiveKind]
         ? Type
-    : never;
+        : never;
 };
 
 
@@ -30,7 +29,7 @@ export type ExtractArgTypes<T extends [string, SerializedPrimitiveKind][]> = {
         ? Type extends { type: 'Iterable' }
             ? { type: 'Iterable', value: (SerializedIterable & { type: `${Type['value']['type']}s` }) }
             : SerializedPrimitive & { type: Type['type'] }
-    : never;
+        : never;
 };
 
 //TODO remember to put this back in whenever they are updated, the runtime is supposed to not import anything from the compiler
@@ -46,7 +45,8 @@ export enum PipeDataType {
     OptimalTableauWithSteps = 8,
     BinarySolution = 9,
     IntegerBinarySolution = 10,
-    RealSolution  = 11,
+    RealSolution = 11,
+    MILPSolution = 12,
 }
 
 export enum Pipes {
@@ -60,6 +60,8 @@ export enum Pipes {
     StepByStepSimplexPipe = 7,
     BinarySolverPipe = 8,
     IntegerBinarySolverPipe = 9,
+    MILPSolverPipe = 10,
+    AutoSolverPipe = 11,
 }
 
 export type NamedParameter = {
@@ -375,6 +377,20 @@ export const pipeDescriptions = {
         PipeDataType.LinearModel,
         PipeDataType.IntegerBinarySolution
     ),
+    [Pipes.MILPSolverPipe]: makePipeDescriptionEntry(
+        Pipes.MILPSolverPipe,
+        "MILP solver",
+        "Runs a solver that allows for real, integer and binary variables to find the optimal solution.",
+        PipeDataType.LinearModel,
+        PipeDataType.MILPSolution
+    ),
+    [Pipes.AutoSolverPipe]: makePipeDescriptionEntry(
+        Pipes.AutoSolverPipe,
+        "Auto solver",
+        "Automatically picks the best solver to run for this model",
+        PipeDataType.LinearModel,
+        PipeDataType.MILPSolution
+    ),
 } satisfies Record<Pipes, PipeDescription>
 
 function makePipeDataEntry(type: PipeDataType, name: string, description: string) {
@@ -405,4 +421,5 @@ export const pipeDataDescriptions = {
     [PipeDataType.BinarySolution]: makePipeDataEntry(PipeDataType.BinarySolution, "Binary Solution", "The optimal solution of a binary model"),
     [PipeDataType.IntegerBinarySolution]: makePipeDataEntry(PipeDataType.IntegerBinarySolution, "Integer Binary Solution", "The optimal solution of a binary or integer model"),
     [PipeDataType.RealSolution]: makePipeDataEntry(PipeDataType.RealSolution, "Real Solution", "The optimal solution of a linear model where variables have real values"),
+    [PipeDataType.MILPSolution]: makePipeDataEntry(PipeDataType.MILPSolution, "MILP Solution", "The optimal solution of a linear model where variables are either real, boolean or integer"),
 } satisfies Record<PipeDataType, PipeDataDescription>

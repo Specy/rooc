@@ -20,6 +20,7 @@ use {
     crate::RoocParser,
     crate::{Constant, Primitive},
 };
+use crate::pipe::{AutoSolver, MILPSolverPipe};
 
 #[cfg(target_arch = "wasm32")]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -45,6 +46,8 @@ impl WasmPipeRunner {
                     Pipes::StepByStepSimplexPipe => Box::new(StepByStepSimplexPipe::new()),
                     Pipes::BinarySolverPipe => Box::new(BinarySolverPipe::new()),
                     Pipes::IntegerBinarySolverPipe => Box::new(IntegerBinarySolverPipe::new()),
+                    Pipes::MILPSolverPipe => Box::new(MILPSolverPipe::new()),
+                    Pipes::AutoSolverPipe => Box::new(AutoSolver::new()),
                 };
                 item
             })
@@ -197,6 +200,13 @@ impl WasmPipableData {
     pub fn to_real_solution(self) -> Result<JsValue, JsValue> {
         self.data
             .to_real_solution()
+            .map(|s| serde_wasm_bindgen::to_value(&s).unwrap())
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+    
+    pub fn to_milp_solution(self) -> Result<JsValue, JsValue> {
+         self.data
+            .to_milp_solution()
             .map(|s| serde_wasm_bindgen::to_value(&s).unwrap())
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }

@@ -6,8 +6,8 @@
     import PipeTableauRenderer from "$cmp/pipe/PipeTableauRenderer.svelte";
     import PipeOptimalTableauWithStepsRenderer from "$cmp/pipe/PipeOptimalTableauWithStepsRenderer.svelte";
     import BinarySolutionRenderer from "$cmp/pipe/BinarySolutionRenderer.svelte";
-    import IntegerBinarySolutionRenderer from "$cmp/pipe/IntegerBinarySolutionRenderer.svelte";
     import RealSolutionRenderer from "$cmp/pipe/RealSolutionRenderer.svelte";
+    import MILPSolutionRenderer from "$cmp/pipe/MILPSolutionRenderer.svelte";
 
     interface Props {
         data: RoocData;
@@ -59,7 +59,9 @@
     {:else if data.type === PipeDataType.BinarySolution}
         <BinarySolutionRenderer binarySolution={data.data}/>
     {:else if data.type === PipeDataType.IntegerBinarySolution}
-        <IntegerBinarySolutionRenderer binarySolution={data.data}/>
+        <MILPSolutionRenderer milpSolution={data.data}/>
+    {:else if data.type === PipeDataType.MILPSolution}
+        <MILPSolutionRenderer milpSolution={data.data}/>
     {:else if data.type === PipeDataType.RealSolution}
         <RealSolutionRenderer realSolution={data.data}/>
     {/if}

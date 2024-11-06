@@ -314,7 +314,8 @@ export type RoocData =
     RoocType<PipeDataType.OptimalTableauWithSteps, OptimalTableauWithSteps> |
     RoocType<PipeDataType.BinarySolution, LpSolution<boolean>> |
     RoocType<PipeDataType.IntegerBinarySolution, LpSolution<VarValue>> |
-    RoocType<PipeDataType.RealSolution, LpSolution<number>>
+    RoocType<PipeDataType.RealSolution, LpSolution<number>> |
+    RoocType<PipeDataType.MILPSolution, LpSolution<MILPValue>>
 
 function toRoocData(data: WasmPipableData): RoocData {
     switch (data.wasm_get_type()) {
@@ -356,6 +357,11 @@ function toRoocData(data: WasmPipableData): RoocData {
             return {
                 type: PipeDataType.RealSolution,
                 data: data.to_real_solution()
+            }
+        case PipeDataType.MILPSolution:
+            return {
+                type: PipeDataType.MILPSolution,
+                data: data.to_milp_solution()
             }
     }
 }
@@ -869,8 +875,19 @@ export type VarValue = {
     type: 'Int'
     value: number
 } | {
-    type: 'Int'
+    type: 'Bool'
     value: boolean
+}
+
+export type MILPValue = {
+    type: 'Int'
+    value: number
+} | {
+    type: 'Bool'
+    value: boolean
+} | {
+    type: "Real",
+    value: number
 }
 
 export type LpAssignment<T> = {

@@ -11,6 +11,20 @@ function makePipePreset(name: string, pipes: Pipes[]): PipePreset {
 
 
 export const pipePresets = [
+    makePipePreset("Auto solver", [
+        Pipes.CompilerPipe,
+        Pipes.PreModelPipe,
+        Pipes.ModelPipe,
+        Pipes.LinearModelPipe,
+        Pipes.AutoSolverPipe
+    ]),
+    makePipePreset("MILP solver", [
+        Pipes.CompilerPipe,
+        Pipes.PreModelPipe,
+        Pipes.ModelPipe,
+        Pipes.LinearModelPipe,
+        Pipes.MILPSolverPipe
+    ]),
     makePipePreset("Real solver", [
         Pipes.CompilerPipe,
         Pipes.PreModelPipe,

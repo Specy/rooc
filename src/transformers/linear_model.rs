@@ -5,6 +5,7 @@ use indexmap::IndexMap;
 use num_traits::Zero;
 use std::fmt::Display;
 
+
 use crate::math::{float_lt, VariableType};
 use crate::parser::model_transformer::DomainVariable;
 use crate::solvers::SolverError;
@@ -243,19 +244,24 @@ impl LinearModel {
     /// # Returns
     /// * `Ok(())` if successful
     /// * `Err(LinearModelError)` if too many coefficients provided
+    /// # Panics
+    /// If there are more coefficient than how many variables there are
     pub fn add_constraint(
         &mut self,
         mut coefficients: Vec<f64>,
         constraint_type: Comparison,
         rhs: f64,
-    ) -> Result<(), LinearModelError> {
+    ) {
         if coefficients.len() > self.variables.len() {
-            return Err(LinearModelError::TooManyCoefficients);
+            panic!(
+                "Coefficients have {} variables while only {} were defined",
+                coefficients.len(),
+                self.variables.len()
+            );
         }
         coefficients.resize(self.variables.len(), 0.0);
         self.constraints
             .push(LinearConstraint::new(coefficients, constraint_type, rhs));
-        Ok(())
     }
 
     /// Sets the objective function of the model.
@@ -267,18 +273,19 @@ impl LinearModel {
     /// # Returns
     /// * `Ok(())` if successful
     /// * `Err(LinearModelError)` if too many coefficients provided
-    pub fn set_objective(
-        &mut self,
-        mut objective: Vec<f64>,
-        optimization_type: OptimizationType,
-    ) -> Result<(), LinearModelError> {
+    /// # Panics
+    /// If there are more coefficient than how many variables there are
+    pub fn set_objective(&mut self, mut objective: Vec<f64>, optimization_type: OptimizationType) {
         if objective.len() > self.variables.len() {
-            return Err(LinearModelError::TooManyCoefficients);
+            panic!(
+                "Coefficients have {} variables while only {} were defined",
+                objective.len(),
+                self.variables.len()
+            );
         }
         objective.resize(self.variables.len(), 0.0);
         self.objective = objective;
         self.optimization_type = optimization_type;
-        Ok(())
     }
 
     /// Returns the optimization type (minimize/maximize).
