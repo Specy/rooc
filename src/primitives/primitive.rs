@@ -1,5 +1,5 @@
 use core::fmt;
-use std::fmt::Display;
+use std::{collections::{BTreeSet, HashSet}, fmt::Display, hash::Hash};
 
 #[allow(unused_imports)]
 use crate::prelude::*;
@@ -33,7 +33,7 @@ use crate::{
 /// let text = Primitive::String("Hello".to_string());
 /// let flag = Primitive::Boolean(true);
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", content = "value")]
 pub enum Primitive {
     /// A floating point number
@@ -60,19 +60,6 @@ pub enum Primitive {
     Undefined,
 }
 
-impl PartialEq for Primitive {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Primitive::Number(a), Primitive::Number(b)) => a == b,
-            (Primitive::Integer(a), Primitive::Integer(b)) => a == b,
-            (Primitive::PositiveInteger(a), Primitive::PositiveInteger(b)) => a == b,
-            (Primitive::String(a), Primitive::String(b)) => a == b,
-            (Primitive::Boolean(a), Primitive::Boolean(b)) => a == b,
-            (Primitive::Undefined, Primitive::Undefined) => true,
-            _ => false, //rest we can't compare
-        }
-    }
-}
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
 #[allow(non_upper_case_globals)]

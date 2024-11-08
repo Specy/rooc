@@ -181,6 +181,29 @@ export const FN_rangeArray = makeRuntimeFunction("range", [
     "Returns an iterable of integers from `from` to `to` (inclusive or exclusive)"
 );
 
+export const FN_difference = makeRuntimeFunction("difference", [
+        {name: "first", value: {type: "Iterable", value: {type: "Any"}}},
+        {name: "second", value: {type: "Iterable", value: {type: "Any"}}},
+    ],
+    {type: "Iterable", value: {type: "Any"}},
+    "Returns the difference of two iterables"
+)
+
+export const FN_union = makeRuntimeFunction("union", [
+        {name: "first", value: {type: "Iterable", value: {type: "Any"}}},
+        {name: "second", value: {type: "Iterable", value: {type: "Any"}}},
+    ],
+    {type: "Iterable", value: {type: "Any"}},
+    "Returns the union of two iterables"
+)
+
+export const FN_intersection = makeRuntimeFunction("intersection", [
+        {name: "first", value: {type: "Iterable", value: {type: "Any"}}},
+        {name: "second", value: {type: "Iterable", value: {type: "Any"}}},
+    ],
+    {type: "Iterable", value: {type: "Any"}},
+    "Returns the intersection of two iterables"
+)
 
 export const ROOC_RUNTIME_FUNCTIONS = new Map<string, RuntimeFunction<NamedParameter[], SerializedPrimitiveKind>>([
     [FN_lenOfIterable.name, FN_lenOfIterable],
@@ -191,6 +214,9 @@ export const ROOC_RUNTIME_FUNCTIONS = new Map<string, RuntimeFunction<NamedParam
     [FN_neigh_edges_of.name, FN_neigh_edges_of],
     [FN_rangeArray.name, FN_rangeArray],
     [FN_zip.name, FN_zip],
+    [FN_difference.name, FN_difference],
+    [FN_union.name, FN_union],
+    [FN_intersection.name, FN_intersection],
 ])
 
 export type RuntimeBlockScopedFunction = {

@@ -10,6 +10,8 @@ use crate::traits::ToLatex;
 use crate::{Constant, Primitive};
 use indexmap::IndexMap;
 
+use super::{ArrayDifference, ArrayIntersection, ArrayUnion};
+
 pub fn make_std() -> IndexMap<String, Box<dyn RoocFunction>> {
     let mut m: IndexMap<String, Box<dyn RoocFunction>> = IndexMap::new();
     m.insert("edges".to_string(), Box::new(EdgesOfGraphFn {}));
@@ -23,6 +25,9 @@ pub fn make_std() -> IndexMap<String, Box<dyn RoocFunction>> {
     m.insert("enumerate".to_string(), Box::new(EnumerateArray {}));
     m.insert("range".to_string(), Box::new(NumericRange {}));
     m.insert("zip".to_string(), Box::new(ZipArrays {}));
+    m.insert("difference".to_string(), Box::new(ArrayDifference {}));
+    m.insert("union".to_string(), Box::new(ArrayUnion {}));
+    m.insert("intersection".to_string(), Box::new(ArrayIntersection {}));
     m
 }
 
@@ -62,6 +67,27 @@ pub fn std_fn_to_latex(fun: &FunctionCall) -> Option<String> {
                 } else {
                     None
                 }
+            } else {
+                None
+            }
+        }
+        "difference" => {
+            if let [ref first, ref second] = &fun.args[..] {
+                Some(format!("\\left\\{{{}\\setminus {}\\right\\}}", first.to_latex(), second.to_latex()))
+            } else {
+                None
+            }
+        }
+        "union" => {
+            if let [ref first, ref second] = &fun.args[..] {
+                Some(format!("\\left\\{{{}\\cup {}\\right\\}}", first.to_latex(), second.to_latex()))
+            } else {
+                None
+            }
+        }
+        "intersection" => {
+            if let [ref first, ref second] = &fun.args[..] {
+                Some(format!("\\left\\{{{}\\cap {}\\right\\}}", first.to_latex(), second.to_latex()))
             } else {
                 None
             }

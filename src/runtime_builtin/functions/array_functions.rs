@@ -264,3 +264,163 @@ impl RoocFunction for ZipArrays {
         Ok(())
     }
 }
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ArrayDifference {}
+
+/// given two arrays A and B, return the elements in A that are not in B
+impl ArrayDifference {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+impl RoocFunction for ArrayDifference {
+    fn call(
+        &self,
+        args: &[PreExp],
+        context: &TransformerContext,
+        fn_context: &FunctionContext,
+    ) -> Result<Primitive, TransformError> {
+        if args.len() != 2 {
+            return Err(default_wrong_number_of_arguments(self, args, fn_context))
+        }
+        let first = args[0].as_iterator(context, fn_context)?.to_primitives();
+        let second = args[1].as_iterator(context, fn_context)?.to_primitives();
+        
+        let first = first.into_iter().filter(|i| !second.contains(i)).collect();
+        Ok(Primitive::Iterable(IterableKind::Anys(first).flatten()))
+    }
+
+    fn type_signature(
+        &self,
+        args: &[PreExp],
+        context: &TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> Vec<(String, PrimitiveKind)> {
+        let first = args.first()
+            .map(|a| a.get_type(context, fn_context))
+            .unwrap_or(PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)));
+        vec![
+            ("from".to_string(), first.clone()),
+            ("other".to_string(), first)
+        ]
+    }
+
+    fn return_type(
+        &self,
+        args: &[PreExp],
+        context: &TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> PrimitiveKind {
+        args.first()
+            .map(|a| a.get_type(context, fn_context))
+            .unwrap_or(PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)))
+    }
+
+    fn function_name(&self) -> String {
+        "difference".to_string()
+    }
+}
+
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ArrayUnion;
+impl RoocFunction for ArrayUnion {
+    fn call(
+        &self,
+        args: &[PreExp],
+        context: &TransformerContext,
+        fn_context: &FunctionContext,
+    ) -> Result<Primitive, TransformError> {
+        if args.len() != 2 {
+            return Err(default_wrong_number_of_arguments(self, args, fn_context))
+        }
+        let mut first = args[0].as_iterator(context, fn_context)?.to_primitives();
+        let second = args[1].as_iterator(context, fn_context)?.to_primitives();
+        
+        let common: Vec<_> = first.iter().filter_map(|i| second.contains(i).then_some(i.clone())).collect();
+        first.extend(common);
+        Ok(Primitive::Iterable(IterableKind::Anys(first).flatten()))
+    }
+
+    fn type_signature(
+        &self,
+        args: &[PreExp],
+        context: &TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> Vec<(String, PrimitiveKind)> {
+        let first = args.first()
+            .map(|a| a.get_type(context, fn_context))
+            .unwrap_or(PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)));
+        vec![
+            ("first".to_string(), first.clone()),
+            ("second".to_string(), first)
+        ]
+    }
+
+    fn return_type(
+        &self,
+        args: &[PreExp],
+        context: &TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> PrimitiveKind {
+        args.first()
+            .map(|a| a.get_type(context, fn_context))
+            .unwrap_or(PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)))
+    }
+
+    fn function_name(&self) -> String {
+        "union".to_string()
+    }
+}
+
+#[derive(Debug, Serialize, Clone)]
+
+pub struct ArrayIntersection;
+impl RoocFunction for ArrayIntersection {
+    fn call(
+        &self,
+        args: &[PreExp],
+        context: &TransformerContext,
+        fn_context: &FunctionContext,
+    ) -> Result<Primitive, TransformError> {
+        if args.len() != 2 {
+            return Err(default_wrong_number_of_arguments(self, args, fn_context))
+        }
+        let first = args[0].as_iterator(context, fn_context)?.to_primitives();
+        let second = args[1].as_iterator(context, fn_context)?.to_primitives();
+        
+        let result = first.into_iter().filter(|i| second.contains(i)).collect();
+        Ok(Primitive::Iterable(IterableKind::Anys(result).flatten()))
+    }
+
+    fn type_signature(
+        &self,
+        args: &[PreExp],
+        context: &TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> Vec<(String, PrimitiveKind)> {
+        let first = args.first()
+            .map(|a| a.get_type(context, fn_context))
+            .unwrap_or(PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)));
+        vec![
+            ("first".to_string(), first.clone()),
+            ("second".to_string(), first)
+        ]
+    }
+
+    fn return_type(
+        &self,
+        args: &[PreExp],
+        context: &TypeCheckerContext,
+        fn_context: &FunctionContext,
+    ) -> PrimitiveKind {
+        args.first()
+            .map(|a| a.get_type(context, fn_context))
+            .unwrap_or(PrimitiveKind::Iterable(Box::new(PrimitiveKind::Any)))
+    }
+
+    fn function_name(&self) -> String {
+        "intersection".to_string()
+    }
+}

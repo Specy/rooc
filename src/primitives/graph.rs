@@ -13,7 +13,7 @@ use super::{
     primitive_traits::{ApplyOp, OperatorError, Spreadable},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GraphEdge {
     pub from: String,
     pub to: String,
@@ -57,7 +57,7 @@ impl fmt::Display for GraphEdge {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GraphNode {
     name: String,
     edges: IndexMap<String, GraphEdge>,
@@ -120,7 +120,7 @@ impl fmt::Display for GraphNode {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Graph {
     vertices: Vec<GraphNode>,
 }

@@ -28,7 +28,7 @@ use super::{
 /// ];
 /// let tuple = Tuple::new(primitives);
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Tuple(pub Vec<Primitive>);
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]

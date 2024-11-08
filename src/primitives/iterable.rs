@@ -10,7 +10,7 @@ use crate::{
     check_bounds,
     math::{BinOp, UnOp},
 };
-
+use crate::iterable_utils::flatten_primitive_array_values;
 use super::{
     graph::{Graph, GraphEdge, GraphNode},
     primitive::{Primitive, PrimitiveKind},
@@ -30,7 +30,7 @@ use super::{
 /// let numbers = IterableKind::Numbers(vec![1.0, 2.0, 3.0]);
 /// let strings = IterableKind::Strings(vec!["a".to_string(), "b".to_string()]);
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", content = "value")]
 pub enum IterableKind {
     /// Collection of floating point numbers
@@ -89,6 +89,15 @@ impl IterableKind {
         Primitive::Iterable(self)
     }
 
+    /// tries to flatten an array of primitives into an easier form
+    pub fn flatten(self) -> IterableKind {
+        match self {
+            IterableKind::Anys(v) => flatten_primitive_array_values(v),
+            _ => self
+        }
+    }
+    
+    
     /// Gets the type of elements contained in this iterable.
     ///
     /// For nested iterables, returns the type of the innermost elements.
