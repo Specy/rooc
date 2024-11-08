@@ -215,9 +215,9 @@ export function createRoocHoverProvider(ref: RoocFnRef) {
             const parser = new RoocParser(text)
             const parsed = parser.compile()
             if (parsed.isOk()) {
-                const items = parsed.value.createTypeMap([],[
+                const items = parsed.value.createTypeMap([...Object.entries(ref.current.constants)],[
                     ...roocJsStd(),
-                    ...ref.current
+                    ...ref.current.functions
                 ])
                 const item = items.get?.(preciseOffset) ?? items.get?.(offset)
                 if (item) {
@@ -274,9 +274,9 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel, edit: typ
                 severity: MarkerSeverity.Error
             })
         } else {
-            const typeCheck = parsed.value.typeCheck([],[
+            const typeCheck = parsed.value.typeCheck([...Object.entries(ref.current.constants)],[
                 ...roocJsStd(),
-                ...ref.current
+                ...ref.current.functions
             ])
             if (!typeCheck.isOk()) {
                 const err = typeCheck.error

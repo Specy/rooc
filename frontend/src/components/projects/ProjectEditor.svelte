@@ -68,7 +68,7 @@
 
     let isPresetPipe = $derived(findPreset(project.pipes.map(p => p.pipe)))
     $effect(() => {
-        Monaco.setRoocFns(rooc.userDefinedFunctions);
+        Monaco.setRoocData(rooc.userDefinedFunctions);
     })
 </script>
 

@@ -342,12 +342,17 @@ impl Display for LinearModel {
                 })
                 .collect::<Vec<String>>()
                 .join(" ");
+            let lhs = if coefficients.is_empty() {
+                "0".to_string()
+            } else {
+                coefficients
+            };
             let rhs = if c.rhs.is_zero() {
                 "0".to_string()
             } else {
                 c.rhs.to_string()
             };
-            format!("    {} {} {rhs}", coefficients, c.constraint_type,)
+            format!("    {} {} {}", lhs, c.constraint_type,rhs)
         });
 
         let constraints = constraints.collect::<Vec<String>>().join("\n");
@@ -367,6 +372,11 @@ impl Display for LinearModel {
             })
             .collect::<Vec<String>>()
             .join(" ");
+        let objective = if objective.is_empty() {
+            "0".to_string()
+        } else {
+            objective
+        };
         let offset = if self.objective_offset.is_zero() {
             "".to_string()
         } else if float_lt(self.objective_offset, 0.0) {

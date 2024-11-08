@@ -42,6 +42,10 @@ register({
         return {type: "Number", value: Math.sqrt(num.value)}
     }
 })
+
+constants({
+   PIHalf: { type: "Number", value: Math.PI / 2 }
+})
 */
 `.trim()
 

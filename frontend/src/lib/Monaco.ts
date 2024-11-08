@@ -11,14 +11,15 @@ import {
     RoocLanguage
 } from './Rooc/RoocLanguage'
 import {getTsGlobal} from "$lib/sandbox/sandboxTsTypes";
-import type {RoocFunction, SerializedPrimitiveKind} from "@specy/rooc";
+import type {SerializedPrimitiveKind} from "@specy/rooc";
 import type {NamedParameter, RuntimeFunction} from "@specy/rooc/src/runtime";
-import {roocFunctionToRuntimeFunction} from "$lib/Rooc/RoocUtils";
+import {getFormattedRoocType, roocFunctionToRuntimeFunction} from "$lib/Rooc/RoocUtils";
+import type {UserDefinedData} from "$src/routes/projects/[projectId]/projectStore.svelte";
 
 export type MonacoType = typeof monaco
 
 export type RoocFnRef = {
-    current: RoocFunction[]
+    current: UserDefinedData
     runtimeFunction: RuntimeFunction<NamedParameter[], SerializedPrimitiveKind>[]
     completionTokenSuggestions: RoocCompletionToken[]
     runDiagnosis?: () => void
@@ -27,8 +28,8 @@ export type RoocFnRef = {
 
 class MonacoLoader {
     private monaco: MonacoType;
-    private roocFnsRef: RoocFnRef = {
-        current: [],
+    private roocUserDataRef: RoocFnRef = {
+        current: {functions: [], constants: {}},
         runtimeFunction: [],
         completionTokenSuggestions: []
     }
@@ -93,13 +94,22 @@ class MonacoLoader {
         this.monaco.editor.setTheme('custom-theme')
     }
 
-    setRoocFns = (fns: RoocFunction[]) => {
-        if (this.roocFnsRef.current === fns) return
-        this.roocFnsRef.current = fns
-        this.roocFnsRef.runtimeFunction = fns.map(roocFunctionToRuntimeFunction)
-        this.roocFnsRef.completionTokenSuggestions = this.roocFnsRef.runtimeFunction.map(makeRoocCompletionToken)
+    setRoocData = (fns: UserDefinedData) => {
+        if (this.roocUserDataRef.current === fns) return
+        this.roocUserDataRef.current = fns
+        this.roocUserDataRef.runtimeFunction = fns.functions.map(roocFunctionToRuntimeFunction)
+        this.roocUserDataRef.completionTokenSuggestions = [
+            ...this.roocUserDataRef.runtimeFunction.map(makeRoocCompletionToken),
+            ...Object.keys(fns.constants).map(name => ({
+                label: name,
+                kind: this.monaco.languages.CompletionItemKind.Constant,
+                insertText: name,
+                // @ts-ignore
+                detail: getFormattedRoocType(fns.constants[name])
+            } as RoocCompletionToken))
+        ]
         //refresh all the editors to reload the completion suggestions
-        this.roocFnsRef.runDiagnosis?.()
+        this.roocUserDataRef.runDiagnosis?.()
     }
 
     registerLanguages = () => {
@@ -109,8 +119,8 @@ class MonacoLoader {
         //@ts-expect-error - Language works
         this.toDispose.push(monaco.languages.setMonarchTokensProvider('rooc', RoocLanguage))
         this.toDispose.push(monaco.languages.registerDocumentFormattingEditProvider('rooc', createRoocFormatter()))
-        this.toDispose.push(monaco.languages.registerHoverProvider('rooc', createRoocHoverProvider(this.roocFnsRef)))
-        this.toDispose.push(monaco.languages.registerCompletionItemProvider('rooc', createRoocCompletion(this.roocFnsRef)))
+        this.toDispose.push(monaco.languages.registerHoverProvider('rooc', createRoocHoverProvider(this.roocUserDataRef)))
+        this.toDispose.push(monaco.languages.registerCompletionItemProvider('rooc', createRoocCompletion(this.roocUserDataRef)))
     }
 
     async typescriptToJavascript(code: string) {
@@ -127,7 +137,7 @@ class MonacoLoader {
 
     registerRuntimePushers = (language: 'rooc', instance: monaco.editor.ITextModel) => {
         if (language === 'rooc') {
-            const disposer = createRoocRuntimeDiagnostics(instance, this.monaco.editor, this.roocFnsRef)
+            const disposer = createRoocRuntimeDiagnostics(instance, this.monaco.editor, this.roocUserDataRef)
             return () => disposer.dispose()
         }
         return () => {

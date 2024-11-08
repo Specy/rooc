@@ -64,6 +64,14 @@
             href="https://github.com/Specy/rooc" style="color: var(--accent-10); text-decoration: underline">Github</a>.
         <br/>
     </p>
+    <h1>
+        Limitations
+    </h1>
+    <p>
+        The maximum length of an expression is about 6000 elements, so big models might give errors when compiling
+        if they are too big.
+    </p>
+
 </Page>
 
 

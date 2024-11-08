@@ -108,7 +108,7 @@ declare type SerializedIterable =
 declare type SerializedTuple = SerializedPrimitive[]
 
 declare function register<const T extends [string, SerializedPrimitiveKind][]>({ name, parameters, returns, type_checker, call, description }: MakeRoocFunction<T>): void
- 
+declare function constants(data: Record<string, SerializedPrimitive>): void
 declare function GET_FILES(): string[]
     `,
     'rooc.d.ts': dts
