@@ -5,6 +5,8 @@ use indexmap::IndexMap;
 use num_traits::Zero;
 use std::fmt::Display;
 
+
+use crate::domain_declaration::format_domain;
 use crate::math::{float_lt, VariableType};
 use crate::parser::model_transformer::DomainVariable;
 use crate::solvers::SolverError;
@@ -352,7 +354,7 @@ impl Display for LinearModel {
             } else {
                 c.rhs.to_string()
             };
-            format!("    {} {} {}", lhs, c.constraint_type,rhs)
+            format!("    {} {} {}", lhs, c.constraint_type, rhs)
         });
 
         let constraints = constraints.collect::<Vec<String>>().join("\n");
@@ -385,10 +387,21 @@ impl Display for LinearModel {
             format!(" + {}", self.objective_offset)
         };
         let objective = format!("{}{}", objective, offset);
+        let domain: String = if !self.domain.is_empty() {
+            format!(
+                "\ndefine\n    {}",
+                format_domain(&self.domain)
+                    .split("\n")
+                    .collect::<Vec<_>>()
+                    .join("\n    ")
+            )
+        } else {
+            "".to_string()
+        };
         write!(
             f,
-            "{} {}\ns.t.\n{}",
-            self.optimization_type, objective, constraints
+            "{} {}\ns.t.\n{}{}",
+            self.optimization_type, objective, constraints, domain
         )
     }
 }

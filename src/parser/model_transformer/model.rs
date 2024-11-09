@@ -1,3 +1,4 @@
+use crate::domain_declaration::format_domain;
 #[allow(unused_imports)]
 use crate::prelude::*;
 use core::fmt;
@@ -541,7 +542,18 @@ impl fmt::Display for Model {
             .map(|constraint| constraint.to_string())
             .collect::<Vec<_>>()
             .join("\n    ");
-        write!(f, "{}\ns.t.\n    {}", self.objective, constraints)
+        let domain: String = if !self.domain.is_empty() {
+            format!(
+                "\ndefine\n    {}",
+                format_domain(&self.domain)
+                    .split("\n")
+                    .collect::<Vec<_>>()
+                    .join("\n    ")
+            )
+        } else {
+            "".to_string()
+        };
+        write!(f, "{}\ns.t.\n    {}{}", self.objective, constraints, domain)
     }
 }
 

@@ -8,6 +8,7 @@ use crate::solvers::{
 use crate::transformers::Linearizer;
 use crate::{auto_solver, solve_milp_lp_problem, RoocParser};
 
+#[cfg(target_arch = "wasm32")]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 /// Enum that represents the different pipes that can be executed
 pub enum Pipes {

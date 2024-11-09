@@ -3,7 +3,7 @@ use crate::prelude::*;
 
 #[cfg(target_arch = "wasm32")]
 use crate::runtime_builtin::JsFunction;
-#[allow(unused)]
+#[cfg(target_arch = "wasm32")]
 use {
     crate::parser::model_transformer::Model,
     crate::parser::pre_model::PreModel,

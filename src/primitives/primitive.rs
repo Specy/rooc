@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{collections::{BTreeSet, HashSet}, fmt::Display, hash::Hash};
+use std::fmt::Display;
 
 #[allow(unused_imports)]
 use crate::prelude::*;
@@ -59,7 +59,6 @@ pub enum Primitive {
     /// Represents an undefined value
     Undefined,
 }
-
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
 #[allow(non_upper_case_globals)]

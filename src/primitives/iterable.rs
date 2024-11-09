@@ -4,18 +4,18 @@ use core::fmt;
 use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::parser::model_transformer::TransformError;
-use crate::traits::ToLatex;
-use crate::{
-    check_bounds,
-    math::{BinOp, UnOp},
-};
-use crate::iterable_utils::flatten_primitive_array_values;
 use super::{
     graph::{Graph, GraphEdge, GraphNode},
     primitive::{Primitive, PrimitiveKind},
     primitive_traits::{ApplyOp, OperatorError, Spreadable},
     tuple::Tuple,
+};
+use crate::iterable_utils::flatten_primitive_array_values;
+use crate::parser::model_transformer::TransformError;
+use crate::traits::ToLatex;
+use crate::{
+    check_bounds,
+    math::{BinOp, UnOp},
 };
 /// Represents different types of iterable collections in the system.
 ///
@@ -93,11 +93,10 @@ impl IterableKind {
     pub fn flatten(self) -> IterableKind {
         match self {
             IterableKind::Anys(v) => flatten_primitive_array_values(v),
-            _ => self
+            _ => self,
         }
     }
-    
-    
+
     /// Gets the type of elements contained in this iterable.
     ///
     /// For nested iterables, returns the type of the innermost elements.

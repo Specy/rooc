@@ -1,8 +1,7 @@
-use num_traits::Zero;
-use std::fmt::Display;
-
 #[allow(unused_imports)]
 use crate::prelude::*;
+use num_traits::Zero;
+use std::fmt::Display;
 
 use crate::math::{float_gt, float_lt, float_ne};
 use crate::solvers::SolverError;
@@ -361,9 +360,17 @@ impl Display for StandardLinearModel {
         } else {
             format!(" + {}", self.objective_offset)
         };
+        let domain = if !self.variables.is_empty() {
+            format!(
+                "\ndefine\n    {} as NonNegativeReal",
+                self.variables.join(",")
+            )
+        } else {
+            "".to_string()
+        };
         write!(
             f,
-            "min {}{} \ns.t.\n{}",
+            "min {}{} \ns.t.\n{}{}",
             self.objective
                 .iter()
                 .enumerate()
@@ -379,7 +386,8 @@ impl Display for StandardLinearModel {
                 .collect::<Vec<_>>()
                 .join(" "),
             offset,
-            constraints.collect::<Vec<_>>().join("\n")
+            constraints.collect::<Vec<_>>().join("\n"),
+            domain
         )
     }
 }

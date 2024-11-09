@@ -25,12 +25,14 @@ fn main() {
         let cc = [1,2]
     define
         x as Real
+        x_i as Real(0, 5) for i in 0..10
     "#
     .to_string();
     let pipe_runner = PipeRunner::new(vec![
         Box::new(CompilerPipe::new()),
         Box::new(PreModelPipe::new()),
         Box::new(ModelPipe::new()),
+        Box::new(LinearModelPipe::new())
     ]);
 
     let (result) = pipe_runner.run(

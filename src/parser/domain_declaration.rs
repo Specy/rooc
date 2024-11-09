@@ -1,11 +1,12 @@
-use std::fmt::Display;
-
 #[allow(unused_imports)]
 use crate::prelude::*;
+use indexmap::IndexMap;
 use serde::Serialize;
+use std::fmt::Display;
 
 use super::recursive_set_resolver::recursive_set_resolver;
 use crate::math::PreVariableType;
+use crate::model_transformer::DomainVariable;
 use crate::parser::il::CompoundVariable;
 use crate::parser::il::IterableSet;
 use crate::parser::model_transformer::TransformError;
@@ -305,4 +306,30 @@ impl Display for VariablesDomainDeclaration {
             write!(f, "{} as {}", vars, self.as_type)
         }
     }
+}
+
+pub(crate) fn format_domain(domain: &IndexMap<String, DomainVariable>) -> String {
+    // First collect all variables into vectors by type and domain
+    let mut domain_groups: IndexMap<String, Vec<String>> = IndexMap::new();
+
+    // Group variables by type and domain
+    for (name, var) in domain {
+        let type_str = var.get_type().to_string();
+        domain_groups
+            .entry(type_str)
+            .or_default()
+            .push(name.clone());
+    }
+
+    // Format each group
+    let mut result = String::new();
+
+    for (type_str, vars) in domain_groups {
+        if !result.is_empty() {
+            result.push('\n');
+        }
+        result.push_str(&format!("{} as {}", vars.join(", "), type_str));
+    }
+
+    result
 }

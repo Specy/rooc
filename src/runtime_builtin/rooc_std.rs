@@ -73,21 +73,33 @@ pub fn std_fn_to_latex(fun: &FunctionCall) -> Option<String> {
         }
         "difference" => {
             if let [ref first, ref second] = &fun.args[..] {
-                Some(format!("\\left\\{{{}\\setminus {}\\right\\}}", first.to_latex(), second.to_latex()))
+                Some(format!(
+                    "\\left\\{{{}\\setminus {}\\right\\}}",
+                    first.to_latex(),
+                    second.to_latex()
+                ))
             } else {
                 None
             }
         }
         "union" => {
             if let [ref first, ref second] = &fun.args[..] {
-                Some(format!("\\left\\{{{}\\cup {}\\right\\}}", first.to_latex(), second.to_latex()))
+                Some(format!(
+                    "\\left\\{{{}\\cup {}\\right\\}}",
+                    first.to_latex(),
+                    second.to_latex()
+                ))
             } else {
                 None
             }
         }
         "intersection" => {
             if let [ref first, ref second] = &fun.args[..] {
-                Some(format!("\\left\\{{{}\\cap {}\\right\\}}", first.to_latex(), second.to_latex()))
+                Some(format!(
+                    "\\left\\{{{}\\cap {}\\right\\}}",
+                    first.to_latex(),
+                    second.to_latex()
+                ))
             } else {
                 None
             }
