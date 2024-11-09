@@ -205,13 +205,22 @@ export const FN_intersection = makeRuntimeFunction("intersection", [
     "Returns the intersection of two iterables"
 )
 
+function variant(name: string, fun: RuntimeFunction<NamedParameter[], SerializedPrimitiveKind>){
+    return {...fun, name}
+}
+
 export const ROOC_RUNTIME_FUNCTIONS = new Map<string, RuntimeFunction<NamedParameter[], SerializedPrimitiveKind>>([
     [FN_lenOfIterable.name, FN_lenOfIterable],
     [FN_enumerateArray.name, FN_enumerateArray],
+    ["enum", variant("enum", FN_enumerateArray)],
     [FN_edges.name, FN_edges],
+    ["E", variant("E", FN_edges)],
     [FN_nodes.name, FN_nodes],
+    ["V", variant("V",FN_nodes)],
     [FN_neigh_edges.name, FN_neigh_edges],
+    ["N", variant("N", FN_neigh_edges)],
     [FN_neigh_edges_of.name, FN_neigh_edges_of],
+    ["N_of", variant("N_of", FN_neigh_edges)],
     [FN_rangeArray.name, FN_rangeArray],
     [FN_zip.name, FN_zip],
     [FN_difference.name, FN_difference],

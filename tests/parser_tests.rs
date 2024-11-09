@@ -74,10 +74,10 @@ define
         let input = "
         min 1
         s.t.
-            N >= sum(i in A) { i }
+            n >= sum(i in A) { i }
         where
             let B = false
-            let N = 1
+            let n = 1
             let S = \"Hello\"
             let S2 = \"\\\"() => {} _ aiaosjd\"
             let A = [1, 2, 3]

@@ -528,11 +528,9 @@ where
     ]
     // Number of foods
     let F = len(a)
-    // Number of nutrients
-    let N = len(Nmax)
 define
     //bound the amount of each serving of food i
-    x_i as NonNegativeReal(Fmin[i], Fmax[i]) for i in 0..N  
+    x_i as NonNegativeReal(Fmin[i], Fmax[i]) for i in 0..len(Nmax)
 
     "#;
         let solution = solve(source).unwrap();

@@ -51,7 +51,7 @@
                 class="pipe"
                 class:wrong-pipe={pipeDescriptions[pipe.pipe].input !== previousType}>
             <Row align="center" gap="1rem">
-                <PlugIn style="font-size: 1.2rem; margin-top: -0.3rem;"/>
+                <PlugIn style="font-size: 1.2rem; margin-top: -0.35rem;"/>
                 <div class="pipe-type">
                     {getNameOfPipeData(pipeDescriptions[pipe.pipe].input)}
                 </div>

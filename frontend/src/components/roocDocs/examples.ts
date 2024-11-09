@@ -25,10 +25,10 @@ where
     // Number of foods
     let F = len(a)
     // Number of nutrients
-    let N = len(Nmax)
+    let n = len(Nmax)
 define
     //bound the amount of each serving of food i
-    x_i as NonNegativeReal(Fmin[i], Fmax[i]) for i in 0..N`,
+    x_i as NonNegativeReal(Fmin[i], Fmax[i]) for i in 0..n`,
     name: "Diet Problem",
     description: `The diet problem is a classic optimization problem where the goal is to find the optimal diet that meets the nutritional requirements at the lowest cost.`
 }
@@ -76,7 +76,27 @@ define
     description: "In the knapsack problem, you are given a set of items, each with a weight and a value, and a knapsack with a maximum capacity. The goal is to maximize the total value of the items in the knapsack without exceeding the capacity."
 }
 
-export const roocExamples = [ex_1, ex_2, ex_3]
+export let ex_4 = {
+    code: `//how much each product will earn you
+max sum((v, i) in enum(value)) { x_i * v }
+subject to
+    //the machines need to be within the maximum machining time
+    sum((time, j) in enum(machiningTime[i])){  x_j * time } <= timeLimit[i] for i in 0..len(value)
+where 
+    let value = [10, 15]
+    let timeLimit = [8, 6]
+    let machiningTime = [
+        [1, 2], // how much time machine A needs to make product A and B
+        [2, 1]  // same but for machine B
+    ]
+define 
+    x_i as NonNegativeReal for i in 0..len(value)`,
+    name: "Simple machining problem",
+    description: "Imagine you run a small factory that makes two types of products: A and B. Each product requires time on two machines, Machine 1 and Machine 2. Your goal is to maximize profit, but you’re limited by how many hours each machine is available each day."
+}
+
+
+export const roocExamples = [ex_1, ex_2, ex_3, ex_4]
 
 
 

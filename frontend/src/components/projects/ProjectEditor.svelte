@@ -73,7 +73,7 @@
 </script>
 
 <div class="wrapper">
-    <Column gap="0.5rem">
+    <Column gap="0.5rem" flex1>
         <div class="editor">
             <Editor
                     style="flex: 1"
@@ -272,6 +272,7 @@
 <style>
     .pipe-container {
         display: flex;
+        max-width: 22rem;
         flex: 1;
         flex-direction: column;
         overflow: hidden;
@@ -310,12 +311,15 @@
         gap: 0.5rem;
         padding: 0.5rem 1rem;
         background-color: var(--primary);
+        transition: background-color 0.2s;
         color: var(--primary-text)
+    }
+    .add-more-btn:hover {
+        background-color: var(--primary-5);
     }
 
     .wrapper {
-        display: grid;
-        grid-template-columns: 4fr 2fr;
+        display: flex;
         gap: 0.5rem;
         height: calc(100vh - 3.5rem - 0.5rem);
         padding: 0 0.5rem;
@@ -326,7 +330,9 @@
             display: flex;
             flex-direction: column;
         }
-
+        .pipe-container {
+            max-width: unset;
+        }
         .editor {
             min-height: 60vh;
         }

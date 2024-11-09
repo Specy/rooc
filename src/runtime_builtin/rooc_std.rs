@@ -14,15 +14,23 @@ use super::{ArrayDifference, ArrayIntersection, ArrayUnion};
 
 pub fn make_std() -> IndexMap<String, Box<dyn RoocFunction>> {
     let mut m: IndexMap<String, Box<dyn RoocFunction>> = IndexMap::new();
-    m.insert("edges".to_string(), Box::new(EdgesOfGraphFn {}));
+    m.insert("edges".to_string(), Box::new(EdgesOfGraphFn { shorthand_name: false }));
+    m.insert("E".to_string(), Box::new(EdgesOfGraphFn { shorthand_name: true }));
     m.insert("len".to_string(), Box::new(LenOfIterableFn {}));
-    m.insert("nodes".to_string(), Box::new(NodesOfGraphFn {}));
-    m.insert("neigh_edges".to_string(), Box::new(NeighbourOfNodeFn {}));
+    m.insert("nodes".to_string(), Box::new(NodesOfGraphFn {shorthand_name: false }));
+    m.insert("V".to_string(), Box::new(NodesOfGraphFn {shorthand_name: true }));
+    m.insert("neigh_edges".to_string(), Box::new(NeighbourOfNodeFn {shorthand_name: false }));
+    m.insert("N".to_string(), Box::new(NeighbourOfNodeFn {shorthand_name: true }));
     m.insert(
         "neigh_edges_of".to_string(),
-        Box::new(NeighboursOfNodeInGraphFn {}),
+        Box::new(NeighboursOfNodeInGraphFn {shorthand_name: false }),
     );
-    m.insert("enumerate".to_string(), Box::new(EnumerateArray {}));
+    m.insert(
+        "N_of".to_string(),
+        Box::new(NeighboursOfNodeInGraphFn {shorthand_name: true }),
+    );
+    m.insert("enumerate".to_string(), Box::new(EnumerateArray {shorthand_name: false }));
+    m.insert("enum".to_string(), Box::new(EnumerateArray {shorthand_name: true}));
     m.insert("range".to_string(), Box::new(NumericRange {}));
     m.insert("zip".to_string(), Box::new(ZipArrays {}));
     m.insert("difference".to_string(), Box::new(ArrayDifference {}));
