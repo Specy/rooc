@@ -16,16 +16,21 @@ fn main() {
             x + 3y + 4z = 1
      */
     let source = r#"
-    max 0
-    s.t.
-        1 <= x + a + b + c for (a, b, c) in zip(aa,bb,cc)
-    where 
-        let aa = [1,2,3]
-        let bb = [4,5,6,7]
-        let cc = [1,2]
-    define
-        x as Real
-        x_i as Real(0, 5) for i in 0..10
+//how much each product will earn you
+max sum((v, i) in enumerate(value)) { x_i * v }
+subject to
+    sum((time, j) in enumerate(machiningTime[i])){ x_j * time } <= fora for i in len(maxHours)
+    //production limit of machine 1
+where 
+    let value = [10, 15]
+    let fora = 10
+    let maxHours = [8, 6]
+    let machiningTime = [
+        [1, 2],
+        [2, 1]
+    ]
+define 
+    a, b as NonNegativeReal
     "#
     .to_string();
     let pipe_runner = PipeRunner::new(vec![
