@@ -11,7 +11,9 @@ use crate::{
 };
 
 #[derive(Debug, Serialize, Clone)]
-pub struct EnumerateArray {pub shorthand_name: bool }
+pub struct EnumerateArray {
+    pub shorthand_name: bool,
+}
 
 impl RoocFunction for EnumerateArray {
     fn call(
@@ -67,7 +69,11 @@ impl RoocFunction for EnumerateArray {
     }
 
     fn function_name(&self) -> String {
-        if self.shorthand_name { "enum".to_string()} else {"enumerate".to_string()}
+        if self.shorthand_name {
+            "enum".to_string()
+        } else {
+            "enumerate".to_string()
+        }
     }
 
     fn type_check(

@@ -220,7 +220,7 @@ export const ROOC_RUNTIME_FUNCTIONS = new Map<string, RuntimeFunction<NamedParam
     [FN_neigh_edges.name, FN_neigh_edges],
     ["N", variant("N", FN_neigh_edges)],
     [FN_neigh_edges_of.name, FN_neigh_edges_of],
-    ["N_of", variant("N_of", FN_neigh_edges)],
+    ["N_of", variant("N_of", FN_neigh_edges_of)],
     [FN_rangeArray.name, FN_rangeArray],
     [FN_zip.name, FN_zip],
     [FN_difference.name, FN_difference],

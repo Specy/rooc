@@ -17,7 +17,9 @@ use crate::{
 };
 
 #[derive(Debug, Serialize, Clone)]
-pub(crate) struct EdgesOfGraphFn {pub shorthand_name: bool}
+pub(crate) struct EdgesOfGraphFn {
+    pub shorthand_name: bool,
+}
 impl RoocFunction for EdgesOfGraphFn {
     fn call(
         &self,
@@ -54,13 +56,19 @@ impl RoocFunction for EdgesOfGraphFn {
     }
 
     fn function_name(&self) -> String {
-        if self.shorthand_name {"E".to_string()} else { "edges".to_string() }
+        if self.shorthand_name {
+            "E".to_string()
+        } else {
+            "edges".to_string()
+        }
     }
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[derive(Debug, Serialize, Clone)]
-pub struct NodesOfGraphFn {pub shorthand_name: bool}
+pub struct NodesOfGraphFn {
+    pub shorthand_name: bool,
+}
 
 impl RoocFunction for NodesOfGraphFn {
     fn call(
@@ -98,12 +106,18 @@ impl RoocFunction for NodesOfGraphFn {
     }
 
     fn function_name(&self) -> String {
-        if self.shorthand_name {"V".to_string()} else { "nodes".to_string() }
+        if self.shorthand_name {
+            "V".to_string()
+        } else {
+            "nodes".to_string()
+        }
     }
 }
 
 #[derive(Debug, Serialize, Clone)]
-pub struct NeighbourOfNodeFn{pub shorthand_name: bool}
+pub struct NeighbourOfNodeFn {
+    pub shorthand_name: bool,
+}
 impl RoocFunction for NeighbourOfNodeFn {
     fn call(
         &self,
@@ -139,7 +153,11 @@ impl RoocFunction for NeighbourOfNodeFn {
     }
 
     fn function_name(&self) -> String {
-        if self.shorthand_name {"N".to_string()} else { "neigh_edges".to_string() }
+        if self.shorthand_name {
+            "N".to_string()
+        } else {
+            "neigh_edges".to_string()
+        }
     }
 
     fn type_check(
@@ -158,7 +176,9 @@ impl RoocFunction for NeighbourOfNodeFn {
 }
 
 #[derive(Debug, Serialize, Clone)]
-pub struct NeighboursOfNodeInGraphFn {pub shorthand_name: bool}
+pub struct NeighboursOfNodeInGraphFn {
+    pub shorthand_name: bool,
+}
 impl RoocFunction for NeighboursOfNodeInGraphFn {
     fn call(
         &self,
@@ -199,7 +219,11 @@ impl RoocFunction for NeighboursOfNodeInGraphFn {
     }
 
     fn function_name(&self) -> String {
-        if self.shorthand_name {"N_of".to_string()} else { "neigh_edges_of".to_string() }
+        if self.shorthand_name {
+            "N_of".to_string()
+        } else {
+            "neigh_edges_of".to_string()
+        }
     }
 
     fn type_check(

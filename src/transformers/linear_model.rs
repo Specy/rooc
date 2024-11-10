@@ -5,7 +5,6 @@ use indexmap::IndexMap;
 use num_traits::Zero;
 use std::fmt::Display;
 
-
 use crate::domain_declaration::format_domain;
 use crate::math::{float_lt, VariableType};
 use crate::parser::model_transformer::DomainVariable;

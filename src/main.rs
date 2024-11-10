@@ -37,7 +37,7 @@ define
         Box::new(CompilerPipe::new()),
         Box::new(PreModelPipe::new()),
         Box::new(ModelPipe::new()),
-        Box::new(LinearModelPipe::new())
+        Box::new(LinearModelPipe::new()),
     ]);
 
     let (result) = pipe_runner.run(
