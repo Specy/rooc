@@ -272,7 +272,7 @@
 <style>
     .pipe-container {
         display: flex;
-        max-width: 22rem;
+        max-width: 23rem;
         flex: 1;
         flex-direction: column;
         overflow: hidden;
@@ -344,6 +344,7 @@
 
     .pipe-preset-select {
         padding: 0.5rem 1rem;
+        max-width: 13rem;
         border-radius: 0.4rem;
         border: 1px solid var(--primary);
         background-color: var(--primary);

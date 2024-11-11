@@ -81,7 +81,7 @@ export let ex_4 = {
 max sum((v, i) in enum(value)) { x_i * v }
 subject to
     //the machines need to be within the maximum machining time
-    sum((time, j) in enum(machiningTime[i])){  x_j * time } <= timeLimit[i] for i in 0..len(value)
+    sum((time, j) in enum(machiningTime[i])){ x_j * time } <= timeLimit[i] for i in 0..len(value)
 where 
     let value = [10, 15]
     let timeLimit = [8, 6]
