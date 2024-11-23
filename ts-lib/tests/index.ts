@@ -2,38 +2,17 @@ import { WasmPipeRunner,Pipes} from '../src/pkg/rooc.js'
 
 
 const model = `
-//This is a simple diet problem
-//minimize the cost of the diet
-min sum((cost, i) in enumerate(C)) { cost * x_i }
-s.t.  
-    //the diet must have at least of nutrient j
-    sum(i in 0..F) { a[i][j] * x_i} >= Nmin[j] for j in 0..len(Nmin)
-    //the diet must have at most of nutrient j
-    sum(i in 0..F) { a[i][j] * x_i } <= Nmax[j] for j in 0..len(Nmax)
-    //bound the amount of each serving of food i
-    x_i <= Fmax[i] for i in 0..n
-    x_i >= Fmin[i] for i in 0..n
-where    
-    // Cost of chicken, rice, avocado
-    let C = [1.5, 0.5, 2.0]
-    // Min and max of: protein, carbs, fats
-    let Nmin = [50, 200, 0] 
-    let Nmax = [150, 300, 70]
-    // Min and max servings of each food    
-    let Fmin = [1, 1, 1] 
-    let Fmax = [5, 5, 5]
-    let a = [
-        //protein, carbs, fats        
-        [30, 0, 5], // Chicken
-        [2, 45, 0], // Rice
-        [2, 15, 20] // Avocado    
-    ]
-    // Number of foods
-    let F = len(a)
-    // Number of nutrients
-    let n = len(Nmax)
+//maximize the value of the bag
+max sum((value, i) in enumerate(values)) { value * x_i }
+s.t.
+    //make sure that the selected items do not go over the bag's capacity
+    sum((weight, i) in enumerate(weights)) { weight * x_i } <= capacity
+where
+    let weights = [10, 60, 30, 40, 30, 20, 20, 2]
+    let values = [1, 10, 15, 40, 60, 90, 100, 15]
+    let capacity = 102
 define
-    x_i as NonNegativeReal for i in 0..n  
+    x_i as Boolean for i in 0..len(weights) 
 `
 
 const pipes = [
