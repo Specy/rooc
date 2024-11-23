@@ -11,8 +11,8 @@ s.t.
     //the diet must have at most of nutrient j
     sum(i in 0..F) { a[i][j] * x_i } <= Nmax[j] for j in 0..len(Nmax)
     //bound the amount of each serving of food i
-    x_i <= Fmax[i] for i in 0..N
-    x_i >= Fmin[i] for i in 0..N
+    x_i <= Fmax[i] for i in 0..n
+    x_i >= Fmin[i] for i in 0..n
 where    
     // Cost of chicken, rice, avocado
     let C = [1.5, 0.5, 2.0]
@@ -31,9 +31,9 @@ where
     // Number of foods
     let F = len(a)
     // Number of nutrients
-    let N = len(Nmax)
+    let n = len(Nmax)
 define
-    x_i as NonNegativeReal for i in 0..N  
+    x_i as NonNegativeReal for i in 0..n  
 `
 
 const pipes = [
@@ -41,8 +41,8 @@ const pipes = [
     Pipes.PreModelPipe,
     Pipes.ModelPipe,
     Pipes.LinearModelPipe,
-    Pipes.RealPipe
+    Pipes.MILPSolverPipe
 ]
-const res = WasmPipeRunner.new_wasm(pipes).wasm_run_from_string(model, [])
+const res = WasmPipeRunner.new_wasm(pipes).wasm_run_from_string(model, [], [])
 
 console.log(res[res.length - 1])

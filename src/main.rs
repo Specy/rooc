@@ -4,6 +4,7 @@ use rooc::pipe::{
     CompilerPipe, LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData, PreModelPipe,
     RealSolver, StandardLinearModelPipe,
 };
+use rooc::pipe::MILPSolverPipe;
 
 #[allow(unused)]
 fn main() {
@@ -19,7 +20,7 @@ fn main() {
 //how much each product will earn you
 max sum((v, i) in enumerate(value)) { x_i * v }
 subject to
-    sum((time, j) in enumerate(machiningTime[i])){ x_j * time } <= fora for i in len(maxHours)
+    sum((time, j) in enumerate(machiningTime[i])){ x_j * time } <= fora for i in 0..len(maxHours)
     //production limit of machine 1
 where 
     let value = [10, 15]
@@ -30,7 +31,7 @@ where
         [2, 1]
     ]
 define 
-    a, b as NonNegativeReal
+    x_0, x_1 as NonNegativeReal
     "#
     .to_string();
     let pipe_runner = PipeRunner::new(vec![
@@ -38,6 +39,7 @@ define
         Box::new(PreModelPipe::new()),
         Box::new(ModelPipe::new()),
         Box::new(LinearModelPipe::new()),
+        Box::new(MILPSolverPipe::new())
     ]);
 
     let (result) = pipe_runner.run(
