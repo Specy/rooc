@@ -12,7 +12,7 @@ problem = {
     	nl+ ~
     	^"define" ~ nl+ ~
     	#define = domains_declaration
-    )? ~ 
+    )? ~
     nl* ~
     EOI
 }
@@ -53,7 +53,7 @@ domain_variables = { (variable ~ comma ~ nl*)* ~ variable }
 as_assertion = {
     #type = (!keyword ~ as_type) ~
     #values = (as_value?)
-} 
+}
 as_value = { "(" ~ (tagged_exp ~ comma)* ~ tagged_exp ~ ")" }
 as_type = @{  LETTER ~ (LETTER | NUMBER)* }
 // iterations
@@ -77,7 +77,7 @@ range_iterator = {
 tagged_exp = { exp }
 exp         = _{ unary_op? ~ exp_leaf ~ (binary_op ~ unary_op? ~ exp_leaf)* }
 exp_leaf    = _{  block_scoped_function | block_function | function | implicit_mul | parenthesis | modulo  | array_access | primitive | variable  }
-implicit_mul = { 
+implicit_mul = {
 	(number | parenthesis | modulo){2,} ~ variable? |
   (number | parenthesis | modulo) ~ variable
 }
@@ -91,10 +91,10 @@ function_pars = { (tagged_exp ~(comma ~ tagged_exp)*)?}
 block_function = {
 	#name = function_name ~
     "{" ~ nl* ~ #body = comma_separated_exp ~ nl* ~"}"
-}	
+}
 block_scoped_function = {
-	#name = function_name ~ 
-    "(" ~ nl* ~ #range = iteration_declaration_list ~ nl* ~")" ~ 
+	#name = function_name ~
+    "(" ~ nl* ~ #range = iteration_declaration_list ~ nl* ~")" ~
     "{" ~ nl* ~ #body = tagged_exp ~ nl* ~ "}"
 }
 // pointer access var[i][j] or var[0] etc...
@@ -125,7 +125,7 @@ simple_variable   = @{ "$"? ~ LETTER ~ (LETTER | NUMBER)* }
 
 escaped_compound_variable = { "\\" ~ compound_variable }
 compound_variable = { simple_variable? ~ ("_" ~ compound_variable_body)+ }
-compound_variable_body = _{ (simple_variable | number) | "{" ~ nl* ~ (tagged_exp) ~ nl* ~ "}" } 
+compound_variable_body = _{ (simple_variable | number) | "{" ~ nl* ~ (tagged_exp) ~ nl* ~ "}" }
 number    = _{ float | integer }
 integer = @{ '0'..'9'+ }
 float    = @{ '0'..'9'+ ~ "." ~ ('0'..'9')+ }
@@ -151,6 +151,6 @@ boolean = @{ ^"true" | ^"false" }
 function_name = @{ LETTER+ ~ ("_" ~ (LETTER | NUMBER)+)*}
 // ignore whitespace in whole grammar
 WHITESPACE = _{ " " | "\t" }
-COMMENT = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") | ("//" ~ (!nl ~ ANY)* ~ nl)}
+COMMENT = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") | ("//" ~ (!nl ~ ANY)*)}
 range_type = @{ "..=" | ".." }
 no_par = @{ "_" }

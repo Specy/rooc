@@ -458,21 +458,21 @@ define
     fn test_comments() {
         let input = "
         //aaaa
-        min 1
+        min 1 //test
         /* aaa */
-        s.t.
+        s.t. //aaa
         /*
             aaa
         */
-            x <= 2
-        where
+            x <= /*aasdasd*/ 2
+        where //aaaaa
             //aaa
             let y = 3 /*
             aaa */
-            let z = 4
-        define
+            let /* asdasd */ z = 4
+        define //aaaa
             //aa
-            x as Real //aaa
+            x as /* aaaa */ Real //aaa
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform(vec![], &IndexMap::new())

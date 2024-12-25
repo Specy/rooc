@@ -7,7 +7,7 @@ documentation = "https://rooc.specy.app/docs/rooc"
 description = "A modeling language to write and solve linear optimization models"
 keywords = ["optimization", "DSL", "solver", "mathematics", "linear-programming"]
 categories = ["mathematics", "algorithms", "science", "api-bindings", "data-structures"]
-version = "0.1.9"
+version = "0.1.10"
 license = "GPL-3.0"
 edition = "2021"
 
