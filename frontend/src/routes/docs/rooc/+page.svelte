@@ -21,25 +21,11 @@
         ROOC documentation
     </h1>
     <p>
-        ROOC is a language designed to help you formalize problems, and prepares those problems in linear form to be solved. The ROOC environment
-        does this in 3 steps:
+        Rooc is a language designed to help you formalize problems and solve them through optimization models. You only need to focus on formalizing your problem to get started; the ROOC environment is able to handle the rest.
     </p>
-    <ol>
-        <li>
-        Compile-and-parse step helps formalize your problem into a pre-model (e.g. a LaTeX expression)
-        </li>
-        <li>
-        Transform step converts the formal problem into models you can revisit later.
-        </li>
-        <li>
-        Runtime step will run your linear model against solvers to find the optimal solution.
-        </li>
-    </ol>
     <p>
-        You only need to focus on formalising your problem in the first step and the ROOC environment is able to handle the rest. You can always
-        revisit and revise your models later if needed.
+    You can always revisit and revise your models later if needed.
     </p>
-
     <h1>
         Getting started
     </h1>
