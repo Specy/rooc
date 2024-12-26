@@ -58,21 +58,49 @@
 
     <h1>Why Would You Use ROOC?</h1>
     <p>
-    Picture your team dealing with limited resources and an ever-growing workload. It's not long before you're searching for an SaaS like Linear app to help divide up the work and track overlap between responsibilities and problems.
+    Picture any scenario where you're faced with making the best of limited resources.
+    There any are number of domains where we often face these kind of decisions, but we'll start with a trip for groceries.
     </p>
     <p>
-    We often want to track such overlaps so that we can find two kinds of solutions:
+    You have a $50 store coupon and need to buy your groceries for the week. Your shopping list includes:
     </p>
-    <ol>
-        <li>Optimal minimum solution to help run as lean as possible in early stages.</li>
-        <li>Optimal maximum solution to reap the most benefits at mature stages.</li>
-    </ol>
+    <ul>
+         <li>
+         At least 3 fruits
+        </li>
+        <li>
+        At least 2 vegetables
+        </li>
+        <li>
+        At least 1 dairy product
+        </li>
+    </ul>
     <p>
-    Instead of paying for external service to crunch these solutions, you can think of ROOC as the toolkit to approach building your own in-house service.
+        Each item has a cost:
     </p>
-    <p>ROOC won't mockup the service for you, but its output gives you the common ground to help identify and agree on problems before committing to the work needed to try achieving an optimal outcome.
+    <ul>
+        <li>
+            Apples: $4
+        </li>
+        <li>
+            Bananas: $3
+        </li>
+        <li>
+            Carrots: $2
+        </li>
+        <li>
+            Spinach: $3
+        </li>
+        <li>
+            Milk: $5
+        </li>
+        <li>
+            Cheese: $6
+        </li>
+    </ul>
+    <p>
+        Your goal is to select items that meet the requirements and spend at least the full coupon, but you want to minimize spending more than the coupon value. ROOC can help you make your next move.
     </p>
-
     <h1>
         Contributing
     </h1>
