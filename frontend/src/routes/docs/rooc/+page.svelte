@@ -23,9 +23,6 @@
     <p>
         ROOC is a language designed to help you formalize problems and solve them through optimization models. You only need to focus on formalizing your problem to get started; the ROOC environment is able to handle the rest.
     </p>
-    <p>
-    You can always revisit and revise your models later if needed.
-    </p>
     <h1>
         Getting started
     </h1>
@@ -42,6 +39,9 @@
         These documentation pages are structured to help learn how ROOC works, guiding you through the syntax and how to create your own models.
     </p>
     <ul>
+        <li>
+            <a href="/docs/rooc/what-are-optimization-models">What are optimization models?</a>
+        </li>
         <li>
             <a href="/docs/rooc/rooc-syntax">Rooc syntax</a>
         </li>
@@ -99,7 +99,8 @@
         </li>
     </ul>
     <p>
-        Your goal is to select items that meet the requirements and spend at least the full coupon, but you want to minimize spending more than the coupon value. ROOC can help you make your next move.
+        Your goal is to select items that meet the requirements and spend at least the full coupon, but you want to minimize spending more than the coupon value.
+        <br/> With ROOC you can formalize and solve this problem.
     </p>
     <h1>
         Contributing

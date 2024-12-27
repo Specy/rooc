@@ -47,6 +47,11 @@
                     on:click={() => (menuOpen = false)}
             />
             <MenuLink
+                    href="/docs/rooc/what-are-optimization-models"
+                    title="What are optimization models"
+                    on:click={() => (menuOpen = false)}
+            />
+            <MenuLink
                     href="/docs/rooc/rooc-syntax"
                     title="Rooc syntax"
                     on:click={() => (menuOpen = false)}

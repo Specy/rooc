@@ -9,10 +9,7 @@
     -webkit-tap-highlight-color: transparent;
     outline: none;
 }
-p{
-    color: #b2b2b2;
-    max-width: 75ch;
-}
+
 
 body{
     width: 100%;
