@@ -21,10 +21,14 @@
         ROOC documentation
     </h1>
     <p>
-        ROOC is a language designed to parse and convert formal optimization models into static formulations. These
-        static formulations can be transformed into linear models which can then be solved using optimization
-        techniques.
+        ROOC is a language designed to help you formalize problems and solve them through optimization models. You only need to focus on formalizing your problem to get started; the ROOC environment is able to handle the rest.
     </p>
+    <p>
+    You can always revisit and revise your models later if needed.
+    </p>
+    <h1>
+        Getting started
+    </h1>
     <p>
         If you are looking for the typescript library documentation, look <a href={link}
                                                                              target="_blank"
@@ -34,13 +38,8 @@
         If you are looking for the rust library documentation, look <a href="https://docs.rs/rooc/latest/rooc/" target="_blank"
                                                                        style="color: var(--accent-10); text-decoration: underline">Here</a>
     </p>
-    <h1>
-        Getting started
-    </h1>
     <p>
-        To learn how ROOC works, follow those documentation pages, they will guide you through the syntax and how to
-        create
-        your own models.
+        These documentation pages are structured to help learn how ROOC works, guiding you through the syntax and how to create your own models.
     </p>
     <ul>
         <li>
@@ -56,6 +55,52 @@
             <a href="/docs/rooc/examples">Rooc examples</a>
         </li>
     </ul>
+
+    <h1>Why Would You Use ROOC?</h1>
+    <p>
+    Picture any scenario where you're faced with making the best of limited resources.
+    There any are number of domains where we often face these kind of decisions, but we'll start with a trip for groceries.
+    </p>
+    <p>
+    You have a $50 store coupon and need to buy your groceries for the week. Your shopping list includes:
+    </p>
+    <ul>
+         <li>
+         At least 3 fruits
+        </li>
+        <li>
+        At least 2 vegetables
+        </li>
+        <li>
+        At least 1 dairy product
+        </li>
+    </ul>
+    <p>
+        Each item has a cost:
+    </p>
+    <ul>
+        <li>
+            Apples: $4
+        </li>
+        <li>
+            Bananas: $3
+        </li>
+        <li>
+            Carrots: $2
+        </li>
+        <li>
+            Spinach: $3
+        </li>
+        <li>
+            Milk: $5
+        </li>
+        <li>
+            Cheese: $6
+        </li>
+    </ul>
+    <p>
+        Your goal is to select items that meet the requirements and spend at least the full coupon, but you want to minimize spending more than the coupon value. ROOC can help you make your next move.
+    </p>
     <h1>
         Contributing
     </h1>
@@ -64,6 +109,7 @@
             href="https://github.com/Specy/rooc" style="color: var(--accent-10); text-decoration: underline">Github</a>.
         <br/>
     </p>
+
     <h1>
         Limitations
     </h1>
