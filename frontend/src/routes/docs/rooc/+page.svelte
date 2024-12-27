@@ -21,7 +21,7 @@
         ROOC documentation
     </h1>
     <p>
-        Rooc is a language designed to help you formalize problems and solve them through optimization models. You only need to focus on formalizing your problem to get started; the ROOC environment is able to handle the rest.
+        ROOC is a language designed to help you formalize problems and solve them through optimization models. You only need to focus on formalizing your problem to get started; the ROOC environment is able to handle the rest.
     </p>
     <p>
     You can always revisit and revise your models later if needed.
