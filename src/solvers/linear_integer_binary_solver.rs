@@ -32,6 +32,7 @@ impl Display for IntOrBoolValue {
 ///
 /// Takes a linear model containing boolean and integer variables and returns an optimal solution
 /// or an error if the problem cannot be solved.
+/// All coefficients and constant numbers will be converted into an i32
 ///
 /// # Arguments
 /// * `lp` - The linear programming model to solve
@@ -76,32 +77,30 @@ pub fn solve_integer_binary_lp_problem(
             got: invalid_variables,
         });
     }
-    let binary_variables = lp
-        .domain()
+    let domain = lp.domain();
+    let vars = lp.variables().clone();
+    let enum_vars: Vec<(usize, String)> = vars.into_iter().enumerate().collect();
+    let binary_variables = enum_vars
         .iter()
-        .filter_map(|(name, var)| {
-            if *var.get_type() == VariableType::Boolean {
-                Some(name.clone())
+        .filter_map(|(indx, var)| {
+            let domain = domain.get(var).unwrap();
+            if *domain.get_type() == VariableType::Boolean {
+                Some((var.clone(), *indx))
             } else {
                 None
             }
         })
-        .enumerate()
-        .map(|(i, name)| (name, i))
         .collect::<IndexMap<_, _>>();
-
-    let integer_variables = lp
-        .domain()
+    let integer_variables = enum_vars
         .iter()
-        .filter_map(|(name, var)| {
-            if matches!(var.get_type(), VariableType::IntegerRange(_, _)) {
-                Some(name.clone())
+        .filter_map(|(indx, var)| {
+            let domain = domain.get(var).unwrap();
+            if matches!(domain.get_type(), VariableType::IntegerRange(_, _)) {
+                Some((var.clone(), *indx))
             } else {
                 None
             }
         })
-        .enumerate()
-        .map(|(i, name)| (name, i))
         .collect::<IndexMap<_, _>>();
 
     let mut m = Model::default();
@@ -146,9 +145,20 @@ pub fn solve_integer_binary_lp_problem(
                     .unwrap_or(&0.0),
             });
         }
-        let lhs_binary = m.sum_iter(lhs_binary.unwrap());
-        let lhs_integer = m.sum_iter(lhs_integer.unwrap());
-        let lhs = m.sum(&[lhs_binary, lhs_integer]);
+        let mut exprs = vec![];
+        let lhs_binary = lhs_binary.unwrap();
+        let lhs_integer = lhs_integer.unwrap();
+        if !lhs_binary.is_empty() {
+            exprs.push(m.sum_iter(lhs_binary));
+        }
+        if !lhs_integer.is_empty() {
+            exprs.push(m.sum_iter(lhs_integer));
+        }
+        //don't do unnecessary sums if there are no integer or no binary variables
+        let lhs = match exprs.len() {
+            1 => exprs[0],
+            _ => m.sum(&exprs),
+        };
         let rhs = constraint.rhs().to_i32();
         if rhs.is_none() {
             return Err(SolverError::TooLarge {
@@ -192,9 +202,22 @@ pub fn solve_integer_binary_lp_problem(
                 .unwrap_or(&0.0),
         });
     }
-    let objective_binary = m.sum_iter(objective_binary.unwrap());
-    let objective_integer = m.sum_iter(objective_integer.unwrap());
-    let objective = m.sum(&[objective_binary, objective_integer]);
+    let objective_binary = objective_binary.unwrap();
+    let objective_integer = objective_integer.unwrap();
+
+    let mut obj_exprs = vec![];
+    if !objective_binary.is_empty() {
+        obj_exprs.push(m.sum_iter(objective_binary));
+    }
+    if !objective_integer.is_empty() {
+        obj_exprs.push(m.sum_iter(objective_integer));
+    }
+    //don't do unnecessary sums if there are no integer or no binary variables
+    let objective = match obj_exprs.len() {
+        1 => obj_exprs[0],
+        _ => m.sum(&obj_exprs),
+    };
+
     let solution = match lp.optimization_type() {
         OptimizationType::Max => m.maximize(objective),
         OptimizationType::Min => m.minimize(objective),
@@ -209,6 +232,7 @@ pub fn solve_integer_binary_lp_problem(
         .iter()
         .map(|(name, i)| (i, name))
         .collect::<IndexMap<_, _>>();
+
     match solution {
         None => Err(SolverError::DidNotSolve),
         Some(solution) => {
@@ -216,24 +240,24 @@ pub fn solve_integer_binary_lp_problem(
                 .get_values_binary(&vars_binary)
                 .iter()
                 .enumerate()
-                .map(|(v, n)| {
-                    let name = *rev_binary_variables.get(&v).unwrap();
-                    Assignment {
-                        name: name.clone(),
+                .filter_map(|(v, n)| {
+                    let name = rev_binary_variables.get(&v);
+                    name.map(|name| Assignment {
+                        name: (*name).clone(),
                         value: IntOrBoolValue::Bool(*n),
-                    }
+                    })
                 })
                 .chain(
                     solution
                         .get_values(&vars_integer)
                         .iter()
                         .enumerate()
-                        .map(|(v, n)| {
-                            let name = *rev_integer_variables.get(&v).unwrap();
-                            Assignment {
-                                name: name.clone(),
+                        .filter_map(|(v, n)| {
+                            let name = rev_integer_variables.get(&v);
+                            name.map(|name| Assignment {
+                                name: (*name).clone(),
                                 value: IntOrBoolValue::Int(*n),
-                            }
+                            })
                         }),
                 )
                 .collect::<Vec<Assignment<IntOrBoolValue>>>();

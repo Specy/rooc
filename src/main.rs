@@ -1,37 +1,24 @@
 use indexmap::IndexMap;
+use rooc::pipe::IntegerBinarySolverPipe;
 #[allow(unused)]
 use rooc::pipe::{
     CompilerPipe, LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData, PreModelPipe,
     RealSolver, StandardLinearModelPipe,
 };
-use rooc::pipe::MILPSolverPipe;
 
 #[allow(unused)]
 fn main() {
-    /*
-    for some reason this does not generate a valid basis during solution:
-            x + 3y + 4z = 1
-            2x + y + 3z = 2
-    but this does:
-            2x + y + 3z = 2
-            x + 3y + 4z = 1
-     */
     let source = r#"
-//how much each product will earn you
-max sum((v, i) in enumerate(value)) { x_i * v }
+min (4a + 3b + 2ca + 3s + 5m + 6ch) - 50
 subject to
-    sum((time, j) in enumerate(machiningTime[i])){ x_j * time } <= fora for i in 0..len(maxHours)
-    //production limit of machine 1
-where 
-    let value = [10, 15]
-    let fora = 10
-    let maxHours = [8, 6]
-    let machiningTime = [
-        [1, 2],
-        [2, 1]
-    ]
-define 
-    x_0, x_1 as NonNegativeReal
+    a + b >= 3
+    ca + s >= 2
+    m + ch >= 1
+    4a + 3b + 2ca + 3s + 5m + 6ch >= 50
+    ca >= 0
+    ch >= 0
+define
+    a, b, ca, s, m, ch as IntegerRange(0, 100)
     "#
     .to_string();
     let pipe_runner = PipeRunner::new(vec![
@@ -39,7 +26,7 @@ define
         Box::new(PreModelPipe::new()),
         Box::new(ModelPipe::new()),
         Box::new(LinearModelPipe::new()),
-        Box::new(MILPSolverPipe::new())
+        Box::new(IntegerBinarySolverPipe::new()),
     ]);
 
     let (result) = pipe_runner.run(

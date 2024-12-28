@@ -1,7 +1,6 @@
 use crate::{
-    solve_binary_lp_problem, solve_integer_binary_lp_problem, solve_milp_lp_problem,
-    solve_real_lp_problem_clarabel, Assignment, IntOrBoolValue, LinearModel, LpSolution, MILPValue,
-    SolverError, VariableType,
+    solve_binary_lp_problem, solve_milp_lp_problem, solve_real_lp_problem_clarabel, Assignment,
+    IntOrBoolValue, LinearModel, LpSolution, MILPValue, SolverError, VariableType,
 };
 
 /// Solves a any kind of linear programming problem by picking the right solver for the model.
@@ -58,11 +57,11 @@ pub fn auto_solver(lp: &LinearModel) -> Result<LpSolution<MILPValue>, SolverErro
     });
     match (has_binary, has_integer, has_real) {
         (true, true, true) => solve_milp_lp_problem(lp),
-        (true, true, false) => solve_integer_binary_lp_problem(lp).map(int_bool_to_milp),
+        (true, true, false) => solve_milp_lp_problem(lp), //solve_integer_binary_lp_problem(lp).map(int_bool_to_milp),
         (true, false, true) => solve_milp_lp_problem(lp),
         (true, false, false) => solve_binary_lp_problem(lp).map(bool_to_milp),
         (false, true, true) => solve_milp_lp_problem(lp),
-        (false, true, false) => solve_integer_binary_lp_problem(lp).map(int_bool_to_milp),
+        (false, true, false) => solve_milp_lp_problem(lp), //solve_integer_binary_lp_problem(lp).map(int_bool_to_milp),
         (false, false, true) => solve_real_lp_problem_clarabel(lp).map(real_to_milp),
         (false, false, false) => Ok(LpSolution::new(vec![], 0.0)),
     }
@@ -80,6 +79,7 @@ fn bool_to_milp(val: LpSolution<bool>) -> LpSolution<MILPValue> {
     LpSolution::new(values, val.value())
 }
 
+#[allow(unused)]
 fn int_bool_to_milp(val: LpSolution<IntOrBoolValue>) -> LpSolution<MILPValue> {
     let values = val
         .assignment()

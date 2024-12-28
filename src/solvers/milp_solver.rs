@@ -133,7 +133,10 @@ pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, 
                     }
                 })
                 .collect();
-            Ok(LpSolution::new(assignment, s.objective()))
+            Ok(LpSolution::new(
+                assignment,
+                s.objective() + lp.objective_offset(),
+            ))
         }
         Err(e) => Err(match e {
             Error::InternalError(s) => SolverError::Other(s),
