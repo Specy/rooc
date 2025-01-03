@@ -3,12 +3,15 @@
     import Column from "$cmp/layout/Column.svelte";
     import Var from "$cmp/pipe/Var.svelte";
     import {formatNum} from "$cmp/pipe/utils";
+    import {textDownloader} from "$lib/utils";
+    import Button from "$cmp/inputs/Button.svelte";
+    import Row from "$cmp/layout/Row.svelte";
 
     interface Props {
         realSolution: LpSolution<number>;
     }
 
-    let { realSolution }: Props = $props();
+    let {realSolution}: Props = $props();
 
 </script>
 
@@ -20,7 +23,7 @@
             <tr>
                 {#each realSolution.assignment as assignment}
                     <th>
-                        <Var value={assignment.name} />
+                        <Var value={assignment.name}/>
                     </th>
                 {/each}
             </tr>
@@ -38,9 +41,19 @@
         </table>
 
     </div>
-    <div style="font-size: 1.5rem">
-        Optimal value: {formatNum(realSolution.value)}
-    </div>
+    <Row justify="between">
+        <div style="font-size: 1.5rem">
+            Optimal value: {formatNum(realSolution.value)}
+        </div>
+        <Button
+                on:click={() => textDownloader(JSON.stringify({
+                value: realSolution.value,
+                assignment: Object.fromEntries(realSolution.assignment.map(({name, value}) => [name, value]))
+                }, null, 4),'solution.json')}
+        >
+            Download solution
+        </Button>
+    </Row>
 </Column>
 
 <style lang="scss">
@@ -75,11 +88,13 @@
   th {
     font-weight: bold;
   }
-  .T{
+
+  .T {
     color: var(--success);
     font-weight: bold;
   }
-  .F{
+
+  .F {
     color: var(--danger);
     font-weight: bold;
 

@@ -2,24 +2,27 @@
     import type {LpSolution} from "@specy/rooc";
     import Column from "$cmp/layout/Column.svelte";
     import Var from "$cmp/pipe/Var.svelte";
+    import Row from "$cmp/layout/Row.svelte";
+    import Button from "$cmp/inputs/Button.svelte";
+    import {textDownloader} from "$lib/utils";
+    import {formatNum} from "$cmp/pipe/utils";
 
     interface Props {
         binarySolution: LpSolution<boolean>;
     }
 
-    let { binarySolution }: Props = $props();
+    let {binarySolution}: Props = $props();
 
 </script>
 
 <Column gap="1rem">
-
     <div class="table-wrapper">
         <table>
             <thead>
             <tr>
                 {#each binarySolution.assignment as assignment}
                     <th>
-                        <Var value={assignment.name} />
+                        <Var value={assignment.name}/>
                     </th>
                 {/each}
             </tr>
@@ -28,7 +31,7 @@
             <tr>
                 {#each binarySolution.assignment as assignment}
                     <td
-                        class={assignment.value ? 'T' : 'F'}
+                            class={assignment.value ? 'T' : 'F'}
                     >
                         {assignment.value ? 'T' : 'F'}
                     </td>
@@ -38,9 +41,20 @@
         </table>
 
     </div>
-    <div style="font-size: 1.5rem">
-        Optimal value: {binarySolution.value}
-    </div>
+    <Row justify="between">
+        <div style="font-size: 1.5rem">
+            Optimal value: {formatNum(binarySolution.value)}
+        </div>
+        <Button
+                on:click={() => textDownloader(JSON.stringify({
+                value: binarySolution.value,
+                assignment: Object.fromEntries(binarySolution.assignment.map(({name, value}) => [name, value]))
+                }, null, 4),'solution.json')}
+        >
+            Download solution
+        </Button>
+    </Row>
+
 </Column>
 
 <style lang="scss">
@@ -75,11 +89,13 @@
   th {
     font-weight: bold;
   }
-  .T{
+
+  .T {
     color: var(--success);
     font-weight: bold;
   }
-  .F{
+
+  .F {
     color: var(--danger);
     font-weight: bold;
 
