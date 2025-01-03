@@ -129,7 +129,7 @@ pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64
                 .fold(lp.objective_offset(), |acc, (i, a)| {
                     acc + a.value * coeffs[i]
                 });
-            Ok(LpSolution::new(vars, value + lp.objective_offset()))
+            Ok(LpSolution::new(vars, value))
         }
         Err(e) => match e {
             ResolutionError::Unbounded => Err(SolverError::Unbounded),

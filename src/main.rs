@@ -15,10 +15,8 @@ subject to
     ca + s >= 2
     m + ch >= 1
     4a + 3b + 2ca + 3s + 5m + 6ch >= 50
-    ca >= 0
-    ch >= 0
 define
-    a, b, ca, s, m, ch as IntegerRange(0, 100)
+    a, b, ca, s, m, ch as NonNegativeReal(0, 100)
     "#
     .to_string();
     let pipe_runner = PipeRunner::new(vec![
@@ -26,7 +24,7 @@ define
         Box::new(PreModelPipe::new()),
         Box::new(ModelPipe::new()),
         Box::new(LinearModelPipe::new()),
-        Box::new(IntegerBinarySolverPipe::new()),
+        Box::new(RealSolver::new()),
     ]);
 
     let (result) = pipe_runner.run(
