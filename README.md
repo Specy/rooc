@@ -11,19 +11,55 @@
 
 [Go to the library documentation](https://rooc.specy.app/docs/rooc)
 
+[Go to the rooc web modeling platform](https://rooc.specy.app/)
+
+
 **ROOC** stands for the courses I took in university—*Ricerca Operativa* (Operational Research) and *Ottimizzazione Combinatoria* (Combinatorial Optimization)—which deal with solving optimization models.
 
 # What it is
-**ROOC** is a compiler designed to parse and convert formal optimization models into static formulations. These static formulations can be transformed into linear models which can then be solved using optimization techniques. 
+**ROOC** is a modeling language designed to write formal optimization models, and together with data, transform it into a linear model which can then be solved using optimization techniques. 
 
 The language provides support for defining formal models, including functions, constants, arrays, graphs, tuples, etc... It also includes built-in utility functions for iterating over graphs, edges, arrays, ranges, and more.
 
-The library is compiled as a WebAssembly (WASM) module and integrated into the [web editor](https://rooc.specy.app), which features Language Server Protocol (LSP) support for type checking, code completion, and documentation.
-
+If you just want to solve a problem, you can use the [web platform](https://rooc.specy.app) or implement your own through the [rust lib](https://crates.io/crates/rooc) or [typescript lib](https://www.npmjs.com/package/@specy/rooc)
 # Examples
-For examples of using the rust lib look at the [examples folder](https://github.com/Specy/rooc/tree/main/examples)
 
 For examples of models [look in the rooc docs](https://rooc.specy.app/docs/rooc/examples)
+
+Here is an example of the knapsack problem modeled in ROOC and solved through the rust library.
+
+It shows most of the feature of the library and language, adding data, and solving the model with a binary solver
+```rust
+    let source = "
+max sum((value, i) in enumerate(values)) { value * x_i }
+s.t.
+    sum((weight, i) in enumerate(weights)) { weight * x_i } <= capacity
+
+define
+    x_i as Boolean for i in 0..len(weights)";
+
+    let rooc = RoocParser::new(source.to_string());
+    let parsed = rooc.parse().unwrap();
+    let constants = vec![
+        Constant::from_primitive(
+            "weights",
+            IterableKind::Integers(vec![10, 60, 30, 40, 30, 20, 20, 2]).into_primitive(),
+        ),
+        Constant::from_primitive(
+            "values",
+            IterableKind::Integers(vec![1, 10, 15, 40, 60, 90, 100, 15]).into_primitive(),
+        ),
+        Constant::from_primitive("capacity", Primitive::Integer(102)),
+    ];
+    let mut fns: IndexMap<String, Box<dyn RoocFunction>> = IndexMap::new();
+    let model = parsed.transform(constants, &fns).unwrap();
+    let linear = Linearizer::linearize(model).unwrap();
+    let solution = solve_integer_binary_lp_problem(&linear).unwrap();
+```
+
+
+For more examples of using the rust lib look at the [examples folder](https://github.com/Specy/rooc/tree/main/examples)
+
 
 ## Solvers
 Currently in ROOC you can solve any linear models which can be:
@@ -32,7 +68,47 @@ Currently in ROOC you can solve any linear models which can be:
 - Binary only
 - Real only 
 
-
+# Modeling Example
+Given the formal model of the [Dominating set](https://en.wikipedia.org/wiki/Dominating_set) problem, let's model it using graphs:
+```lua
+min sum(u in nodes(G)) { x_u }
+s.t. 
+    x_v + sum((_, u) in neigh_edges(v)) { x_u } >= 1 for v in nodes(G)
+where
+    let G = Graph {
+        A -> [B, C, D, E, F],
+        B -> [A, E, C, D, J],
+        C -> [A, B, D, E, I],
+        D -> [A, B, C, E, H],
+        E -> [A, B, C, D, G],
+        F -> [A, G, J],
+        G -> [E, F, H],
+        H -> [D, G, I],
+        I -> [C, H, J],
+        J -> [B, F, I]
+    }
+define
+    x_u, x_v as Boolean for v in nodes(G), (_, u) in neigh_edges(v)
+```
+It is compiled down to:
+```lua
+min x_A + x_B + x_C + x_D + x_E + x_F + x_G + x_H + x_I + x_J
+s.t.
+        x_A + x_B + x_D + x_C + x_F + x_E >= 1
+        x_B + x_D + x_E + x_J + x_C + x_A >= 1
+        x_C + x_B + x_D + x_I + x_A + x_E >= 1
+        x_D + x_E + x_H + x_C + x_A + x_B >= 1
+        x_E + x_B + x_D + x_C + x_A + x_G >= 1
+        x_F + x_J + x_G + x_A >= 1
+        x_G + x_E + x_F + x_H >= 1
+        x_H + x_D + x_I + x_G >= 1
+        x_I + x_J + x_H + x_C >= 1
+        x_J + x_F + x_I + x_B >= 1
+```
+The model can then be solved using the `Binary solver` pipeline, which will solve the compiled model and find the optimal solution which has value `3` with assignment:
+```
+F	F	F	F	T	F	F	F	T	T
+```
 
 # Implemented Features 
 - [x] Language
@@ -74,54 +150,3 @@ Currently in ROOC you can solve any linear models which can be:
   - [x] Show the different steps of solving the problem
   - [x] List of modifications from the start of the problem to the end of the solution
 
-
-# Example
-Given the formal model of the [Dominating set](https://en.wikipedia.org/wiki/Dominating_set) problem, which shows most of the features of the language:
-```lua
-min sum(u in nodes(G)) { x_u }
-s.t. 
-    x_v + sum((_, u) in neigh_edges(v)) { x_u } >= 1 for v in nodes(G)
-where
-    let G = Graph {
-        A -> [B, C, D, E, F],
-        B -> [A, E, C, D, J],
-        C -> [A, B, D, E, I],
-        D -> [A, B, C, E, H],
-        E -> [A, B, C, D, G],
-        F -> [A, G, J],
-        G -> [E, F, H],
-        H -> [D, G, I],
-        I -> [C, H, J],
-        J -> [B, F, I]
-    }
-define
-    x_u, x_v as Boolean for v in nodes(G), (_, u) in neigh_edges(v)
-```
-It is compiled down to:
-```lua
-min x_A + x_B + x_C + x_D + x_E + x_F + x_G + x_H + x_I + x_J
-s.t.
-        x_A + x_B + x_D + x_C + x_F + x_E >= 1
-        x_B + x_D + x_E + x_J + x_C + x_A >= 1
-        x_C + x_B + x_D + x_I + x_A + x_E >= 1
-        x_D + x_E + x_H + x_C + x_A + x_B >= 1
-        x_E + x_B + x_D + x_C + x_A + x_G >= 1
-        x_F + x_J + x_G + x_A >= 1
-        x_G + x_E + x_F + x_H >= 1
-        x_H + x_D + x_I + x_G >= 1
-        x_I + x_J + x_H + x_C >= 1
-        x_J + x_F + x_I + x_B >= 1
-```
-If the compilation finds a type mismatch (for example, function parameters or compound variable flattening), a stack trace will be generated:
-```lua
-Wrong argument Expected argument of type "Number", got "Graph" evaluating "D"
-        at 3:30 D
-        at 3:28 C[D]
-        at 3:18 enumerate(C[D])
-        at 3:9  sum(j in enumerate(C[D])) { j }
-        at 3:9  sum(j in enumerate(C[D])) { j } <= x_i for i in 0..len(C)
-```
-The model can then be solved using the `Binary solver` pipeline, which will solve the compiled model and find the optimal solution which has value `3` with assignment:
-```
-F	F	F	F	T	F	F	F	T	T
-```

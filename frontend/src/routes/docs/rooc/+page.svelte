@@ -21,7 +21,8 @@
         ROOC documentation
     </h1>
     <p>
-        ROOC is a language designed to help you formalize problems and solve them through optimization models. You only need to focus on formalizing your problem to get started; the ROOC environment is able to handle the rest.
+        ROOC is a language designed to help you formalize problems and solve them through optimization algorithms.
+        Your goal is to write the problem as a optimization model, and ROOC will automatically find the best solution for it.
     </p>
     <h1>
         Getting started
@@ -100,7 +101,7 @@
     </ul>
     <p>
         Your goal is to select items that meet the requirements and spend at least the full coupon, but you want to minimize spending more than the coupon value.
-        <br/> With ROOC you can formalize and solve this problem.
+        <br/> With ROOC you can formalize and solve this problem. Look how to do it <a href="/docs/rooc/what-are-optimization-models">here</a>.
     </p>
     <h1>
         Contributing
@@ -115,7 +116,7 @@
         Limitations
     </h1>
     <p>
-        The maximum length of an expression is about 6000 elements, so big models might give errors when compiling
+        The maximum length of an expression is about 6000 elements, so extremely big models might give errors when compiling
         if they are too big.
     </p>
 </Page>

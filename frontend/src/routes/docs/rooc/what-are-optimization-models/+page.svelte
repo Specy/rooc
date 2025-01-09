@@ -68,7 +68,7 @@
 
     <h2>Objective Function</h2>
     <p>
-        This is what we're trying to <em>minimize</em>. In our case, we want to
+        This is what we're trying to <em>minimize</em> (we can also maximise). In our case, we want to
         <em>minimize</em> the amount of money we spend <em>beyond</em> our $50 coupon. We can express this
         mathematically:
     </p>

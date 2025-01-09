@@ -2,7 +2,6 @@
     import SyntaxHighlighter from '$cmp/SyntaxHighlighter.svelte';
     import Card from '$cmp/layout/Card.svelte';
     import Column from '$cmp/layout/Column.svelte';
-    import {roocExamples} from "$cmp/roocDocs/examples";
     import Separator from "$cmp/misc/Separator.svelte";
 
     const exampleModel = `
@@ -58,7 +57,8 @@ define
         which fits the constraints.
         <br/>
         Some solvers allow you to also work on finding a satisfiable solution, which is a solution that fits the
-        constraints, not caring about the objective function. in that case, instead of writing the min/max keyword and objective function,
+        constraints, not caring about the objective function. in that case, instead of writing the min/max keyword and
+        objective function,
         you can use the "solve" keyword.
     </p>
 
@@ -85,28 +85,43 @@ define
     <h1 id="rooc_variable">
         Variables and compound variables
     </h1>
-    <p>
-        The language has "two runtimes", the formal model and the compiled model. In the formal model you can define
-        variables whose name is
-        determined after the model is compiled (compound variables), variables whose value is replaced during
-        compilation
-        (for example a number), or normal variables which will be kept after the compilation is finished.
-        <br/>
-        <br/>
-        A compound variable is any variable with an underscore in it's name, the first part of the variable will be used
-        as
-        a prefix name, and the rest of the variable (split by the underscore) will be treated as an expression, and
-        evaluated as a string or number
-        <br/>
-        You can omit the curly braces if the index is a number or a variable name, for other kind of expressions, they
-        are
-        needed.
-        <br/>
-        <br/>
-        Sometimes you might need to manually write a name of a variable which looks like a compound variable, in that
-        case
-        you can escape the name with a backslash. Example: "\x_hello"
+    <p>The language employs two execution environments: a formal model and a compiled model. Within the formal model,
+        you can define three types of variables:</p>
+
+    <ul>
+        <li><b>Compound variables:</b> These variables have names determined <em>after</em> compilation.</li>
+        <li><b>Constant variables:</b> These variables have their values replaced during compilation (e.g., substituting
+            a symbolic name with a concrete number).
+        </li>
+        <li><b>Standard variables:</b> These variables retain their names and values after compilation.</li>
+    </ul>
+
+    <h3>Compound Variables</h3>
+
+    <p>A compound variable is identified by an underscore (<code>_</code>) in its name. The portion of the name
+        preceding the first underscore serves as a prefix. The remaining parts (split by underscores) are treated as an
+        expression that must evaluate to a string, number, or node.</p>
+
+    <p>For example, in the compound variable <code>x_i</code>, <code>x</code> is the prefix, and <code>i</code> is a
+        variable whose value will be used during compilation to construct the final variable name. If <code>i</code> has
+        the value <code>3</code>, the compiled variable name would be <code>x_3</code>.</p>
+
+    <p>Compound variables are particularly useful when iterating over a list and dynamically generating variable names
+        based on each element's value. See the example below for further clarification.</p>
+
+    <p>You can use curly braces <code>{"{}"}</code> to enclose more complex expressions within the compound variable
+        name.
+        If the expression is a simple number or a single variable name, the curly braces can be omitted. For instance,
+        <code>{"data_{i + 1}"}</code> allows for more complex index calculations, while <code>item_1</code> or <code>value_count</code>
+        are simpler examples.</p>
+
+    <h3>Escaping Compound Variable Names</h3>
+
+    <p>If you need to use a variable name that <em>looks</em> like a compound variable but should be treated literally,
+        you can escape the name using a backslash (<code>\</code>). For example, <code>\x_hello</code> will be
+        interpreted as the literal variable name <code>x_hello</code>, preventing the evaluation of <code>hello</code>.
     </p>
+
     <Card padding="0.8rem 1rem">
         <SyntaxHighlighter language="rooc"
                            source={`min 1\ns.t.\n    x_i + \\x_hello <= 1\n    x_{i + 1}_i <= 2\nwhere\n    let i = 3`}
@@ -121,17 +136,15 @@ define
     <h1 id="rooc_data">
         Data
     </h1>
-    <p>
+    <p>Following the constraint definitions, you can define data within the <code>where</code> section. This data is
+        then available for use throughout your model.</p>
 
-        After the constraints, inside the "where" section you can define the data of the model, this data will be used
-        inside the constraints and
-        objective functions.
-        <br/>
-        <br/>
-        The ROOC language supports arrays, matrices, graphs, strings, numbers and boolean values.
-        <br/>
-        To define a data constant, you can use the "let" keyword followed by the name of the constant and the value.
-    </p>
+    <p>The ROOC language supports various data types, including arrays, matrices, graphs, strings, numbers, and boolean
+        values. Furthermore, you can use expressions, function calls, and other computational constructs within the
+        <code>where</code> section.</p>
+
+    <p>To define a named constant, use the <code>let</code> keyword followed by the constant's name and its value. For
+        example:</p>
 
     <Card padding="0.8rem 1rem">
         <SyntaxHighlighter language="rooc"
@@ -212,7 +225,8 @@ define
         The domains are "Real", "NonNegativeReal", "Boolean" and "IntegerRange".
         <br/>
         You can define a minimum and maximum value for each domain except for the "Boolean" domain.
-        They are required for the "IntegerRange" domain, and optional for Real (which defaults to -inf and inf) and NonNegativeReal (which defaults to 0 and inf).
+        They are required for the "IntegerRange" domain, and optional for Real (which defaults to -inf and inf) and
+        NonNegativeReal (which defaults to 0 and inf).
     </p>
 
     <Card padding="0.8rem 1rem">
