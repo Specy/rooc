@@ -31,15 +31,12 @@ Here is an example of the knapsack problem modeled in ROOC and solved through th
 It shows most of the feature of the library and language, adding data, and solving the model with a binary solver
 ```rust
     let source = "
-max sum((value, i) in enumerate(values)) { value * x_i }
-s.t.
-    sum((weight, i) in enumerate(weights)) { weight * x_i } <= capacity
+    max sum((value, i) in enumerate(values)) { value * x_i }
+    s.t.
+        sum((weight, i) in enumerate(weights)) { weight * x_i } <= capacity
+    define
+        x_i as Boolean for i in 0..len(weights)";
 
-define
-    x_i as Boolean for i in 0..len(weights)";
-
-    let rooc = RoocParser::new(source.to_string());
-    let parsed = rooc.parse().unwrap();
     let constants = vec![
         Constant::from_primitive(
             "weights",
@@ -51,10 +48,18 @@ define
         ),
         Constant::from_primitive("capacity", Primitive::Integer(102)),
     ];
-    let mut fns: IndexMap<String, Box<dyn RoocFunction>> = IndexMap::new();
-    let model = parsed.transform(constants, &fns).unwrap();
-    let linear = Linearizer::linearize(model).unwrap();
-    let solution = solve_integer_binary_lp_problem(&linear).unwrap();
+    //in case you want to define your own functions that will be used during compilation
+    let fns: FunctionContextMap = IndexMap::new();
+
+
+    let solver = RoocSolver::try_new(source.to_string()).unwrap();
+
+    //use the built in solvers or make your own
+    let solution = solver
+        .solve_with_data_using(solve_binary_lp_problem, constants, &fns)
+        .unwrap();
+
+    println!("{}", solution);
 ```
 
 

@@ -4,10 +4,10 @@ authors = ["Specy <specy.dev@gmail.com>"]
 homepage = "https://rooc.specy.app"
 repository = "https://github.com/specy/rooc"
 documentation = "https://rooc.specy.app/docs/rooc"
-description = "A modeling language to write and solve linear optimization models"
-keywords = ["optimization", "DSL", "solver", "mathematics", "linear-programming"]
-categories = ["mathematics", "algorithms", "science", "api-bindings", "data-structures"]
-version = "0.1.13"
+description = "A mixed integer linear programming modeling language to solve linear optimization models. Extensible, works in WASM and easy to use."
+keywords = ["optimization", "milp", "solver", "mathematics", "linear-programming"]
+categories = ["mathematics", "algorithms", "science"]
+version = "0.1.14"
 license = "GPL-3.0"
 edition = "2021"
 

@@ -1,11 +1,11 @@
 use indexmap::IndexMap;
 use rooc::model_transformer::{TransformError, TransformerContext};
-use rooc::solve_integer_binary_lp_problem;
 use rooc::type_checker::type_checker_context::{FunctionContext, TypeCheckerContext};
 use rooc::Linearizer;
 use rooc::PreExp;
 use rooc::RoocFunction;
 use rooc::RoocParser;
+use rooc::{solve_integer_binary_lp_problem, FunctionContextMap};
 use rooc::{Constant, IterableKind, Primitive, PrimitiveKind};
 
 fn main() {
@@ -30,7 +30,7 @@ define
         ),
         Constant::from_primitive("capacity", Primitive::Integer(102)),
     ];
-    let mut fns: IndexMap<String, Box<dyn RoocFunction>> = IndexMap::new();
+    let mut fns: FunctionContextMap = IndexMap::new();
     fns.insert("doubler".to_string(), Box::new(Doubler {}));
 
     let model = parsed.transform(constants, &fns).unwrap();

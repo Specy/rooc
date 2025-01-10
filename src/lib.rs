@@ -48,6 +48,7 @@ extern crate pest_derive;
 #[allow(unused_imports)]
 use crate::prelude::*;
 use indexmap::IndexMap;
+use std::fmt::{Display, Formatter};
 
 use parser::pre_model::{parse_problem_source, PreModel};
 
@@ -66,6 +67,7 @@ mod transformers;
 pub mod type_checker;
 mod utils;
 
+use crate::model_transformer::TransformError;
 pub use math::*;
 pub use parser::*;
 pub use primitives::*;
@@ -181,7 +183,7 @@ impl RoocParser {
     pub fn type_check(
         &self,
         constants: &Vec<Constant>,
-        fns: &IndexMap<String, Box<dyn RoocFunction>>,
+        fns: &FunctionContextMap,
     ) -> Result<(), String> {
         let parsed = self
             .parse()
@@ -192,6 +194,62 @@ impl RoocParser {
                 .trace_from_source(&self.source)
                 .unwrap_or(e.traced_error())),
         }
+    }
+}
+pub type FunctionContextMap = IndexMap<String, Box<dyn RoocFunction>>;
+pub struct RoocSolver {
+    model: PreModel,
+}
+
+#[derive(Debug)]
+pub enum RoocSolverError<T> {
+    Transform(TransformError),
+    Linearization(LinearizationError),
+    Solver(T),
+}
+impl<T: Display> Display for RoocSolverError<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Transform(t) => write!(f, "{}", t),
+            Self::Linearization(l) => write!(f, "{}", l),
+            Self::Solver(s) => write!(f, "{}", s),
+        }
+    }
+}
+impl RoocSolver {
+    pub fn try_new(source: String) -> Result<Self, CompilationError> {
+        let parser = RoocParser::new(source.clone());
+        let model = parser.parse()?;
+        Ok(RoocSolver { model })
+    }
+
+    pub fn solve_with_data_using<T, E, F>(
+        self,
+        func: F,
+        constants: Vec<Constant>,
+        fns: &FunctionContextMap,
+    ) -> Result<T, RoocSolverError<E>>
+    where
+        F: Fn(&LinearModel) -> Result<T, E>,
+    {
+        self.model
+            .create_type_checker(&constants, fns)
+            .map_err(|e| RoocSolverError::Transform(e))?;
+        let compiled = self
+            .model
+            .transform(constants, fns)
+            .map_err(|e| RoocSolverError::Transform(e))?;
+        let linearized =
+            Linearizer::linearize(compiled).map_err(|e| RoocSolverError::Linearization(e))?;
+        let result = func(&linearized).map_err(|e| RoocSolverError::Solver(e))?;
+        Ok(result)
+    }
+
+    pub fn solve_using<T, E, F>(self, func: F) -> Result<T, RoocSolverError<E>>
+    where
+        F: Fn(&LinearModel) -> Result<T, E>,
+    {
+        self.solve_with_data_using(func, vec![], &IndexMap::new())
     }
 }
 

@@ -156,24 +156,26 @@ define
         Expansion blocks
     </h1>
     <p>
-        Expansion blocks are a special kind of "expression" that can be used to preprocess an expression, an example is
-        the average block
-        which, given a comma separated list of expressions, it will expand it to the average of all the expressions.
+        Expansion blocks are a special type of expression macro, used to preprocess other expressions. A common example
+        is the
+        <code>avg</code> block, which takes a comma-separated list of expressions and expands it calculate the
+        arithmetic
+        average of those expressions.
     </p>
+
 
     <Card padding="0.8rem 1rem">
         <SyntaxHighlighter language="rooc" source={`avg{ x, y, z }`} style="overflow-x: auto;"/>
     </Card>
     <p>
-        will be compiled to
+        This will be compiled to:
     </p>
     <Card padding="0.8rem 1rem">
         <SyntaxHighlighter language="rooc" source={`(x + y + z) / 3`} style="overflow-x: auto;"/>
     </Card>
     <p>
 
-        There are different expansion blocks that can be used to expand the expressions, you can find them in the
-        documentation.
+        There are different kinds of expansion blocks, you can find them in the documentation.
     </p>
 
     <Separator/>
@@ -181,28 +183,30 @@ define
         Scoped expansion blocks
     </h1>
     <p>
-
-        Another type of expansion blocks are the ones that have a scope connected to it, inside the scope, the action of
-        the
-        expansion block
-        will be applied to all the iterations that the scope has.
+        There are also special kinds of expansion blocks, which have a <em>scope</em> attached to it.
         <br/>
-        You can put more than one scope and it will behave like if they were nested inside each other.
+        In the normal expansion blocks, you need to manually specify the different expressions, separating them with a
+        comma.
+        The Scoped expansion blocks, you specify a template (which is the expression inside of the block), and an
+        iteration scope (eg. iterating over a list).
+        <br/>
+        Together with compound variables and scoped expansion blocks, you can do things like creating a summation over a
+        list or range.
+        <br/>
+        As an example, here is creating a summation of <el>x_u</el>, where u is a number from 0 to 3 (3 excluded)
     </p>
 
     <Card padding="0.8rem 1rem">
         <SyntaxHighlighter language="rooc" source={`sum(u in 0..3) { x_u }`} style="overflow-x: auto;"/>
     </Card>
     <p>
-
-        will be compiled to
+        will be compiled to:
     </p>
 
     <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`x_0 + x_1 + x_2 + x_3`} style="overflow-x: auto;"/>
+        <SyntaxHighlighter language="rooc" source={`x_0 + x_1 + x_2`} style="overflow-x: auto;"/>
     </Card>
     <p>
-
         there are different scoped expansion blocks that can be used to expand the expressions, you can find them in the
         documentation.
     </p>
@@ -212,15 +216,12 @@ define
         Domains
     </h1>
     <p>
-
         After the data you can define in which domain each variable will be part of, those variables are the ones that
-        will
-        remain after the compilation is finished.
+        will remain after the compilation is finished. The domain knowledge will then be used by solvers.
         <br/>
         <br/>
         Every variable that will end up in the compiled model must be defined, you can use the "for" iteration like in
-        the
-        constraints to define compound variables.
+        the constraints to define compound variables.
         <br/>
         The domains are "Real", "NonNegativeReal", "Boolean" and "IntegerRange".
         <br/>

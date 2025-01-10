@@ -1,5 +1,4 @@
 use indexmap::IndexMap;
-use rooc::pipe::IntegerBinarySolverPipe;
 #[allow(unused)]
 use rooc::pipe::{
     CompilerPipe, LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData, PreModelPipe,

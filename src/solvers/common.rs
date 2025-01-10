@@ -101,7 +101,10 @@ impl std::fmt::Display for SolverError {
                 write!(f, "The value of variable {} is too large: {}", name, value)
             }
             SolverError::DidNotSolve => {
-                write!(f, "The problem was unable to be solved, it might be infeasible")
+                write!(
+                    f,
+                    "The problem was unable to be solved, it might be infeasible"
+                )
             }
             SolverError::Infisible => {
                 write!(f, "The problem is infeasible")
