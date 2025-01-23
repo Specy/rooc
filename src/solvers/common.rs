@@ -4,7 +4,8 @@ use copper::views::{Times, ViewExt};
 use copper::{VarId, VarIdBinary};
 use indexmap::IndexMap;
 use num_traits::ToPrimitive;
-use serde::Serialize;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 #[allow(unused)]
 use std::fmt::{write, Display, Formatter};
 
@@ -122,13 +123,13 @@ impl std::fmt::Display for SolverError {
 
 /// Represents a variable assignment in a solution.
 /// - `T`: The type of the variable's value
-#[derive(Debug, Clone, Serialize)]
-pub struct Assignment<T: Clone + Serialize + Copy + Display> {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Assignment<T> {
     pub name: String,
     pub value: T,
 }
 
-impl<T: Clone + Serialize + Copy + Display> Display for Assignment<T> {
+impl<T: Clone + Serialize + Copy + DeserializeOwned + Display> Display for Assignment<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} = {}", self.name, self.value)
     }
@@ -136,13 +137,13 @@ impl<T: Clone + Serialize + Copy + Display> Display for Assignment<T> {
 
 /// Represents a solution to a linear programming problem.
 /// - `T`: The type of the variables' values
-#[derive(Debug, Clone, Serialize)]
-pub struct LpSolution<T: Clone + Serialize + Copy + Display> {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LpSolution<T> {
     assignment: Vec<Assignment<T>>,
     value: f64,
 }
 
-impl<T: Clone + Serialize + Copy + Display> Display for LpSolution<T> {
+impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> Display for LpSolution<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Optimal value: {}\n\n", self.value)?;
         write!(
@@ -157,7 +158,7 @@ impl<T: Clone + Serialize + Copy + Display> Display for LpSolution<T> {
     }
 }
 
-impl<T: Clone + Serialize + Copy + Display> LpSolution<T> {
+impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> LpSolution<T> {
     /// Creates a new solution with the given assignments and objective value.
     ///
     /// # Arguments

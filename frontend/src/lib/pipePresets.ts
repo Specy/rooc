@@ -1,11 +1,12 @@
 import {Pipes} from "@specy/rooc"
+import {type AppPipe, InternalPipe} from "$lib/appPipes/AppPipes";
 
 export type PipePreset = {
     name: string,
-    pipes: Pipes[]
+    pipes: AppPipe[]
 }
 
-function makePipePreset(name: string, pipes: Pipes[]): PipePreset {
+function makePipePreset(name: string, pipes: AppPipe[]): PipePreset {
     return {name, pipes}
 }
 
@@ -17,6 +18,13 @@ export const pipePresets = [
         Pipes.ModelPipe,
         Pipes.LinearModelPipe,
         Pipes.AutoSolverPipe
+    ]),
+    makePipePreset("HiGHS solver", [
+        Pipes.CompilerPipe,
+        Pipes.PreModelPipe,
+        Pipes.ModelPipe,
+        Pipes.LinearModelPipe,
+        InternalPipe.HiGHS
     ]),
     makePipePreset("MILP solver", [
         Pipes.CompilerPipe,

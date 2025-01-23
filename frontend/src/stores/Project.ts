@@ -49,10 +49,7 @@ constants({
 */
 `.trim()
 
-export type ProjectPipe = {
-    pipe: Pipes
-    open: boolean
-}
+
 
 export function createProject(): Project {
     return {

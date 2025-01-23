@@ -10,6 +10,7 @@
     import Delete from '~icons/fa/Trash.svelte';
     import FaPlus from "~icons/fa/plus";
     import type {ProjectPipe} from "$stores/userProjectsStore.svelte";
+    import {getDataOfPipe, getDescriptionOfPipe, PIPE_DESCRIPTIONS} from "$lib/appPipes/pipeDescriptions";
 
     interface Props {
         pipe: ProjectPipe;
@@ -25,12 +26,12 @@
     }>()
 
     function getNameOfPipeData(ofPipeData: PipeDataType) {
-        return pipeDataDescriptions[ofPipeData].name
+        return getDataOfPipe(ofPipeData).name
     }
 </script>
 
 <div class="pipe-input">
-    <div class="pipe-line-in" style={pipeDescriptions[pipe.pipe].input !== previousType ? "background-color: var(--danger)" : ""}>
+    <div class="pipe-line-in" style={getDescriptionOfPipe(pipe.pipe).input !== previousType ? "background-color: var(--danger)" : ""}>
 
     </div>
     <div class="pipe-line-out">
@@ -49,11 +50,11 @@
     <Column gap="0.1rem">
         <div
                 class="pipe"
-                class:wrong-pipe={pipeDescriptions[pipe.pipe].input !== previousType}>
+                class:wrong-pipe={getDescriptionOfPipe(pipe.pipe).input !== previousType}>
             <Row align="center" gap="1rem">
                 <PlugIn style="font-size: 1.2rem; margin-top: -0.35rem;"/>
                 <div class="pipe-type">
-                    {getNameOfPipeData(pipeDescriptions[pipe.pipe].input)}
+                    {getNameOfPipeData(getDescriptionOfPipe(pipe.pipe).input)}
                 </div>
             </Row>
         </div>
@@ -65,7 +66,7 @@
                         bind:value={pipe.pipe}
                         class="pipe-select"
                 >
-                    {#each Object.values(pipeDescriptions) as p}
+                    {#each Object.values(PIPE_DESCRIPTIONS) as p}
                         <option value={p.type}>{p.name}</option>
                     {/each}
                 </select>
@@ -78,13 +79,13 @@
             </Row>
 
             <div class="pipe-description">
-                {pipeDescriptions[pipe.pipe].description}
+                {getDescriptionOfPipe(pipe.pipe).description}
             </div>
         </Card>
         <Row align="center" gap="1rem">
             <PlugOut style="font-size: 1.2rem; margin-bottom: -0.3rem; color: var(--border-color)"/>
             <div class="pipe-type">
-                {getNameOfPipeData(pipeDescriptions[pipe.pipe].output)}
+                {getNameOfPipeData(getDescriptionOfPipe(pipe.pipe).output)}
             </div>
         </Row>
     </Column>

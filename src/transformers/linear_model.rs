@@ -1,13 +1,9 @@
-/// A module for representing and manipulating linear programming models.
-#[allow(unused_imports)]
-use crate::prelude::*;
-use indexmap::IndexMap;
-use num_traits::Zero;
-use std::fmt::Display;
-
 use crate::domain_declaration::format_domain;
 use crate::math::{float_lt, VariableType};
 use crate::parser::model_transformer::DomainVariable;
+/// A module for representing and manipulating linear programming models.
+#[allow(unused_imports)]
+use crate::prelude::*;
 use crate::solvers::SolverError;
 use crate::transformers::standard_linear_model::{format_var, StandardLinearModel};
 use crate::utils::{remove_many, InputSpan};
@@ -15,6 +11,10 @@ use crate::{
     math::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
 };
+use indexmap::IndexMap;
+use num_traits::Zero;
+use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 /// Represents a linear constraint in the form: coefficients * variables comparison_operator rhs
 ///
@@ -22,13 +22,28 @@ use crate::{
 /// - coefficients: [2.0, 3.0]
 /// - constraint_type: LessOrEqual
 /// - rhs: 5.0
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct LinearConstraint {
     coefficients: Vec<f64>,
     rhs: f64,
     constraint_type: Comparison,
 }
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
+const ILinearConstraint: &'static str = r#"
+
+export type SerializedLinearConstraint = {
+    rhs: number
+    coefficients: number[]
+    constraint_type: SerializedComparison
+}
+
+export type SerializedComparison = {
+    type: "LessOrEqual" | "GreaterOrEqual" | "Equal" | "Less" | "Greater"
+}
+"#;
 
 impl LinearConstraint {
     /// Creates a new linear constraint.
@@ -122,7 +137,7 @@ impl LinearConstraint {
 /// // Add constraint: x + y <= 10
 /// model.add_constraint(vec![1.0, 1.0], Comparison::LessOrEqual, 10.0);
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct LinearModel {
     variables: Vec<String>,
@@ -132,6 +147,24 @@ pub struct LinearModel {
     objective: Vec<f64>,
     constraints: Vec<LinearConstraint>,
 }
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
+#[allow(non_upper_case_globals)]
+#[cfg(target_arch = "wasm32")]
+const ISerializedLinearModel: &'static str = r#"
+
+export type SerializedLinearModel = {
+    variables: string[]
+    domain: Record<string, DomainVariable>
+    objective_offset: number
+    optimization_type: SerializedOptimizationType
+    objective: number[]
+    constraints: SerializedLinearConstraint[]
+}
+
+export type SerializedOptimizationType = {
+    type: "Min" | "Max" | "Solve"
+}
+"#;
 
 impl Default for LinearModel {
     fn default() -> Self {

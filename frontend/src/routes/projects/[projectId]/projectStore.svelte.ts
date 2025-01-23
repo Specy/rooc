@@ -11,6 +11,7 @@ import {roocJsStd} from "$lib/Rooc/roocJsStd";
 import {runSandboxedCode} from "$lib/sandbox/sandbox";
 import {Monaco} from "$lib/Monaco";
 import {createDebouncer} from "$cmp/pipe/utils";
+import {AppPipesMap} from "$lib/appPipes/AppPipes";
 
 type RoocResult = ({
     ok: boolean,
@@ -66,7 +67,16 @@ export function createCompilerStore(project: Project) {
         try {
             compiling = true
             await new Promise(resolve => setTimeout(resolve, 100))
-            const pipe = new RoocRunnablePipe(project.pipes.map(p => p.pipe))
+            const pipe = new RoocRunnablePipe()
+            for(const p of project.pipes){
+                if(p.pipe < 1000){
+                    pipe.addPipeByName(p.pipe)
+                }else{
+                    const internalPipe = AppPipesMap[p.pipe]
+                    await internalPipe.loader()
+                    pipe.addPipe(internalPipe.fn)
+                }
+            }
             const res = pipe.run(project.content, toConstantEntries(userDefinedData.constants), [
                 ...roocJsStd(),
                 ...userDefinedData.functions

@@ -26,7 +26,9 @@ import {
     TransformErrorWrapper as _TransformErrorWrapper,
     WasmPipableData,
     WasmPipeError,
-    WasmPipeRunner
+    WasmPipeRunner,
+    SerializedLinearModel,
+    JsPipable
 } from './pkg/rooc.js'
 import {Err, Ok, Result} from 'ts-results-es'
 import {ExtractArgTypes, ExtractReturnArgs} from "./runtime";
@@ -91,8 +93,6 @@ export function makeRoocFunction<const T extends [string, SerializedPrimitiveKin
         description
     )
 }
-
-
 
 
 /**
@@ -171,7 +171,7 @@ export class RoocParser {
      * @param data additional constants given to the runtime
      * @param fns additional functions that can be used in the transformation process
      */
-    compileAndTransform(data: ConstantEntry[] = [],fns: RoocFunction[] = []): Result<Model, string> {
+    compileAndTransform(data: ConstantEntry[] = [], fns: RoocFunction[] = []): Result<Model, string> {
         try {
             return Ok(new Model(this.instance.parse_and_transform_wasm(data, cloneJsFunction(fns))))
         } catch (e) {
@@ -252,7 +252,7 @@ export class PreModel {
      * @param data additional constants added to the runtime
      * @param fns additional functions that can be used in the transformation process
      */
-    transform(data: ConstantEntry[] = [],fns: RoocFunction[] = []): Result<Model, TransformError> {
+    transform(data: ConstantEntry[] = [], fns: RoocFunction[] = []): Result<Model, TransformError> {
         try {
             return Ok(new Model(this.instance.transform_wasm(data, cloneJsFunction(fns))))
         } catch (e) {
@@ -316,6 +316,27 @@ export type RoocData =
     RoocType<PipeDataType.IntegerBinarySolution, LpSolution<VarValue>> |
     RoocType<PipeDataType.RealSolution, LpSolution<number>> |
     RoocType<PipeDataType.MILPSolution, LpSolution<MILPValue>>
+
+export type JsPipableData = {
+    type: 'String'
+    value: string
+} | {
+    type: "LinearModel"
+    value: SerializedLinearModel
+} | {
+    type: "BinarySolution"
+    value: LpSolution<boolean>
+} | {
+    type: "IntegerBinarySolution"
+    value: LpSolution<VarValue>
+} | {
+    type: "RealSolution"
+    value: LpSolution<number>
+} | {
+    type: "MILPSolution"
+    value: LpSolution<MILPValue>
+}
+
 
 function toRoocData(data: WasmPipableData): RoocData {
     switch (data.wasm_get_type()) {
@@ -735,8 +756,16 @@ export class EqualityConstraint {
 export class RoocRunnablePipe {
     instance: WasmPipeRunner
 
-    constructor(steps: Pipes[]) {
-        this.instance = WasmPipeRunner.new_wasm(steps)
+    constructor() {
+        this.instance = WasmPipeRunner.new_wasm()
+    }
+
+    addPipeByName(pipe: Pipes) {
+        this.instance.add_step_by_name(pipe)
+    }
+
+    addPipe(cb: (data: JsPipableData) => JsPipableData){
+        this.instance.add_step_with_fn(JsPipable.new_wasm(cb))
     }
 
     /**
@@ -746,7 +775,10 @@ export class RoocRunnablePipe {
      * @param fns additional functions that can be used in the transformation process
      * @returns each step of the pipe returns some data, if there was an error, it's previous context is returned too
      */
-    run(source: string, data: ConstantEntry[] = [], fns: RoocFunction[] = []): Result<RoocData[], { error: String, context: RoocData[] }> {
+    run(source: string, data: ConstantEntry[] = [], fns: RoocFunction[] = []): Result<RoocData[], {
+        error: String,
+        context: RoocData[]
+    }> {
         try {
             const result = this.instance.wasm_run_from_string(source, data, cloneJsFunction(fns))
             return Ok(result.map(toRoocData))

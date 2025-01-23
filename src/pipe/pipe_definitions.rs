@@ -1,11 +1,8 @@
-#[allow(unused_imports)]
-use crate::prelude::*;
-use indexmap::IndexMap;
-use std::fmt::Display;
-
 use crate::parser::model_transformer::Model;
 use crate::parser::model_transformer::TransformError;
 use crate::parser::pre_model::PreModel;
+#[allow(unused_imports)]
+use crate::prelude::*;
 use crate::primitives::Constant;
 use crate::runtime_builtin::RoocFunction;
 use crate::solvers::IntOrBoolValue;
@@ -18,6 +15,9 @@ use crate::transformers::LinearizationError;
 use crate::transformers::StandardLinearModel;
 use crate::utils::CompilationError;
 use crate::{match_pipe_data_to, MILPValue, RoocParser};
+use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 /// The data that can be passed between pipes
 #[derive(Debug, Clone)]

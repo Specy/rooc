@@ -12,6 +12,7 @@
     import Separator from "$cmp/misc/Separator.svelte";
     import Row from "$cmp/layout/Row.svelte";
     import {roocJsStd} from "$lib/Rooc/roocJsStd";
+    import {getDataOfPipe, getDescriptionOfPipe, PIPE_DESCRIPTIONS} from "$lib/appPipes/pipeDescriptions";
     let functions = [
         ...ROOC_RUNTIME_FUNCTIONS.values(),
         ...roocJsStd().map(roocFunctionToRuntimeFunction)
@@ -99,24 +100,24 @@
         will be
         shown as the output.
     </Column>
-    {#each Object.keys(pipeDescriptions) as pipe}
+    {#each Object.keys(PIPE_DESCRIPTIONS) as pipe}
         <Card padding="0.8rem" gap="0.5rem">
             <Column gap="0.2rem">
                 <Row>
                     <div style="width: 8ch">Name:</div>
-                    <b>{pipeDescriptions[pipe].name}</b>
+                    <b>{getDescriptionOfPipe(pipe).name}</b>
                 </Row>
                 <Row>
                     <div style="width: 8ch">Input:</div>
-                    <code>{pipeDataDescriptions[pipeDescriptions[pipe].input].name}</code>
+                    <code>{getDataOfPipe(getDescriptionOfPipe(pipe).input).name}</code>
                 </Row>
                 <Row>
                     <div style="width: 8ch">Output:</div>
-                    <code>{pipeDataDescriptions[pipeDescriptions[pipe].output].name}</code>
+                    <code>{getDataOfPipe(getDescriptionOfPipe(pipe).output).name}</code>
                 </Row>
             </Column>
             <div>
-                {pipeDescriptions[pipe].description}
+                {getDescriptionOfPipe(pipe).description}
             </div>
         </Card>
     {/each}

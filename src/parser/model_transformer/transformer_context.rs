@@ -1,7 +1,7 @@
 #[allow(unused_imports)]
 use crate::prelude::*;
 use indexmap::IndexMap;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::math::VariableType;
 use crate::parser::domain_declaration::VariablesDomainDeclaration;
@@ -116,7 +116,7 @@ impl<T> Default for Frame<T> {
 }
 
 /// Represents a variable in the domain of a model, tracking its type and usage.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DomainVariable {
     as_type: VariableType,
     span: InputSpan,

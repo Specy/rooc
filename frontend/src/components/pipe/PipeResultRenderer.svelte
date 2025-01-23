@@ -8,6 +8,7 @@
     import BinarySolutionRenderer from "$cmp/pipe/BinarySolutionRenderer.svelte";
     import RealSolutionRenderer from "$cmp/pipe/RealSolutionRenderer.svelte";
     import MILPSolutionRenderer from "$cmp/pipe/MILPSolutionRenderer.svelte";
+    import {getDataOfPipe, getDescriptionOfPipe} from "$lib/appPipes/pipeDescriptions";
 
     interface Props {
         data: RoocData;
@@ -27,12 +28,12 @@
 >
     {#snippet title()}
         <h2 {id}>
-            {typeof pipeStep === "string" ? pipeStep : pipeDescriptions[pipeStep].name}
+            {typeof pipeStep === "string" ? pipeStep : getDescriptionOfPipe(pipeStep).name}
 
         </h2>
     {/snippet}
     <div style="margin: 0.5rem 0">
-        {pipeDataDescriptions[data.type].description}
+        {getDataOfPipe(data.type).description}
     </div>
     {#if data.type === PipeDataType.String}
         <SyntaxHighlighter language="rooc" source={data.data}

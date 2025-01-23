@@ -14,11 +14,11 @@ use crate::{enum_with_variants_to_string, InputSpan, Spanned};
 use core::f64;
 use core::fmt;
 use num_traits::ToPrimitive;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 enum_with_variants_to_string! {
-    pub enum Comparison derives[Debug, PartialEq, Clone, Copy] with_wasm {
+    pub enum Comparison derives[Debug, PartialEq, Clone, Copy, Deserialize] with_wasm {
         LessOrEqual,
         GreaterOrEqual,
         Equal,
@@ -69,7 +69,7 @@ impl FromStr for Comparison {
 
 enum_with_variants_to_string! {
 
-    pub enum OptimizationType derives[Debug, PartialEq, Clone] with_wasm {
+    pub enum OptimizationType derives[Debug, PartialEq, Clone, Deserialize] with_wasm {
         Min,
         Max,
         Satisfy
@@ -534,7 +534,7 @@ impl fmt::Display for PreVariableType {
 }
 
 /// Represents the final, resolved type of a variable after being compiled
-#[derive(Debug, PartialEq, Clone, Copy, Serialize)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value")]
 pub enum VariableType {
     /// Boolean variable (0 or 1)
@@ -553,9 +553,9 @@ pub enum VariableType {
 #[cfg(target_arch = "wasm32")]
 const IVariablesDomainDeclaration: &'static str = r#"
 export type VariableType = {
-    type: "Boolean" | "NonNegativeReal" | "Real"
+    type: "Boolean" 
 } | {
-    type: "IntegerRange"
+    type: "IntegerRange" | "NonNegativeReal" | "Real"
     value: [number, number]
 }
 "#;

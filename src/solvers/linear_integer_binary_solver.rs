@@ -7,11 +7,11 @@ use crate::transformers::LinearModel;
 use copper::*;
 use indexmap::IndexMap;
 use num_traits::ToPrimitive;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 /// Represents a variable value that can be either boolean or integer.
-#[derive(Debug, Clone, Serialize, Copy)]
+#[derive(Debug, Clone, Serialize, Deserialize, Copy)]
 #[serde(tag = "type", content = "value")]
 pub enum IntOrBoolValue {
     /// A boolean value (true/false)

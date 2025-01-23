@@ -19,6 +19,7 @@
     import LatexRenderer from "$cmp/LatexRenderer.svelte";
     import ExpandableContainer from "$cmp/layout/ExpandableContainer.svelte";
     import {toast} from "$stores/toastStore";
+    import {getDescriptionOfPipe} from "$lib/appPipes/pipeDescriptions";
 
     interface Props {
         project: Project;
@@ -112,7 +113,7 @@
                         bind:pipe={project.pipes[i]}
                         on:delete={() => project.pipes  = project.pipes .filter((_, index) => index !== i)}
                         on:insert-before={() => project.pipes  = [...project.pipes .slice(0, i), {pipe: Pipes.CompilerPipe, open: false}, project.pipes [i], ...project.pipes .slice(i + 1)]}
-                        previousType={i === 0 ? PipeDataType.String : pipeDescriptions[project.pipes[i - 1].pipe].output}
+                        previousType={i === 0 ? PipeDataType.String : getDescriptionOfPipe(project.pipes[i - 1].pipe).output}
                 />
             {/each}
             <Column gap="0.2rem">

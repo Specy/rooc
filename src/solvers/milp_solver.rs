@@ -2,11 +2,11 @@ use crate::solvers::common::{LpSolution, SolverError};
 use crate::transformers::LinearModel;
 use crate::{Assignment, Comparison, OptimizationType, VariableType};
 use microlp::{ComparisonOp, Error, OptimizationDirection, Problem};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 /// Represents a variable value that can be either boolean or integer.
-#[derive(Debug, Clone, Serialize, Copy)]
+#[derive(Debug, Clone, Serialize, Deserialize, Copy)]
 #[serde(tag = "type", content = "value")]
 pub enum MILPValue {
     /// A boolean value (true/false)

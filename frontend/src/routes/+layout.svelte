@@ -9,6 +9,7 @@
 	import NoiseOverlay from '$cmp/layout/NoiseOverlay.svelte';
 	import PromptProvider from '$cmp/PromptProvider.svelte';
 	import { registerServiceWorker } from '$src/lib/register-sw';
+	import {preloadHighs} from "$lib/appPipes/AppPipes";
 	interface Props {
 		children?: import('svelte').Snippet;
 	}
@@ -16,6 +17,7 @@
 	let { children }: Props = $props();
 	onMount(() => {
 		registerServiceWorker();
+		preloadHighs()
 		themeStorage.load();
 	});
 </script>

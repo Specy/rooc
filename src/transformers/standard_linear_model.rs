@@ -1,14 +1,14 @@
+use crate::math::{float_gt, float_lt, float_ne};
 #[allow(unused_imports)]
 use crate::prelude::*;
-use num_traits::Zero;
-use std::fmt::Display;
-
-use crate::math::{float_gt, float_lt, float_ne};
 use crate::solvers::SolverError;
 use crate::solvers::{divide_matrix_row_by, CanonicalTransformError, Tableau};
 use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standardizer::to_standard_form;
 use crate::utils::remove_many;
+use num_traits::Zero;
+use serde::Serialize;
+use std::fmt::Display;
 
 /// Represents a linear equality constraint in standard form: ax = b where a is a vector of coefficients and b is a constant.
 #[derive(Debug, Clone)]
