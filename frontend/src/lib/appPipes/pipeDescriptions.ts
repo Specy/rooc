@@ -1,5 +1,5 @@
 import {type AppPipe, InternalPipe} from "$lib/appPipes/AppPipes";
-import {pipeDataDescriptions, PipeDataType, type PipeDescription, pipeDescriptions, type Pipes} from "@specy/rooc";
+import {pipeDataDescriptions, PipeDataType, type PipeDescription, pipeDescriptions, type Pipes} from "@specy/rooc/runtime";
 
 const internalPipeDescriptions = {
     [InternalPipe.HiGHS]: {

@@ -1,5 +1,5 @@
 import type { PossibleCompletionToken, SerializedPrimitiveKind, RoocFunction } from "@specy/rooc"
-import type {NamedParameter, RuntimeFunction} from "@specy/rooc/runtime";
+import type {NamedParameter, RuntimeFunction} from "@specy/rooc";
 
 export function roocFunctionToRuntimeFunction(f: RoocFunction): RuntimeFunction<NamedParameter[], SerializedPrimitiveKind> {
     return {

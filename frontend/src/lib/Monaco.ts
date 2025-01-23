@@ -12,7 +12,7 @@ import {
 } from './Rooc/RoocLanguage'
 import {getTsGlobal} from "$lib/sandbox/sandboxTsTypes";
 import type {SerializedPrimitiveKind} from "@specy/rooc";
-import type {NamedParameter, RuntimeFunction} from "@specy/rooc/src/runtime";
+import type {NamedParameter, RuntimeFunction} from "@specy/rooc";
 import {getFormattedRoocType, roocFunctionToRuntimeFunction} from "$lib/Rooc/RoocUtils";
 import type {UserDefinedData} from "$src/routes/projects/[projectId]/projectStore.svelte";
 

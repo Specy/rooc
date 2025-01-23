@@ -1,4 +1,4 @@
-import {type JsPipableData, type LpAssignment, type MILPValue, OptimizationType, type Pipes} from "@specy/rooc";
+import type {JsPipableData, LpAssignment, MILPValue, Pipes} from "@specy/rooc";
 import type {Highs} from 'highs'
 import highsLoader from "highs";
 
@@ -85,8 +85,14 @@ End`
     const solution = highs.solve(cplexLp)
     const value = solution.ObjectiveValue
     const vars = Object.entries(solution.Columns).map(([name, value]) => {
-        if (domain[name].as_type.type === "Boolean") return {name, value: {type: "Bool", value: castToBool(value.Primal)}}
-        if (domain[name].as_type.type === "IntegerRange") return {name, value: {type: "Int", value: castToInt(value.Primal)}}
+        if (domain[name].as_type.type === "Boolean") return {
+            name,
+            value: {type: "Bool", value: castToBool(value.Primal)}
+        }
+        if (domain[name].as_type.type === "IntegerRange") return {
+            name,
+            value: {type: "Int", value: castToInt(value.Primal)}
+        }
         return {name, value: {type: "Real", value: value.Primal}}
     }) as LpAssignment<MILPValue>[]
     return {
@@ -102,6 +108,7 @@ function castToBool(value: number): boolean {
     const delta = 1e-6
     return value > 0 + delta
 }
+
 function castToInt(value: number): number {
     return Math.round(value)
 }

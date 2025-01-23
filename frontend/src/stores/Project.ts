@@ -1,4 +1,3 @@
-import type {Pipes} from "@specy/rooc";
 import type {PipePreset} from "$lib/pipePresets";
 
 //this is so that i dont import the runtime that uses wasm in the frontend

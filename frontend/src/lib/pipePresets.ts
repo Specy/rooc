@@ -1,4 +1,4 @@
-import {Pipes} from "@specy/rooc"
+import {Pipes} from "@specy/rooc/runtime"
 import {type AppPipe, InternalPipe} from "$lib/appPipes/AppPipes";
 
 export type PipePreset = {
