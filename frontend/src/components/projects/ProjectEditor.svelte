@@ -6,7 +6,7 @@
     import {type Project} from '$stores/userProjectsStore.svelte';
     import Row from '$cmp/layout/Row.svelte';
     import {createCompilerStore} from '$src/routes/projects/[projectId]/projectStore.svelte';
-    import type {PipeDataType, Pipes} from "@specy/rooc";
+    import {PipeDataType, Pipes} from "@specy/rooc";
     import PipeInput from "$cmp/pipe/PipeInput.svelte";
     import Card from "$cmp/layout/Card.svelte";
     import PlugOut from "$cmp/icons/PlugOut.svelte";
