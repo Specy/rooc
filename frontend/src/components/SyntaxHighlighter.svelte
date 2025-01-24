@@ -1,22 +1,22 @@
 <script lang="ts">
-    import { run } from 'svelte/legacy';
 
     import {onMount} from 'svelte';
     import hljs from 'highlight.js/lib/core';
     import "highlight.js/styles/atom-one-dark.css"
     import typescript from 'highlight.js/lib/languages/typescript';
-    import {highlightJsGrammar} from '$src/lib/Rooc/hljsLanguage';
+    import {cplexHighlightJs, highlightJsGrammar} from '$src/lib/Rooc/hljsLanguage';
 
     interface Props {
         style?: string;
         source: string;
-        language: "rooc" | "typescript";
+        language: "rooc" | "typescript" | 'cplex';
     }
 
     let { style = "", source, language }: Props = $props();
     let code: HTMLElement = $state();
     onMount(() => {
         hljs.registerLanguage('rooc', () => highlightJsGrammar);
+        hljs.registerLanguage('cplex', cplexHighlightJs)
         hljs.registerLanguage('typescript', typescript);
     });
 

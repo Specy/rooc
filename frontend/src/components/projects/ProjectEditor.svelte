@@ -36,9 +36,9 @@
 
     async function run() {
         await rooc?.run();
-        if(rooc?.result.ok){
+        if (rooc?.result.ok) {
             scrollToNearestResult()
-        }else{
+        } else {
             let errLength = rooc.result.context.length;
             scrollToResult(`pipe-result-${errLength - 1}`);
         }
@@ -71,17 +71,21 @@
     $effect(() => {
         Monaco.setRoocData(rooc.userDefinedFunctions);
     })
+    let language = $derived(isPresetPipe?.name === HIGHS_CPLEX_LP_SOLVER_NAME ? 'cplex' : 'rooc') as 'rooc' | 'cplex'
 </script>
 
 <div class="wrapper">
     <Column gap="0.5rem" flex1>
         <div class="editor">
-            <Editor
-                    style="flex: 1"
-                    language={isPresetPipe?.name === HIGHS_CPLEX_LP_SOLVER_NAME ? 'cplex' : 'rooc'}
-                    bind:code={project.content}
-                    highlightedLine={-1}
-            />
+            {#key language}
+
+                <Editor
+                        style="flex: 1"
+                        language={language }
+                        bind:code={project.content}
+                        highlightedLine={-1}
+                />
+            {/key}
         </div>
         <div
                 class="secondary-editor no-mobile"
@@ -315,6 +319,7 @@
         transition: background-color 0.2s;
         color: var(--primary-text)
     }
+
     .add-more-btn:hover {
         background-color: var(--primary-5);
     }
@@ -331,9 +336,11 @@
             display: flex;
             flex-direction: column;
         }
+
         .pipe-container {
             max-width: unset;
         }
+
         .editor {
             min-height: 60vh;
         }

@@ -1,3 +1,5 @@
+import hljs from 'highlight.js/lib/core';
+
 const hljskeywords = ["where", "for", "min", "max", "in", "s.t.", "as", "define", "let", "subject", "to"]
 const hljsLiterals = ["true", "false"]
 const hljsOperators = ["+", "-", "/", "*", "!", "&", "|", "<=", ">=", "="]
@@ -94,3 +96,29 @@ export const highlightJsGrammar = {
 
 }
 
+
+export function cplexHighlightJs() {
+    return {
+        name: 'CPLEX LP',
+        case_insensitive: true,
+        keywords: {
+            keyword: 'minimize maximize subject to st bounds binary general semi-continuous semicontinuous end',
+            built_in: 'inf infinity',
+        },
+        contains: [
+            hljs.C_LINE_COMMENT_MODE,
+            hljs.C_BLOCK_COMMENT_MODE,
+            hljs.NUMBER_MODE,
+            {
+                className: 'variable',
+                begin: /([A-Z0-9]*:)/,
+                relevance: 0,
+            },
+            {
+                className: 'operator',
+                begin: /<=|>=|=|<|>|\+|-|\*|\/|\^/,
+                relevance: 0,
+            },
+        ]
+    };
+}

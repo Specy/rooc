@@ -44,7 +44,7 @@
         </table>
 
     </div>
-    <Row justify="between">
+    <Row justify="between" wrap align="center" gap="0.5rem">
         <div style="font-size: 1.5rem">
             Optimal value: {formatNum(milpSolution.value)}
         </div>

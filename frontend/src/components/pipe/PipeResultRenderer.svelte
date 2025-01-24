@@ -9,6 +9,8 @@
     import RealSolutionRenderer from "$cmp/pipe/RealSolutionRenderer.svelte";
     import MILPSolutionRenderer from "$cmp/pipe/MILPSolutionRenderer.svelte";
     import {getDataOfPipe, getDescriptionOfPipe} from "$lib/appPipes/pipeDescriptions";
+    import Button from "$cmp/inputs/Button.svelte";
+    import {toast} from "$stores/toastStore";
 
     interface Props {
         data: RoocData;
@@ -19,6 +21,13 @@
 
     let {data, pipeStep, expanded = $bindable(false), id}: Props = $props();
 
+    function detectRoocOrCplex(code: string){
+        if(code.trim().toLowerCase().endsWith("end")){
+            return 'cplex';
+        }else{
+            return 'rooc';
+        }
+    }
 
 </script>
 
@@ -29,15 +38,23 @@
     {#snippet title()}
         <h2 {id}>
             {typeof pipeStep === "string" ? pipeStep : getDescriptionOfPipe(pipeStep).name}
-
         </h2>
     {/snippet}
     <div style="margin: 0.5rem 0">
         {getDataOfPipe(data.type).description}
     </div>
     {#if data.type === PipeDataType.String}
-        <SyntaxHighlighter language="rooc" source={data.data}
+        <SyntaxHighlighter language={detectRoocOrCplex(data.data)} source={data.data}
                            style="overflow-y: auto; overflow-x: auto; max-height: 50vh"/>
+        <Button
+                on:click={() => {
+                    navigator.clipboard.writeText(data.data)
+                    toast.logPill("Copied to clipboard")
+                }}
+                style="margin-top: 0.5rem; margin-left: auto"
+        >
+            Copy
+        </Button>
     {:else if data.type === PipeDataType.Parser}
         <b> Internal ROOC compiler</b>
     {:else if data.type === PipeDataType.PreModel}

@@ -40,7 +40,7 @@ export const AppPipesMap = {
         loader: async () => {
         },
         fn: (data) => {
-            if(data.type !== 'String') throw new Error('Invalid data type, expected String')
+            if (data.type !== 'String') throw new Error('Invalid data type, expected String')
             return solveWithHIGHSUsingCplexLp(data.value, {})
         }
     }
@@ -79,30 +79,36 @@ export function highsSolver(data: JsPipableData): JsPipableData {
     if (!highs) throw new Error('HiGHS not loaded')
     const domain = data.value.domain
     const cplexLp = linearModelToLp(data.value)
-   return solveWithHIGHSUsingCplexLp(cplexLp, domain)
+    return solveWithHIGHSUsingCplexLp(cplexLp, domain)
 }
 
 function solveWithHIGHSUsingCplexLp(lp: string, domain: Record<string, DomainVariable>): JsPipableData {
-    const solution = highs.solve(lp)
-    const value = solution.ObjectiveValue
-    const vars = Object.entries(solution.Columns).map(([name, value]) => {
-        if (domain[name]?.as_type.type === "Boolean") return {
-            name,
-            value: {type: "Bool", value: castToBool(value.Primal)}
+    try {
+        const solution = highs.solve(lp)
+        const value = solution.ObjectiveValue
+        const vars = Object.entries(solution.Columns).map(([name, value]) => {
+            if (domain[name]?.as_type.type === "Boolean") return {
+                name,
+                value: {type: "Bool", value: castToBool(value.Primal)}
+            }
+            if (domain[name]?.as_type.type === "IntegerRange") return {
+                name,
+                value: {type: "Int", value: castToInt(value.Primal)}
+            }
+            return {name, value: {type: "Real", value: value.Primal}}
+        }) as LpAssignment<MILPValue>[]
+        return {
+            type: "MILPSolution",
+            value: {
+                assignment: vars,
+                value: value
+            }
         }
-        if (domain[name]?.as_type.type === "IntegerRange") return {
-            name,
-            value: {type: "Int", value: castToInt(value.Primal)}
-        }
-        return {name, value: {type: "Real", value: value.Primal}}
-    }) as LpAssignment<MILPValue>[]
-    return {
-        type: "MILPSolution",
-        value: {
-            assignment: vars,
-            value: value
-        }
+    } catch (e) {
+        console.error(e)
+        throw new Error(e)
     }
+
 }
 
 
@@ -127,14 +133,13 @@ function linearModelToLp(model: SerializedLinearModel): string {
     const binaryVars = model.variables.filter(v => model.domain[v].as_type.type === "Boolean")
     const integerVars = model.variables.filter(v => model.domain[v].as_type.type === "IntegerRange")
     const lpModel = `${model.optimization_type.type === "Max" ? 'Maximize' : 'Minimize'} 
-obj:
-    ${stringifyCoeffs(model.objective, model.variables)} + ${model.objective_offset}
+    obj: ${stringifyCoeffs(model.objective, model.variables)} + ${model.objective_offset}
 Subject To
     ${constraints.join('\n    ')}
 ${bounds.length > 0 ? 'Bounds\n    ' : ''}${bounds.join('\n    ')}
 ${integerVars.length > 0 ? 'General\n    ' : ''}${integerVars.join(' ')}
 ${binaryVars.length > 0 ? 'Binary\n     ' : ''}${binaryVars.join(' ')}`
-    return lpModel + '\nEnd'
+    return lpModel.trim() + '\nEnd'
 }
 
 
