@@ -10,6 +10,7 @@ function makePipePreset(name: string, pipes: AppPipe[]): PipePreset {
     return {name, pipes}
 }
 
+export const HIGHS_CPLEX_LP_SOLVER_NAME ="HiGHS CPLEX LP solver"
 
 export const pipePresets = [
     makePipePreset("Auto solver", [
@@ -70,8 +71,19 @@ export const pipePresets = [
         Pipes.LinearModelPipe,
         Pipes.StandardLinearModelPipe,
     ]),
-
+    makePipePreset(HIGHS_CPLEX_LP_SOLVER_NAME, [
+        InternalPipe.HiGHSCplexLP,
+    ]),
+    makePipePreset("To CPLEX LP format", [
+        Pipes.CompilerPipe,
+        Pipes.PreModelPipe,
+        Pipes.ModelPipe,
+        Pipes.LinearModelPipe,
+        InternalPipe.ToCplexLP,
+    ]),
 ] as const
+
+
 export const defaultPipe = pipePresets[0].pipes
 
 export function findPreset(pipes: Pipes[]): PipePreset | null {

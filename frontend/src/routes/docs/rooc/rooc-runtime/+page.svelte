@@ -7,7 +7,7 @@
     <title>
         Rooc docs - Runtime
     </title>
-    <meta name="description" content="The documentation of ROOC, with syntax, function definitions and examples"/>
+    <meta name="description" content="Learn about ROOC's runtime capabilities: Use functions to manipulate data within your models. Discover normal functions, block functions, and powerful scoped block functions for complex operations."/>
 </svelte:head>
 
 <Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">

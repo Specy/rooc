@@ -9,8 +9,8 @@
     import Button from "$cmp/inputs/Button.svelte";
     import Delete from '~icons/fa/Trash.svelte';
     import FaPlus from "~icons/fa/plus";
-    import type {ProjectPipe} from "$stores/userProjectsStore.svelte";
     import {getDataOfPipe, getDescriptionOfPipe, PIPE_DESCRIPTIONS} from "$lib/appPipes/pipeDescriptions";
+    import type {ProjectPipe} from "$lib/appPipes/AppPipes";
 
     interface Props {
         pipe: ProjectPipe;

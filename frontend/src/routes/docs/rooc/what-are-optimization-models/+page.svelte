@@ -8,7 +8,7 @@
     <title>
         Rooc docs - What are optimization models
     </title>
-    <meta name="description" content="The documentation of ROOC, learn what are optimization models"/>
+    <meta name="description" content="Discover the basics of optimization models. Learn what decision variables, objective functions, and constraints, demonstrating can be used to formulate and solve optimization problems using the ROOC syntax."/>
 </svelte:head>
 
 <Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">

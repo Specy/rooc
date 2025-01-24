@@ -12,7 +12,7 @@
     import PlugOut from "$cmp/icons/PlugOut.svelte";
     import PlugIn from "$cmp/icons/PlugIn.svelte";
     import Column from "$cmp/layout/Column.svelte";
-    import {findPreset, pipePresets} from "$lib/pipePresets";
+    import {findPreset, HIGHS_CPLEX_LP_SOLVER_NAME, pipePresets} from "$lib/pipePresets";
     import {prompter} from '$stores/promptStore'
     import PipeResultRenderer from "$cmp/pipe/PipeResultRenderer.svelte";
     import FaPlus from '~icons/fa/plus.svelte'
@@ -78,7 +78,7 @@
         <div class="editor">
             <Editor
                     style="flex: 1"
-                    language="rooc"
+                    language={isPresetPipe?.name === HIGHS_CPLEX_LP_SOLVER_NAME ? 'cplex' : 'rooc'}
                     bind:code={project.content}
                     highlightedLine={-1}
             />

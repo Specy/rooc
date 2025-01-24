@@ -13,7 +13,7 @@
     <title>
         Rooc documentation
     </title>
-    <meta name="description" content="The documentation of ROOC, with syntax, function definitions and examples"/>
+    <meta name="description" content="Learn ROOC, a language for modeling and solving optimization problems, with comprehensive documentation covering syntax, runtime functions, examples and solvers."/>
 </svelte:head>
 
 <Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">
@@ -48,6 +48,9 @@
         </li>
         <li>
             <a href="/docs/rooc/rooc-runtime">Rooc runtime</a>
+        </li>
+        <li>
+            <a href="/docs/rooc/solvers">Solvers</a>
         </li>
         <li>
             <a href="/docs/rooc/rooc-runtime">Typescript runtime</a>

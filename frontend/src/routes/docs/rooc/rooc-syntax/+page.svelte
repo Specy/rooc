@@ -8,7 +8,7 @@
     <title>
         Rooc docs - Syntax
     </title>
-    <meta name="description" content="The documentation of ROOC, with syntax, function definitions and examples"/>
+    <meta name="description" content="Learn the ROOC syntax. Explore objective functions, constraints, variables, data handling, expansion blocks, domains, and more with examples."/>
 </svelte:head>
 
 <Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">

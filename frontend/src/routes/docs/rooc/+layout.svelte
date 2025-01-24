@@ -61,6 +61,11 @@
                     title="Rooc runtime"
                     on:click={() => (menuOpen = false)}
             />
+             <MenuLink
+                    href="/docs/rooc/solvers"
+                    title="Solvers"
+                    on:click={() => (menuOpen = false)}
+            />
             <MenuLink
                     href="/docs/rooc/typescript-runtime"
                     title="Typescript runtime"

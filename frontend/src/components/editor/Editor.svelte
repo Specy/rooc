@@ -11,7 +11,7 @@
         code: string;
         highlightedLine: number;
         hasError?: boolean;
-        language: 'rooc' | 'typescript';
+        language: 'rooc' | 'typescript' | 'cplex';
         style?: string;
         editor?: monaco.editor.IStandaloneCodeEditor | null;
         config?: monaco.editor.IStandaloneEditorConstructionOptions;
@@ -76,6 +76,7 @@
             dispatcher('change', code);
         })
         toDispose.push(() => disposer.dispose());
+
         toDispose.push(Monaco.registerRuntimePushers(language, model))
 		let id = setTimeout(() => {
 			//trigger to run the diagnostics on build

@@ -15,6 +15,7 @@ import type {SerializedPrimitiveKind} from "@specy/rooc";
 import type {NamedParameter, RuntimeFunction} from "@specy/rooc";
 import {getFormattedRoocType, roocFunctionToRuntimeFunction} from "$lib/Rooc/RoocUtils";
 import type {UserDefinedData} from "$src/routes/projects/[projectId]/projectStore.svelte";
+import {CplexLPLanguage} from "$lib/CplexLP/CPLEXLPLanguage";
 
 export type MonacoType = typeof monaco
 
@@ -50,6 +51,7 @@ class MonacoLoader {
         const monaco: MonacoType = await this.loading
         monaco.editor.defineTheme('custom-theme', generateTheme())
         monaco.languages.register({id: 'rooc'})
+        monaco.languages.register({id: 'cplex'})
         this.monaco = monaco
         for (const [name, lib] of Object.entries(getTsGlobal())) {
             monaco.languages.typescript.typescriptDefaults.addExtraLib(lib, name)
@@ -117,6 +119,7 @@ class MonacoLoader {
         const {monaco} = this
         if (!monaco) return
         //@ts-expect-error - Language works
+        this.toDispose.push(monaco.languages.setMonarchTokensProvider('cplex', CplexLPLanguage))
         this.toDispose.push(monaco.languages.setMonarchTokensProvider('rooc', RoocLanguage))
         this.toDispose.push(monaco.languages.registerDocumentFormattingEditProvider('rooc', createRoocFormatter()))
         this.toDispose.push(monaco.languages.registerHoverProvider('rooc', createRoocHoverProvider(this.roocUserDataRef)))
@@ -135,7 +138,7 @@ class MonacoLoader {
         })
     }
 
-    registerRuntimePushers = (language: 'rooc', instance: monaco.editor.ITextModel) => {
+    registerRuntimePushers = (language: 'rooc' | 'typescript' | 'cplex', instance: monaco.editor.ITextModel) => {
         if (language === 'rooc') {
             const disposer = createRoocRuntimeDiagnostics(instance, this.monaco.editor, this.roocUserDataRef)
             return () => disposer.dispose()

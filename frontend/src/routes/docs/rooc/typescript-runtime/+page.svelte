@@ -8,7 +8,7 @@
     <title>
         Rooc docs - Runtime
     </title>
-    <meta name="description" content="The documentation of ROOC, with syntax, function definitions and examples"/>
+    <meta name="description" content="Learn how to extend ROOC's functionality by defining custom functions in the ROOC runtime by using typescript."/>
 </svelte:head>
 
 <Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">

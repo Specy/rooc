@@ -1,9 +1,12 @@
 import type {JsPipableData, LpAssignment, MILPValue, Pipes} from "@specy/rooc";
 import type {Highs} from 'highs'
 import highsLoader from "highs";
+import type {DomainVariable, SerializedLinearModel} from "@specy/rooc/dist/pkg/rooc";
 
 export enum InternalPipe {
-    HiGHS = 1000
+    HiGHS = 1000,
+    HiGHSCplexLP = 1001,
+    ToCplexLP = 1002,
 }
 
 export type AppPipe = Pipes | InternalPipe
@@ -27,8 +30,21 @@ export const AppPipesMap = {
             highs = await highsPromise
         },
         fn: highsSolver
+    },
+    [InternalPipe.ToCplexLP]: {
+        loader: async () => {
+        },
+        fn: toCplexLp
+    },
+    [InternalPipe.HiGHSCplexLP]: {
+        loader: async () => {
+        },
+        fn: (data) => {
+            if(data.type !== 'String') throw new Error('Invalid data type, expected String')
+            return solveWithHIGHSUsingCplexLp(data.value, {})
+        }
     }
-}
+}  satisfies Record<InternalPipe, { loader: () => Promise<void>, fn: (data: JsPipableData) => JsPipableData }>
 
 
 let highs: Highs | null = null
@@ -61,35 +77,20 @@ function stringifyCoeff(c: number): string {
 export function highsSolver(data: JsPipableData): JsPipableData {
     if (data.type !== 'LinearModel') throw new Error('Invalid data type, expected LinearModel')
     if (!highs) throw new Error('HiGHS not loaded')
-    const model = data.value
-    const domain = model.domain
-    const constraints = model.constraints.map((c, i) => {
-        return `c${i}: ${stringifyCoeffs(c.coefficients, model.variables)} ${comparisonMap[c.constraint_type.type]} ${c.rhs}`
-    })
-    const bounds = model.variables.map(v => {
-        const domain = model.domain[v].as_type
-        if (domain.type === "IntegerRange" || domain.type === "NonNegativeReal" || domain.type === "Real") return `${stringifyCoeff(domain.value[0])} <= ${v} <= ${stringifyCoeff(domain.value[1])}`
-        return undefined
-    }).filter(Boolean)
-    const binaryVars = model.variables.filter(v => model.domain[v].as_type.type === "Boolean")
-    const integerVars = model.variables.filter(v => model.domain[v].as_type.type === "IntegerRange")
-    const cplexLp = `${model.optimization_type.type === "Max" ? 'Maximize' : 'Minimize'} 
-obj:
-    ${stringifyCoeffs(model.objective, model.variables)} + ${model.objective_offset}
-Subject To
-    ${constraints.join('\n    ')}
-${bounds.length > 0 ? 'Bounds\n    ' : ''}${bounds.join('\n    ')}
-${integerVars.length > 0 ? 'General\n    ' : ''}${integerVars.join(' ')}
-${binaryVars.length > 0 ? 'Binary\n     ' : ''}${binaryVars.join(' ')}
-End`
-    const solution = highs.solve(cplexLp)
+    const domain = data.value.domain
+    const cplexLp = linearModelToLp(data.value)
+   return solveWithHIGHSUsingCplexLp(cplexLp, domain)
+}
+
+function solveWithHIGHSUsingCplexLp(lp: string, domain: Record<string, DomainVariable>): JsPipableData {
+    const solution = highs.solve(lp)
     const value = solution.ObjectiveValue
     const vars = Object.entries(solution.Columns).map(([name, value]) => {
-        if (domain[name].as_type.type === "Boolean") return {
+        if (domain[name]?.as_type.type === "Boolean") return {
             name,
             value: {type: "Bool", value: castToBool(value.Primal)}
         }
-        if (domain[name].as_type.type === "IntegerRange") return {
+        if (domain[name]?.as_type.type === "IntegerRange") return {
             name,
             value: {type: "Int", value: castToInt(value.Primal)}
         }
@@ -103,6 +104,39 @@ End`
         }
     }
 }
+
+
+function toCplexLp(data: JsPipableData): JsPipableData {
+    if (data.type !== 'LinearModel') throw new Error('Invalid data type, expected LinearModel')
+    return {
+        type: "String",
+        value: linearModelToLp(data.value)
+    }
+}
+
+
+function linearModelToLp(model: SerializedLinearModel): string {
+    const constraints = model.constraints.map((c, i) => {
+        return `c${i}: ${stringifyCoeffs(c.coefficients, model.variables)} ${comparisonMap[c.constraint_type.type]} ${c.rhs}`
+    })
+    const bounds = model.variables.map(v => {
+        const domain = model.domain[v].as_type
+        if (domain.type === "IntegerRange" || domain.type === "NonNegativeReal" || domain.type === "Real") return `${stringifyCoeff(domain.value[0])} <= ${v} <= ${stringifyCoeff(domain.value[1])}`
+        return undefined
+    }).filter(Boolean)
+    const binaryVars = model.variables.filter(v => model.domain[v].as_type.type === "Boolean")
+    const integerVars = model.variables.filter(v => model.domain[v].as_type.type === "IntegerRange")
+    const lpModel = `${model.optimization_type.type === "Max" ? 'Maximize' : 'Minimize'} 
+obj:
+    ${stringifyCoeffs(model.objective, model.variables)} + ${model.objective_offset}
+Subject To
+    ${constraints.join('\n    ')}
+${bounds.length > 0 ? 'Bounds\n    ' : ''}${bounds.join('\n    ')}
+${integerVars.length > 0 ? 'General\n    ' : ''}${integerVars.join(' ')}
+${binaryVars.length > 0 ? 'Binary\n     ' : ''}${binaryVars.join(' ')}`
+    return lpModel + '\nEnd'
+}
+
 
 function castToBool(value: number): boolean {
     const delta = 1e-6

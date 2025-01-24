@@ -1,13 +1,27 @@
 import {type AppPipe, InternalPipe} from "$lib/appPipes/AppPipes";
-import {pipeDataDescriptions, PipeDataType, type PipeDescription, pipeDescriptions, type Pipes} from "@specy/rooc/runtime";
+import {pipeDataDescriptions, PipeDataType, type PipeDescription, pipeDescriptions} from "@specy/rooc/runtime";
 
 const internalPipeDescriptions = {
     [InternalPipe.HiGHS]: {
-        type: InternalPipe.HiGHS as unknown as Pipes,
+        type: InternalPipe.HiGHS,
         name: "HiGHS solver",
-        description: "A high performance MILP solver",
+        description: "A high performance MILP solver, using a linear model",
         input: PipeDataType.LinearModel,
         output: PipeDataType.MILPSolution
+    },
+    [InternalPipe.HiGHSCplexLP]: {
+        type: InternalPipe.HiGHSCplexLP,
+        name: "HiGHS solver (Cplex LP)",
+        description: "A high performance MILP solver, using the Cplex LP format",
+        input: PipeDataType.String,
+        output: PipeDataType.MILPSolution
+    },
+    [InternalPipe.ToCplexLP]: {
+        type: InternalPipe.ToCplexLP,
+        name: "To Cplex LP",
+        description: "Converts a linear model to the Cplex LP format",
+        input: PipeDataType.LinearModel,
+        output: PipeDataType.String
     }
 } satisfies Record<InternalPipe, PipeDescription>
 
@@ -18,11 +32,7 @@ export const PIPE_DESCRIPTIONS = {
 
 
 export function getDescriptionOfPipe(pipe: AppPipe): PipeDescription {
-    if (pipe < 1000) {
-        return pipeDescriptions[pipe]
-    } else {
-        return internalPipeDescriptions[pipe]
-    }
+    return PIPE_DESCRIPTIONS[pipe]
 }
 
 export function getDataOfPipe(pipe: PipeDataType) {
