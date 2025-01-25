@@ -39,7 +39,7 @@ export type SerializedLinearConstraint = {
     rhs: number
     coefficients: number[]
     constraint_type: SerializedComparison
-    name: String
+    name: string
 }
 
 export type SerializedComparison = {

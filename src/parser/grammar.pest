@@ -35,7 +35,7 @@ constraint = {
   #constraint_iteration = (nl* ~ for_iteration)?
 }
 constraint_name = {
-    variable ~ ":"
+    variable ~ ":" ~ nl*
 }
 	
     

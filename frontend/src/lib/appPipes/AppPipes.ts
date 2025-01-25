@@ -126,8 +126,12 @@ function toCplexLp(data: JsPipableData): JsPipableData {
 
 
 function linearModelToLp(model: SerializedLinearModel): string {
-    const constraints = model.constraints.map((c, i) => {
-        return `c${i}: ${stringifyCoeffs(c.coefficients, model.variables)} ${comparisonMap[c.constraint_type.type]} ${c.rhs}`
+    let names = {} as Record<string, number>
+    const constraints = model.constraints.map(c => {
+        const exists = names[c.name] !== undefined
+        names[c.name] = (names[c.name] ?? 0) + 1
+        const name = exists ? `${c.name}_${names[c.name]}` : c.name
+        return `${name}: ${stringifyCoeffs(c.coefficients, model.variables)} ${comparisonMap[c.constraint_type.type]} ${c.rhs}`
     })
     const bounds = model.variables.map(v => {
         const domain = model.domain[v].as_type

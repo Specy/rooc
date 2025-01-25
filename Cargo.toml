@@ -7,7 +7,7 @@ documentation = "https://rooc.specy.app/docs/rooc"
 description = "A mixed integer linear programming modeling language to solve linear optimization models. Extensible, works in WASM and easy to use."
 keywords = ["optimization", "milp", "solver", "mathematics", "linear-programming"]
 categories = ["mathematics", "algorithms", "science"]
-version = "0.1.16"
+version = "0.1.17"
 license = "GPL-3.0"
 edition = "2021"
 

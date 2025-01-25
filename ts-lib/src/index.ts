@@ -776,7 +776,7 @@ export class RoocRunnablePipe {
      * @returns each step of the pipe returns some data, if there was an error, it's previous context is returned too
      */
     run(source: string, data: ConstantEntry[] = [], fns: RoocFunction[] = []): Result<RoocData[], {
-        error: String,
+        error: string,
         context: RoocData[]
     }> {
         try {

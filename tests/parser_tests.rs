@@ -103,7 +103,8 @@ define
         let input = "
             min 1
             s.t.
-                c_j: 1 + sum(el in R, i in 0..(el + 1)) { i } <= 1 for R in M
+                c_j: 
+                    1 + sum(el in R, i in 0..(el + 1)) { i } <= 1 for R in M
             where
                 let M = [[1, 2], [3, 4]]
                 let j = 0
@@ -122,9 +123,11 @@ define
         let input = "
             min 1
             s.t.
-                c1: avg(i in A) { i } >= 1
+                c1: 
+                    avg(i in A) { i } >= 1
                 c_2: min(i in A) { i } >= 1
-                c_1_2: max(i in A) { i } >= 1
+                c_1_2: 
+                    max(i in A) { i } >= 1
                 c_{A[0]}: sum(i in A) { i } >= 1
                 avg {1, 2, 3} >= 1
                 min {1, 2, 3} >= 1

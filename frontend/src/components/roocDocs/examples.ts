@@ -1,16 +1,23 @@
 export const ex_1 = {
-    code: `//This is a simple diet problem
-//minimize the cost of the diet
+    code: `/*
+    This the diet problem, minimize the cost of the diet while 
+    staying between the limits of each nutrient
+*/
 min sum((cost, i) in enumerate(C)) { cost * x_i }
 s.t.  
-    //the diet must have at least of nutrient j
-    sum(i in 0..F) { a[i][j] * x_i} >= Nmin[j] for j in 0..len(Nmin)
-    //the diet must have at most of nutrient j
-    sum(i in 0..F) { a[i][j] * x_i } <= Nmax[j] for j in 0..len(Nmax)
+
+    min_{nutrient[j]}: //the diet must have at least of nutrient j
+        sum(i in 0..F) { a[i][j] * x_i} >= Nmin[j] for j in 0..len(Nmin)
+    
+    max_{nutrient[j]}: //the diet must have at most of nutrient j
+        sum(i in 0..F) { a[i][j] * x_i } <= Nmax[j] for j in 0..len(Nmax)
+
 where    
+
     // Cost of chicken, rice, avocado
     let C = [1.5, 0.5, 2.0]
     // Min and max of: protein, carbs, fats
+    let nutrient = ["protein", "carbs", "fats"]
     let Nmin = [50, 200, 0] 
     let Nmax = [150, 300, 70]
     // Min and max servings of each food    
@@ -76,6 +83,27 @@ define
     description: "In the knapsack problem, you are given a set of items, each with a weight and a value, and a knapsack with a maximum capacity. The goal is to maximize the total value of the items in the knapsack without exceeding the capacity."
 }
 
+export let ex_3_1 = {
+    code: `//maximize the value of the bag
+max value
+s.t.
+    //make sure that the selected items do not go over the bag's capacity
+    weight: weight <= capacity
+
+    weight = sum((w, i) in enumerate(weights)) { w * x_i } 
+    value  = sum((v, i) in enumerate(values)) { v * x_i }
+where
+    let weights = [10, 60, 30, 40, 30, 20, 20, 2]
+    let values = [1, 10, 15, 40, 60, 90, 100, 15]
+    let capacity = 102
+define
+    x_i as Boolean for i in 0..len(weights)
+    weight, value as NonNegativeReal`,
+    name: "Knapsack Problem",
+    description: "The same knapsack problem as before, but creating variables for the weight and cost, together with a named constraint to see the final weight of the bag."
+}
+
+
 export let ex_4 = {
     code: `//how much each product will earn you
 max sum((v, i) in enum(value)) { x_i * v }
@@ -96,7 +124,7 @@ define
 }
 
 
-export const roocExamples = [ex_1, ex_2, ex_3, ex_4]
+export const roocExamples = [ex_1, ex_2, ex_3, ex_3_1,  ex_4]
 
 
 

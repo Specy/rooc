@@ -433,6 +433,7 @@ export type SerializedCondition = {
     lhs: SerializedExp,
     constraint_type: Comparison,
     rhs: SerializedExp
+    name: string
 }
 "#;
 
