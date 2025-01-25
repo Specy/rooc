@@ -70,15 +70,18 @@ define
         Constraints
     </h1>
     <p>
-
         The formal model can follow a list of constraints, you can use one of {`<=, >=, =, <, >`} comparisons.
         Some solvers like the simplex, do not allow for strict inequalities {`<, >`}.
         <br/>
         The special keyword "for" can be used at the end of a constraint to create a constraint for each element that
         you iterate over.
+        <br/>
+        You can also give a name to constraints, so that you can more easily recognise them in the output. 
+        To do that, just write the name of the constraint followed by a colon ":". (eg. "myConstraint: x + y = 2"),
+        you can also treat the constraint name as a compound variable and use the iteration syntax.
     </p>
     <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`y >= x + 2\nx * i <= i for i in 0..5`}
+        <SyntaxHighlighter language="rooc" source={`something: y >= x + 2\nconst_i: x * i <= i for i in 0..5`}
                            style="overflow-x: auto;"/>
     </Card>
     <Separator/>

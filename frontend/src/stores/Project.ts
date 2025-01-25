@@ -62,16 +62,23 @@ export function createProject(): Project {
         updatedAt: new Date().getTime(),
         files: [],
         content:
-            `min x
+            `/*
+    Example model, look at the docs 
+    for more info https://rooc.specy.app/docs/rooc
+*/
+max x + sum(i in list) { z_i }
 subject to
-    /* write the constraints here */
-    x >= y
-where
+    //write the constraints here
+    x <= y
+    cons_i: z_i <= i * 2 for i in list
+where 
     // write the constants here
     let y = 10
-define
+    let list = [2,4,6]
+define 
     // define the model's variables here
-    x as NonNegativeReal`
+    x as NonNegativeReal
+    z_i as NonNegativeReal for i in list`
         ,
         pipes: [...defaultPipe.pipes].map((p, i, arr) => ({pipe: p, open: i === (arr.length - 1)}))
     }
