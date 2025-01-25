@@ -7,7 +7,11 @@
     let { value, style }: Props = $props();
 
 
-    let [varName, ...rest] = $derived(value.split('_'))
+    let [varName, ...rest] = $derived.by(() => {
+        let clone = value
+        if(clone.startsWith("_")) clone = clone.substring(1)
+        return clone.split('_')
+    })
 </script>
 
 {#if rest.length}

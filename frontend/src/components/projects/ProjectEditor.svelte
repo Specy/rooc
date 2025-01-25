@@ -20,7 +20,7 @@
     import ExpandableContainer from "$cmp/layout/ExpandableContainer.svelte";
     import {toast} from "$stores/toastStore";
     import {getDescriptionOfPipe} from "$lib/appPipes/pipeDescriptions";
-
+    import Play from '~icons/fa-solid/play.svelte'
     interface Props {
         project: Project;
     }
@@ -171,9 +171,14 @@
                 <Button
                         on:click={run}
                         color="accent"
+                        style="gap: 0.6rem"
                         disabled={rooc.compiling}
                 >
-                    {rooc.compiling ? 'Running...' : 'Run'}
+                    {#if rooc.compiling}
+                        Running...
+                    {:else}
+                        <Play/>  Run
+                    {/if}
                 </Button>
             </Row>
         </Row>
@@ -352,7 +357,7 @@
 
     .pipe-preset-select {
         padding: 0.5rem 1rem;
-        max-width: 13rem;
+        max-width: 11.4rem;
         border-radius: 0.4rem;
         border: 1px solid var(--primary);
         background-color: var(--primary);

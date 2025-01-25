@@ -143,7 +143,7 @@
             <ButtonLink
                     href="https://github.com/Specy/tokeko"
                     hasIcon
-                    style="height: 100%; font-size: 1.2rem"
+                    style="height: 100%; font-size: 1.1rem; width: 2.6rem; padding: 0.4rem"
                     blank
                     title="Github"
             >
@@ -152,7 +152,7 @@
             <ButtonLink
                     href="https://specy.app/donate"
                     hasIcon
-                    style="height: 100%; font-size: 1.2rem"
+                    style="height: 100%; font-size: 1.1rem; width: 2.6rem; padding: 0.4rem"
                     blank
                     title="Donate"
             >
@@ -162,13 +162,15 @@
                     hasIcon
                     on:click={share}
                     title="Share"
+                    style='width: 2.6rem; '
             >
-                <Share/>
+                <Share style='width: 1.4rem'/>
             </Button>
             <Button
                     hasIcon
                     on:click={() => (showDocs = !showDocs)}
                     title="Documentation"
+                    style='width: 2.6rem; padding: 0.4rem'
             >
                 <Book/>
             </Button>

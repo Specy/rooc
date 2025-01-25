@@ -104,7 +104,7 @@
     <p>
         Let's put everything together in a model using the ROOC syntax:
     </p>
-    <Card padding="1rem">
+    <Card padding="1rem" style={'overflow-x:auto;'}>
         <SyntaxHighlighter
                 language="rooc"
                 source={`min (4a + 3b + 2ca + 3s + 5m + 6ch) - 50

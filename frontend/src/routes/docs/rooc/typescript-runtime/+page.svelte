@@ -34,7 +34,7 @@
         use to define the type of the parameters and the return type of the function.
         <br/>
         <br/>
-        <Card padding="1rem">
+        <Card padding="1rem" style="overflow-x: auto;">
             <SyntaxHighlighter language="typescript" source={`const Primitive = {
     Number: {type: 'Number'},
     Integer: {type: 'Integer'},
@@ -48,14 +48,14 @@
     Boolean: {type: 'Boolean'},
     Undefined: {type: 'Undefined'},
     Any: {type: 'Any'},
-}`} style="overflow-x: auto;"/>
+}`} />
 
         </Card>
         <br/>
         Here is an example on how to register a function that will sum all the elements of an array:
         <br/>
         <br/>
-        <Card padding="1rem">
+        <Card padding="1rem" style="overflow-x: auto;">
             <SyntaxHighlighter language="typescript" source={`register({
     name: 'sum',
     description: 'Sum all the elements of an array',
@@ -66,7 +66,7 @@
        const count = arr.value.value.reduce((acc, curr) => acc + curr.value, 0);
        return {type: "Number", value: count}
     }
-})`} style="overflow-x: auto;"/>
+})`} />
         </Card>
         <br/>
 
@@ -75,7 +75,7 @@
         Here is an example of using the "returns" field as a function:
         <br/>
         <br/>
-        <Card padding="1rem">
+        <Card padding="1rem" style="overflow-x: auto;">
             <SyntaxHighlighter language="typescript" source={`register({
     name: "filter_js",
     description: "Filter over an array with the provided js function",
@@ -94,14 +94,14 @@
         let mapped = arr.value.value.filter(fn);
         return { type: "Iterable", value: { type, value: mapped } };
     }
-});`} style="overflow-x: auto;"/>
+});`}/>
         </Card>
         <br/>
         The serialized data is a JSON like object that has a "type" field which tells you the type of the data, and a
         "value" field which is the actual value of the data. Here are the type definitions for it:
         <br/>
-        <br/>
-        <Card padding="1rem">
+        <br/> 
+        <Card padding="1rem" style="overflow-x: auto;">
             <SyntaxHighlighter language="typescript" source={`type SerializedPrimitive =
     | { type: 'Number', value: number }
     | { type: 'Integer', value: number }
@@ -143,7 +143,7 @@ type SerializedIterable =
     | { type: 'Graphs', value: SerializedGraph[] }
     | { type: 'Tuples', value: SerializedTuple[] }
     | { type: 'Booleans', value: boolean[] }
-    | { type: 'Iterables', value: SerializedIterable[] }`} style="overflow-x: auto;"/>
+    | { type: 'Iterables', value: SerializedIterable[] }`}/>
         </Card>
     </p>
 

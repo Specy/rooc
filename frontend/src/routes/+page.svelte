@@ -11,7 +11,7 @@
     import Column from "$cmp/layout/Column.svelte";
     import Row from "$cmp/layout/Row.svelte";
     import {projectStore} from "$stores/userProjectsStore.svelte";
-
+    import Book from '~icons/fa/book';
     let installEvent: Event | null = $state(null)
     onMount(() => {
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -43,23 +43,33 @@
                         A language and platform for easy optimization models.
                     </div>
                     <ul style="max-width: 30rem;">
-                        <li>In-browser platform with a rich editor with code suggestions and useful errors</li>
-                        <li>Piping system with all intermediate steps from the source to the optimization algorithms
+                        <li>Easy to use optimization modeling language with web editor and solvers</li>
+                        <li>
+                          Piping system to create your own solving pipeline, with visible intermediate steps to learn how
+                          optimization works and debug your models
                         </li>
-                        <li>Instructional system that shows all the steps executed in the pipes to learn how
-                            optimization works
+                        <li>
+                          Use the built-in solvers like <a href="https://highs.dev/">HiGHS</a> and <a href="https://github.com/Specy/microlp/">microlp</a> to 
+                          find the optimal solution in-browser, or export your model as a Cplex LP model
                         </li>
                     </ul>
                     <div class="buttons">
                         <ButtonLink
                                 color="accent"
                                 href={hasProjects ? '/projects' : '/projects/new'}
-                                style={'box-shadow: 0 3px 10px rgb(0 0 0 / 0.2)'}
+                                style={'box-shadow: 0 3px 10px rgb(0 0 0 / 0.2); padding: 0.5rem 0.6rem; gap: 0.6rem;'}
                                 title="Open the editor"
                         >
                             {hasProjects
                             ? "Go to your projects"
                             : "Create your first project"}
+                        </ButtonLink>
+                        <ButtonLink
+                                href={'/docs/rooc'}
+                                style={'box-shadow: 0 3px 10px rgb(0 0 0 / 0.2); padding: 0.5rem 0.6rem; gap: 0.6rem;'}
+                                title="Docs"
+                        >
+                          <Book /> Docs
                         </ButtonLink>
                         <Row gap="0.6rem">
                             <ButtonLink
@@ -87,14 +97,14 @@
                                 style="gap: 0.5rem;"
                                 color="secondary"
                                 on:click={async () => {
-							try {
-								// @ts-ignore
-								await installEvent.prompt()
-							} catch (e) {
-								console.error(e)
-							}
-							installEvent = null
-						}}
+                                  try {
+                                    // @ts-ignore
+                                    await installEvent.prompt()
+                                  } catch (e) {
+                                    console.error(e)
+                                  }
+                                  installEvent = null
+                                }}
                         >
                             <Icon>
                                 <Download/>
@@ -102,7 +112,7 @@
                             Install WebApp
                         </Button>
                     {:else}
-                        <div style="height: 2.4rem">
+                        <div style="height: 2.6rem">
 
                         </div>
                     {/if}
@@ -145,6 +155,9 @@
     z-index: 2;
   }
 
+  a{
+    color: var(--accent-10);
+  }
   ul {
     margin-left: 1rem;
 
@@ -184,6 +197,9 @@
     }
     .presentation-content {
       padding: 0 1rem;
+    }
+    .preview-image{
+      mask: linear-gradient(0deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.1) 85%);
     }
   }
 

@@ -27,14 +27,14 @@
         They are functions that accept parameters and return a value, you can use them inside blocks,
         assignments or in expressions
         <br/>
-        <Card padding="0.8rem">
-            <SyntaxHighlighter style="overflow-x: auto" language="rooc" source={'x * len(A) <= 2'}/>
+        <Card padding="0.8rem" style="overflow-x: auto">
+            <SyntaxHighlighter  language="rooc" source={'x * len(A) <= 2'}/>
         </Card>
     </Column>
     {#each functions as fun}
-        <Card padding="0.8rem" gap="0.5rem">
+        <Card padding="0.8rem" gap='0.2rem'>
             <SyntaxHighlighter
-                    style="overflow-x: auto"
+                    style="overflow-x: auto; padding-bottom: 0.5rem"
                     language="typescript"
                     source={createRoocFunctionSignature(fun)}
             />
@@ -54,9 +54,9 @@
         </Card>
     </Column>
     {#each blockFunctions as fun}
-        <Card padding="0.8rem" gap="0.5rem">
+        <Card padding="0.8rem" gap='0.2rem'>
             <SyntaxHighlighter
-                    style="overflow-x: auto"
+                    style="overflow-x: auto; padding-bottom: 0.5rem"
                     language="typescript"
                     source={createRoocFunctionSignature(fun)}
             />
@@ -75,14 +75,16 @@
         If there are more than one iterators, they will behave as nested iterators, where the first iterator
         is the outermost one
         <br/>
-        <Card padding="0.8rem">
-            <SyntaxHighlighter style="overflow-x: auto" language="rooc"
+        <Card padding="0.8rem" style="overflow-x: auto">
+            <SyntaxHighlighter  language="rooc"
                                source={'sum(i in 0..len(A), el in A[i]) { x_i * el }'}/>
         </Card>
     </Column>
     {#each blockScopedFunctions as fun}
-        <Card padding="0.8rem" gap="0.5rem">
-            <SyntaxHighlighter style="overflow-x: auto" language="typescript"
+        <Card padding="0.8rem" gap='0.2rem'>
+            <SyntaxHighlighter language="typescript"
+            style="overflow-x: auto; padding-bottom: 0.5rem"
+
                                source={createRoocFunctionSignature(fun)}/>
             {fun.description}
         </Card>

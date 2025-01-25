@@ -37,7 +37,7 @@
             solver
             for models that use only Real or NonNegativeReal variables.
         </li>
-        <li><strong>Binary solver</strong>: It uses the <a href="https://github.com/ffminus/copper">Copper</a>, a
+        <li><strong>Binary solver</strong>: It uses the <a href="https://github.com/ffminus/copper">Copper</a> solver, a
             constraint
             programming solver that can solve problems with binary variables. All coefficients must be integers (they
             will be

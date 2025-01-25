@@ -31,8 +31,8 @@
                 <p>
                     {code.description}
                 </p>
-                <Card padding="0.8rem 1rem">
-                    <SyntaxHighlighter language="rooc" source={code.code} style="overflow-x: auto;"/>
+                <Card padding="0.8rem 1rem"  style="overflow-x: auto;"> 
+                    <SyntaxHighlighter language="rooc" source={code.code}/>
                 </Card>
             </Column>
         {/each}

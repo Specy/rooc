@@ -99,7 +99,8 @@
   }
 
   th, td {
-    padding: 0.3rem;
+    padding: 0.3rem 0.5rem;
+
     text-align: center;
     border: solid 0.1rem var(--secondary-5);
   }

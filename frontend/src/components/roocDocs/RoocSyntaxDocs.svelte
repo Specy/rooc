@@ -62,8 +62,8 @@ define
         you can use the "solve" keyword.
     </p>
 
-    <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`min x + y / 2`} style="overflow-x: auto;"/>
+    <Card padding="0.8rem 1rem" style="overflow-x: auto;">
+        <SyntaxHighlighter language="rooc" source={`min x + y / 2`} />
     </Card>
     <Separator/>
     <h1 id="rooc_constraints">
@@ -80,9 +80,8 @@ define
         To do that, just write the name of the constraint followed by a colon ":". (eg. "myConstraint: x + y = 2"),
         you can also treat the constraint name as a compound variable and use the iteration syntax.
     </p>
-    <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`something: y >= x + 2\nconst_i: x * i <= i for i in 0..5`}
-                           style="overflow-x: auto;"/>
+    <Card padding="0.8rem 1rem" style="overflow-x: auto;">
+        <SyntaxHighlighter language="rooc" source={`something: y >= x + 2\nconst_i: x * i <= i for i in 0..5`}/>
     </Card>
     <Separator/>
     <h1 id="rooc_variable">
@@ -125,15 +124,12 @@ define
         interpreted as the literal variable name <code>x_hello</code>, preventing the evaluation of <code>hello</code>.
     </p>
 
-    <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc"
-                           source={`min 1\ns.t.\n    x_i + \\x_hello <= 1\n    x_{i + 1}_i <= 2\nwhere\n    let i = 3`}
-                           style="overflow-x: auto;"/>
+    <Card padding="0.8rem 1rem" style="overflow-x: auto;">
+        <SyntaxHighlighter language="rooc" source={`min 1\ns.t.\n    x_i + \\x_hello <= 1\n    x_{i + 1}_i <= 2\nwhere\n    let i = 3`}/>
     </Card>
     will be compiled to
-    <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`min 1\ns.t.\n    x_3 + x_hello <= 1\n    x_4_3 <= 2`}
-                           style="overflow-x: auto;"/>
+    <Card padding="0.8rem 1rem" style="overflow-x: auto;">
+        <SyntaxHighlighter language="rooc" source={`min 1\ns.t.\n    x_3 + x_hello <= 1\n    x_4_3 <= 2`} />
     </Card>
     <Separator/>
     <h1 id="rooc_data">
@@ -149,10 +145,9 @@ define
     <p>To define a named constant, use the <code>let</code> keyword followed by the constant's name and its value. For
         example:</p>
 
-    <Card padding="0.8rem 1rem">
+    <Card padding="0.8rem 1rem" style="overflow-x: auto;">
         <SyntaxHighlighter language="rooc"
-                           source={`let A = [1, 2, 3]\nlet B = [\n    [1, 2, 3],\n    [4, 5, 6]\n]\nlet G = Graph {\n    A -> [ C, B:2 ],\n    B -> [ A, C:-3 ],\n    C\n}\nlet lengthOfA = len(A)\nlet someString = "hello"\nlet someBool = true`}
-                           style="overflow-x: auto;"/>
+                           source={`let A = [1, 2, 3]\nlet B = [\n    [1, 2, 3],\n    [4, 5, 6]\n]\nlet G = Graph {\n    A -> [ C, B:2 ],\n    B -> [ A, C:-3 ],\n    C\n}\nlet lengthOfA = len(A)\nlet someString = "hello"\nlet someBool = true`}/>
     </Card>
     <Separator/>
     <h1 id="rooc_expansion_blocks">
@@ -167,14 +162,14 @@ define
     </p>
 
 
-    <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`avg{ x, y, z }`} style="overflow-x: auto;"/>
+    <Card padding="0.8rem 1rem"  style="overflow-x: auto;">
+        <SyntaxHighlighter language="rooc" source={`avg{ x, y, z }`} />
     </Card>
     <p>
         This will be compiled to:
     </p>
-    <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`(x + y + z) / 3`} style="overflow-x: auto;"/>
+    <Card padding="0.8rem 1rem"  style="overflow-x: auto;">
+        <SyntaxHighlighter language="rooc" source={`(x + y + z) / 3`}/>
     </Card>
     <p>
 
@@ -199,15 +194,15 @@ define
         As an example, here is creating a summation of <el>x_u</el>, where u is a number from 0 to 3 (3 excluded)
     </p>
 
-    <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`sum(u in 0..3) { x_u }`} style="overflow-x: auto;"/>
+    <Card padding="0.8rem 1rem"  style="overflow-x: auto;">
+        <SyntaxHighlighter language="rooc" source={`sum(u in 0..3) { x_u }`}/>
     </Card>
     <p>
         will be compiled to:
     </p>
 
-    <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`x_0 + x_1 + x_2`} style="overflow-x: auto;"/>
+    <Card padding="0.8rem 1rem" style="overflow-x: auto;">
+        <SyntaxHighlighter language="rooc" source={`x_0 + x_1 + x_2`}/>
     </Card>
     <p>
         there are different scoped expansion blocks that can be used to expand the expressions, you can find them in the
@@ -233,9 +228,8 @@ define
         NonNegativeReal (which defaults to 0 and inf).
     </p>
 
-    <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`y, x_u as IntegerRange(0,20) for u in 0..5`}
-                           style="overflow-x: auto;"/>
+    <Card padding="0.8rem 1rem" style="overflow-x: auto;">
+        <SyntaxHighlighter language="rooc" source={`y, x_u as IntegerRange(0,20) for u in 0..5`}/>
     </Card>
     <h1 id="rooc_functions_and_tuples">
         Functions and tuples
@@ -252,15 +246,14 @@ define
         arrays, tuples and graph edges.
     </p>
 
-    <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`sum((el, idx) in enumerate([10, 20,30])) { x_idx * el}`}
-                           style="overflow-x: auto;"/>
+    <Card padding="0.8rem 1rem" style="overflow-x: auto;">
+        <SyntaxHighlighter language="rooc" source={`sum((el, idx) in enumerate([10, 20,30])) { x_idx * el}`}/>
     </Card>
     <p>
         will be compiled to
     </p>
-    <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={`x_0 * 10 + x_1 * 20 + x_2 * 30`} style="overflow-x: auto;"/>
+    <Card padding="0.8rem 1rem" style="overflow-x: auto;">
+        <SyntaxHighlighter language="rooc" source={`x_0 * 10 + x_1 * 20 + x_2 * 30`} />
     </Card>
     <Separator/>
     <h1 id="rooc_others">
@@ -273,8 +266,8 @@ define
         the objective function, constraints, data and domains.
     </p>
 
-    <Card padding="0.8rem 1rem">
-        <SyntaxHighlighter language="rooc" source={exampleModel} style="overflow-x: auto;"/>
+    <Card padding="0.8rem 1rem" style="overflow-x: auto;">
+        <SyntaxHighlighter language="rooc" source={exampleModel} />
     </Card>
 </Column>
 
@@ -289,5 +282,8 @@ define
         font-size: 1.1rem;
     }
 
+    ul{
+        margin-left: 1rem;
+    }
 </style>
 

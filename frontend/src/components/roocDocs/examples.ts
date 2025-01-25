@@ -7,13 +7,12 @@ min sum((cost, i) in enumerate(C)) { cost * x_i }
 s.t.  
 
     min_{nutrient[j]}: //the diet must have at least of nutrient j
-        sum(i in 0..F) { a[i][j] * x_i} >= Nmin[j] for j in 0..len(Nmin)
+        sum(i in 0..f) { a[i][j] * x_i} >= Nmin[j] for j in 0..len(Nmin)
     
     max_{nutrient[j]}: //the diet must have at most of nutrient j
-        sum(i in 0..F) { a[i][j] * x_i } <= Nmax[j] for j in 0..len(Nmax)
+        sum(i in 0..f) { a[i][j] * x_i } <= Nmax[j] for j in 0..len(Nmax)
 
 where    
-
     // Cost of chicken, rice, avocado
     let C = [1.5, 0.5, 2.0]
     // Min and max of: protein, carbs, fats
@@ -30,7 +29,7 @@ where
         [2, 15, 20] // Avocado    
     ]
     // Number of foods
-    let F = len(a)
+    let f = len(a)
     // Number of nutrients
     let n = len(Nmax)
 define

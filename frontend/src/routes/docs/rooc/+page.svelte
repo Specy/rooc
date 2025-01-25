@@ -53,7 +53,7 @@
             <a href="/docs/rooc/solvers">Solvers</a>
         </li>
         <li>
-            <a href="/docs/rooc/rooc-runtime">Typescript runtime</a>
+            <a href="/docs/rooc/typescript-runtime">Typescript runtime</a>
         </li>
         <li>
             <a href="/docs/rooc/examples">Rooc examples</a>
