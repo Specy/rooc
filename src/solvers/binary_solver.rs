@@ -1,3 +1,4 @@
+use crate::make_constraints_map_from_assignment;
 use crate::math::{Comparison, OptimizationType, VariableType};
 use crate::solvers::common::{find_invalid_variables, Assignment, LpSolution, SolverError};
 use crate::transformers::LinearModel;
@@ -124,9 +125,15 @@ pub fn solve_binary_lp_problem(lp: &LinearModel) -> Result<LpSolution<bool>, Sol
                     value: *v,
                 })
                 .collect::<Vec<Assignment<bool>>>();
+            let coeffs = assignment
+                .iter()
+                .map(|v| if v.value { 1.0 } else { 0.0 })
+                .collect();
+            let constraints = make_constraints_map_from_assignment(lp, &coeffs);
+
             let value = solution[objective] as f64 + lp.objective_offset();
             assignment.sort_by(|a, b| a.name.cmp(&b.name));
-            let sol = LpSolution::new(assignment, value);
+            let sol = LpSolution::new(assignment, value, constraints);
             Ok(sol)
         }
     }

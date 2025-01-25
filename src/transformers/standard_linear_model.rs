@@ -7,7 +7,6 @@ use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standardizer::to_standard_form;
 use crate::utils::remove_many;
 use num_traits::Zero;
-use serde::Serialize;
 use std::fmt::Display;
 
 /// Represents a linear equality constraint in standard form: ax = b where a is a vector of coefficients and b is a constant.

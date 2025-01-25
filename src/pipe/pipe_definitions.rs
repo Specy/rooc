@@ -16,7 +16,6 @@ use crate::transformers::StandardLinearModel;
 use crate::utils::CompilationError;
 use crate::{match_pipe_data_to, MILPValue, RoocParser};
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 /// The data that can be passed between pipes

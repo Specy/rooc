@@ -140,6 +140,7 @@ impl<T: Clone + Serialize + Copy + DeserializeOwned + Display> Display for Assig
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LpSolution<T> {
     assignment: Vec<Assignment<T>>,
+    constraints: IndexMap<String, f64>,
     value: f64,
 }
 
@@ -154,7 +155,14 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> Display for LpSol
                 .map(|a| a.to_string())
                 .collect::<Vec<_>>()
                 .join("\n")
-        )
+        )?;
+        let constraints = self
+            .constraints
+            .iter()
+            .map(|(name, value)| format!("{} = {}", name, value))
+            .collect::<Vec<_>>()
+            .join("\n");
+        write!(f, "\n\nConstraints:\n{}", constraints)
     }
 }
 
@@ -164,8 +172,17 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> LpSolution<T> {
     /// # Arguments
     /// * `assignment` - Vector of variable assignments
     /// * `value` - The objective function value at this solution
-    pub fn new(assignment: Vec<Assignment<T>>, value: f64) -> Self {
-        Self { assignment, value }
+    /// * `constraints` - Map of constraint names to their values at this solution
+    pub fn new(
+        assignment: Vec<Assignment<T>>,
+        value: f64,
+        constraints: IndexMap<String, f64>,
+    ) -> Self {
+        Self {
+            assignment,
+            value,
+            constraints,
+        }
     }
 
     /// Returns a reference to the vector of variable assignments.
@@ -181,6 +198,11 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> LpSolution<T> {
     /// Returns the objective function value of this solution.
     pub fn value(&self) -> f64 {
         self.value
+    }
+
+    /// Returns the constraint values of this solution.
+    pub fn constraints(&self) -> &IndexMap<String, f64> {
+        &self.constraints
     }
 }
 

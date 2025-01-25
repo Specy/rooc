@@ -1,3 +1,4 @@
+use crate::make_constraints_map_from_assignment;
 use crate::math::{Comparison, OptimizationType, VariableType};
 use crate::solvers::{find_invalid_variables, Assignment, LpSolution, SolverError};
 use crate::transformers::LinearModel;
@@ -121,15 +122,17 @@ pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64
                     }
                 })
                 .collect::<Vec<Assignment<f64>>>();
-            let coeffs = lp.objective();
+            let coeffs = vars.iter().map(|v| v.value).collect::<Vec<f64>>();
+            let constraints = make_constraints_map_from_assignment(lp, &coeffs);
+            let obj_coeffs = lp.objective();
             //good_lp does not provide a way to get the objective value
             let value = vars
                 .iter()
                 .enumerate()
                 .fold(lp.objective_offset(), |acc, (i, a)| {
-                    acc + a.value * coeffs[i]
+                    acc + a.value * obj_coeffs[i]
                 });
-            Ok(LpSolution::new(vars, value))
+            Ok(LpSolution::new(vars, value, constraints))
         }
         Err(e) => match e {
             ResolutionError::Unbounded => Err(SolverError::Unbounded),

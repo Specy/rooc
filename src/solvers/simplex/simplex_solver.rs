@@ -1,3 +1,4 @@
+use crate::make_constraints_map_from_assignment;
 use crate::math::{Comparison, OptimizationType, VariableType};
 use crate::solvers::{find_invalid_variables, Assignment, LpSolution, SimplexError, SolverError};
 use crate::transformers::LinearModel;
@@ -172,15 +173,17 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
                 _ => {}
             }
             let obj = optimal_solution.objective() + lp.objective_offset();
-            let coeffs = variables
+            let assignment = variables
                 .iter()
                 .zip(vars_microlp.iter())
                 .map(|(name, c)| Assignment {
                     name: name.clone(),
                     value: optimal_solution[*c],
                 })
-                .collect();
-            Ok(LpSolution::new(coeffs, obj))
+                .collect::<Vec<_>>();
+            let coeffs = assignment.iter().map(|v| v.value).collect();
+            let constraints = make_constraints_map_from_assignment(lp, &coeffs);
+            Ok(LpSolution::new(assignment, obj, constraints))
         }
         Err(e) => match e {
             microlp::Error::Unbounded => Err(SolverError::Unbounded),

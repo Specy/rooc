@@ -929,6 +929,7 @@ export type LpAssignment<T> = {
 
 export type LpSolution<T> = {
     assignment: LpAssignment<T>[]
+    constraints: Record<string, number>
     value: number
 }
 

@@ -19,20 +19,20 @@ use crate::{
     utils::{InputSpan, Spanned},
 };
 
-/// Represents a variable or compound variable that will be used in type assertions
+/// Represents a variable or compound variable
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "value")]
-pub enum VariableToAssert {
+pub enum Variable {
     /// Simple variable name
     Variable(String),
     /// Compound variable with indexes
     CompoundVariable(CompoundVariable),
 }
 
-impl Display for VariableToAssert {
+impl Display for Variable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            VariableToAssert::Variable(name) => {
+            Variable::Variable(name) => {
                 if name.contains("_") {
                     //if it's a variable to be escaped
                     write!(f, "\\{}", name)
@@ -40,15 +40,15 @@ impl Display for VariableToAssert {
                     write!(f, "{}", name)
                 }
             }
-            VariableToAssert::CompoundVariable(c) => write!(f, "{}", c),
+            Variable::CompoundVariable(c) => write!(f, "{}", c),
         }
     }
 }
 
-impl ToLatex for VariableToAssert {
+impl ToLatex for Variable {
     fn to_latex(&self) -> String {
         match self {
-            VariableToAssert::Variable(name) => {
+            Variable::Variable(name) => {
                 if name.contains("_") {
                     let mut indexes = name.split("_").collect::<Vec<&str>>();
                     //sure to have at least one element
@@ -59,7 +59,7 @@ impl ToLatex for VariableToAssert {
                     escape_latex(name)
                 }
             }
-            VariableToAssert::CompoundVariable(c) => c.to_latex(),
+            Variable::CompoundVariable(c) => c.to_latex(),
         }
     }
 }
@@ -81,7 +81,7 @@ export type SerializedVariableToAssert = {
 #[derive(Debug, Clone, Serialize)]
 pub struct VariablesDomainDeclaration {
     /// Variables included in this domain
-    variables: Vec<Spanned<VariableToAssert>>,
+    variables: Vec<Spanned<Variable>>,
     /// Type for all variables in this domain
     as_type: PreVariableType,
     /// Optional iteration scopes to iterate compound variables
@@ -105,7 +105,7 @@ export type SerializedVariablesDomainDeclaration = {
 impl VariablesDomainDeclaration {
     /// Creates a new domain declaration
     pub fn new(
-        variables: Vec<Spanned<VariableToAssert>>,
+        variables: Vec<Spanned<Variable>>,
         as_type: PreVariableType,
         iters: Vec<IterableSet>,
         span: InputSpan,
@@ -119,7 +119,7 @@ impl VariablesDomainDeclaration {
     }
 
     /// Returns reference to variables in this domain
-    pub fn variables(&self) -> &Vec<Spanned<VariableToAssert>> {
+    pub fn variables(&self) -> &Vec<Spanned<Variable>> {
         &self.variables
     }
 
@@ -133,9 +133,7 @@ impl VariablesDomainDeclaration {
         self.variables
             .iter()
             .filter_map(|v| match &v.value() {
-                VariableToAssert::Variable(name) => {
-                    Some(Spanned::new(name.clone(), v.span().clone()))
-                }
+                Variable::Variable(name) => Some(Spanned::new(name.clone(), v.span().clone())),
                 _ => None,
             })
             .collect()
@@ -156,11 +154,11 @@ impl VariablesDomainDeclaration {
             .iter()
             .map(|v| {
                 match v.value() {
-                    VariableToAssert::Variable(name) => {
+                    Variable::Variable(name) => {
                         let var_type = self.as_type.to_variable_type(context, fn_context)?;
                         Ok((name.clone(), var_type))
                     }
-                    VariableToAssert::CompoundVariable(c) => {
+                    Variable::CompoundVariable(c) => {
                         let indexes = &c.compute_indexes(context, fn_context)?;
                         let name = context.flatten_compound_variable(&c.name, indexes)?;
                         let var_type = self.as_type.to_variable_type(context, fn_context)?;
@@ -214,7 +212,7 @@ impl TypeCheckable for VariablesDomainDeclaration {
         }
         for variable in &self.variables {
             match &variable.value() {
-                VariableToAssert::Variable(name) => {
+                Variable::Variable(name) => {
                     if context.value_of(name).is_some() {
                         return Err(TransformError::Other(format!(
                             "Variable {} already declared as static",
@@ -223,7 +221,7 @@ impl TypeCheckable for VariablesDomainDeclaration {
                         .add_span(variable.span()));
                     }
                 }
-                VariableToAssert::CompoundVariable(c) => {
+                Variable::CompoundVariable(c) => {
                     context
                         .check_compound_variable(&c.indexes, fn_context)
                         .map_err(|e| e.add_span(variable.span()))?;
@@ -250,7 +248,7 @@ impl TypeCheckable for VariablesDomainDeclaration {
 
         self.as_type.populate_token_type_map(context, fn_context);
         for variable in &self.variables {
-            if let VariableToAssert::CompoundVariable(c) = variable.value() {
+            if let Variable::CompoundVariable(c) = variable.value() {
                 for index in &c.indexes {
                     index.populate_token_type_map(context, fn_context);
                 }

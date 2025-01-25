@@ -3,7 +3,7 @@ use std::vec;
 use pest::iterators::{Pair, Pairs};
 
 use crate::math::{Comparison, OptimizationType, PreVariableType};
-use crate::parser::domain_declaration::{VariableToAssert, VariablesDomainDeclaration};
+use crate::parser::domain_declaration::{Variable, VariablesDomainDeclaration};
 use crate::parser::il::IterableSet;
 use crate::parser::il::PreExp;
 use crate::parser::il::{AddressableAccess, CompoundVariable, PreConstraint, PreObjective};
@@ -156,11 +156,11 @@ pub fn parse_domain_declaration(
 
 pub fn parse_variables_assertion(
     variables_assertions: Pair<Rule>,
-) -> Result<Vec<Spanned<VariableToAssert>>, CompilationError> {
+) -> Result<Vec<Spanned<Variable>>, CompilationError> {
     match variables_assertions.as_rule() {
         Rule::domain_variables => variables_assertions
             .into_inner()
-            .map(|v| parse_variable_assertion(&v))
+            .map(|v| parse_variable(&v))
             .collect(),
         _ => err_unexpected_token!(
             "Expected variables assertions but got: {}",
@@ -219,27 +219,25 @@ pub fn parse_as_assertion_type(pair: &Pair<Rule>) -> Result<PreVariableType, Com
     }
 }
 
-pub fn parse_variable_assertion(
-    pair: &Pair<Rule>,
-) -> Result<Spanned<VariableToAssert>, CompilationError> {
+pub fn parse_variable(pair: &Pair<Rule>) -> Result<Spanned<Variable>, CompilationError> {
     let span = InputSpan::from_pair(pair);
     match pair.as_rule() {
         Rule::compound_variable => {
             let compound_variable = parse_compound_variable(pair);
             match compound_variable {
                 Ok(compound_variable) => Ok(Spanned::new(
-                    VariableToAssert::CompoundVariable(compound_variable),
+                    Variable::CompoundVariable(compound_variable),
                     span,
                 )),
                 Err(e) => Err(e),
             }
         }
         Rule::simple_variable => Ok(Spanned::new(
-            VariableToAssert::Variable(pair.as_str().to_string()),
+            Variable::Variable(pair.as_str().to_string()),
             span,
         )),
         Rule::escaped_compound_variable => Ok(Spanned::new(
-            VariableToAssert::Variable(pair.as_str()[1..].to_string()),
+            Variable::Variable(pair.as_str()[1..].to_string()),
             span,
         )),
         _ => err_unexpected_token!("Expected variable but got: {}", pair),
@@ -363,10 +361,22 @@ pub fn parse_constraint(constraint: &Pair<Rule>) -> Result<PreConstraint, Compil
     match constraint.as_rule() {
         Rule::constraint => {
             let inner = constraint.clone().into_inner();
-            let lhs = inner.find_first_tagged("lhs");
-            let relation = inner.find_first_tagged("relation");
-            let rhs = inner.find_first_tagged("rhs");
-            let iteration = inner.find_first_tagged("iteration");
+            let name = inner.find_first_tagged("constraint_name");
+            let name = match name {
+                Some(v) => { 
+                    
+                    let first = v.clone().into_inner().next();
+                    if first.is_none() {
+                        return err_unexpected_token!("Expected variable but got: {}", v);
+                    }
+                    Some(parse_variable(&first.unwrap())?)
+                }
+                None => None,
+            };
+            let lhs = inner.find_first_tagged("constraint_lhs");
+            let relation = inner.find_first_tagged("constraint_relation");
+            let rhs = inner.find_first_tagged("constraint_rhs");
+            let iteration = inner.find_first_tagged("constraint_iteration");
             match (rhs, relation, lhs, iteration) {
                 (Some(rhs), Some(relation_type), Some(lhs), iteration) => {
                     let iteration = match iteration {
@@ -374,6 +384,7 @@ pub fn parse_constraint(constraint: &Pair<Rule>) -> Result<PreConstraint, Compil
                         None => vec![],
                     };
                     Ok(PreConstraint::new(
+                        name,
                         parse_exp(lhs)?,
                         parse_comparison(&relation_type)?,
                         parse_exp(rhs)?,

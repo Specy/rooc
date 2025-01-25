@@ -25,6 +25,7 @@ use std::fmt::Display;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct LinearConstraint {
+    name: String,
     coefficients: Vec<f64>,
     rhs: f64,
     constraint_type: Comparison,
@@ -38,6 +39,7 @@ export type SerializedLinearConstraint = {
     rhs: number
     coefficients: number[]
     constraint_type: SerializedComparison
+    name: String
 }
 
 export type SerializedComparison = {
@@ -54,10 +56,37 @@ impl LinearConstraint {
     /// * `rhs` - Right-hand side constant value
     pub fn new(coefficients: Vec<f64>, constraint_type: Comparison, rhs: f64) -> LinearConstraint {
         LinearConstraint {
+            name: "".to_string(),
             coefficients,
             rhs,
             constraint_type,
         }
+    }
+
+    /// Creates a new linear constraint with a name.
+    pub fn new_with_name(
+        coefficients: Vec<f64>,
+        constraint_type: Comparison,
+        rhs: f64,
+        name: String,
+    ) -> LinearConstraint {
+        LinearConstraint {
+            name,
+            coefficients,
+            rhs,
+            constraint_type,
+        }
+    }
+
+    /// Sets the name of the constraint.
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.name = name.to_string();
+        self
+    }
+
+    /// Returns the name of the constraint.
+    pub fn name(&self) -> String {
+        self.name.clone()
     }
 
     /// Returns a reference to the coefficient vector.
@@ -116,6 +145,38 @@ impl LinearConstraint {
     }
     pub fn wasm_get_constraint_type(&self) -> Comparison {
         self.constraint_type
+    }
+}
+
+impl Display for LinearConstraint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut is_first = true;
+        let coefficients = self
+            .coefficients
+            .iter()
+            .enumerate()
+            .flat_map(|(i, c)| {
+                if c.is_zero() {
+                    None
+                } else {
+                    let var = format_var(&format!("x{}", i + 1), *c, is_first);
+                    is_first = false;
+                    Some(var)
+                }
+            })
+            .collect::<Vec<String>>()
+            .join(" ");
+        let lhs = if coefficients.is_empty() {
+            "0".to_string()
+        } else {
+            coefficients
+        };
+        let rhs = if self.rhs.is_zero() {
+            "0".to_string()
+        } else {
+            self.rhs.to_string()
+        };
+        write!(f, "{} {} {}", lhs, self.constraint_type, rhs)
     }
 }
 
@@ -281,9 +342,32 @@ impl LinearModel {
     /// If there are more coefficient than how many variables there are
     pub fn add_constraint(
         &mut self,
+        coefficients: Vec<f64>,
+        constraint_type: Comparison,
+        rhs: f64,
+    ) {
+        self.add_named_constraint(coefficients, constraint_type, rhs, "");
+    }
+
+    /// Adds a new constraint to the model.
+    ///
+    /// # Arguments
+    /// * `coefficients` - Vector of coefficients for the constraint
+    /// * `constraint_type` - Type of comparison operator
+    /// * `rhs` - Right-hand side value
+    /// * `name` - Name of the constraint
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(LinearModelError)` if too many coefficients provided
+    /// # Panics
+    /// If there are more coefficient than how many variables there are
+    pub fn add_named_constraint(
+        &mut self,
         mut coefficients: Vec<f64>,
         constraint_type: Comparison,
         rhs: f64,
+        name: &str,
     ) {
         if coefficients.len() > self.variables.len() {
             panic!(
@@ -293,8 +377,12 @@ impl LinearModel {
             );
         }
         coefficients.resize(self.variables.len(), 0.0);
-        self.constraints
-            .push(LinearConstraint::new(coefficients, constraint_type, rhs));
+        self.constraints.push(LinearConstraint::new_with_name(
+            coefficients,
+            constraint_type,
+            rhs,
+            name.to_string(),
+        ));
     }
 
     /// Sets the objective function of the model.
@@ -354,6 +442,45 @@ impl LinearModel {
     /// Returns a reference to the variable domains.
     pub fn domain(&self) -> &IndexMap<String, DomainVariable> {
         &self.domain
+    }
+
+    pub fn calc_objective(&self, values: &Vec<f64>) -> f64 {
+        if values.len() != self.objective.len() {
+            panic!(
+                "Objective has {} coefficients while {} values were provided",
+                self.objective.len(),
+                values.len()
+            );
+        }
+        self.objective
+            .iter()
+            .zip(values)
+            .map(|(c, v)| c * v)
+            .sum::<f64>()
+            + self.objective_offset
+    }
+
+    pub fn calc_constraints(&self, values: &Vec<f64>) -> Vec<(String, f64)> {
+        self.constraints
+            .iter()
+            .map(|c| {
+                if c.coefficients.len() != values.len() {
+                    panic!(
+                        "Constraint {} has {} coefficients while {} values were provided",
+                        c,
+                        c.coefficients.len(),
+                        values.len()
+                    );
+                }
+                let value = c
+                    .coefficients
+                    .iter()
+                    .zip(values)
+                    .map(|(c, v)| c * v)
+                    .sum::<f64>();
+                (c.name(), value)
+            })
+            .collect()
     }
 }
 
@@ -460,4 +587,16 @@ impl LinearModel {
     pub fn wasm_to_string(&self) -> String {
         format!("{}", self)
     }
+}
+
+pub fn make_constraints_map_from_assignment(
+    model: &LinearModel,
+    assignment: &Vec<f64>,
+) -> IndexMap<String, f64> {
+    let constraints = model.calc_constraints(assignment);
+    // Remove constraints that are not user-defined, marked as "__"
+    constraints
+        .into_iter()
+        .filter(|c| !c.0.starts_with("__"))
+        .collect()
 }

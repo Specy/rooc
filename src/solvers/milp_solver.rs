@@ -1,6 +1,8 @@
 use crate::solvers::common::{LpSolution, SolverError};
 use crate::transformers::LinearModel;
-use crate::{Assignment, Comparison, OptimizationType, VariableType};
+use crate::{
+    make_constraints_map_from_assignment, Assignment, Comparison, OptimizationType, VariableType,
+};
 use microlp::{ComparisonOp, Error, OptimizationDirection, Problem};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
@@ -133,9 +135,15 @@ pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, 
                     }
                 })
                 .collect();
+            let coeffs = microlp_vars
+                .iter()
+                .map(|v| s.var_value_rounded(*v))
+                .collect();
+            let constraints = make_constraints_map_from_assignment(lp, &coeffs);
             Ok(LpSolution::new(
                 assignment,
                 s.objective() + lp.objective_offset(),
+                constraints,
             ))
         }
         Err(e) => Err(match e {

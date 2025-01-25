@@ -7,7 +7,7 @@ documentation = "https://rooc.specy.app/docs/rooc"
 description = "A mixed integer linear programming modeling language to solve linear optimization models. Extensible, works in WASM and easy to use."
 keywords = ["optimization", "milp", "solver", "mathematics", "linear-programming"]
 categories = ["mathematics", "algorithms", "science"]
-version = "0.1.15"
+version = "0.1.16"
 license = "GPL-3.0"
 edition = "2021"
 
@@ -26,6 +26,7 @@ copper = "0.1.0"
 indexmap = {version =  "2.6.0", features = ["serde"] }
 good_lp = { version = "1.9.0", features = ["clarabel-wasm"], default-features = false }
 microlp = "0.2.9"
+log = "0.4.21"
 
 [target.'cfg(target_family = "wasm")'.dev-dependencies]
 wasm-bindgen-test = "0.3.0"

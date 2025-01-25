@@ -81,6 +81,7 @@ impl Exp {
                         Exp::Variable(var_name.clone()).clone(),
                         Comparison::LessOrEqual,
                         exp.clone(),
+                        "__min".to_string(),
                     );
                     linearizer_context.add_constraint(constraint)
                 }
@@ -98,6 +99,7 @@ impl Exp {
                         Exp::Variable(var_name.clone()).clone(),
                         Comparison::GreaterOrEqual,
                         exp.clone(),
+                        "__max".to_string(),
                     );
                     linearizer_context.add_constraint(constraint)
                 }
@@ -117,6 +119,7 @@ impl Exp {
 /// Represents an intermediate linear constraint during the linearization process.
 #[derive(Debug)]
 struct MidLinearConstraint {
+    name: String,
     lhs: IndexMap<String, f64>,
     rhs: f64,
     comparison: Comparison,
@@ -129,9 +132,11 @@ impl MidLinearConstraint {
     /// * `lhs` - Map of variable names to their coefficients
     /// * `rhs` - Right-hand side constant
     /// * `comparison` - Comparison operator
+    /// * `name` - Name of the constraint
     #[allow(unused)]
-    pub fn new(lhs: IndexMap<String, f64>, rhs: f64, comparison: Comparison) -> Self {
+    pub fn new(lhs: IndexMap<String, f64>, rhs: f64, comparison: Comparison, name: String) -> Self {
         MidLinearConstraint {
+            name,
             lhs,
             rhs,
             comparison,
@@ -146,11 +151,13 @@ impl MidLinearConstraint {
     pub fn new_from_linearized_context(
         context: LinearizationContext,
         comparison: Comparison,
+        name: String,
     ) -> Self {
         MidLinearConstraint {
             lhs: context.current_vars,
             rhs: -context.current_rhs,
             comparison,
+            name,
         }
     }
 
@@ -168,7 +175,7 @@ impl MidLinearConstraint {
     /// * `vars` - Mapping of variable names to their positions
     pub fn into_linear_constraint(self, vars: &IndexMap<String, usize>) -> LinearConstraint {
         let coeffs = self.to_coefficient_vector(vars);
-        LinearConstraint::new(coeffs, self.comparison, self.rhs)
+        LinearConstraint::new_with_name(coeffs, self.comparison, self.rhs, self.name)
     }
 }
 
@@ -284,12 +291,14 @@ impl Linearizer {
         let objective_exp = objective.rhs.flatten().simplify();
         let linearized_objective = objective_exp.linearize(&mut context)?;
         while let Some(constraint) = context.pop_constraint() {
-            let (lhs, op, rhs) = constraint.into_parts();
+            let (lhs, op, rhs, name) = constraint.into_parts();
             let exp = Exp::BinOp(BinOp::Sub, Box::new(lhs), Box::new(rhs))
                 .flatten()
                 .simplify();
             let res = exp.linearize(&mut context)?;
-            linear_constraints.push(MidLinearConstraint::new_from_linearized_context(res, op));
+            linear_constraints.push(MidLinearConstraint::new_from_linearized_context(
+                res, op, name,
+            ));
         }
 
         let mut vars = context.used_variables();

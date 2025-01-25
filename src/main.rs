@@ -8,14 +8,11 @@ use rooc::pipe::{
 #[allow(unused)]
 fn main() {
     let source = r#"
-min (4a + 3b + 2ca + 3s + 5m + 6ch) - 50
+min 1
 subject to
-    a + b >= 3
-    ca + s >= 2
-    m + ch >= 1
-    4a + 3b + 2ca + 3s + 5m + 6ch >= 50
+    c_i: x_i >= 0 for i in 0..10
 define
-    a, b, ca, s, m, ch as NonNegativeReal(0, 100)
+    x_i as NonNegativeReal(0, 100) for i in 0..10
     "#
     .to_string();
     let pipe_runner = PipeRunner::new(vec![

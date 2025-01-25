@@ -1,3 +1,4 @@
+use crate::make_constraints_map_from_assignment;
 use crate::math::{Comparison, OptimizationType, VariableType};
 use crate::solvers::common::{
     find_invalid_variables, process_variables, process_variables_binary, Assignment, LpSolution,
@@ -223,47 +224,49 @@ pub fn solve_integer_binary_lp_problem(
         OptimizationType::Min => m.minimize(objective),
         OptimizationType::Satisfy => m.solve(),
     };
-
-    let rev_binary_variables = binary_variables
-        .iter()
-        .map(|(name, i)| (i, name))
-        .collect::<IndexMap<_, _>>();
-    let rev_integer_variables = integer_variables
-        .iter()
-        .map(|(name, i)| (i, name))
-        .collect::<IndexMap<_, _>>();
-
     match solution {
         None => Err(SolverError::DidNotSolve),
         Some(solution) => {
-            let mut assignment = solution
-                .get_values_binary(&vars_binary)
+            let mut assignment = binary_variables
                 .iter()
                 .enumerate()
-                .filter_map(|(v, n)| {
-                    let name = rev_binary_variables.get(&v);
-                    name.map(|name| Assignment {
+                .map(|(var_index, (name, _))| {
+                    let value = solution.get_value_binary(vars_binary[var_index]);
+                    Assignment {
                         name: (*name).clone(),
-                        value: IntOrBoolValue::Bool(*n),
-                    })
+                        value: IntOrBoolValue::Bool(value),
+                    }
                 })
                 .chain(
-                    solution
-                        .get_values(&vars_integer)
+                    integer_variables
                         .iter()
                         .enumerate()
-                        .filter_map(|(v, n)| {
-                            let name = rev_integer_variables.get(&v);
-                            name.map(|name| Assignment {
+                        .map(|(var_index, (name, _))| {
+                            let value = solution[vars_integer[var_index]];
+                            Assignment {
                                 name: (*name).clone(),
-                                value: IntOrBoolValue::Int(*n),
-                            })
+                                value: IntOrBoolValue::Int(value),
+                            }
                         }),
                 )
-                .collect::<Vec<Assignment<IntOrBoolValue>>>();
+                .collect::<Vec<_>>();
+            let coeffs = assignment
+                .iter()
+                .map(|v| match v.value {
+                    IntOrBoolValue::Bool(v) => {
+                        if v {
+                            1.0
+                        } else {
+                            0.0
+                        }
+                    }
+                    IntOrBoolValue::Int(v) => v as f64,
+                })
+                .collect::<Vec<f64>>();
+            let constraints = make_constraints_map_from_assignment(lp, &coeffs);
             assignment.sort_by(|a, b| a.name.cmp(&b.name));
             let value = solution[objective] as f64 + lp.objective_offset();
-            let sol = LpSolution::new(assignment, value);
+            let sol = LpSolution::new(assignment, value, constraints);
             Ok(sol)
         }
     }

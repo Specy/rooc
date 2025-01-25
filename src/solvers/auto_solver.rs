@@ -2,6 +2,7 @@ use crate::{
     solve_binary_lp_problem, solve_milp_lp_problem, solve_real_lp_problem_clarabel, Assignment,
     IntOrBoolValue, LinearModel, LpSolution, MILPValue, SolverError, VariableType,
 };
+use indexmap::IndexMap;
 
 /// Solves a any kind of linear programming problem by picking the right solver for the model.
 ///
@@ -63,7 +64,7 @@ pub fn auto_solver(lp: &LinearModel) -> Result<LpSolution<MILPValue>, SolverErro
         (false, true, true) => solve_milp_lp_problem(lp),
         (false, true, false) => solve_milp_lp_problem(lp), //solve_integer_binary_lp_problem(lp).map(int_bool_to_milp),
         (false, false, true) => solve_real_lp_problem_clarabel(lp).map(real_to_milp),
-        (false, false, false) => Ok(LpSolution::new(vec![], 0.0)),
+        (false, false, false) => Ok(LpSolution::new(vec![], 0.0, IndexMap::new())),
     }
 }
 
@@ -76,7 +77,7 @@ fn bool_to_milp(val: LpSolution<bool>) -> LpSolution<MILPValue> {
             value: MILPValue::Bool(v.value),
         })
         .collect();
-    LpSolution::new(values, val.value())
+    LpSolution::new(values, val.value(), val.constraints().clone())
 }
 
 #[allow(unused)]
@@ -95,7 +96,7 @@ fn int_bool_to_milp(val: LpSolution<IntOrBoolValue>) -> LpSolution<MILPValue> {
             }
         })
         .collect();
-    LpSolution::new(values, val.value())
+    LpSolution::new(values, val.value(), val.constraints().clone())
 }
 
 fn real_to_milp(val: LpSolution<f64>) -> LpSolution<MILPValue> {
@@ -107,5 +108,5 @@ fn real_to_milp(val: LpSolution<f64>) -> LpSolution<MILPValue> {
             name: v.name.clone(),
         })
         .collect();
-    LpSolution::new(values, val.value())
+    LpSolution::new(values, val.value(), val.constraints().clone())
 }

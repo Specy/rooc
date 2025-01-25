@@ -3,6 +3,7 @@ use crate::prelude::*;
 use core::fmt;
 use serde::Serialize;
 
+use crate::domain_declaration::Variable;
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::iterable_set::IterableSet;
 use crate::parser::model_transformer::TransformError;
@@ -14,6 +15,7 @@ use crate::{
     primitives::Primitive,
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::InputSpan,
+    Spanned,
 };
 
 /// Represents array-like access to a variable, such as `x[1][2]`.
@@ -229,10 +231,10 @@ impl fmt::Display for PreObjective {
 }
 
 /// Represents a constraint in a mathematical programming problem.
-///
-/// # Examp
 #[derive(Debug, Serialize, Clone)]
 pub struct PreConstraint {
+    /// Expression that evaluates the name of this constraint
+    pub name_exp: Option<Spanned<Variable>>,
     /// Left-hand side expression
     pub lhs: PreExp,
     /// Type of comparison (<=, =, >=, etc)
@@ -262,12 +264,14 @@ impl PreConstraint {
     /// Creates a new constraint.
     ///
     /// # Arguments
+    /// * `name_exp` - The expression that evaluates the name of this constraint
     /// * `lhs` - Left-hand side expression
     /// * `constraint_type` - Type of comparison
     /// * `rhs` - Right-hand side expression
     /// * `iteration` - Vector of iteration sets for quantified constraints
     /// * `span` - Source location information
     pub fn new(
+        name_exp: Option<Spanned<Variable>>,
         lhs: PreExp,
         constraint_type: Comparison,
         rhs: PreExp,
@@ -275,6 +279,7 @@ impl PreConstraint {
         span: InputSpan,
     ) -> Self {
         Self {
+            name_exp,
             lhs,
             constraint_type,
             rhs,
@@ -314,6 +319,14 @@ impl TypeCheckable for PreConstraint {
         }
         let lhs_type = self.lhs.get_type(context, fn_context);
         let rhs_type = self.rhs.get_type(context, fn_context);
+        if let Some(name_exp) = &self.name_exp {
+            match name_exp.value() {
+                Variable::CompoundVariable(c) => {
+                    context.check_compound_variable(&c.indexes, fn_context)?
+                }
+                Variable::Variable(_) => (),
+            }
+        }
         for _ in &self.iteration {
             context.pop_scope()?;
         }
@@ -327,6 +340,7 @@ impl TypeCheckable for PreConstraint {
             .add_span(&self.span);
             return Err(err);
         }
+
         Ok(())
     }
     fn populate_token_type_map(
@@ -373,9 +387,13 @@ impl ToLatex for PreConstraint {
 impl fmt::Display for PreConstraint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
+        let name = match &self.name_exp {
+            Some(name) => format!("{}: ", name.value()),
+            None => "".to_string(),
+        };
         s.push_str(&format!(
-            "{} {} {}",
-            self.lhs, self.constraint_type, self.rhs
+            "{}{} {} {}",
+            name, self.lhs, self.constraint_type, self.rhs
         ));
         if !self.iteration.is_empty() {
             s.push_str(" for ");

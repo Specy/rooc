@@ -28,11 +28,18 @@ solve = @{ ^"solve" }
 constraint_list = { (constraint ~ (nl* ~constraint)*)?}
 // constraint
 constraint = {
-  #lhs = (tagged_exp) ~
-  #relation = comparison ~
-  #rhs = tagged_exp ~
-  #iteration = (nl* ~ for_iteration)?
+  #constraint_name = (constraint_name)? ~
+  #constraint_lhs = (tagged_exp) ~
+  #constraint_relation = comparison ~
+  #constraint_rhs = tagged_exp ~
+  #constraint_iteration = (nl* ~ for_iteration)?
 }
+constraint_name = {
+    variable ~ ":"
+}
+	
+    
+
 // constants declaration
 consts_declaration = { (const_declaration ~(nl* ~ const_declaration)*)? }
 const_declaration  = {

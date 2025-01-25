@@ -2,6 +2,7 @@
 use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 
+#[cfg(target_arch = "wasm32")]
 use crate::pipe::run_pipe;
 #[cfg(target_arch = "wasm32")]
 use crate::runtime_builtin::JsFunction;

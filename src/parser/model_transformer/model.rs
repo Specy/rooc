@@ -1,10 +1,4 @@
-use crate::domain_declaration::format_domain;
-#[allow(unused_imports)]
-use crate::prelude::*;
-use core::fmt;
-use indexmap::IndexMap;
-use serde::Serialize;
-
+use crate::domain_declaration::{format_domain, Variable};
 use crate::math::{BinOp, UnOp};
 use crate::math::{Comparison, OptimizationType};
 use crate::parser::il::PreExp;
@@ -13,11 +7,17 @@ use crate::parser::model_transformer::transform_error::TransformError;
 use crate::parser::model_transformer::transformer_context::{DomainVariable, TransformerContext};
 use crate::parser::pre_model::PreModel;
 use crate::parser::recursive_set_resolver::recursive_set_resolver;
+#[allow(unused_imports)]
+use crate::prelude::*;
 use crate::primitives::Constant;
 use crate::runtime_builtin::{make_std, make_std_constants, RoocFunction};
 use crate::traits::{escape_latex, ToLatex};
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{primitives::Primitive, utils::Spanned};
+use core::fmt;
+use indexmap::IndexMap;
+use serde::Serialize;
+use std::cell::Cell;
 
 /// Represents a mathematical expression in the optimization model.
 ///
@@ -415,8 +415,13 @@ impl fmt::Display for Objective {
 /// Represents a constraint in the optimization model (lhs comparison rhs).
 #[derive(Debug, Clone, Serialize)]
 pub struct Constraint {
+    /// Name of the constraint
+    name: String,
+    /// Left-hand side expression
     lhs: Exp,
+    /// Type of comparison (=, ≤, ≥, <, >)
     constraint_type: Comparison,
+    /// Right-hand side expression
     rhs: Exp,
 }
 
@@ -438,8 +443,10 @@ impl Constraint {
     /// * `lhs` - Left-hand side expression
     /// * `constraint_type` - Type of comparison (=, ≤, ≥, <, >)
     /// * `rhs` - Right-hand side expression
-    pub fn new(lhs: Exp, constraint_type: Comparison, rhs: Exp) -> Self {
+    /// * `name` - Name of the constraint
+    pub fn new(lhs: Exp, constraint_type: Comparison, rhs: Exp, name: String) -> Self {
         Self {
+            name,
             lhs,
             constraint_type,
             rhs,
@@ -450,14 +457,23 @@ impl Constraint {
     ///
     /// # Returns
     /// A tuple of (lhs, comparison, rhs)
-    pub fn into_parts(self) -> (Exp, Comparison, Exp) {
-        (self.lhs, self.constraint_type, self.rhs)
+    pub fn into_parts(self) -> (Exp, Comparison, Exp, String) {
+        (self.lhs, self.constraint_type, self.rhs, self.name)
     }
 }
 
 impl fmt::Display for Constraint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {} {}", self.lhs, self.constraint_type, self.rhs)
+        let name = if self.name.starts_with("_c") {
+            "".to_string()
+        } else {
+            format!("{}: ", self.name)
+        };
+        write!(
+            f,
+            "{}{} {} {}",
+            name, self.lhs, self.constraint_type, self.rhs
+        )
     }
 }
 
@@ -640,10 +656,28 @@ pub fn transform_constraint(
     constraint: &PreConstraint,
     context: &mut TransformerContext,
     fn_context: &FunctionContext,
+    index: usize,
 ) -> Result<Constraint, TransformError> {
     let lhs = constraint.lhs.into_exp(context, fn_context)?;
     let rhs = constraint.rhs.into_exp(context, fn_context)?;
-    Ok(Constraint::new(lhs, constraint.constraint_type, rhs))
+    let name = match &constraint.name_exp {
+        Some(v) => match v.value() {
+            Variable::CompoundVariable(c) => {
+                let indexes = c
+                    .indexes
+                    .iter()
+                    .map(|v| v.as_primitive(context, fn_context))
+                    .collect::<Result<Vec<Primitive>, TransformError>>()
+                    .map_err(|e| e.add_span(v.span()))?;
+                context
+                    .flatten_compound_variable(&c.name, &indexes)
+                    .map_err(|e| e.add_span(v.span()))?
+            }
+            Variable::Variable(name) => name.clone(),
+        },
+        None => format!("_c{}", index),
+    };
+    Ok(Constraint::new(lhs, constraint.constraint_type, rhs, name))
 }
 
 /// Transforms a pre-constraint with iteration into multiple constraints.
@@ -659,9 +693,13 @@ pub fn transform_constraint_with_iteration(
     constraint: &PreConstraint,
     context: &mut TransformerContext,
     fn_context: &FunctionContext,
+    last_index: usize,
 ) -> Result<Vec<Constraint>, TransformError> {
+    let index = Cell::new(last_index);
     if constraint.iteration.is_empty() {
-        return Ok(vec![transform_constraint(constraint, context, fn_context)?]);
+        return Ok(vec![transform_constraint(
+            constraint, context, fn_context, last_index,
+        )?]);
     }
     let mut results: Vec<Constraint> = Vec::new();
     recursive_set_resolver(
@@ -670,7 +708,10 @@ pub fn transform_constraint_with_iteration(
         fn_context,
         &mut results,
         0,
-        &|c| transform_constraint(constraint, c, fn_context),
+        &|c| {
+            index.set(index.get() + 1);
+            transform_constraint(constraint, c, fn_context, index.get())
+        },
     )
     .map_err(|e| e.add_span(&constraint.span))?;
     Ok(results)
@@ -710,9 +751,11 @@ pub fn transform_model(
 ) -> Result<Model, TransformError> {
     let objective = transform_objective(problem.objective(), &mut context, fn_context)?;
     let mut constraints: Vec<Constraint> = Vec::new();
+    let mut index = 0;
     for constraint in problem.constraints().iter() {
         let transformed =
-            transform_constraint_with_iteration(constraint, &mut context, fn_context)?;
+            transform_constraint_with_iteration(constraint, &mut context, fn_context, index)?;
+        index += transformed.len();
         for transformed_constraint in transformed {
             constraints.push(transformed_constraint);
         }

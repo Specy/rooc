@@ -2,6 +2,7 @@
 use crate::prelude::*;
 use crate::solvers::{LpSolution, Tableau};
 use core::fmt;
+use indexmap::IndexMap;
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
@@ -45,7 +46,7 @@ impl OptimalTableau {
                 value: *val,
             })
             .collect();
-        LpSolution::new(assignment, value)
+        LpSolution::new(assignment, value, IndexMap::new())
     }
 }
 
