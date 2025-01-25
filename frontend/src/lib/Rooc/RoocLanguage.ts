@@ -1,9 +1,4 @@
-import {
-    findRoocCompletionTokens,
-    findRoocExactToken,
-    type PossibleCompletionToken,
-    RoocParser,
-} from '@specy/rooc'
+import {findRoocCompletionTokens, findRoocExactToken, type PossibleCompletionToken, RoocParser,} from '@specy/rooc'
 import {type editor, type IDisposable, languages, MarkerSeverity, Position, Range} from 'monaco-editor'
 import {createRoocFunctionSignature, getFormattedRoocType, roocFunctionToRuntimeFunction} from './RoocUtils'
 import {roocJsStd} from "$lib/Rooc/roocJsStd";
@@ -31,6 +26,11 @@ export const RoocLanguage = {
             [/(@digits)[lL]?/, 'number'],
         ],
         common: [
+            [/([a-zA-Z_][a-zA-Z0-9_]*)(\s*)(:)/, [
+                {token: 'identifier.type', group: 1}, // Tokenize the identifier
+                {token: 'white', group: 2},          // Tokenize the whitespace
+                {token: 'delimiter', group: 3}       // Tokenize the colon
+            ]],
             [/s\.t\./, 'keyword'],
             [/subject\s+to\b/, 'keyword'],
             //once reached the where block, everything else is declarations
@@ -215,7 +215,7 @@ export function createRoocHoverProvider(ref: RoocFnRef) {
             const parser = new RoocParser(text)
             const parsed = parser.compile()
             if (parsed.isOk()) {
-                const items = parsed.value.createTypeMap([...Object.entries(ref.current.constants)],[
+                const items = parsed.value.createTypeMap([...Object.entries(ref.current.constants)], [
                     ...roocJsStd(),
                     ...ref.current.functions
                 ])
@@ -274,14 +274,14 @@ export function createRoocRuntimeDiagnostics(model: editor.ITextModel, edit: typ
                 severity: MarkerSeverity.Error
             })
         } else {
-            const typeCheck = parsed.value.typeCheck([...Object.entries(ref.current.constants)],[
+            const typeCheck = parsed.value.typeCheck([...Object.entries(ref.current.constants)], [
                 ...roocJsStd(),
                 ...ref.current.functions
             ])
             if (!typeCheck.isOk()) {
                 const err = typeCheck.error
                 try {
-                    if(err.instance?.constructor?.name === "RuntimeError"){
+                    if (err.instance?.constructor?.name === "RuntimeError") {
                         throw String(err.instance)
                     }
                     const span = err.getOriginSpan()
@@ -375,7 +375,6 @@ const suggestedTypes = [
     insertTextRules: languages.CompletionItemInsertTextRule.InsertAsSnippet,
     detail: `Type ${k}`
 }))
-
 
 
 const suggestedRoocStd = roocJsStd().map(roocFunctionToRuntimeFunction)

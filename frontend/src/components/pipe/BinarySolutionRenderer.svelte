@@ -6,6 +6,9 @@
     import Button from "$cmp/inputs/Button.svelte";
     import {textDownloader} from "$lib/utils";
     import {formatNum} from "$cmp/pipe/utils";
+    import ConstraintsRenderer from "$cmp/pipe/ConstraintsRenderer.svelte";
+	import { toast } from "$src/stores/toastStore";
+  import Copy from '~icons/fa-solid/copy.svelte';
 
     interface Props {
         binarySolution: LpSolution<boolean>;
@@ -15,7 +18,28 @@
 
 </script>
 
-<Column gap="1rem">
+<Column gap="0.5rem">
+    <Row justify="between" wrap align="center" gap="0.5rem">
+      <div style="font-size: 1.5rem">
+          Optimal value: {formatNum(binarySolution.value)}
+      </div>
+      <Button  style="gap: 0.6rem; padding: 0.6rem;"
+              on:click={() => {
+                  navigator.clipboard.writeText(JSON.stringify({
+                    value: binarySolution.value,
+                    constraints: Object.fromEntries(binarySolution.constraints.entries()),
+                    assignment: Object.fromEntries(binarySolution.assignment.map(({name, value}) => [name, {type: 'Bool', value}]))
+                  }, null, 4))
+                  toast.logPill('Copied to clipboard');
+              }}
+      >
+          <Copy />
+          Copy solution
+      </Button>
+  </Row>
+    <h2>
+        Variables
+    </h2>
     <div class="table-wrapper">
         <table>
             <thead>
@@ -39,21 +63,11 @@
             </tr>
             </tbody>
         </table>
-
     </div>
-    <Row justify="between" wrap align="center" gap="0.5rem">
-        <div style="font-size: 1.5rem">
-            Optimal value: {formatNum(binarySolution.value)}
-        </div>
-        <Button
-                on:click={() => textDownloader(JSON.stringify({
-                value: binarySolution.value,
-                assignment: Object.fromEntries(binarySolution.assignment.map(({name, value}) => [name, value]))
-                }, null, 4),'solution.json')}
-        >
-            Download solution
-        </Button>
-    </Row>
+    <h2>
+        Constraints
+    </h2>
+    <ConstraintsRenderer constraints={binarySolution.constraints} />
 
 </Column>
 
@@ -99,5 +113,8 @@
     color: var(--danger);
     font-weight: bold;
 
+  }
+  h2{
+    font-weight: normal;
   }
 </style>

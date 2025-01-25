@@ -513,7 +513,12 @@ impl Display for LinearModel {
             } else {
                 c.rhs.to_string()
             };
-            format!("    {} {} {}", lhs, c.constraint_type, rhs)
+            let name = if c.name.is_empty() {
+                "".to_string()
+            } else {
+                format!("{}: ", c.name)
+            };
+            format!("    {name}{} {} {}", lhs, c.constraint_type, rhs)
         });
 
         let constraints = constraints.collect::<Vec<String>>().join("\n");

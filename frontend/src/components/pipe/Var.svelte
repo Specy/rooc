@@ -1,23 +1,24 @@
 <script lang="ts">
     interface Props {
         value: string;
+        style?: string;
     }
 
-    let { value }: Props = $props();
+    let { value, style }: Props = $props();
 
 
     let [varName, ...rest] = $derived(value.split('_'))
 </script>
 
 {#if rest.length}
-    <msub>
+    <msub {style}>
         <mi>{varName}</mi>
         <mn>
             {rest.join(', ')}
         </mn>
     </msub>
     {:else}
-    <mi style="display: unset">{varName}</mi>
+    <mi style={`display:unset; ${style};`}>{varName}</mi>
 {/if}
 
 <style>

@@ -36,13 +36,10 @@
         disabled={data.type === PipeDataType.Parser || data.type === PipeDataType.PreModel}
 >
     {#snippet title()}
-        <h2 {id}>
+        <h2 {id} title="{getDataOfPipe(data.type).description}">
             {typeof pipeStep === "string" ? pipeStep : getDescriptionOfPipe(pipeStep).name}
         </h2>
     {/snippet}
-    <div style="margin: 0.5rem 0">
-        {getDataOfPipe(data.type).description}
-    </div>
     {#if data.type === PipeDataType.String}
         <SyntaxHighlighter language={detectRoocOrCplex(data.data)} source={data.data}
                            style="overflow-y: auto; overflow-x: auto; max-height: 50vh"/>

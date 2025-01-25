@@ -97,10 +97,14 @@ function solveWithHIGHSUsingCplexLp(lp: string, domain: Record<string, DomainVar
             }
             return {name, value: {type: "Real", value: value.Primal}}
         }) as LpAssignment<MILPValue>[]
+        const constraints = Object.fromEntries(solution.Rows.map(value => {
+            return [value.Name, value.Primal]
+        }))
         return {
             type: "MILPSolution",
             value: {
                 assignment: vars,
+                constraints,
                 value: value
             }
         }

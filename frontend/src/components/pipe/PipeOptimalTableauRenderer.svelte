@@ -19,13 +19,13 @@
 </script>
 
 
-<Column gap="1rem">
-    {#if showSteps}
-        <PipeTableauRenderer tableau={baseTableau}/>
-    {/if}
+<Column gap="0.5rem">
     <div style="font-size: 1.5rem">
         Optimal value: {formatNum(tableau.getOptimalValue())}
     </div>
+    {#if showSteps}
+        <PipeTableauRenderer tableau={baseTableau}/>
+    {/if}
     <PipeVariablesRenderer
             {tableau}
     />

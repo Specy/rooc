@@ -6,6 +6,9 @@
     import {textDownloader} from "$lib/utils";
     import Button from "$cmp/inputs/Button.svelte";
     import Row from "$cmp/layout/Row.svelte";
+    import ConstraintsRenderer from "$cmp/pipe/ConstraintsRenderer.svelte";
+    import Copy from '~icons/fa-solid/copy.svelte';
+	import { toast } from "$src/stores/toastStore";
 
     interface Props {
         milpSolution: LpSolution<MILPValue | VarValue>;
@@ -15,8 +18,28 @@
 
 </script>
 
-<Column gap="1rem">
-
+<Column gap="0.5rem">
+      <Row justify="between" wrap align="center" gap="0.5rem">
+        <div style="font-size: 1.5rem">
+            Optimal value: {formatNum(milpSolution.value)}
+        </div>
+        <Button  style="gap: 0.6rem; padding: 0.6rem;"
+                on:click={() => {
+                  navigator.clipboard.writeText(JSON.stringify({
+                    value: milpSolution.value,
+                    constraints: Object.fromEntries(milpSolution.constraints.entries()),
+                    assignment: Object.fromEntries(milpSolution.assignment.map(({name, value}) => [name, value]))
+                  }, null, 4))
+                  toast.logPill('Copied to clipboard');
+              }}
+        >
+            <Copy />
+            Copy solution
+        </Button>
+    </Row>
+    <h2>
+      Variables
+    </h2>
     <div class="table-wrapper">
         <table>
             <thead>
@@ -44,19 +67,11 @@
         </table>
 
     </div>
-    <Row justify="between" wrap align="center" gap="0.5rem">
-        <div style="font-size: 1.5rem">
-            Optimal value: {formatNum(milpSolution.value)}
-        </div>
-        <Button
-                on:click={() => textDownloader(JSON.stringify({
-                value: milpSolution.value,
-                assignment: Object.fromEntries(milpSolution.assignment.map(({name, value}) => [name, value]))
-                }, null, 4),'solution.json')}
-        >
-            Download solution
-        </Button>
-    </Row>
+    <h2>
+      Constraints
+    </h2>
+    <ConstraintsRenderer constraints={milpSolution.constraints} />
+
 </Column>
 
 <style lang="scss">
@@ -101,5 +116,8 @@
     color: var(--danger);
     font-weight: bold;
 
+  }
+  h2{
+    font-weight: normal;
   }
 </style>
