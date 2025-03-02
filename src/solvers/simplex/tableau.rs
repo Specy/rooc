@@ -2,14 +2,11 @@ use crate::math::{float_ge, float_gt, float_le, float_lt};
 #[allow(unused_imports)]
 use crate::prelude::*;
 use crate::solvers::{
-    FractionalTableau, OptimalTableau, OptimalTableauWithSteps, SimplexError, SimplexStep,
+    OptimalTableau, OptimalTableauWithSteps, SimplexError, SimplexStep,
     StepAction,
 };
 use core::fmt;
 use std::fmt::Display;
-use term_table::row::Row;
-use term_table::table_cell::TableCell;
-use term_table::Table;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -26,23 +23,15 @@ pub struct Tableau {
 
 impl Display for Tableau {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let pretty = FractionalTableau::new(self.clone());
-        let table = pretty.pretty_table();
-        let mut cli_table = Table::new();
-        let vars: Vec<String> = self
+        let values = self
             .variables
             .iter()
-            .zip(self.c.iter())
-            .map(|(v, c)| format!("{}: {}", v, c))
-            .collect();
-        let header = Row::new(vars.iter().map(TableCell::new));
-        cli_table.add_row(header);
-        let empty: Vec<TableCell> = Vec::new();
-        cli_table.add_row(Row::new(empty));
-        table.iter().for_each(|row| {
-            cli_table.add_row(Row::new(row.iter().map(TableCell::new)));
-        });
-        write!(f, "{}", cli_table.render())
+            .zip(&self.c)
+            .map(|(v, c)| format!("{v} = {c}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let talue = self.current_value();
+        write!(f, "Value:{}\n{}",talue, values)
     }
 }
 

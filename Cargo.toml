@@ -7,7 +7,7 @@ documentation = "https://rooc.specy.app/docs/rooc"
 description = "A mixed integer linear programming modeling language to solve linear optimization models. Extensible, works in WASM and easy to use."
 keywords = ["optimization", "milp", "solver", "mathematics", "linear-programming"]
 categories = ["mathematics", "algorithms", "science"]
-version = "0.1.17"
+version = "0.1.18"
 license = "GPL-3.0"
 edition = "2021"
 
@@ -18,14 +18,13 @@ crate-type = ["cdylib", "rlib"]
 serde = { version = "1.0.214", features = ["derive"] }
 num-rational = "0.4.2"
 num-traits = "0.2.19"
-term-table = "1.4.0"
 pest = { version = "2.7.14" }
 pest_derive = { version = "2.7.14", features = ["grammar-extras"] }
 lazy_static = "1.5.0"
 copper = "0.1.0"
-indexmap = {version =  "2.6.0", features = ["serde"] }
-good_lp = { version = "1.9.0", features = ["clarabel-wasm"], default-features = false }
-microlp = "0.2.9"
+indexmap = { version = "2.6.0", features = ["serde"] }
+good_lp = { version = "1.12.0", features = ["clarabel-wasm"], default-features = false }
+microlp = "0.2.11"
 log = "0.4.21"
 
 [target.'cfg(target_family = "wasm")'.dev-dependencies]

@@ -145,7 +145,7 @@ impl Display for PipeableData {
             PipeableData::StandardLinearModel(m) => write!(f, "{}", m),
             PipeableData::Tableau(t) => write!(f, "{}", t),
             PipeableData::OptimalTableau(t) => write!(f, "{}", t),
-            PipeableData::OptimalTableauWithSteps(t) => write!(f, "{:?}", t),
+            PipeableData::OptimalTableauWithSteps(t) => write!(f, "{}", t),
             PipeableData::BinarySolution(s) => write!(f, "{}", s),
             PipeableData::IntegerBinarySolution(s) => write!(f, "{}", s),
             PipeableData::RealSolution(s) => write!(f, "{}", s),

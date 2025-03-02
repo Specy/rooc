@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::solvers::{LpSolution, Tableau};
 use core::fmt;
 use indexmap::IndexMap;
-use std::fmt::Display;
+use std::fmt::{write, Display};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -67,7 +67,7 @@ impl OptimalTableau {
 impl Display for OptimalTableau {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let tableau = self.tableau.to_string();
-        write!(f, "{}\n\nOptimal Value: {}", tableau, self.optimal_value(),)
+        write!(f, "{}\n\nOptimal Value: {}", tableau, self.optimal_value())
     }
 }
 
@@ -91,6 +91,13 @@ impl SimplexStep {
             leaving,
             ratio,
         }
+    }
+}
+
+impl Display for SimplexStep {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let tableau = self.tableau.to_string();
+        write!(f, "{}", tableau)
     }
 }
 
@@ -123,6 +130,15 @@ impl OptimalTableauWithSteps {
     }
     pub fn steps(&self) -> &Vec<SimplexStep> {
         &self.steps
+    }
+}
+
+impl Display for OptimalTableauWithSteps {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}\n{}", 
+               self.steps.iter().map(|v| v.to_string()).collect::<Vec<_>>().join("\n"),
+            self.result
+        )
     }
 }
 

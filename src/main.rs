@@ -4,15 +4,27 @@ use rooc::pipe::{
     CompilerPipe, LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData, PreModelPipe,
     RealSolver, StandardLinearModelPipe,
 };
+use rooc::pipe::{StepByStepSimplexPipe, TableauPipe};
 
 #[allow(unused)]
 fn main() {
     let source = r#"
-min 1
+/*
+    Example model, look at the docs 
+    for more info https://rooc.specy.app/docs/rooc
+*/
+max x
 subject to
-    c_i: x_i >= 0 for i in 0..10
-define
-    x_i as NonNegativeReal(0, 100) for i in 0..10
+    //write the constraints here
+    x <= y
+where 
+    // write the constants here
+    let y = 10
+    let list = [2,4,6]
+define 
+    // define the model's variables here
+    x as NonNegativeReal
+    z_i as NonNegativeReal for i in list
     "#
     .to_string();
     let pipe_runner = PipeRunner::new(vec![
@@ -20,7 +32,9 @@ define
         Box::new(PreModelPipe::new()),
         Box::new(ModelPipe::new()),
         Box::new(LinearModelPipe::new()),
-        Box::new(RealSolver::new()),
+        Box::new(StandardLinearModelPipe::new()),
+        Box::new(TableauPipe::new()),
+        Box::new(StepByStepSimplexPipe::new())
     ]);
 
     let (result) = pipe_runner.run(
