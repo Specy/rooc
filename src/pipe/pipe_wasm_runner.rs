@@ -59,7 +59,7 @@ impl Pipeable for JsPipable {
     fn pipe(
         &self,
         data: &mut PipeableData,
-        pipe_context: &PipeContext,
+        _pipe_context: &PipeContext,
     ) -> Result<PipeableData, PipeError> {
         let js_pipable = match data {
             PipeableData::String(s) => JsPipableData::String(s.clone()),
@@ -74,7 +74,7 @@ impl Pipeable for JsPipable {
         };
         let js_pipable =
             serialize_json_compatible(&js_pipable).map_err(|e| PipeError::Other(e.to_string()))?;
-        let mut js_args = js_sys::Array::new();
+        let js_args = js_sys::Array::new();
         js_args.push(&js_pipable);
         let result = self.function.apply(&JsValue::NULL, &js_args).map_err(|e| {
             PipeError::Other(

@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::solvers::{LpSolution, Tableau};
 use core::fmt;
 use indexmap::IndexMap;
-use std::fmt::{write, Display};
+use std::fmt::{Display};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]

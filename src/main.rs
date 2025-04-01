@@ -9,22 +9,20 @@ use rooc::pipe::{StepByStepSimplexPipe, TableauPipe};
 #[allow(unused)]
 fn main() {
     let source = r#"
-/*
-    Example model, look at the docs 
-    for more info https://rooc.specy.app/docs/rooc
-*/
-max x
+
+max 2x_1 + x_2 - x_3
 subject to
-    //write the constraints here
-    x <= y
-where 
-    // write the constants here
-    let y = 10
-    let list = [2,4,6]
-define 
-    // define the model's variables here
-    x as NonNegativeReal
-    z_i as NonNegativeReal for i in list
+//write the constraints here
+5x_1 - 2x_2 + 8x_3 ≤ 15
+8x_1+3x_2 -x_3 ≥ 9
+x_1+x_2+x_3≤6
+where
+
+define
+// define the model's variables here
+x_1 as Real
+x_2 as Real
+x_3 as Real
     "#
     .to_string();
     let pipe_runner = PipeRunner::new(vec![

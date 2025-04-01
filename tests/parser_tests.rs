@@ -119,6 +119,57 @@ define
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn empty_where() {
+        let input = "
+            min 1
+            s.t.
+                1 <= 1
+            where
+            ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform(vec![], &IndexMap::new())
+            .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check(&vec![], &IndexMap::new())
+            .expect("Failed to type check problem");
+    }
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn empty_define() {
+        let input = "
+            min 1
+            s.t.
+                1 <= 1
+            define
+            ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform(vec![], &IndexMap::new())
+            .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check(&vec![], &IndexMap::new())
+            .expect("Failed to type check problem");
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn empty_where_define() {
+        let input = "
+            min 1
+            s.t.
+                1 <= 1
+            where
+            define
+            ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform(vec![], &IndexMap::new())
+            .expect("Failed to parse and transform problem");
+        RoocParser::new(input.to_string())
+            .type_check(&vec![], &IndexMap::new())
+            .expect("Failed to type check problem");
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_parser_variants4() {
         let input = "
             min 1
@@ -134,6 +185,7 @@ define
                 max {1, 2, 3} >= 1
             where
                 let A = [1, 2, 3, 4]
+            define
             ";
         RoocParser::new(input.to_string())
             .parse_and_transform(vec![], &IndexMap::new())
@@ -185,6 +237,7 @@ define
             |x + y|z + 2 >= 1
 
             2(x + y)3|x + y|z + 2 >= 1
+        where
         define
             x,y,z as Real
         ";
@@ -252,7 +305,8 @@ define
             s.t.
              S >= 1
             where
-                let S = \"Hello\"
+                let S = \"Hello\"\
+            define
             ";
         RoocParser::new(input.to_string())
             .parse_and_transform(vec![], &IndexMap::new())
@@ -276,6 +330,7 @@ define
                 [0,1,0],
                 [0,0,1]
             ]
+        define
         ";
         RoocParser::new(input.to_string())
             .parse_and_transform(vec![], &IndexMap::new())
@@ -312,6 +367,31 @@ define
         RoocParser::new(input.to_string())
             .type_check(&vec![], &IndexMap::new())
             .expect("Failed to type check problem");
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn non_utf8() {
+        let input = "
+max 2x_1 + x_2 - x_3
+subject to
+//write the constraints here
+5x_1 - 2x_2 + 8x_3 ≤ 15
+8x_1+3x_2 -x_3 ≥ 9
+x_1+x_2+x_3≤6
+where
+
+define
+// define the model's variables here
+x_1 as Real
+x_2 as Real
+x_3 as Real
+        ";
+        
+        //i expect to get an error, and not panic
+        RoocParser::new(input.to_string())
+            .parse_and_transform(vec![], &IndexMap::new())
+            .expect_err("");
     }
 
     #[test]

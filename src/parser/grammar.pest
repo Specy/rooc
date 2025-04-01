@@ -5,12 +5,12 @@ problem = {
     #constraints = constraint_list ~
     (
     	nl+ ~
-    	^"where" ~ nl+ ~
+    	^"where" ~
     	#where = consts_declaration
     )? ~
     (
     	nl+ ~
-    	^"define" ~ nl+ ~
+    	^"define" ~
     	#define = domains_declaration
     )? ~
     nl* ~
@@ -37,11 +37,11 @@ constraint = {
 constraint_name = {
     variable ~ ":" ~ nl*
 }
-	
-    
+
+
 
 // constants declaration
-consts_declaration = { (const_declaration ~(nl* ~ const_declaration)*)? }
+consts_declaration = { (nl+ ~ const_declaration)* }
 const_declaration  = {
   "let" ~
   #name = (simple_variable | "_") ~
@@ -49,7 +49,7 @@ const_declaration  = {
   #value = tagged_exp
 }
 
-domains_declaration = { (domain_declaration ~ (nl* ~domain_declaration)*)? }
+domains_declaration = { (nl+ ~domain_declaration)* }
 domain_declaration = {
   #vars = domain_variables ~ nl*~
   ^"as" ~
