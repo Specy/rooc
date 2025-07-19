@@ -155,3 +155,7 @@ F	F	F	F	T	F	F	F	T	T
   - [x] Show the different steps of solving the problem
   - [x] List of modifications from the start of the problem to the end of the solution
 
+# License
+
+- The rooc library is released with the **MPL-2.0** license, as in, the folders `src` and `ts-lib`
+- The frontend platform which uses the rooc library is released with the **AGPL-3.0** license, as in, the folder `frontend`
