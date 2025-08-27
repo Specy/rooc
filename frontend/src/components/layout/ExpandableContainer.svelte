@@ -5,18 +5,20 @@
         disabled?: boolean;
         title?: import('svelte').Snippet;
         children?: import('svelte').Snippet;
+        style?:string;
     }
 
     let {
         expanded = $bindable(false),
         disabled = false,
         title,
-        children
+        children,
+        style
     }: Props = $props();
 </script>
 
 
-<div class="expandable-container" class:expandable-container-open={expanded} class:disabled>
+<div class="expandable-container" class:expandable-container-open={expanded} class:disabled {style}>
     <button
             {disabled}
             onclick={() => expanded = !expanded}

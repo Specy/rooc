@@ -5,7 +5,6 @@
     import {onMount} from 'svelte';
     import {goto} from '$app/navigation';
     import {projectStore, validateProject} from '$stores/userProjectsStore.svelte';
-    import {page} from '$app/stores';
     import Row from '$cmp/layout/Row.svelte';
     import ButtonLink from '$cmp/inputs/ButtonLink.svelte';
     import {toast} from '$src/stores/toastStore';
@@ -27,8 +26,12 @@
     import {createDebouncer} from "$cmp/pipe/utils";
     import FilePicker from "$cmp/misc/FilePicker.svelte";
     import type {Project} from "$stores/Project";
+    import { page } from '$app/state';
 
     let showDocs = $state(false);
+
+    let embedded = $derived(page.url.searchParams.has('embed'));
+
     let project: Project | undefined = $state(undefined);
     onMount(() => {
         Monaco.load();
@@ -39,15 +42,15 @@
     });
 
     async function loadProject() {
-        const id = $page.params.projectId;
+        const id = page.params.projectId;
         if (id === 'share') {
-            const code = $page.url.searchParams.get('project');
+            const code = page.url.searchParams.get('project');
             const parsed = JSON.parse(lzstring.decompressFromEncodedURIComponent(code));
             parsed.id = 'share';
             project = validateProject(parsed)
             return
         }
-        project = await projectStore.getProject($page.params.projectId);
+        project = await projectStore.getProject(page.params.projectId);
         if (!project) {
             toast.error('Project not found', 10000);
             return;
@@ -99,9 +102,11 @@
     <meta name="description" content="Edit your Rooc project"/>
 </svelte:head>
 
-<Page style="min-height: 100vh;">
+<Page style="min-height: 100vh;">   
     <Row justify="between" padding="0.5rem" gap="0.5rem" align="center">
-        <ButtonLink href="/projects">Projects</ButtonLink>
+        {#if !embedded}
+            <ButtonLink href="/projects">Projects</ButtonLink>
+        {/if}
 
         <h3 class="clamp-text">
             {project?.name ?? 'Project'}
@@ -140,24 +145,26 @@
                     </Button>
                 </div>
             {/if}
-            <ButtonLink
-                    href="https://github.com/Specy/tokeko"
-                    hasIcon
-                    style="height: 100%; font-size: 1.1rem; width: 2.6rem; padding: 0.4rem"
-                    blank
-                    title="Github"
-            >
-                <Github/>
-            </ButtonLink>
-            <ButtonLink
-                    href="https://specy.app/donate"
-                    hasIcon
-                    style="height: 100%; font-size: 1.1rem; width: 2.6rem; padding: 0.4rem"
-                    blank
-                    title="Donate"
-            >
-                <FaDonate/>
-            </ButtonLink>
+            {#if !embedded}
+                <ButtonLink
+                        href="https://github.com/Specy/tokeko"
+                        hasIcon
+                        style="height: 100%; font-size: 1.1rem; width: 2.6rem; padding: 0.4rem"
+                        blank
+                        title="Github"
+                >
+                    <Github/>
+                </ButtonLink>
+                <ButtonLink
+                        href="https://specy.app/donate"
+                        hasIcon
+                        style="height: 100%; font-size: 1.1rem; width: 2.6rem; padding: 0.4rem"
+                        blank
+                        title="Donate"
+                >
+                    <FaDonate/>
+                </ButtonLink>
+            {/if}
             <Button
                     hasIcon
                     on:click={share}
@@ -182,7 +189,7 @@
         </Row>
     </Row>
     {#if project}
-        <ProjectEditor bind:project/>
+        <ProjectEditor bind:project embedded={embedded}/>
     {:else}
         <div class="col justify-center align-center flex-1">
             <h1>Loading...</h1>

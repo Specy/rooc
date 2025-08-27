@@ -33,6 +33,7 @@
 
 <ExpandableContainer
         bind:expanded
+        style={data.type === PipeDataType.Parser || data.type === PipeDataType.PreModel ? 'display:none' : ''}
         disabled={data.type === PipeDataType.Parser || data.type === PipeDataType.PreModel}
 >
     {#snippet title()}
