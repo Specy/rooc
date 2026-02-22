@@ -1,4 +1,7 @@
+#[cfg(target_arch = "wasm32")]
+use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
+#[cfg(target_arch = "wasm32")]
 use crate::prelude::*;
 
 #[cfg(target_arch = "wasm32")]
@@ -21,6 +24,8 @@ use {
     crate::transformers::StandardLinearModel,
     crate::{Constant, Primitive},
 };
+#[cfg(target_arch = "wasm32")]
+use crate::{IntOrBoolValue, LinearModel, LpSolution, MILPValue};
 
 #[cfg(target_arch = "wasm32")]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
