@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@specy/rooc",
   "description": "Optimization modeling language",
-  "version": "1.5.7",
+  "version": "1.6.0",
   "license": "GPL-3.0",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
