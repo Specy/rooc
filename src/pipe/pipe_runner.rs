@@ -1,5 +1,5 @@
-use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
 use crate::pipe::PipeContext;
+use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
 
 /// Pipe runner that runs a sequence of pipes
 pub struct PipeRunner {
@@ -16,6 +16,7 @@ impl PipeRunner {
     /// # Arguments
     /// * `data` - The data to be piped to the first pipe
     /// * `context` - The context that will be available to all pipes
+    #[allow(clippy::result_large_err)]
     pub fn run(
         &self,
         data: PipeableData,
@@ -26,6 +27,7 @@ impl PipeRunner {
 }
 
 /// Runs a series of pipes from the beginning to the end
+#[allow(clippy::result_large_err)]
 pub fn run_pipe(
     pipes: &[Box<dyn Pipeable>],
     data: PipeableData,

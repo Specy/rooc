@@ -91,9 +91,16 @@ pub(crate) fn parse_exp_leaf(exp: Pair<Rule>) -> Result<PreExp, CompilationError
             Ok(PreExp::Abs(span, Box::new(exp)))
         }
         Rule::implicit_mul => {
-            let exps = exp.clone().into_inner().map(parse_exp_leaf).collect::<Result<Vec<_>, _>>()?;
+            let exps = exp
+                .clone()
+                .into_inner()
+                .map(parse_exp_leaf)
+                .collect::<Result<Vec<_>, _>>()?;
             if exps.len() < 2 {
-                return err_unexpected_token!("implicit multiplication must have at least 2 operands, got {}", exp);
+                return err_unexpected_token!(
+                    "implicit multiplication must have at least 2 operands, got {}",
+                    exp
+                );
             }
             let mut iter = exps.into_iter();
             let first = iter.next().unwrap();
@@ -117,7 +124,8 @@ pub(crate) fn parse_exp_leaf(exp: Pair<Rule>) -> Result<PreExp, CompilationError
         }
         _ => err_unexpected_token!(
             "found \"{}\"({:?}), expected exp, binary_op, unary_op, len, variable, sum, primitive, parenthesis, array_access, min, max, block function or scoped function",
-            exp, exp.as_rule()
+            exp,
+            exp.as_rule()
         ),
     }
 }

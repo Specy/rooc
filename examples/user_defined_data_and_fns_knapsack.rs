@@ -1,12 +1,12 @@
 use indexmap::IndexMap;
-use rooc::model_transformer::{TransformError, TransformerContext};
-use rooc::type_checker::type_checker_context::{FunctionContext, TypeCheckerContext};
 use rooc::Linearizer;
 use rooc::PreExp;
 use rooc::RoocFunction;
 use rooc::RoocParser;
-use rooc::{solve_integer_binary_lp_problem, FunctionContextMap};
+use rooc::model_transformer::{TransformError, TransformerContext};
+use rooc::type_checker::type_checker_context::{FunctionContext, TypeCheckerContext};
 use rooc::{Constant, IterableKind, Primitive, PrimitiveKind};
+use rooc::{FunctionContextMap, solve_integer_binary_lp_problem};
 
 fn main() {
     let source = "

@@ -50,9 +50,9 @@ use crate::prelude::*;
 use indexmap::IndexMap;
 use std::fmt::{Display, Formatter};
 
-use parser::pre_model::{parse_problem_source, PreModel};
+use parser::pre_model::{PreModel, parse_problem_source};
 
-use crate::parser::model_transformer::{transform_parsed_problem, Model};
+use crate::parser::model_transformer::{Model, transform_parsed_problem};
 
 #[macro_use]
 mod macros;
@@ -80,7 +80,7 @@ mod prelude {
     #[cfg(target_arch = "wasm32")]
     pub use {
         crate::parser::pre_model::js_value_to_fns_map, crate::utils::serialize_json_compatible,
-        js_sys::Function, serde_wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen::JsValue,
+        js_sys::Function, serde_wasm_bindgen, wasm_bindgen::JsValue, wasm_bindgen::prelude::*,
     };
 }
 

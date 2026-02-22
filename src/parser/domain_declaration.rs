@@ -14,7 +14,7 @@ use crate::parser::model_transformer::TransformerContext;
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{
     math::VariableType,
-    traits::{escape_latex, ToLatex},
+    traits::{ToLatex, escape_latex},
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext},
     utils::{InputSpan, Spanned},
 };

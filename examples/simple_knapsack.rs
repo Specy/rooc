@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 use rooc::{
-    solve_binary_lp_problem, Constant, FunctionContextMap, IterableKind, Primitive, RoocSolver,
+    Constant, FunctionContextMap, IterableKind, Primitive, RoocSolver, solve_binary_lp_problem,
 };
 
 fn main() {
@@ -18,6 +18,7 @@ define
     println!("{}", solution)
 }
 
+#[allow(dead_code)]
 fn main_with_data() {
     let source = "
 max sum((value, i) in enumerate(values)) { value * x_i }

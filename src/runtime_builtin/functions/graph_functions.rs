@@ -5,7 +5,7 @@ use crate::prelude::*;
 use serde::Serialize;
 
 use super::function_traits::{
-    default_type_check, default_wrong_number_of_arguments, default_wrong_type, RoocFunction,
+    RoocFunction, default_type_check, default_wrong_number_of_arguments, default_wrong_type,
 };
 use crate::parser::il::PreExp;
 use crate::parser::model_transformer::TransformError;

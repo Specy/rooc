@@ -557,7 +557,7 @@ pub(crate) fn assert_no_duplicates_in_domain(
         .filter(|(_, (count, _))| *count > 1)
         .collect::<Vec<_>>();
     if !duplicates.is_empty() {
-        let first_span = duplicates.first().unwrap().1 .1.span().clone();
+        let first_span = duplicates.first().unwrap().1.1.span().clone();
         Err(TransformError::AlreadyDeclaredDomainVariable(duplicates).add_span(&first_span))
     } else {
         Ok(())

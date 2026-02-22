@@ -1,8 +1,8 @@
 use crate::make_constraints_map_from_assignment;
 use crate::math::{Comparison, OptimizationType, VariableType};
 use crate::solvers::common::{
-    find_invalid_variables, process_variables, process_variables_binary, Assignment, LpSolution,
-    SolverError,
+    Assignment, LpSolution, SolverError, find_invalid_variables, process_variables,
+    process_variables_binary,
 };
 use crate::transformers::LinearModel;
 use copper::*;
@@ -123,7 +123,7 @@ pub fn solve_integer_binary_lp_problem(
             return Err(SolverError::TooLarge {
                 name: "integer variable".to_string(),
                 value: i32::MAX as f64,
-            })
+            });
         }
     };
     let vars = lp.variables();

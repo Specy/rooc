@@ -10,7 +10,7 @@ use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, WithType,
 };
-use crate::{enum_with_variants_to_string, InputSpan, Spanned};
+use crate::{InputSpan, Spanned, enum_with_variants_to_string};
 use core::f64;
 use core::fmt;
 use num_traits::ToPrimitive;
@@ -315,9 +315,10 @@ impl PreVariableType {
                 let min_f64 = min.as_number_cast(context, fn_context)?;
                 let max_f64 = max.as_number_cast(context, fn_context)?;
                 if min_f64 > max_f64 {
-                    return Err(TransformError::Other(
-                        format!("Minimum value must be less than or equal to the maximum value. Got {} > {}", min_f64, max_f64)
-                    ));
+                    return Err(TransformError::Other(format!(
+                        "Minimum value must be less than or equal to the maximum value. Got {} > {}",
+                        min_f64, max_f64
+                    )));
                 }
                 Ok(VariableType::Real(min_f64, max_f64))
             }
@@ -351,9 +352,10 @@ impl PreVariableType {
                 let min_i32 = min_i32.unwrap();
                 let max_i32 = max_i32.unwrap();
                 if min_i32 > max_i32 {
-                    return Err(TransformError::Other(
-                        format!("Minimum value of an IntegerRange must be less than or equal to the maximum value. Got {} > {}", min_i32, max_i32)
-                    ));
+                    return Err(TransformError::Other(format!(
+                        "Minimum value of an IntegerRange must be less than or equal to the maximum value. Got {} > {}",
+                        min_i32, max_i32
+                    )));
                 }
                 Ok(VariableType::IntegerRange(min_i32, max_i32))
             }

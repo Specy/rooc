@@ -1,12 +1,12 @@
 use crate::domain_declaration::format_domain;
-use crate::math::{float_lt, VariableType};
+use crate::math::{VariableType, float_lt};
 use crate::parser::model_transformer::DomainVariable;
 /// A module for representing and manipulating linear programming models.
 #[allow(unused_imports)]
 use crate::prelude::*;
 use crate::solvers::SolverError;
-use crate::transformers::standard_linear_model::{format_var, StandardLinearModel};
-use crate::utils::{remove_many, InputSpan};
+use crate::transformers::standard_linear_model::{StandardLinearModel, format_var};
+use crate::utils::{InputSpan, remove_many};
 use crate::{
     math::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,

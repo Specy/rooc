@@ -1,26 +1,24 @@
 #[allow(unused_imports)]
 use crate::prelude::*;
-use serde::{Deserialize, Serialize};
 
 #[cfg(target_arch = "wasm32")]
 use crate::pipe::run_pipe;
 #[cfg(target_arch = "wasm32")]
 use crate::runtime_builtin::JsFunction;
-use crate::{IntOrBoolValue, LinearModel, LpSolution, MILPValue};
 #[cfg(target_arch = "wasm32")]
 use {
+    crate::RoocParser,
     crate::parser::model_transformer::Model,
     crate::parser::pre_model::PreModel,
+    crate::pipe::PipeContext,
     crate::pipe::pipe_definitions::{PipeDataType, PipeError, Pipeable, PipeableData},
     crate::pipe::pipe_executors::{
         AutoSolverPipe, BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe,
         MILPSolverPipe, ModelPipe, Pipes, PreModelPipe, RealSolver, StandardLinearModelPipe,
         StepByStepSimplexPipe, TableauPipe,
     },
-    crate::pipe::PipeContext,
     crate::solvers::{OptimalTableau, OptimalTableauWithSteps, Tableau},
     crate::transformers::StandardLinearModel,
-    crate::RoocParser,
     crate::{Constant, Primitive},
 };
 
@@ -43,6 +41,7 @@ impl JsPipable {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", content = "value")]
 enum JsPipableData {

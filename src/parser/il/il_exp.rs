@@ -18,7 +18,7 @@ use crate::primitives::IterableKind;
 use crate::primitives::{Graph, GraphEdge, GraphNode};
 use crate::primitives::{Primitive, PrimitiveKind};
 use crate::runtime_builtin::FunctionCall;
-use crate::traits::{escape_latex, ToLatex};
+use crate::traits::{ToLatex, escape_latex};
 use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, WithType,
 };
@@ -529,15 +529,14 @@ impl PreExp {
             PreExp::Variable(s) => match context.value(s) {
                 Some(value) => Ok(value.clone()),
                 None => match context.variable_domain(s) {
-                    None => Err(TransformError::UndeclaredVariable(
-                        s.value().clone(),
-                    )),
+                    None => Err(TransformError::UndeclaredVariable(s.value().clone())),
                     Some(_) => Err(
                         //TODO create a specific error for this
-                        TransformError::Other(
-                            format!("Variable \"{}\" is a domain variable and cannot be used inside expression valuation", s.value())
-                        )
-                    )
+                        TransformError::Other(format!(
+                            "Variable \"{}\" is a domain variable and cannot be used inside expression valuation",
+                            s.value()
+                        )),
+                    ),
                 },
             },
             PreExp::CompoundVariable(c) => {
@@ -546,22 +545,21 @@ impl PreExp {
                 match context.value(&name) {
                     Some(value) => Ok(value.clone()),
                     None => match context.variable_domain(&name) {
-                        None => Err(TransformError::UndeclaredVariable(
-                            name.clone(),
-                        )),
+                        None => Err(TransformError::UndeclaredVariable(name.clone())),
                         Some(_) => Err(
                             //TODO create a specific error for this
-                            TransformError::Other(
-                                format!("Variable \"{}\" is a domain variable and cannot be used inside expression valuation", name)
-                            )
-                        )
+                            TransformError::Other(format!(
+                                "Variable \"{}\" is a domain variable and cannot be used inside expression valuation",
+                                name
+                            )),
+                        ),
                     },
                 }
             }
             PreExp::FunctionCall(_, fun) => {
-                let f = fn_context.function(&fun.name).ok_or_else(|| {
-                    TransformError::NonExistentFunction(fun.name.clone())
-                })?;
+                let f = fn_context
+                    .function(&fun.name)
+                    .ok_or_else(|| TransformError::NonExistentFunction(fun.name.clone()))?;
                 let value = f.call(&fun.args, context, fn_context)?;
                 Ok(value)
             }

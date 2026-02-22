@@ -32,7 +32,7 @@ x_3 as Real
         Box::new(LinearModelPipe::new()),
         Box::new(StandardLinearModelPipe::new()),
         Box::new(TableauPipe::new()),
-        Box::new(StepByStepSimplexPipe::new())
+        Box::new(StepByStepSimplexPipe::new()),
     ]);
 
     let (result) = pipe_runner.run(

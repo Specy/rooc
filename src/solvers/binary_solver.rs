@@ -1,6 +1,6 @@
 use crate::make_constraints_map_from_assignment;
 use crate::math::{Comparison, OptimizationType, VariableType};
-use crate::solvers::common::{find_invalid_variables, Assignment, LpSolution, SolverError};
+use crate::solvers::common::{Assignment, LpSolution, SolverError, find_invalid_variables};
 use crate::transformers::LinearModel;
 use copper::views::ViewExt;
 use copper::*;

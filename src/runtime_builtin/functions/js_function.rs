@@ -3,7 +3,7 @@ use {
     crate::parser::il::PreExp,
     crate::parser::model_transformer::{TransformError, TransformerContext},
     crate::primitives::{Primitive, PrimitiveKind},
-    crate::runtime_builtin::{default_type_check, RoocFunction},
+    crate::runtime_builtin::{RoocFunction, default_type_check},
     crate::type_checker::type_checker_context::{FunctionContext, TypeCheckerContext, WithType},
     serde::Serialize,
 };

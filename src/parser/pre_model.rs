@@ -2,27 +2,27 @@
 use crate::prelude::*;
 use core::fmt;
 use indexmap::IndexMap;
-use pest::iterators::Pair;
 use pest::Parser;
+use pest::iterators::Pair;
 use serde::Serialize;
 use std::fmt::Debug;
 
 use crate::math::PreVariableType;
 use crate::parser::il::{PreConstraint, PreObjective};
-use crate::parser::model_transformer::assert_no_duplicates_in_domain;
 use crate::parser::model_transformer::TransformError;
-use crate::parser::model_transformer::{transform_parsed_problem, Model};
+use crate::parser::model_transformer::assert_no_duplicates_in_domain;
+use crate::parser::model_transformer::{Model, transform_parsed_problem};
 use crate::primitives::Constant;
 #[cfg(target_arch = "wasm32")]
 use crate::runtime_builtin::JsFunction;
-use crate::runtime_builtin::{make_std, make_std_constants, RoocFunction};
+use crate::runtime_builtin::{RoocFunction, make_std, make_std_constants};
 use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, TypedToken,
 };
 use crate::utils::{CompilationError, InputSpan, ParseError, Spanned};
 #[allow(unused)]
-use crate::{bail_missing_token, Primitive};
+use crate::{Primitive, bail_missing_token};
 
 use super::domain_declaration::VariablesDomainDeclaration;
 use super::rules_parser::{

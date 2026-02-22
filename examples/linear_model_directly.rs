@@ -1,5 +1,5 @@
 use rooc::{
-    solve_real_lp_problem_clarabel, Comparison, LinearModel, OptimizationType, VariableType,
+    Comparison, LinearModel, OptimizationType, VariableType, solve_real_lp_problem_clarabel,
 };
 
 fn main() {

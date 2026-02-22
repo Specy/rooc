@@ -2,7 +2,7 @@ use crate::parser::il::PreExp;
 use crate::parser::model_transformer::TransformError;
 use crate::parser::model_transformer::TransformerContext;
 use crate::runtime_builtin::rooc_std::{std_fn_to_latex, std_fn_to_string};
-use crate::traits::{escape_latex, ToLatex};
+use crate::traits::{ToLatex, escape_latex};
 use crate::type_checker::type_checker_context::{FunctionContext, TypeCheckerContext};
 use crate::{
     primitives::{Primitive, PrimitiveKind},

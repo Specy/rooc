@@ -1,9 +1,8 @@
-use crate::math::{float_ge, float_gt, float_le, float_lt};
+use crate::{float_eq, math::{float_ge, float_gt, float_le, float_lt}};
 #[allow(unused_imports)]
 use crate::prelude::*;
 use crate::solvers::{
-    OptimalTableau, OptimalTableauWithSteps, SimplexError, SimplexStep,
-    StepAction,
+    OptimalTableau, OptimalTableauWithSteps, SimplexError, SimplexStep, StepAction,
 };
 use core::fmt;
 use std::fmt::Display;
@@ -31,7 +30,7 @@ impl Display for Tableau {
             .collect::<Vec<_>>()
             .join("\n");
         let talue = self.current_value();
-        write!(f, "Value:{}\n{}",talue, values)
+        write!(f, "Value:{}\n{}", talue, values)
     }
 }
 
@@ -216,14 +215,14 @@ impl Tableau {
             Some(first) => {
                 let mut min = first;
                 for (i, ratio) in valid {
-                    if ratio == min.1 {
+                    if float_eq(ratio, min.1) {
                         //if we found a tie, we use the Bland's rule for anti-cycling, but prefer to prioritize some variables
                         let to_prefer = variables_to_prefer.contains(&basis[i])
                             && !variables_to_prefer.contains(&basis[min.0]);
                         if basis[i] < basis[min.0] || to_prefer {
                             min = (i, ratio);
                         }
-                    } else if ratio < min.1 {
+                    } else if float_lt(ratio, min.1) {
                         min = (i, ratio);
                     }
                 }

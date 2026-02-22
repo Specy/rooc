@@ -1,6 +1,6 @@
 use crate::make_constraints_map_from_assignment;
 use crate::math::{Comparison, OptimizationType, VariableType};
-use crate::solvers::{find_invalid_variables, Assignment, LpSolution, SolverError};
+use crate::solvers::{Assignment, LpSolution, SolverError, find_invalid_variables};
 use crate::transformers::LinearModel;
 use good_lp::clarabel;
 use good_lp::solvers::ObjectiveDirection;
@@ -104,7 +104,7 @@ pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64
                         Comparison::GreaterOrEqual,
                         Comparison::Equal,
                     ],
-                })
+                });
             }
         };
         model = model.with(constraint);

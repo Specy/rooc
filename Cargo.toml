@@ -7,35 +7,35 @@ documentation = "https://rooc.specy.app/docs/rooc"
 description = "A mixed integer linear programming modeling language to solve linear optimization models. Extensible, works in WASM and easy to use."
 keywords = ["optimization", "milp", "solver", "mathematics", "linear-programming"]
 categories = ["mathematics", "algorithms", "science"]
-version = "0.1.20"
+version = "0.1.21"
 license = "MPL-2.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-serde = { version = "1.0.214", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 num-rational = "0.4.2"
 num-traits = "0.2.19"
-pest = { version = "2.7.14" }
-pest_derive = { version = "2.7.14", features = ["grammar-extras"] }
+pest = { version = "2.8.6" }
+pest_derive = { version = "2.8.6", features = ["grammar-extras"] }
 lazy_static = "1.5.0"
 copper = "0.1.0"
-indexmap = { version = "2.6.0", features = ["serde"] }
-good_lp = { version = "1.13.0", features = ["clarabel"], default-features = false }
-microlp = "0.2.11"
-log = "0.4.21"
+indexmap = { version = "2.13.0", features = ["serde"] }
+good_lp = { version = "1.15.0", features = ["clarabel"], default-features = false }
+microlp = "0.4.0"
+log = "0.4.29"
 utf8_slice = "1.0.0"
 
 [target.'cfg(target_family = "wasm")'.dev-dependencies]
-wasm-bindgen-test = "0.3.0"
+wasm-bindgen-test = "0.3.61"
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-js-sys = "0.3.72"
-wasm-bindgen = { version = "0.2.83", features = ["serde-serialize"] }
+js-sys = "0.3.88"
+wasm-bindgen = { version = "0.2.111", features = ["serde-serialize"] }
 serde-wasm-bindgen = "0.6.5"
-console_error_panic_hook = { version = "0.1.1" }
+console_error_panic_hook = { version = "0.1.7" }
 
 
 [profile.release]

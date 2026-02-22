@@ -1,10 +1,10 @@
 use crate::math::float_eq;
 use crate::math::{Comparison, OptimizationType, VariableType};
 use crate::parser::model_transformer::DomainVariable;
-use crate::solvers::{find_invalid_variables, SolverError};
+use crate::solvers::{SolverError, find_invalid_variables};
 use crate::transformers::linear_model::{LinearConstraint, LinearModel};
 use crate::transformers::standard_linear_model::{EqualityConstraint, StandardLinearModel};
-use crate::utils::{remove_many, InputSpan};
+use crate::utils::{InputSpan, remove_many};
 
 /// Converts a linear programming model into standard form.
 ///
@@ -162,13 +162,13 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
                 return;
             }
             c.coefficients_mut().push(original_coefficient);
-            c.coefficients_mut().push(original_coefficient * -1.0);
+            c.coefficients_mut().push(-original_coefficient);
         });
         if float_eq(objective[*i], 0.0) {
             continue;
         }
         objective.push(objective[*i]);
-        objective.push(objective[*i] * -1.0);
+        objective.push(-objective[*i]);
     }
 
     //we now remove the free variables from the constraints
@@ -220,7 +220,7 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
             return Err(SolverError::UnimplementedOptimizationType {
                 expected: vec![OptimizationType::Max, OptimizationType::Min],
                 got: optimization_type,
-            })
+            });
         }
     };
     Ok(StandardLinearModel::new(

@@ -202,7 +202,7 @@ pub fn parse_as_assertion_type(pair: &Pair<Rule>) -> Result<PreVariableType, Com
                     "Unknown variable type \"{}\", expected one of \"{}\"",
                     pair,
                     PreVariableType::kinds_to_string().join(", ")
-                )
+                );
             }
         }
     }
@@ -323,11 +323,10 @@ pub fn parse_graph_edge(edge: &Pair<Rule>, from: &str) -> Result<GraphEdge, Comp
     let cost = match inner.find_first_tagged("cost") {
         Some(cost) => {
             let parsed = cost.as_str().to_string().parse::<f64>();
-            if parsed.is_err() {
+            if let Err(err) = parsed {
                 let error = ParseError::UnexpectedToken(format!(
                     "Expected number but got: {}, error: {}",
-                    cost,
-                    parsed.unwrap_err()
+                    cost, err,
                 ));
                 return Err(CompilationError::from_pair(error, &cost, false));
             }
@@ -363,8 +362,7 @@ pub fn parse_constraint(constraint: &Pair<Rule>) -> Result<PreConstraint, Compil
             let inner = constraint.clone().into_inner();
             let name = inner.find_first_tagged("constraint_name");
             let name = match name {
-                Some(v) => { 
-                    
+                Some(v) => {
                     let first = v.clone().into_inner().next();
                     if first.is_none() {
                         return err_unexpected_token!("Expected variable but got: {}", v);

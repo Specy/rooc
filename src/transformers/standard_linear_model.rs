@@ -2,7 +2,7 @@ use crate::math::{float_gt, float_lt, float_ne};
 #[allow(unused_imports)]
 use crate::prelude::*;
 use crate::solvers::SolverError;
-use crate::solvers::{divide_matrix_row_by, CanonicalTransformError, Tableau};
+use crate::solvers::{CanonicalTransformError, Tableau, divide_matrix_row_by};
 use crate::transformers::linear_model::LinearModel;
 use crate::transformers::standardizer::to_standard_form;
 use crate::utils::remove_many;
@@ -29,7 +29,7 @@ impl EqualityConstraint {
 }
 
 /// Represents an independent variable in a linear system, identified by its position and value in the constraint matrix.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 struct IndependentVariable {
     row: usize,
     column: usize,
@@ -72,29 +72,38 @@ impl StandardLinearModel {
         }
         if usable_independent_vars.len() >= self.constraints.len() {
             //can form a canonical tableau
+            //deduplicate independent variables by row, keeping only one per row
+            let mut selected_vars: Vec<Option<IndependentVariable>> =
+                vec![None; self.constraints.len()];
+            for var in usable_independent_vars.into_iter() {
+                if selected_vars[var.row].is_none() {
+                    selected_vars[var.row] = Some(var);
+                }
+            }
+            let selected_vars: Vec<IndependentVariable> =
+                selected_vars.into_iter().flatten().collect();
+            if selected_vars.len() < self.constraints.len() {
+                //not enough independent variables to cover all rows, fall through to 2-phase
+                return self.into_tableau_two_phase();
+            }
             let mut a = self.a_matrix();
             let mut b = self.b_vec();
             let mut c = self.c_vec();
             let mut value = 0.0;
             //normalize the rows of the independent variables
-            for independent_variable in usable_independent_vars.iter() {
+            for independent_variable in selected_vars.iter() {
                 divide_matrix_row_by(&mut a, independent_variable.row, independent_variable.value);
                 b[independent_variable.row] /= independent_variable.value;
                 let amount = c[independent_variable.column];
                 for (index, coefficient) in a[independent_variable.row].iter().enumerate() {
                     c[index] -= amount * coefficient;
                 }
-                value += amount * b[independent_variable.row];
+                value -= amount * b[independent_variable.row];
             }
 
-            let mut basis = usable_independent_vars
-                .iter()
-                .map(|i| i.column)
-                .collect::<Vec<_>>();
-            //we only need as many basis variables as there are constraints
-            basis.resize(self.constraints.len(), 0);
+            let basis = selected_vars.iter().map(|i| i.column).collect::<Vec<_>>();
             Ok(Tableau::new(
-                self.c_vec(),
+                c,
                 a,
                 b,
                 basis,
@@ -104,99 +113,103 @@ impl StandardLinearModel {
                 self.flip_objective,
             ))
         } else {
-            //use the 2 phase method to find a canonical tableau by adding artificial variables to the constraints and solving the tableau
-            let mut a = self.a_matrix();
-            //TODO can i simplify this by only adding necessary artificial variables? reusing the independent variables?
-            let number_of_artificial_variables = self.constraints.len();
-            let number_of_variables = self.variables.len();
-            let mut variables = self.variables();
-            let mut c = vec![0.0; number_of_variables + number_of_artificial_variables];
-            let mut basis = vec![0; number_of_artificial_variables];
-            for i in 0..number_of_artificial_variables {
-                c[number_of_variables + i] = 1.0;
-                basis[i] = number_of_variables + i;
-            }
-            let b = self.b_vec();
+            self.into_tableau_two_phase()
+        }
+    }
 
-            let mut value = 0.0;
-            //add the variables to the matrix and turn the objective function into
-            //canonical form by subtracting all rows from the objective function
-            for (i, constraint) in a.iter_mut().enumerate() {
-                constraint.resize(number_of_variables + number_of_artificial_variables, 0.0);
-                constraint[i + number_of_variables] = 1.0;
-                variables.push(format!("$a_{}", i));
-                for (j, coefficient) in constraint.iter().enumerate() {
-                    c[j] -= coefficient;
+    fn into_tableau_two_phase(self) -> Result<Tableau, CanonicalTransformError> {
+        //use the 2 phase method to find a canonical tableau by adding artificial variables to the constraints and solving the tableau
+        let mut a = self.a_matrix();
+        //TODO can i simplify this by only adding necessary artificial variables? reusing the independent variables?
+        let number_of_artificial_variables = self.constraints.len();
+        let number_of_variables = self.variables.len();
+        let mut variables = self.variables();
+        let mut c = vec![0.0; number_of_variables + number_of_artificial_variables];
+        let mut basis = vec![0; number_of_artificial_variables];
+        for i in 0..number_of_artificial_variables {
+            c[number_of_variables + i] = 1.0;
+            basis[i] = number_of_variables + i;
+        }
+        let b = self.b_vec();
+
+        let mut value = 0.0;
+        //add the variables to the matrix and turn the objective function into
+        //canonical form by subtracting all rows from the objective function
+        for (i, constraint) in a.iter_mut().enumerate() {
+            constraint.resize(number_of_variables + number_of_artificial_variables, 0.0);
+            constraint[i + number_of_variables] = 1.0;
+            variables.push(format!("$a_{}", i));
+            for (j, coefficient) in constraint.iter().enumerate() {
+                c[j] -= coefficient;
+            }
+            value -= b[i];
+        }
+
+        let mut tableau = Tableau::new(
+            c,
+            a,
+            b,
+            basis,
+            value,
+            self.objective_offset(),
+            variables,
+            self.flip_objective,
+        );
+        let artificial_variables = (number_of_variables
+            ..number_of_variables + number_of_artificial_variables)
+            .collect::<Vec<_>>();
+        match tableau.solve_avoiding(10000, &artificial_variables) {
+            Ok(optimal_tableau) => {
+                let tableau = optimal_tableau.tableau();
+                if float_ne(tableau.current_value(), 0.0) {
+                    return Err(CanonicalTransformError::Infesible(
+                        "Initial problem is infeasible".to_string(),
+                    ));
                 }
-                value -= b[i];
-            }
-
-            let mut tableau = Tableau::new(
-                c,
-                a,
-                b,
-                basis,
-                value,
-                self.objective_offset(),
-                variables,
-                self.flip_objective,
-            );
-            let artificial_variables = (number_of_variables
-                ..number_of_variables + number_of_artificial_variables)
-                .collect::<Vec<_>>();
-            match tableau.solve_avoiding(10000, &artificial_variables) {
-                Ok(optimal_tableau) => {
-                    let tableau = optimal_tableau.tableau();
-                    if float_ne(tableau.current_value(), 0.0) {
-                        return Err(CanonicalTransformError::Infesible(
-                            "Initial problem is infeasible".to_string(),
-                        ));
+                let new_basis = tableau.in_basis().clone();
+                //check that the new basis is valid,
+                if new_basis.iter().all(|&i| i < number_of_variables) {
+                    //restore the original objective function
+                    let mut new_a = tableau.a_matrix().clone();
+                    //remove the artificial variables from the tableau
+                    for row in new_a.iter_mut() {
+                        row.resize(number_of_variables, 0.0);
                     }
-                    let new_basis = tableau.in_basis().clone();
-                    //check that the new basis is valid,
-                    if new_basis.iter().all(|&i| i < number_of_variables) {
-                        //restore the original objective function
-                        let mut new_a = tableau.a_matrix().clone();
-                        //remove the artificial variables from the tableau
-                        for row in new_a.iter_mut() {
-                            row.resize(number_of_variables, 0.0);
+                    let mut value = 0.0;
+                    let mut new_c = self.c_vec();
+                    let new_b = tableau.b_vec().clone();
+                    //put in the original objective function in canonical form
+                    for (row_index, variable_index) in new_basis.iter().enumerate() {
+                        //values in base need to be 0, we know that the coefficient in basis is 0 or 1 so we can
+                        //simply multiply by the coefficient of the row
+                        let coefficient = new_c[*variable_index];
+                        for (index, c) in new_c.iter_mut().enumerate() {
+                            *c -= coefficient * new_a[row_index][index];
                         }
-                        let mut value = 0.0;
-                        let mut new_c = self.c_vec();
-                        let new_b = tableau.b_vec().clone();
-                        //put in the original objective function in canonical form
-                        for (row_index, variable_index) in new_basis.iter().enumerate() {
-                            //values in base need to be 0, we know that the coefficient in basis is 0 or 1 so we can
-                            //simply multiply by the coefficient of the row
-                            let coefficient = new_c[*variable_index];
-                            for (index, c) in new_c.iter_mut().enumerate() {
-                                *c -= coefficient * new_a[row_index][index];
-                            }
-                            value -= coefficient * new_b[row_index];
-                        }
-
-                        Ok(Tableau::new(
-                            new_c,
-                            new_a,
-                            new_b,
-                            new_basis,
-                            value,
-                            self.objective_offset(),
-                            self.variables(),
-                            self.flip_objective,
-                        ))
-                    } else {
-                        Err(CanonicalTransformError::InvalidBasis(format!(
-                            "Invalid basis: {:?}",
-                            new_basis
-                        )))
+                        value -= coefficient * new_b[row_index];
                     }
+
+                    Ok(Tableau::new(
+                        new_c,
+                        new_a,
+                        new_b,
+                        new_basis,
+                        value,
+                        self.objective_offset(),
+                        self.variables(),
+                        self.flip_objective,
+                    ))
+                } else {
+                    Err(CanonicalTransformError::InvalidBasis(format!(
+                        "Invalid basis: {:?}",
+                        new_basis
+                    )))
                 }
-                Err(e) => Err(CanonicalTransformError::SimplexError(format!(
-                    "Error solving initial tableau: {:?}",
-                    e
-                ))),
             }
+            Err(e) => Err(CanonicalTransformError::SimplexError(format!(
+                "Error solving initial tableau: {:?}",
+                e
+            ))),
         }
     }
 }

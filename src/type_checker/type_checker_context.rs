@@ -54,7 +54,7 @@ pub trait WithType {
     /// # Returns
     /// The primitive kind associated with this type
     fn get_type(&self, context: &TypeCheckerContext, fn_context: &FunctionContext)
-        -> PrimitiveKind;
+    -> PrimitiveKind;
 }
 
 /// Represents a token with type information and optional identifier.

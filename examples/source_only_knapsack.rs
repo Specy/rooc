@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
-use rooc::solve_integer_binary_lp_problem;
 use rooc::Linearizer;
 use rooc::RoocParser;
+use rooc::solve_integer_binary_lp_problem;
 
 fn main() {
     let source = "

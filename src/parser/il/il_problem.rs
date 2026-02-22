@@ -11,11 +11,11 @@ use crate::parser::model_transformer::TransformerContext;
 use crate::traits::ToLatex;
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{
+    Spanned,
     math::{Comparison, OptimizationType},
     primitives::Primitive,
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::InputSpan,
-    Spanned,
 };
 
 /// Represents array-like access to a variable, such as `x[1][2]`.

@@ -14,7 +14,7 @@ use crate::transformers::LinearModel;
 use crate::transformers::LinearizationError;
 use crate::transformers::StandardLinearModel;
 use crate::utils::CompilationError;
-use crate::{match_pipe_data_to, MILPValue, RoocParser};
+use crate::{MILPValue, RoocParser, match_pipe_data_to};
 use indexmap::IndexMap;
 use std::fmt::Display;
 
@@ -255,7 +255,7 @@ impl PipeContext<'_> {
     pub fn new(
         constants: Vec<Constant>,
         fns: &IndexMap<String, Box<dyn RoocFunction>>,
-    ) -> PipeContext {
+    ) -> PipeContext<'_> {
         PipeContext {
             constants,
             functions: fns,

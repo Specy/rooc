@@ -1,7 +1,7 @@
 use crate::solvers::common::{LpSolution, SolverError};
 use crate::transformers::LinearModel;
 use crate::{
-    make_constraints_map_from_assignment, Assignment, Comparison, OptimizationType, VariableType,
+    Assignment, Comparison, OptimizationType, VariableType, make_constraints_map_from_assignment,
 };
 use microlp::{ComparisonOp, Error, OptimizationDirection, Problem};
 use serde::{Deserialize, Serialize};
@@ -104,7 +104,7 @@ pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, 
                         Comparison::GreaterOrEqual,
                         Comparison::Equal,
                     ],
-                })
+                });
             }
         };
         let microlp_coeffs = microlp_vars
@@ -120,7 +120,7 @@ pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, 
                 .iter()
                 .zip(variables)
                 .map(|(v, name)| {
-                    let value = s.var_value_rounded(*v);
+                    let value = s.var_value(*v);
                     let var_domain = domain.get(name).unwrap();
                     let value = match var_domain.get_type() {
                         VariableType::Real(_, _) | VariableType::NonNegativeReal(_, _) => {
@@ -137,7 +137,7 @@ pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, 
                 .collect();
             let coeffs = microlp_vars
                 .iter()
-                .map(|v| s.var_value_rounded(*v))
+                .map(|v| s.var_value(*v))
                 .collect();
             let constraints = make_constraints_map_from_assignment(lp, &coeffs);
             Ok(LpSolution::new(

@@ -265,8 +265,7 @@ impl fmt::Display for TransformError {
                         .map(|x| format!("{}: {}", x.0, x.1))
                         .collect::<Vec<_>>()
                         .join(", "),
-                    args
-                        .iter()
+                    args.iter()
                         .map(|x| x.to_string())
                         .collect::<Vec<_>>()
                         .join(", ")
@@ -301,7 +300,10 @@ impl fmt::Display for TransformError {
                     "[AlreadyDeclaredDomainVariable] There are some variables whose domain is already declared:\n    {}",
                     variables
                         .iter()
-                        .map(|(name, kind)| format!("{}: {} ({} duplicates)", name, *kind.1, kind.0))
+                        .map(|(name, kind)| format!(
+                            "{}: {} ({} duplicates)",
+                            name, *kind.1, kind.0
+                        ))
                         .collect::<Vec<_>>()
                         .join(", ")
                 )
@@ -439,11 +441,11 @@ impl TransformError {
                 {
                     let current_span = span.span().clone();
                     //don't add if the last span is the same as the current one
-                    if let Some((last_span, _)) = trace.last() {
-                        if last_span == &current_span {
-                            last_error = span;
-                            continue;
-                        }
+                    if let Some((last_span, _)) = trace.last()
+                        && last_span == &current_span
+                    {
+                        last_error = span;
+                        continue;
                     }
                     trace.push((current_span, value.clone()));
                     last_error = span;

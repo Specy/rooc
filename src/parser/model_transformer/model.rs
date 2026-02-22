@@ -1,4 +1,4 @@
-use crate::domain_declaration::{format_domain, Variable};
+use crate::domain_declaration::{Variable, format_domain};
 use crate::math::{BinOp, UnOp};
 use crate::math::{Comparison, OptimizationType};
 use crate::parser::il::PreExp;
@@ -10,8 +10,8 @@ use crate::parser::recursive_set_resolver::recursive_set_resolver;
 #[allow(unused_imports)]
 use crate::prelude::*;
 use crate::primitives::Constant;
-use crate::runtime_builtin::{make_std, make_std_constants, RoocFunction};
-use crate::traits::{escape_latex, ToLatex};
+use crate::runtime_builtin::{RoocFunction, make_std, make_std_constants};
+use crate::traits::{ToLatex, escape_latex};
 use crate::type_checker::type_checker_context::FunctionContext;
 use crate::{primitives::Primitive, utils::Spanned};
 use core::fmt;

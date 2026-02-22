@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::math::{BinOp, UnOp};
 use crate::parser::model_transformer::TransformError;
-use crate::traits::{escape_latex, ToLatex};
+use crate::traits::{ToLatex, escape_latex};
 
 use super::{
     primitive::{Primitive, PrimitiveKind},

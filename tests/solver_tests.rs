@@ -14,8 +14,8 @@ pub mod solver_tests {
     use rooc::pipe::{PipeDataType, PipeError, PipeableData, StepByStepSimplexPipe};
     #[allow(unused_imports)]
     use rooc::simplex::{CanonicalTransformError, OptimalTableau, SimplexError};
-    use rooc::{float_eq, float_ne};
     use rooc::{MILPValue, OptimalTableauWithSteps};
+    use rooc::{float_eq, float_ne};
 
     #[allow(unused)]
     #[allow(clippy::result_large_err)]
@@ -431,7 +431,6 @@ pub mod solver_tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    #[ignore] //TODO normal simplex doesn't correctly calculate optimal value, 10 is missing
     fn should_solve_degen_4d() {
         let source = r#"
     max 2x_1 + 3x_2 + 4x_3 + 5x_4 + 10
@@ -446,11 +445,33 @@ pub mod solver_tests {
         let solution = solve(source).unwrap();
         assert_correct_solution(
             solution,
-            94.0,
-            vec![
-                vec![0.0, 8.0, 0.0, 10.0, 0.0, 4.0, 0.0, 0.0],
-                vec![4.34136, 8.0, 1.68587, 10.0],
-            ],
+            84.0,
+            vec![vec![0.0, 8.0, 0.0, 10.0, 0.0, 4.0, 0.0, 0.0]],
+        );
+    }
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_non_unbounded() {
+        let source = r#"
+             max x + sum(i in list) { z_i }
+             subject to
+                 //write the constraints here
+                 x <= y
+                 cons_i: z_i <= i * 2 for i in list
+             where
+                 // write the constants here
+                 let y = 10
+                 let list = [2,4,6]
+             define
+                 // define the model's variables here
+                 x as NonNegativeReal
+                 z_i as NonNegativeReal for i in list
+     "#;
+        let solution = solve(source).unwrap();
+        assert_correct_solution(
+            solution,
+            34.0,
+            vec![vec![10.0, 4.0, 8.0, 12.0, 0.0, 0.0, 0.0, 0.0]],
         );
     }
 
@@ -506,25 +527,25 @@ pub mod solver_tests {
 //This is a simple diet problem
 //minimize the cost of the diet
 min sum((cost, i) in enumerate(C)) { cost * x_i }
-s.t.  
+s.t.
     //the diet must have at least of nutrient j
     sum(i in 0..F) { a[i][j] * x_i} >= Nmin[j] for j in 0..len(Nmin)
     //the diet must have at most of nutrient j
     sum(i in 0..F) { a[i][j] * x_i } <= Nmax[j] for j in 0..len(Nmax)
-where    
+where
     // Cost of chicken, rice, avocado
     let C = [1.5, 0.5, 2.0]
     // Min and max of: protein, carbs, fats
-    let Nmin = [50, 200, 0] 
+    let Nmin = [50, 200, 0]
     let Nmax = [150, 300, 70]
-    // Min and max servings of each food    
-    let Fmin = [1, 1, 1] 
+    // Min and max servings of each food
+    let Fmin = [1, 1, 1]
     let Fmax = [5, 5, 5]
     let a = [
-        //protein, carbs, fats        
+        //protein, carbs, fats
         [30, 0, 5], // Chicken
         [2, 45, 0], // Rice
-        [2, 15, 20] // Avocado    
+        [2, 15, 20] // Avocado
     ]
     // Number of foods
     let F = len(a)
@@ -563,10 +584,10 @@ define
     fn should_be_unbounded() {
         let source = r#"
     min x_1 + 2x_2 - x_3
-s.t. 
+s.t.
     -x_1 + x_2 = 5
     2x_1 - x_2 - x_3 <= 3
-define 
+define
     x_1 as Real
     x_2, x_3 as NonNegativeReal
     "#;
@@ -609,7 +630,7 @@ define
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn should_solve_integer_problem() {
         let source = r#"
-    max 2x_1 + 3x_2 
+    max 2x_1 + 3x_2
     s.t.
         x_1 + x_2 <= 7
         2x_1 + 3x_2 <= 21
@@ -706,13 +727,13 @@ define
 max 50 * x + 40 * y + 45 * z
 s.t.
     // Machine time constraint
-    3 * x + 2 * y + 1 * z <= 20     
-     // Labor time constraint  
-    2 * x + 1 * y + 3 * z <= 15    
-     // Minimum production constraint for Product A  
-    x >= 2     
-    // Maximum production constraint for Product B                      
-    y <= 7                            
+    3 * x + 2 * y + 1 * z <= 20
+     // Labor time constraint
+    2 * x + 1 * y + 3 * z <= 15
+     // Minimum production constraint for Product A
+    x >= 2
+    // Maximum production constraint for Product B
+    y <= 7
 define
     x, y as NonNegativeReal
     z as IntegerRange(0, 10)";

@@ -1,12 +1,12 @@
-use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
 use crate::pipe::PipeContext;
+use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
 #[allow(unused_imports)]
 use crate::prelude::*;
 use crate::solvers::{
     solve_binary_lp_problem, solve_integer_binary_lp_problem, solve_real_lp_problem_clarabel,
 };
 use crate::transformers::Linearizer;
-use crate::{auto_solver, solve_milp_lp_problem, RoocParser};
+use crate::{RoocParser, auto_solver, solve_milp_lp_problem};
 
 #[cfg(target_arch = "wasm32")]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -241,6 +241,7 @@ impl Pipeable for StepByStepSimplexPipe {
 
 //-------------------- Dual --------------------
 
+#[allow(dead_code)]
 struct DualPipe {}
 impl Default for DualPipe {
     fn default() -> Self {
@@ -248,11 +249,14 @@ impl Default for DualPipe {
     }
 }
 
+#[allow(dead_code)]
 impl DualPipe {
     pub fn new() -> DualPipe {
         DualPipe {}
     }
 }
+
+#[allow(dead_code)]
 impl Pipeable for DualPipe {
     fn pipe(&self, data: &mut PipeableData, _: &PipeContext) -> Result<PipeableData, PipeError> {
         let model = data.as_linear_model()?.clone();

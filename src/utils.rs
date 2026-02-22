@@ -3,7 +3,7 @@ use std::{fmt::Debug, ops::Deref, ops::DerefMut};
 
 #[allow(unused_imports)]
 use crate::prelude::*;
-use pest::{iterators::Pair, Span};
+use pest::{Span, iterators::Pair};
 use serde::{Deserialize, Serialize};
 
 use crate::parser::pre_model::Rule;
@@ -65,7 +65,7 @@ impl InputSpan {
     /// * `Ok(&str)` - The extracted text slice if the span is valid
     /// * `Err(String)` - Error message if the span is out of bounds
     pub fn span_text<'a>(&self, text: &'a str) -> Result<&'a str, String> {
-        let indices = text.char_indices();
+        let _indices = text.char_indices();
         let end = (self.start + self.len) as usize;
         let start = self.start as usize;
         let len = text.chars().count();

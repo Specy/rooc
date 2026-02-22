@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::solvers::{LpSolution, Tableau};
 use core::fmt;
 use indexmap::IndexMap;
-use std::fmt::{Display};
+use std::fmt::Display;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -27,7 +27,7 @@ impl OptimalTableau {
     }
     pub fn optimal_value(&self) -> f64 {
         let flip = if self.flip_result { -1.0 } else { 1.0 };
-        ((self.tableau.current_value() + self.tableau.value_offset()) * -1.0) * flip
+        -(self.tableau.current_value() + self.tableau.value_offset()) * flip
     }
     pub fn tableau(&self) -> &Tableau {
         &self.tableau
@@ -135,8 +135,14 @@ impl OptimalTableauWithSteps {
 
 impl Display for OptimalTableauWithSteps {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}\n{}", 
-               self.steps.iter().map(|v| v.to_string()).collect::<Vec<_>>().join("\n"),
+        write!(
+            f,
+            "{}\n{}",
+            self.steps
+                .iter()
+                .map(|v| v.to_string())
+                .collect::<Vec<_>>()
+                .join("\n"),
             self.result
         )
     }

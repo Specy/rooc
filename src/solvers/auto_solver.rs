@@ -1,6 +1,6 @@
 use crate::{
-    solve_binary_lp_problem, solve_milp_lp_problem, solve_real_lp_problem_clarabel, Assignment,
-    IntOrBoolValue, LinearModel, LpSolution, MILPValue, SolverError, VariableType,
+    Assignment, IntOrBoolValue, LinearModel, LpSolution, MILPValue, SolverError, VariableType,
+    solve_binary_lp_problem, solve_milp_lp_problem, solve_real_lp_problem_clarabel,
 };
 use indexmap::IndexMap;
 

@@ -1,6 +1,6 @@
 use crate::make_constraints_map_from_assignment;
 use crate::math::{Comparison, OptimizationType, VariableType};
-use crate::solvers::{find_invalid_variables, Assignment, LpSolution, SimplexError, SolverError};
+use crate::solvers::{Assignment, LpSolution, SimplexError, SolverError, find_invalid_variables};
 use crate::transformers::LinearModel;
 use microlp::{OptimizationDirection, Problem};
 
@@ -106,7 +106,7 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
             return Err(SolverError::UnimplementedOptimizationType {
                 expected: vec![OptimizationType::Min, OptimizationType::Max],
                 got: OptimizationType::Satisfy,
-            })
+            });
         }
     };
     let mut problem = Problem::new(opt_type);
@@ -133,7 +133,7 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
                         VariableType::NonNegativeReal(0.0, f64::INFINITY),
                     ],
                     got: vec![(name.clone(), domain.clone())],
-                })
+                });
             }
         };
         vars_microlp.push(var);
@@ -159,7 +159,7 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
                         Comparison::GreaterOrEqual,
                     ],
                     got: *cons.constraint_type(),
-                })
+                });
             }
         };
         problem.add_constraint(&coeffs, comparison, rhs);

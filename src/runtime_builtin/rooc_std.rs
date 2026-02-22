@@ -94,7 +94,7 @@ pub fn make_std_constants() -> Vec<Constant> {
 pub fn std_fn_to_latex(fun: &FunctionCall) -> Option<String> {
     match fun.name.as_str() {
         "range" => {
-            if let [ref from, ref to, known_inclusive] = &fun.args[..] {
+            if let [from, to, known_inclusive] = &fun.args[..] {
                 let known_inclusive = match known_inclusive {
                     PreExp::Primitive(p) => p.as_boolean().ok(),
                     _ => None,
@@ -124,7 +124,7 @@ pub fn std_fn_to_latex(fun: &FunctionCall) -> Option<String> {
             }
         }
         "difference" => {
-            if let [ref first, ref second] = &fun.args[..] {
+            if let [first, second] = &fun.args[..] {
                 Some(format!(
                     "\\left\\{{{}\\setminus {}\\right\\}}",
                     first.to_latex(),
@@ -135,7 +135,7 @@ pub fn std_fn_to_latex(fun: &FunctionCall) -> Option<String> {
             }
         }
         "union" => {
-            if let [ref first, ref second] = &fun.args[..] {
+            if let [first, second] = &fun.args[..] {
                 Some(format!(
                     "\\left\\{{{}\\cup {}\\right\\}}",
                     first.to_latex(),
@@ -146,7 +146,7 @@ pub fn std_fn_to_latex(fun: &FunctionCall) -> Option<String> {
             }
         }
         "intersection" => {
-            if let [ref first, ref second] = &fun.args[..] {
+            if let [first, second] = &fun.args[..] {
                 Some(format!(
                     "\\left\\{{{}\\cap {}\\right\\}}",
                     first.to_latex(),
@@ -163,7 +163,7 @@ pub fn std_fn_to_latex(fun: &FunctionCall) -> Option<String> {
 pub fn std_fn_to_string(fun: &FunctionCall) -> Option<String> {
     match fun.name.as_str() {
         "range" => {
-            if let [ref from, ref to, known_inclusive] = &fun.args[..] {
+            if let [from, to, known_inclusive] = &fun.args[..] {
                 let known_inclusive = match known_inclusive {
                     PreExp::Primitive(p) => p.as_boolean().ok(),
                     _ => None,

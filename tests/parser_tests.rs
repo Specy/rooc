@@ -387,7 +387,7 @@ x_1 as Real
 x_2 as Real
 x_3 as Real
         ";
-        
+
         //i expect to get an error, and not panic
         RoocParser::new(input.to_string())
             .parse_and_transform(vec![], &IndexMap::new())

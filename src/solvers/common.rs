@@ -7,7 +7,7 @@ use num_traits::ToPrimitive;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 #[allow(unused)]
-use std::fmt::{write, Display, Formatter};
+use std::fmt::{Display, Formatter, write};
 
 /// Represents errors that can occur during linear programming problem solving.
 #[derive(Debug)]
