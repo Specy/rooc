@@ -1,0 +1,49 @@
+%!TEX root = ../main_thesis.tex
+
+\chapter{Il linguaggio ROOC}
+\label{cap:linguaggio}
+
+\todo[inline]{Capitolo di riferimento del linguaggio, dal punto di vista dell'utente: cosa si può scrivere e qual è il significato dei costrutti. L'implementazione è rimandata ai capitoli successivi.}
+
+\section{Principi di design}
+\label{sec:design-linguaggio}
+
+\todo[inline]{Illustrare gli obiettivi di progetto: modello formale, leggibilità, vicinanza alla notazione matematica, separazione tra modello e dati.}
+
+\section{Struttura di un modello}
+\label{sec:struttura-modello}
+
+Un modello ROOC è composto dalla funzione obiettivo (\texttt{min}/\texttt{max}),
+dai vincoli (\texttt{s.t.}) e da due blocchi opzionali: \texttt{where} per la
+definizione di costanti e \texttt{define} per la dichiarazione del dominio delle
+variabili.
+
+\todo[inline]{Mostrare la struttura generale con uno snippet commentato. Spiegare obiettivo, vincoli con iterazione (\texttt{for}), blocco \texttt{where} e blocco \texttt{define}.}
+
+\section{Esempio guida}
+\label{sec:esempio-guida}
+
+\todo[inline]{Presentare per esteso uno o due esempi (knapsack binario e dominating set su grafo) che verranno richiamati nei capitoli successivi per illustrare le varie fasi di compilazione.}
+
+\section{Primitive e tipi di dato}
+\label{sec:primitive}
+
+Il linguaggio offre un insieme ricco di tipi: numeri, stringhe, booleani,
+\emph{grafi}, tuple e iterabili. Si descrive la semantica di ciascuno.
+
+\todo[inline]{Descrivere le primitive (\texttt{Number}, \texttt{Integer}, \texttt{String}, \texttt{Boolean}, \texttt{Graph}, \texttt{Tuple}, \texttt{Iterable}) e la loro rappresentazione a livello di tipo. Riferimento: \texttt{src/primitives/}.}
+
+\section{Iteratori, \emph{block functions} e destructuring}
+\label{sec:iteratori}
+
+\todo[inline]{Spiegare gli iteratori (\texttt{for ... in ...}), le \emph{block scoped functions} (\texttt{sum}, \texttt{prod}, \texttt{min}, \texttt{max}, \texttt{avg}) e il destructuring di tuple e archi di grafo.}
+
+\section{Operatori e definizione delle variabili}
+\label{sec:operatori-variabili}
+
+\todo[inline]{Trattare gli operatori e l'\emph{operator overloading} sulle primitive, e la dichiarazione del dominio delle variabili con i relativi \emph{bounds} (Boolean, Real, NonNegativeReal, IntegerRange).}
+
+\section{Libreria standard e funzioni definite dall'utente}
+\label{sec:funzioni}
+
+\todo[inline]{Elencare le funzioni built-in (su array, grafi, range) e descrivere il meccanismo di estensione con funzioni definite dall'utente (anche via JavaScript in ambiente WASM). Riferimento: \texttt{src/runtime\_builtin/}.}

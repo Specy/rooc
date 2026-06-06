@@ -1,0 +1,31 @@
+%!TEX root = ../main_thesis.tex
+
+\chapter{Architettura del compilatore}
+\label{cap:architettura}
+
+\todo[inline]{Capitolo-ponte, breve: offre la visione d'insieme della pipeline che i capitoli successivi approfondiscono fase per fase.}
+
+\section{La pipeline multi-fase}
+\label{sec:pipeline}
+
+La compilazione di un modello ROOC procede attraverso una sequenza di
+trasformazioni, ciascuna delle quali raffina la rappresentazione del problema:
+dal codice sorgente al \texttt{PreModel}, al \texttt{Model} tipato, al
+\texttt{LinearModel}, alla forma standard e infine al \emph{tableau} del
+simplesso.
+
+\todo[inline]{Inserire un diagramma della pipeline completa (sorgente $\rightarrow$ PreModel $\rightarrow$ Model $\rightarrow$ LinearModel $\rightarrow$ StandardLinearModel $\rightarrow$ Tableau $\rightarrow$ soluzione). Descrivere input/output di ogni stadio.}
+
+\section{L'astrazione \emph{Pipe}}
+\label{sec:pipe}
+
+Ogni stadio della pipeline è modellato come una \emph{Pipe} componibile, che
+trasforma un dato intermedio nel successivo. I dati intermedi sono entità di
+prima classe e serializzabili.
+
+\todo[inline]{Descrivere il trait \texttt{Pipeable} e il \texttt{PipeRunner}. Spiegare come la composizione di pipe permetta di fermarsi a uno stadio qualsiasi. Riferimento: \texttt{src/pipe/}.}
+
+\section{Estensibilità e visualizzazione passo-passo}
+\label{sec:estensibilita}
+
+\todo[inline]{Argomentare come l'architettura a pipe abiliti (1) l'estensibilità (nuovi solver/stadi) e (2) la visualizzazione passo-passo usata a fini didattici nella piattaforma web (Cap.~\ref{cap:piattaforma}).}

@@ -1,0 +1,40 @@
+%!TEX root = ../main_thesis.tex
+
+\chapter{Analisi semantica: tipi e trasformazione del modello}
+\label{cap:semantica}
+
+\todo[inline]{Capitolo sull'analisi semantica. Anche qui: prima i concetti teorici, poi l'applicazione in ROOC.}
+
+\section{Concetti teorici}
+\label{sec:semantica-teoria}
+
+Si presentano i concetti di analisi semantica nei compilatori: il \emph{sistema
+dei tipi}, la verifica statica dei tipi (\emph{type checking}), la nozione di
+\emph{scope} e di tabella dei simboli, e la distinzione tra rappresentazione di
+un valore a tempo di esecuzione e la sua descrizione a livello di tipo.
+
+\todo[inline]{TEORIA: cosa sono i sistemi di tipi, type checking statico vs dinamico, scope e ambienti (frame), inferenza/verifica delle firme di funzione.}
+
+\section{Applicazione in ROOC: il sistema dei tipi}
+\label{sec:tipi-rooc}
+
+Il sistema dei tipi di ROOC è rappresentato da \texttt{PrimitiveKind}, che
+descrive a livello statico le primitive del linguaggio (inclusi tipi composti
+come iterabili e tuple) e governa le regole di applicabilità di operatori e
+funzioni.
+
+\todo[inline]{APPLICAZIONE: descrivere \texttt{PrimitiveKind}, le regole degli operatori (\texttt{can\_apply\_binary\_op}) e le firme delle funzioni. Riferimento: \texttt{src/primitives/primitive.rs}.}
+
+\section{Il type checker}
+\label{sec:type-checker}
+
+\todo[inline]{APPLICAZIONE: descrivere \texttt{TypeCheckerContext}, l'uso dei \texttt{Frame} per gli scope annidati (uno per livello di \texttt{for}), la mappa dei token tipati e la diagnostica dei tipi. Riferimento: \texttt{src/type\_checker/}.}
+
+\section{Trasformazione \texttt{PreModel} $\rightarrow$ \texttt{Model}}
+\label{sec:trasformazione-modello}
+
+Superata la verifica dei tipi, il \texttt{PreModel} viene trasformato in un
+\texttt{Model}: le costanti vengono valutate, le variabili composte e gli
+iteratori risolti, e le \emph{block functions} espanse in espressioni concrete.
+
+\todo[inline]{APPLICAZIONE: descrivere \texttt{transform\_parsed\_problem}, il \texttt{TransformerContext}, il \texttt{recursive\_set\_resolver} per la risoluzione di iteratori e variabili composte, e l'espansione delle \emph{block functions}. Riferimento: \texttt{src/parser/model\_transformer/}.}

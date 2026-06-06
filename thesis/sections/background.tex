@@ -1,0 +1,48 @@
+%!TEX root = ../main_thesis.tex
+
+\chapter{Background e stato dell'arte}
+\label{cap:background}
+
+\todo[inline]{Capitolo di preambolo. Fornisce le basi teoriche minime (programmazione lineare e MILP), inquadra i linguaggi di modellazione esistenti e introduce i concetti di teoria dei compilatori che verranno applicati nei capitoli successivi.}
+
+\section{Programmazione lineare e MILP}
+\label{sec:lp-milp}
+
+Si richiamano i concetti fondamentali della programmazione lineare (LP): la
+funzione obiettivo, i vincoli lineari, le variabili decisionali e la nozione di
+soluzione ottima. Si introduce poi la programmazione lineare intera mista
+(MILP), in cui alcune variabili sono vincolate a essere intere o binarie.
+
+\todo[inline]{Definire formalmente un modello LP/MILP (forma generale). Distinguere variabili continue, intere e binarie. Citare la forma standard, che verrà usata nel Capitolo~\ref{cap:linearizzazione}.}
+
+\section{I modelli di ottimizzazione}
+\label{sec:modelli-ottimizzazione}
+
+\todo[inline]{Spiegare in modo intuitivo cosa sia un modello di ottimizzazione, con un piccolo esempio (es. knapsack o dominating set), che farà da filo conduttore.}
+
+\section{Linguaggi e strumenti di modellazione esistenti}
+\label{sec:stato-arte}
+
+Esistono numerosi linguaggi e ambienti per la modellazione di problemi di
+ottimizzazione. Se ne analizzano i principali, evidenziandone caratteristiche e
+limiti, per posizionare ROOC nel panorama esistente.
+
+\todo[inline]{Confrontare: AMPL, GNU MathProg (GMPL/GLPK), MiniZinc, Gurobi/OPL, Pyomo, JuMP, e il formato testuale CPLEX LP. Per ognuno: paradigma, espressività, accessibilità, licenza, supporto a strutture dati (grafi, tuple).}
+
+\section{Cenni di teoria dei linguaggi e dei compilatori}
+\label{sec:teoria-compilatori}
+
+ROOC è, a tutti gli effetti, un compilatore che traduce un linguaggio di alto
+livello in un modello lineare. Si introducono pertanto i concetti di teoria dei
+compilatori che verranno applicati nel seguito: analisi lessicale e sintattica,
+grammatiche formali e \emph{Parsing Expression Grammar} (PEG), albero di
+sintassi astratta (AST), analisi semantica e \emph{type checking},
+rappresentazione intermedia (IR) e \emph{lowering} verso una forma più vicina
+alla macchina di destinazione (in questo caso, il solver).
+
+\todo[inline]{Presentare le fasi classiche di un compilatore e mapparle esplicitamente sui capitoli successivi: parsing (Cap.~\ref{cap:parsing}), analisi semantica (Cap.~\ref{cap:semantica}), lowering/linearizzazione (Cap.~\ref{cap:linearizzazione}), \emph{back-end}/risoluzione (Cap.~\ref{cap:solver}).}
+
+\section{Posizionamento di ROOC}
+\label{sec:posizionamento}
+
+\todo[inline]{Sintetizzare in cosa ROOC si differenzia dagli strumenti esistenti: notazione vicina alla matematica, tipi ricchi (grafi, tuple, iterabili), estensibilità, esecuzione in WASM e finalità didattica.}

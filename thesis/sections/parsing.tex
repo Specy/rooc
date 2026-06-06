@@ -1,0 +1,40 @@
+%!TEX root = ../main_thesis.tex
+
+\chapter{Analisi sintattica e rappresentazione intermedia}
+\label{cap:parsing}
+
+\todo[inline]{Primo capitolo del \emph{front-end} del compilatore. Struttura del capitolo: prima i concetti teorici, poi la loro applicazione concreta in ROOC.}
+
+\section{Concetti teorici}
+\label{sec:parsing-teoria}
+
+Si introducono i fondamenti dell'analisi lessicale e sintattica: il ruolo della
+grammatica formale nella definizione di un linguaggio, le \emph{Parsing
+Expression Grammar} (PEG) come alternativa alle grammatiche context-free, e la
+costruzione di un albero di sintassi astratta (AST) a partire dal flusso di
+token.
+
+\todo[inline]{TEORIA: definire grammatiche formali, PEG e differenze con CFG/BNF, concetto di AST e di rappresentazione intermedia. Spiegare perché si è scelto un parser PEG.}
+
+\section{Applicazione in ROOC: la grammatica PEST}
+\label{sec:grammatica-pest}
+
+ROOC definisce la propria sintassi tramite una grammatica PEG espressa con la
+libreria PEST. Si analizzano le regole principali: obiettivo, vincoli, blocchi
+\texttt{where} e \texttt{define}, espressioni, iteratori.
+
+\todo[inline]{APPLICAZIONE: descrivere \texttt{src/parser/grammar.pest} e il processo di parsing. Mostrare alcune regole significative e come gestiscono costrutti come la moltiplicazione implicita o le \emph{block functions}.}
+
+\section{Il \texttt{PreModel} e l'Intermediate Language}
+\label{sec:premodel}
+
+Il risultato del parsing è il \texttt{PreModel}, una rappresentazione intermedia
+(IL) che ricalca la struttura sintattica del sorgente prima dell'analisi
+semantica.
+
+\todo[inline]{APPLICAZIONE: descrivere \texttt{PreExp}, \texttt{PreConstraint}, \texttt{PreObjective} e la costruzione del \texttt{PreModel}. Riferimento: \texttt{src/parser/pre\_model.rs}, \texttt{src/parser/il/}.}
+
+\section{Gestione e tracciamento degli errori}
+\label{sec:errori-parsing}
+
+\todo[inline]{Descrivere il sistema di \emph{span} e di \emph{error trace} che collega ogni errore alla porzione di sorgente corrispondente. Riferimento: \texttt{src/utils.rs}.}

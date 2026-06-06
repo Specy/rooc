@@ -1,0 +1,48 @@
+%!TEX root = ../main_thesis.tex
+
+\chapter{Risoluzione dei modelli}
+\label{cap:solver}
+
+\todo[inline]{Capitolo focalizzato ma compatto sui solver. In primo piano il contributo originale \texttt{microlp}; i backend esterni sono trattati come opzioni intercambiabili. Mantenere la struttura teoria $\rightarrow$ applicazione.}
+
+\section{Concetti teorici}
+\label{sec:solver-teoria}
+
+Si richiamano gli algoritmi alla base della risoluzione: il metodo del
+simplesso e la sua variante a due fasi con variabili artificiali per la ricerca
+di una base ammissibile, e il \emph{branch-and-bound} per l'estensione ai
+problemi con variabili intere e binarie (MILP).
+
+\todo[inline]{TEORIA: simplesso (tableau, pivot, test del rapporto minimo), metodo a due fasi, branch-and-bound per MILP. Mantenere il livello adeguato a una tesi triennale.}
+
+\section{Applicazione in ROOC: il simplesso a due fasi}
+\label{sec:simplex}
+
+ROOC include un'implementazione propria del simplesso a due fasi, capace di
+esporre i \emph{tableau} intermedi per consentire la visualizzazione
+passo-passo.
+
+\todo[inline]{APPLICAZIONE: descrivere l'implementazione del \texttt{Tableau}, le due fasi, l'estrazione della soluzione (\texttt{OptimalTableau}) e la registrazione degli step. Riferimento: \texttt{src/solvers/simplex/}.}
+
+\section{\texttt{microlp}: fork ed estensione a MILP}
+\label{sec:microlp}
+
+Il solver \texttt{microlp} è un \emph{fork} di un crate archiviato, originariamente
+limitato al solo simplesso (variabili continue). Nell'ambito di questo lavoro è
+stato ripreso e manutenuto, ed esteso al supporto di variabili \emph{intere} e
+\emph{binarie}, diventando di fatto un solver MILP.
+
+\todo[inline]{APPLICAZIONE/CONTRIBUTO: spiegare lo stato di partenza del fork (simplesso continuo), le modifiche apportate per il supporto a variabili intere/binarie (branch-and-bound) e l'integrazione in ROOC. Questo è uno dei contributi originali della tesi.}
+
+\section{Backend esterni e \emph{auto-solver}}
+\label{sec:backend-esterni}
+
+Oltre al solver proprio, ROOC può delegare la risoluzione a backend esterni in
+base al dominio delle variabili, tramite un meccanismo di \emph{auto-solver}.
+
+\todo[inline]{APPLICAZIONE: descrivere i backend (\texttt{good\_lp}/Clarabel, \texttt{copper} per problemi binari, HiGHS nel browser) e la logica di \texttt{auto\_solver} che seleziona il solver adatto. Riferimenti: \texttt{src/solvers/}.}
+
+\section{Confronto qualitativo}
+\label{sec:confronto-solver}
+
+\todo[inline]{Confronto qualitativo tra i solver disponibili (espressività, prestazioni, uso didattico). Eventuali piccoli esempi/benchmark.}

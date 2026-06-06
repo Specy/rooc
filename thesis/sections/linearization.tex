@@ -1,0 +1,40 @@
+%!TEX root = ../main_thesis.tex
+
+\chapter{Linearizzazione e forma standard}
+\label{cap:linearizzazione}
+
+\todo[inline]{\emph{Back-end} del compilatore: traduzione del modello tipato in una forma lineare canonica adatta ai solver. Anche qui: prima la teoria, poi l'applicazione.}
+
+\section{Concetti teorici}
+\label{sec:linearizzazione-teoria}
+
+Si richiamano i concetti di linearità di un'espressione e le riformulazioni
+standard che consentono di esprimere costrutti non lineari come \texttt{min},
+\texttt{max} e valore assoluto tramite variabili ausiliarie e vincoli
+aggiuntivi. Si introduce inoltre la \emph{forma standard} di un problema di
+programmazione lineare, prerequisito per il metodo del simplesso.
+
+\todo[inline]{TEORIA: definire la linearità, le tecniche di linearizzazione di min/max/abs con variabili ausiliarie, e la forma standard (vincoli di uguaglianza, variabili non negative, obiettivo di minimizzazione).}
+
+\section{Applicazione in ROOC: da \texttt{Model} a \texttt{LinearModel}}
+\label{sec:linear-model}
+
+Il \texttt{Model} può contenere costrutti non lineari; il \emph{linearizer}
+attraversa l'albero delle espressioni, verifica la linearità e produce un
+\texttt{LinearModel} garantito lineare.
+
+\todo[inline]{APPLICAZIONE: descrivere il \texttt{Linearizer}, il rilevamento della non-linearità (es. prodotto di variabili) e la struttura del \texttt{LinearModel}. Riferimento: \texttt{src/transformers/linearizer.rs}.}
+
+\section{Linearizzazione di min, max e valore assoluto}
+\label{sec:linearizzazione-minmax}
+
+\todo[inline]{APPLICAZIONE: mostrare con esempi come \texttt{min}/\texttt{max} vengano sostituiti da una variabile ausiliaria e dai relativi vincoli. Discutere lo stato della linearizzazione del valore assoluto (limite noto, cfr. conclusioni).}
+
+\section{Trasformazione in forma standard}
+\label{sec:forma-standard}
+
+Il \texttt{LinearModel} viene infine normalizzato in forma standard: si
+introducono variabili di \emph{slack} e \emph{surplus}, si effettua lo
+\emph{splitting} delle variabili libere e si normalizza la funzione obiettivo.
+
+\todo[inline]{APPLICAZIONE: descrivere \texttt{to\_standard\_form}, l'aggiunta di slack/surplus, lo splitting delle variabili libere ($x = x' - x''$) e la normalizzazione dell'obiettivo. Riferimento: \texttt{src/transformers/standardizer.rs}.}

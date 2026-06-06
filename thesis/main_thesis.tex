@@ -1,0 +1,131 @@
+\documentclass[italian, Lau, oneside, noexaminfo]{uaqthesis}
+
+\usepackage[utf8]{inputenx}
+\usepackage{indentfirst}
+\usepackage{microtype}
+\usepackage{amsfonts}
+%\usepackage{chemformula}
+%\usepackage{setspace}
+%\usepackage{yfonts,color}
+%\usepackage{siunitx}
+%\usepackage{comment}
+%\usepackage{multirow}
+%\usepackage{varioref}
+%\usepackage[bottom]{footmisc}
+%\usepackage{wrapfig}
+%\usepackage{float}
+%\usepackage{type1cm}
+\usepackage{lettrine}
+\linespread{1.5}
+%\usepackage{chngcntr}
+\usepackage[nottoc, notlof, notlot]{tocbibind}
+%\onehalfspacing
+%\counterwithout{footnote}{chapter}
+\usepackage{hyperref}
+
+\hypersetup{
+% 			hyperfootnotes=true,			
+% 			bookmarks=true,			
+			colorlinks=true,
+			linkcolor=yellow,
+                        linktoc=page,
+			anchorcolor=black,
+			citecolor=red,
+			urlcolor=blue,
+			pdftitle={ROOC: linguaggio ed ambiente integrato per la modellazione e soluzione di problemi di ottimizzazione lineare},
+			pdfauthor={Enrico Menichelli},
+			pdfkeywords={ottimizzazione, linguaggio di modellazione, compilatori, programmazione lineare, MILP, simplesso, WebAssembly, Rust}
+ }
+
+% \usepackage[utf8]{inputenc}
+% \usepackage{hyperref}
+\usepackage{indentfirst}
+\usepackage{todonotes}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{csquotes}
+\usepackage{amsmath}
+\usepackage{numprint}
+
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+
+% \usepackage[toc,page]{appendix}
+\usepackage[toc]{appendix}
+
+% show code
+\usepackage{inconsolata}
+\usepackage{color}
+\usepackage{listings}
+% 
+
+\graphicspath{{./images/}}
+\pgfplotsset{compat=1.14}
+
+\definecolor{pgreen}{rgb}{0,0.5,0} % prop keyword
+\definecolor{pred}{rgb}{0.9,0,0} % prop comments
+\definecolor{javared}{rgb}{0.6,0,0} % for strings
+\definecolor{javagreen}{rgb}{0.25,0.5,0.35} % comments
+\definecolor{javapurple}{rgb}{0.5,0,0.35} % keywords
+\definecolor{javadocblue}{rgb}{0.25,0.35,0.75} % javadoc
+
+\definecolor{forestgreen}{rgb}{0.0, 0.27, 0.13}
+
+
+\pgfplotstableset{
+    every head row/.style={before row=\toprule,after row=\midrule},
+    every last row/.style={after row=\bottomrule},
+    fixed,precision=2,
+}
+
+\title{ROOC: linguaggio ed ambiente integrato per la modellazione e soluzione di problemi di ottimizzazione lineare}
+\author{Enrico Menichelli}
+\IDnumber{279061}
+\course[]{Computer Science}
+\courseorganizer{Department of Information Engineering, Computer Science and Mathematics}
+\submitdate{2025/2026}
+\copyyear{2025}
+\advisor{Prof. Matteo Spezialetti}
+\coadvisor{Prof. Stefano Smriglio}
+\authoremail{specy.dev@gmail.com}
+% \examdate{22 September 2015}
+% \examiner{Prof. ...} \examiner{Prof. ...} \examiner{Prof. ...}  \examiner{Prof. ...}  \examiner{Prof. ...} \examiner{Prof. ...}  \examiner{Prof. ...} 
+
+\begin{document}
+
+\frontmatter
+\maketitle
+\dedication{}
+
+% \begin{abstract}
+
+% \end{abstract}
+
+\tableofcontents
+
+\mainmatter
+
+
+\input{sections/introduction}
+\input{sections/background}
+\input{sections/language}
+\input{sections/architecture}
+\input{sections/parsing}
+\input{sections/semantics}
+\input{sections/linearization}
+\input{sections/solvers}
+\input{sections/platform}
+\input{sections/conclusions}
+
+\begin{appendices}
+\input{sections/appendix}
+\end{appendices}
+
+\backmatter
+\cleardoublepage
+\phantomsection
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}
