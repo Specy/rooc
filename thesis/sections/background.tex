@@ -3,46 +3,262 @@
 \chapter{Background e stato dell'arte}
 \label{cap:background}
 
-\todo[inline]{Capitolo di preambolo. Fornisce le basi teoriche minime (programmazione lineare e MILP), inquadra i linguaggi di modellazione esistenti e introduce i concetti di teoria dei compilatori che verranno applicati nei capitoli successivi.}
+Questo capitolo fornisce le basi necessarie a comprendere il resto della tesi.
+Si introducono dapprima i concetti fondamentali della programmazione lineare e
+della sua estensione intera (Sezioni~\ref{sec:lp-milp}
+e~\ref{sec:modelli-ottimizzazione}); si analizzano poi i principali linguaggi e
+strumenti di modellazione esistenti (Sezione~\ref{sec:stato-arte}), per
+inquadrare il contesto in cui si colloca ROOC; infine si richiamano i concetti
+di teoria dei compilatori (Sezione~\ref{sec:teoria-compilatori}) che verranno
+applicati nei capitoli successivi, e si delinea il posizionamento del progetto
+(Sezione~\ref{sec:posizionamento}).
 
 \section{Programmazione lineare e MILP}
 \label{sec:lp-milp}
 
-Si richiamano i concetti fondamentali della programmazione lineare (LP): la
-funzione obiettivo, i vincoli lineari, le variabili decisionali e la nozione di
-soluzione ottima. Si introduce poi la programmazione lineare intera mista
-(MILP), in cui alcune variabili sono vincolate a essere intere o binarie.
+La \emph{programmazione lineare} (\emph{Linear Programming}, LP) è il ramo
+dell'ottimizzazione matematica che studia la minimizzazione (o massimizzazione)
+di una funzione obiettivo lineare soggetta a un insieme di vincoli lineari. Un
+problema di programmazione lineare può essere espresso nella forma generale
 
-\todo[inline]{Definire formalmente un modello LP/MILP (forma generale). Distinguere variabili continue, intere e binarie. Citare la forma standard, che verrà usata nel Capitolo~\ref{cap:linearizzazione}.}
+\begin{equation}
+\label{eq:lp-generale}
+\begin{aligned}
+\min_{x} \quad & c^\top x \\
+\text{s.t.} \quad & A x \le b, \\
+                  & x \ge 0,
+\end{aligned}
+\end{equation}
+
+dove $x \in \mathbb{R}^n$ è il vettore delle \emph{variabili decisionali},
+$c \in \mathbb{R}^n$ il vettore dei coefficienti della funzione obiettivo,
+$A \in \mathbb{R}^{m \times n}$ la matrice dei coefficienti dei vincoli e
+$b \in \mathbb{R}^m$ il vettore dei termini noti. L'insieme dei punti che
+soddisfano tutti i vincoli prende il nome di \emph{regione ammissibile}; quando
+non è vuota e la funzione obiettivo è limitata sulla regione, esiste almeno una
+\emph{soluzione ottima}, che il problema si propone di determinare~\cite{dantzig1963,bertsimas1997}.
+
+Un risultato classico della teoria afferma che, se esiste una soluzione ottima,
+allora ne esiste una in corrispondenza di un \emph{vertice} del poliedro che
+descrive la regione ammissibile. Su questa proprietà si fonda il \emph{metodo
+del simplesso}, che esplora i vertici della regione spostandosi di volta in
+volta verso quello con valore migliore della funzione obiettivo. Il simplesso
+opera su una rappresentazione del problema detta \emph{forma standard},
+
+\begin{equation}
+\label{eq:lp-standard}
+\min_{x} \ c^\top x \quad \text{s.t.} \quad A x = b, \ x \ge 0,
+\end{equation}
+
+in cui tutti i vincoli sono uguaglianze e tutte le variabili sono non negative.
+La conversione di un problema dalla forma~\eqref{eq:lp-generale} alla
+forma~\eqref{eq:lp-standard} è un passaggio puramente meccanico, che verrà
+trattato nel Capitolo~\ref{cap:linearizzazione} come una delle fasi della
+pipeline di compilazione di ROOC.
+
+In molte applicazioni reali le variabili decisionali non possono assumere valori
+frazionari: rappresentano scelte indivisibili (quanti veicoli acquistare) o
+decisioni di tipo sì/no (se attivare o meno un impianto). Si parla allora di
+\emph{programmazione lineare intera mista} (\emph{Mixed-Integer Linear
+Programming}, MILP), in cui si aggiunge il vincolo di integralità su un
+sottoinsieme $I \subseteq \{1, \dots, n\}$ delle variabili:
+
+\begin{equation}
+\label{eq:milp}
+\min_{x} \ c^\top x \quad \text{s.t.} \quad A x \le b, \ x \ge 0, \ x_j \in \mathbb{Z} \ \ \forall j \in I.
+\end{equation}
+
+Un caso particolarmente importante è quello delle variabili \emph{binarie}, in
+cui $x_j \in \{0, 1\}$, usate per modellare decisioni logiche. L'aggiunta del
+vincolo di integralità cambia radicalmente la natura del problema: mentre la
+programmazione lineare continua è risolvibile in tempo polinomiale, la
+programmazione lineare intera è in generale \emph{NP-hard}~\cite{wolsey1998,nemhauser1988}.
+La tecnica più diffusa per risolverla è il \emph{branch-and-bound}, che esplora
+in modo sistematico lo spazio delle soluzioni intere risolvendo una successione
+di rilassamenti continui; tale tecnica sarà ripresa nel
+Capitolo~\ref{cap:solver}, dove si descrive l'estensione del solver
+\texttt{microlp} al caso intero e binario.
 
 \section{I modelli di ottimizzazione}
 \label{sec:modelli-ottimizzazione}
 
-\todo[inline]{Spiegare in modo intuitivo cosa sia un modello di ottimizzazione, con un piccolo esempio (es. knapsack o dominating set), che farà da filo conduttore.}
+Tradurre un problema del mondo reale in una delle forme~\eqref{eq:lp-generale}
+o~\eqref{eq:milp} significa costruirne un \emph{modello}: identificare le
+variabili decisionali, esprimere l'obiettivo come funzione lineare di tali
+variabili e codificare i requisiti del problema come vincoli. Questa attività di
+\emph{modellazione} è concettualmente distinta dalla \emph{risoluzione}
+numerica, ed è proprio il livello a cui opera un linguaggio come ROOC.
+
+Si consideri, a titolo di esempio, il classico problema dello \emph{zaino}
+(\emph{knapsack}): dato un insieme di $n$ oggetti, ciascuno con un valore $v_i$
+e un peso $w_i$, e uno zaino di capacità $C$, si vuole selezionare il
+sottoinsieme di oggetti di valore complessivo massimo il cui peso non superi la
+capacità. Introducendo una variabile binaria $x_i \in \{0,1\}$ che indica se
+l'oggetto $i$-esimo è selezionato, il modello si scrive
+
+\begin{equation}
+\label{eq:knapsack}
+\begin{aligned}
+\max \quad & \sum_{i=1}^{n} v_i\, x_i \\
+\text{s.t.} \quad & \sum_{i=1}^{n} w_i\, x_i \le C, \\
+                  & x_i \in \{0, 1\} \quad \forall i \in \{1, \dots, n\}.
+\end{aligned}
+\end{equation}
+
+Si noti come la struttura del modello sia indipendente dai dati specifici
+($n$, i valori $v_i$, i pesi $w_i$, la capacità $C$): la stessa formulazione
+descrive un'intera famiglia di istanze. La separazione tra la \emph{struttura}
+del modello e i \emph{dati} di una particolare istanza è un principio cardine dei
+linguaggi di modellazione, ROOC compreso, e ne motiva i costrutti come gli
+iteratori e le sommatorie indicizzate, descritti nel
+Capitolo~\ref{cap:linguaggio}. Il problema dello zaino, insieme al problema del
+\emph{dominating set} su grafo, farà da esempio guida nel resto della tesi.
 
 \section{Linguaggi e strumenti di modellazione esistenti}
 \label{sec:stato-arte}
 
-Esistono numerosi linguaggi e ambienti per la modellazione di problemi di
-ottimizzazione. Se ne analizzano i principali, evidenziandone caratteristiche e
-limiti, per posizionare ROOC nel panorama esistente.
+La modellazione di problemi di ottimizzazione è supportata da un'ampia gamma di
+strumenti, che si possono collocare lungo uno spettro che va dalle
+rappresentazioni di basso livello, vicine al solver, fino ai linguaggi
+algebrici di alto livello, vicini alla notazione matematica.
 
-\todo[inline]{Confrontare: AMPL, GNU MathProg (GMPL/GLPK), MiniZinc, Gurobi/OPL, Pyomo, JuMP, e il formato testuale CPLEX LP. Per ognuno: paradigma, espressività, accessibilità, licenza, supporto a strutture dati (grafi, tuple).}
+\paragraph{Formati di scambio di basso livello.}
+Formati testuali come il \emph{CPLEX LP format} e il formato \emph{MPS}
+descrivono direttamente la matrice dei coefficienti di un modello lineare. Sono
+pensati come interfaccia tra strumenti software e solver, non per essere scritti
+o letti dall'uomo: non offrono astrazioni quali iteratori, costanti simboliche o
+strutture dati, e impongono di esplicitare ogni singolo vincolo. ROOC è in grado
+di esportare in formato CPLEX LP, usato come interfaccia verso solver esterni.
+
+\paragraph{Linguaggi algebrici di modellazione.}
+I \emph{linguaggi algebrici di modellazione} (\emph{Algebraic Modeling
+Languages}, AML) permettono di esprimere i modelli in una forma vicina a quella
+matematica, con sommatorie, indici e parametri simbolici. \textbf{AMPL} è il
+capostipite di questa famiglia: sviluppato presso i Bell Labs, separa nettamente
+modello e dati e si interfaccia con un gran numero di solver~\cite{ampl2003}. Si
+tratta però di un prodotto commerciale e a sorgente chiuso. \textbf{GNU
+MathProg} (GMPL) ne riprende un sottoinsieme in forma libera, come parte del GNU
+Linear Programming Kit~\cite{glpk}. \textbf{GAMS} è un altro storico ambiente
+commerciale della stessa categoria.
+
+\paragraph{Linguaggi embedded.}
+Una tendenza più recente è quella di offrire la modellazione come libreria
+all'interno di un linguaggio di programmazione general-purpose. \textbf{Pyomo}
+fornisce un'API a oggetti in Python~\cite{pyomo2017}, mentre \textbf{JuMP},
+embedded in Julia, sfrutta la metaprogrammazione del linguaggio ospite per
+ottenere al contempo espressività e prestazioni elevate~\cite{jump2017}. Questo
+approccio eredita gratuitamente l'ecosistema del linguaggio ospite, ma lega la
+sintassi del modello a quella di tale linguaggio.
+
+\paragraph{Linguaggi di modellazione a vincoli.}
+\textbf{MiniZinc} è un linguaggio open source per la \emph{programmazione a
+vincoli}, indipendente dal solver: un modello MiniZinc viene compilato in un
+formato intermedio di più basso livello (FlatZinc) che diversi solver, di tipo
+CP, MIP o SAT, possono poi risolvere~\cite{minizinc2007}. Questo schema, in cui
+un linguaggio di alto livello viene \emph{compilato} verso una forma intermedia
+solver-indipendente, è concettualmente vicino all'architettura di ROOC.
+
+\paragraph{Solver e relative API.}
+Va infine distinto il livello del \emph{solver} vero e proprio. Strumenti come
+\textbf{Gurobi}~\cite{gurobi} o \textbf{HiGHS}~\cite{highs2018} sono motori di
+risoluzione, corredati di API per la costruzione dei modelli, ma non
+costituiscono di per sé linguaggi di modellazione. ROOC si appoggia a solver di
+questo tipo come back-end intercambiabili (Capitolo~\ref{cap:solver}).
+
+\medskip
+Rispetto a questo panorama, ROOC si propone di unire alcune caratteristiche che
+raramente coesistono in un unico strumento: una sintassi dichiarativa vicina
+alla matematica, ma con un sistema di tipi ricco che include strutture dati come
+\emph{grafi}, tuple e iterabili; l'indipendenza dal solver tramite una pipeline
+di compilazione esplicita; l'esecuzione interamente lato client tramite
+WebAssembly; e un taglio didattico, con la possibilità di ispezionare ogni fase
+intermedia della risoluzione. Tali aspetti sono ripresi nella
+Sezione~\ref{sec:posizionamento}.
 
 \section{Cenni di teoria dei linguaggi e dei compilatori}
 \label{sec:teoria-compilatori}
 
-ROOC è, a tutti gli effetti, un compilatore che traduce un linguaggio di alto
-livello in un modello lineare. Si introducono pertanto i concetti di teoria dei
-compilatori che verranno applicati nel seguito: analisi lessicale e sintattica,
-grammatiche formali e \emph{Parsing Expression Grammar} (PEG), albero di
-sintassi astratta (AST), analisi semantica e \emph{type checking},
-rappresentazione intermedia (IR) e \emph{lowering} verso una forma più vicina
-alla macchina di destinazione (in questo caso, il solver).
+ROOC è, a tutti gli effetti, un \emph{compilatore}: traduce il linguaggio di
+modellazione, di alto livello, in rappresentazioni progressivamente più vicine a
+una forma risolvibile da un solver. La pipeline non è vincolata a un'unica forma
+di destinazione: l'implementazione attuale arriva fino a un modello lineare in
+forma standard, ma la stessa architettura potrebbe in futuro produrre modelli
+non lineari, fermarsi a una fase intermedia o aggiungere ulteriori
+trasformazioni. È quindi utile richiamare le fasi classiche di un
+compilatore~\cite{aho2006}, perché esse forniscono la struttura portante della
+pipeline descritta nel resto della tesi.
 
-\todo[inline]{Presentare le fasi classiche di un compilatore e mapparle esplicitamente sui capitoli successivi: parsing (Cap.~\ref{cap:parsing}), analisi semantica (Cap.~\ref{cap:semantica}), lowering/linearizzazione (Cap.~\ref{cap:linearizzazione}), \emph{back-end}/risoluzione (Cap.~\ref{cap:solver}).}
+\paragraph{Analisi lessicale e sintattica.}
+Le prime fasi di un compilatore riconoscono la struttura del testo sorgente.
+L'\emph{analisi lessicale} suddivide il flusso di caratteri in unità elementari
+(\emph{token}); l'\emph{analisi sintattica} (\emph{parsing}) verifica che la
+sequenza di token rispetti la grammatica del linguaggio e ne costruisce una
+rappresentazione ad albero, l'\emph{albero di sintassi astratta} (\emph{Abstract
+Syntax Tree}, AST). La grammatica è tradizionalmente espressa tramite una
+grammatica \emph{context-free} (CFG), spesso in notazione BNF.
+
+\paragraph{Parsing Expression Grammar.}
+Una formalizzazione alternativa è data dalle \emph{Parsing Expression Grammar}
+(PEG)~\cite{ford2004}. A differenza delle CFG, le PEG sono intrinsecamente non
+ambigue: la scelta tra alternative è \emph{ordinata}, ossia si prova la prima
+alternativa e si passa alla successiva solo in caso di fallimento. Inoltre le
+PEG integrano analisi lessicale e sintattica in un'unica grammatica, eliminando
+la necessità di un lexer separato. Queste proprietà le rendono particolarmente
+adatte a un linguaggio come ROOC; la grammatica concreta, espressa con la
+libreria PEST, è descritta nel Capitolo~\ref{cap:parsing}.
+
+\paragraph{Analisi semantica e sistema dei tipi.}
+Superata l'analisi sintattica, l'\emph{analisi semantica} verifica che il
+programma sia semanticamente corretto, cioè che le regole del linguaggio
+vengano rispettate: che le variabili siano dichiarate, che le operazioni siano
+applicate a operandi di tipo compatibile, che le funzioni siano invocate con il
+numero e il tipo di argomenti corretti. Il \emph{sistema
+dei tipi} è lo strumento formale con cui si esprimono e si verificano queste
+proprietà~\cite{pierce2002}. In ROOC questa fase comprende anche la
+\emph{trasformazione} del modello, in cui costanti, iteratori e sommatorie
+vengono risolti ed espansi (Capitolo~\ref{cap:semantica}).
+
+\paragraph{Rappresentazione intermedia e \emph{lowering}.}
+I compilatori non traducono direttamente dall'AST al codice finale, ma passano
+attraverso una o più \emph{rappresentazioni intermedie} (IR), via via più
+vicine alla macchina di destinazione. Il processo di traduzione da una
+rappresentazione di livello superiore a una di livello inferiore prende il nome
+di \emph{lowering}. Nel caso di ROOC, il \emph{lowering} consiste nella
+\emph{linearizzazione} del modello, cioè l'eliminazione dei costrutti non
+lineari come \texttt{min}, \texttt{max} e valore assoluto, e nella sua riduzione
+alla forma standard, descritte nel Capitolo~\ref{cap:linearizzazione}.
+
+\paragraph{Generazione del codice.}
+L'ultima fase di un compilatore tradizionale produce il codice oggetto. In ROOC
+il ruolo del codice oggetto è svolto dal modello lineare in forma standard, che
+viene infine dato in pasto a un solver per ottenere la soluzione, come discusso
+nel Capitolo~\ref{cap:solver}.
 
 \section{Posizionamento di ROOC}
 \label{sec:posizionamento}
 
-\todo[inline]{Sintetizzare in cosa ROOC si differenzia dagli strumenti esistenti: notazione vicina alla matematica, tipi ricchi (grafi, tuple, iterabili), estensibilità, esecuzione in WASM e finalità didattica.}
+Alla luce di quanto esposto, ROOC si colloca come linguaggio di modellazione di
+alto livello, indipendente dal solver, con alcune scelte progettuali distintive:
+
+\begin{itemize}
+  \item una notazione dichiarativa vicina alla matematica, ma arricchita da un
+        sistema di tipi che comprende strutture dati di alto livello (come
+        grafi, tuple e iterabili) utili a modellare problemi di ottimizzazione
+        combinatoria;
+  \item un'architettura a compilatore con pipeline esplicita e
+        \emph{solver-indipendente}, sulla scia dell'approccio di MiniZinc, ma
+        orientata alla programmazione lineare intera;
+  \item l'esecuzione interamente lato client tramite la compilazione in
+        WebAssembly~\cite{webassembly}, che elimina la necessità di
+        un'infrastruttura server e rende lo strumento immediatamente
+        accessibile da un browser;
+  \item un taglio \emph{didattico}: la possibilità di ispezionare ogni
+        rappresentazione intermedia e di visualizzare passo dopo passo
+        l'esecuzione del simplesso rende ROOC uno strumento utile non solo per
+        risolvere modelli, ma anche per comprenderne il processo di risoluzione.
+\end{itemize}
+
+\noindent
+I capitoli successivi approfondiscono ciascuno di questi aspetti, a partire
+dalla descrizione del linguaggio dal punto di vista dell'utente
+(Capitolo~\ref{cap:linguaggio}).

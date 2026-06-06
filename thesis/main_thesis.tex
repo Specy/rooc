@@ -70,6 +70,51 @@
 \definecolor{javadocblue}{rgb}{0.25,0.35,0.75} % javadoc
 
 \definecolor{forestgreen}{rgb}{0.0, 0.27, 0.13}
+\definecolor{codebg}{rgb}{0.97, 0.97, 0.97}
+\definecolor{codegray}{rgb}{0.5, 0.5, 0.5}
+
+% Definizione del linguaggio ROOC per il pacchetto listings
+\lstdefinelanguage{rooc}{
+  morekeywords={min, max, solve, where, define, as, for, in, let,
+    Boolean, Real, NonNegativeReal, IntegerRange, Graph},
+  morekeywords=[2]{sum, prod, avg, enumerate, enum, len, zip, range,
+    difference, union, intersection, nodes, edges, neigh_edges, V, E, N},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+}
+
+% Definizione (parziale) del linguaggio Rust per il pacchetto listings
+\lstdefinelanguage{rust}{
+  morekeywords={fn, trait, impl, struct, enum, let, mut, self, match, pub,
+    return, as, use, where, for, in, if, else, dyn, Box, ref, move, type},
+  morekeywords=[2]{Result, Option, String, Vec, bool, f64, i64, u64},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+}
+
+\lstdefinestyle{roocstyle}{
+  language=rooc,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{javapurple}\bfseries,
+  keywordstyle=[2]\color{javadocblue},
+  commentstyle=\color{javagreen},
+  stringstyle=\color{javared},
+  numberstyle=\tiny\color{codegray},
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codegray},
+  breaklines=true,
+  showstringspaces=false,
+  captionpos=b,
+  tabsize=2,
+  xleftmargin=1em,
+  literate={->}{{$\rightarrow$}}2 {<=}{{$\leq$}}2 {>=}{{$\geq$}}2,
+}
+\lstset{style=roocstyle}
 
 
 \pgfplotstableset{

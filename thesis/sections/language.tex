@@ -3,47 +3,309 @@
 \chapter{Il linguaggio ROOC}
 \label{cap:linguaggio}
 
-\todo[inline]{Capitolo di riferimento del linguaggio, dal punto di vista dell'utente: cosa si può scrivere e qual è il significato dei costrutti. L'implementazione è rimandata ai capitoli successivi.}
+Questo capitolo descrive il linguaggio ROOC dal punto di vista di chi lo
+utilizza: quali costrutti mette a disposizione e quale ne è il significato. La
+realizzazione interna di tali costrutti, ossia il modo in cui vengono analizzati
+e tradotti dal compilatore, è rimandata ai capitoli successivi. Per tutti gli
+esempi si fa riferimento alla sintassi effettivamente accettata dalla grammatica
+del linguaggio (Capitolo~\ref{cap:parsing}).
 
 \section{Principi di design}
 \label{sec:design-linguaggio}
 
-\todo[inline]{Illustrare gli obiettivi di progetto: modello formale, leggibilità, vicinanza alla notazione matematica, separazione tra modello e dati.}
+Il progetto del linguaggio è guidato da alcuni principi di fondo. Il primo è la
+\emph{vicinanza alla notazione matematica}: un modello scritto in ROOC deve
+ricordare il più possibile la formulazione che se ne darebbe su carta, con
+funzione obiettivo, vincoli e sommatorie indicizzate. Il secondo è la
+\emph{separazione tra struttura del modello e dati}: la formulazione di un
+problema è indipendente dai valori numerici della singola istanza, che vengono
+forniti separatamente. Il terzo è la presenza di un \emph{sistema di tipi
+statico}, che consente di individuare errori (variabili non dichiarate,
+operazioni tra tipi incompatibili, funzioni invocate in modo scorretto) prima
+ancora di tentare la risoluzione. Infine, il linguaggio è pensato per essere
+\emph{estensibile}: oltre alla libreria di funzioni predefinite, l'utente può
+definire le proprie funzioni e le proprie costanti.
 
 \section{Struttura di un modello}
 \label{sec:struttura-modello}
 
-Un modello ROOC è composto dalla funzione obiettivo (\texttt{min}/\texttt{max}),
-dai vincoli (\texttt{s.t.}) e da due blocchi opzionali: \texttt{where} per la
-definizione di costanti e \texttt{define} per la dichiarazione del dominio delle
-variabili.
+Un modello ROOC è composto da una parte obbligatoria, che definisce l'obiettivo
+e i vincoli, e da due blocchi opzionali, \texttt{where} e \texttt{define}, che
+forniscono rispettivamente i dati e la dichiarazione del dominio delle variabili.
+La struttura generale è la seguente:
 
-\todo[inline]{Mostrare la struttura generale con uno snippet commentato. Spiegare obiettivo, vincoli con iterazione (\texttt{for}), blocco \texttt{where} e blocco \texttt{define}.}
+\begin{lstlisting}[caption={Struttura generale di un modello ROOC.}, label={lst:struttura}]
+min/max <espressione obiettivo>
+s.t.
+    <vincoli>
+where
+    <dichiarazione delle costanti>
+define
+    <dichiarazione dei domini delle variabili>
+\end{lstlisting}
+
+\paragraph{Obiettivo.}
+La prima riga dichiara l'obiettivo, introdotto dalla parola chiave \texttt{min}
+o \texttt{max} seguita dall'espressione da ottimizzare. In alternativa è
+ammessa la parola chiave \texttt{solve}, che richiede di trovare una qualunque
+soluzione ammissibile senza ottimizzare alcuna funzione obiettivo.
+
+\paragraph{Vincoli.}
+La sezione introdotta da \texttt{s.t.} (oppure \texttt{subject to}) contiene
+l'elenco dei vincoli. Ogni vincolo confronta due espressioni tramite un
+operatore di relazione (\texttt{<=}, \texttt{>=}, \texttt{=}, \texttt{<},
+\texttt{>}). Un vincolo può essere preceduto da un nome (nella forma
+\texttt{nome: \ldots}) e può essere seguito da una clausola di iterazione
+\texttt{for}, che lo replica per ogni valore degli indici, generando così
+un'intera famiglia di vincoli a partire da un'unica riga.
+
+\paragraph{Blocco \texttt{where}.}
+Il blocco opzionale \texttt{where} dichiara le \emph{costanti} del modello,
+ciascuna con la sintassi \texttt{let nome = valore}. Il valore può essere una
+qualunque espressione del linguaggio: oltre a primitive come numeri, stringhe,
+array (anche multidimensionali) e grafi, sono ammesse espressioni più
+articolate, come chiamate di funzione o operazioni tra altre costanti. È qui che
+vengono tipicamente forniti i dati della specifica istanza, mantenendoli
+separati dalla struttura del modello.
+
+\paragraph{Blocco \texttt{define}.}
+Il blocco opzionale \texttt{define} dichiara il \emph{dominio} delle variabili
+decisionali tramite la parola chiave \texttt{as}, come descritto nella
+Sezione~\ref{sec:operatori-variabili}. Anche le dichiarazioni di dominio
+possono essere indicizzate con una clausola \texttt{for}.
 
 \section{Esempio guida}
 \label{sec:esempio-guida}
 
-\todo[inline]{Presentare per esteso uno o due esempi (knapsack binario e dominating set su grafo) che verranno richiamati nei capitoli successivi per illustrare le varie fasi di compilazione.}
+Per illustrare in modo concreto i costrutti del linguaggio si introducono due
+esempi che verranno richiamati nel resto della tesi: il problema dello zaino e
+il problema del \emph{dominating set} su grafo.
+
+Il Listato~\ref{lst:knapsack} riprende il modello dello zaino già formalizzato
+nella Sezione~\ref{sec:modelli-ottimizzazione}. I dati dell'istanza (pesi,
+valori e capacità) sono dichiarati nel blocco \texttt{where}, mentre la variabile
+binaria $x_i$ è dichiarata nel blocco \texttt{define}, una per ciascun oggetto.
+
+\begin{lstlisting}[caption={Il problema dello zaino in ROOC.}, label={lst:knapsack}]
+max sum((value, i) in enumerate(values)) { value * x_i }
+s.t.
+    sum((weight, i) in enumerate(weights)) { weight * x_i } <= capacity
+where
+    let weights = [10, 60, 30, 40, 30, 20, 20, 2]
+    let values = [1, 10, 15, 40, 60, 90, 100, 15]
+    let capacity = 102
+define
+    x_i as Boolean for i in 0..len(weights)
+\end{lstlisting}
+
+Il secondo esempio (Listato~\ref{lst:dominating}) mostra l'espressività del
+linguaggio sui grafi. Dato un grafo $G$, il problema del \emph{dominating set}
+chiede di selezionare il minimo insieme di nodi tale che ogni nodo sia
+selezionato oppure adiacente a un nodo selezionato. Il grafo è dichiarato come
+costante, e i vincoli vengono generati per ogni nodo tramite la clausola
+\texttt{for}.
+
+\begin{lstlisting}[caption={Il problema del dominating set in ROOC.}, label={lst:dominating}]
+min sum(u in nodes(G)) { x_u }
+s.t.
+    x_v + sum((_, u) in neigh_edges(v)) { x_u } >= 1 for v in nodes(G)
+where
+    let G = Graph {
+        A -> [B, C, D, E, F],
+        B -> [A, E, C, D, J],
+        C -> [A, B, D, E, I]
+    }
+define
+    x_u, x_v as Boolean for v in nodes(G), (_, u) in neigh_edges(v)
+\end{lstlisting}
 
 \section{Primitive e tipi di dato}
 \label{sec:primitive}
 
-Il linguaggio offre un insieme ricco di tipi: numeri, stringhe, booleani,
-\emph{grafi}, tuple e iterabili. Si descrive la semantica di ciascuno.
+Il linguaggio dispone di un insieme di tipi di dato primitivi, usati per le
+costanti, i risultati delle funzioni e i valori manipolati durante la
+trasformazione del modello. I tipi disponibili sono:
 
-\todo[inline]{Descrivere le primitive (\texttt{Number}, \texttt{Integer}, \texttt{String}, \texttt{Boolean}, \texttt{Graph}, \texttt{Tuple}, \texttt{Iterable}) e la loro rappresentazione a livello di tipo. Riferimento: \texttt{src/primitives/}.}
+\begin{itemize}
+  \item i tipi numerici \texttt{Number} (numero in virgola mobile),
+        \texttt{Integer} (intero con segno) e \texttt{PositiveInteger}
+        (intero non negativo);
+  \item \texttt{String}, le stringhe di caratteri;
+  \item \texttt{Boolean}, i valori di verità \texttt{true} e \texttt{false};
+  \item \texttt{Graph}, \texttt{GraphNode} e \texttt{GraphEdge}, che rappresentano
+        rispettivamente un grafo, un suo nodo e un suo arco;
+  \item \texttt{Tuple}, sequenze di lunghezza fissa che possono contenere valori
+        di tipi diversi;
+  \item \texttt{Iterable}, le collezioni omogenee (per esempio gli array e gli
+        intervalli) su cui è possibile iterare.
+\end{itemize}
+
+I tipi numerici sono distinti perché ciò consente al sistema dei tipi di essere
+più preciso: per esempio, la funzione \texttt{len} restituisce un
+\texttt{PositiveInteger}, garantendo staticamente la non negatività del
+risultato. La conversione tra tipi numerici avviene in modo automatico quando
+necessario.
+
+\paragraph{Array.}
+Gli array si scrivono tra parentesi quadre, come in \texttt{[10, 60, 30]}, e
+possono essere annidati per rappresentare matrici, come in
+\texttt{[[1, 2], [3, 4]]}. A livello di tipo, un array è un \texttt{Iterable} i
+cui elementi hanno tutti lo stesso tipo.
+
+\paragraph{Grafi.}
+Un grafo si dichiara con la parola chiave \texttt{Graph} seguita dall'elenco dei
+nodi e dei rispettivi archi uscenti. Ogni nodo ha la forma
+\texttt{Nodo -> [vicino1, vicino2, \ldots]}; a ciascun arco può essere associato
+un costo, indicato dopo il carattere \texttt{:}, come nel Listato~\ref{lst:grafo}.
+
+\begin{lstlisting}[caption={Dichiarazione di un grafo con costi sugli archi.}, label={lst:grafo}]
+let G = Graph {
+    A -> [B, C:2.5],
+    B -> [A],
+    C -> []
+}
+\end{lstlisting}
 
 \section{Iteratori, \emph{block functions} e destructuring}
 \label{sec:iteratori}
 
-\todo[inline]{Spiegare gli iteratori (\texttt{for ... in ...}), le \emph{block scoped functions} (\texttt{sum}, \texttt{prod}, \texttt{min}, \texttt{max}, \texttt{avg}) e il destructuring di tuple e archi di grafo.}
+\paragraph{Iteratori.}
+Gli iteratori sono il meccanismo con cui il linguaggio esprime in modo compatto
+famiglie di vincoli, di variabili o di termini di una sommatoria. La forma
+generale è \texttt{for tupla in iterabile}; l'iterabile può essere un intervallo
+numerico, scritto con \texttt{..} (estremo superiore escluso) o \texttt{..=}
+(estremo superiore incluso), oppure una qualunque collezione, tipicamente
+prodotta da una funzione come \texttt{nodes(G)} o \texttt{enumerate(\ldots)}. È
+possibile concatenare più iteratori separandoli con la virgola.
+
+\begin{lstlisting}[caption={Esempi di iteratori.}, label={lst:iteratori}]
+for i in 0..10           // interi da 0 a 9 (estremo superiore escluso)
+for i in 0..=10          // interi da 0 a 10 (estremo superiore incluso)
+for v in nodes(G)        // i nodi di un grafo
+for (value, i) in enumerate(values)   // coppie (elemento, indice)
+for i in 0..n, j in 0..n         // due iteratori concatenati
+\end{lstlisting}
+
+\paragraph{Block functions e nozione di \emph{scope}.}
+Le \emph{block function} sono funzioni di aggregazione il cui risultato è una
+singola espressione. Il linguaggio ne offre due forme, che si distinguono per la
+presenza o l'assenza di uno \emph{scope}, cioè di un insieme di variabili di
+iterazione introdotte localmente.
+
+Le \emph{block scoped function} possiedono uno scope: hanno la forma
+\texttt{nome(iteratori)\{corpo\}}, dove gli iteratori dichiarano una o più
+variabili visibili soltanto all'interno del corpo. Il corpo viene valutato una
+volta per ogni combinazione di valori degli iteratori, e i risultati sono
+combinati dall'operatore di aggregazione. Sono disponibili nelle varianti
+\texttt{sum}, \texttt{prod}, \texttt{min}, \texttt{max} e \texttt{avg}.
+
+\begin{lstlisting}[caption={Block scoped function: lo scope introduce la variabile \texttt{i} e l'elemento \texttt{value}.}, label={lst:scoped}]
+sum((value, i) in enumerate(values)) { value * x_i }
+\end{lstlisting}
+
+Le \emph{block function} prive di scope, invece, operano su un elenco di
+espressioni già note, senza introdurre nuove variabili: hanno la forma
+\texttt{nome\{a, b, c\}} e sono disponibili per \texttt{min}, \texttt{max} e
+\texttt{avg}.
+
+\begin{lstlisting}[caption={Block function senza scope: opera su espressioni elencate esplicitamente.}, label={lst:noscope}]
+max{x_1, x_2, x_3}
+\end{lstlisting}
+
+La differenza è dunque sostanziale: nella forma con scope il numero di termini
+aggregati dipende dalla cardinalità degli iteratori e non è noto staticamente,
+mentre nella forma senza scope i termini sono quelli esplicitamente elencati.
+Per questo motivo le aggregazioni \texttt{sum} e \texttt{prod}, che hanno senso
+soprattutto su insiemi di cardinalità arbitraria, sono disponibili soltanto
+nella forma con scope.
+
+\paragraph{Variabili composte.}
+La notazione $x_i$, detta \emph{variabile composta}, si scrive
+\texttt{x\_i} e indica una variabile indicizzata. Gli indici possono essere
+identificatori o numeri (\texttt{x\_i}, \texttt{x\_0}) oppure espressioni
+racchiuse tra parentesi graffe (\texttt{x\_\{i+1\}}). Durante la trasformazione
+del modello ogni combinazione concreta degli indici dà luogo a una variabile
+distinta del modello: iterando \texttt{x\_i} su \texttt{i in 0..3} si ottengono
+le variabili \texttt{x\_0}, \texttt{x\_1} e \texttt{x\_2}. Gli indici vengono
+valutati nel contesto di iterazione e concatenati a formare il nome finale della
+variabile; questo meccanismo è descritto in dettaglio nel
+Capitolo~\ref{cap:semantica}. La forma \emph{escaped} \texttt{\textbackslash
+x\_y} permette di trattare letteralmente un nome contenente l'underscore,
+disattivando l'espansione automatica.
+
+\paragraph{Destructuring.}
+Quando un iteratore produce tuple, è possibile decomporne le componenti
+direttamente nella dichiarazione, come in \texttt{(value, i) in
+enumerate(values)}: a ogni iterazione \texttt{value} assume il valore
+dell'elemento e \texttt{i} il suo indice. Il simbolo \texttt{\_} indica una
+componente da ignorare, come in \texttt{(\_, u) in neigh\_edges(v)}, dove
+interessa solo il nodo di arrivo dell'arco.
 
 \section{Operatori e definizione delle variabili}
 \label{sec:operatori-variabili}
 
-\todo[inline]{Trattare gli operatori e l'\emph{operator overloading} sulle primitive, e la dichiarazione del dominio delle variabili con i relativi \emph{bounds} (Boolean, Real, NonNegativeReal, IntegerRange).}
+\paragraph{Operatori.}
+Sul piano delle espressioni il linguaggio mette a disposizione gli operatori
+aritmetici \texttt{+}, \texttt{-}, \texttt{*} e \texttt{/} e l'operatore unario
+di negazione. È supportata anche la \emph{moltiplicazione implicita}: una
+scrittura come \texttt{2x\_i} è interpretata come \texttt{2 * x\_i}. Gli
+operatori sono \emph{sovraccaricati} sui diversi tipi: oltre al consueto
+significato aritmetico sui tipi numerici, l'operatore \texttt{+} applicato a due
+stringhe ne produce la concatenazione. Le operazioni insiemistiche tra
+collezioni non sono espresse tramite operatori, ma tramite le funzioni
+\texttt{union}, \texttt{intersection} e \texttt{difference}
+(Sezione~\ref{sec:funzioni}).
+
+Tra gli sviluppi futuri del linguaggio si prevede l'introduzione di operatori
+\emph{logici}, che permetterebbero di modellare in modo più naturale i problemi
+di ottimizzazione combinatoria in cui i vincoli hanno natura logica.
+
+\paragraph{Dichiarazione delle variabili.}
+Nel blocco \texttt{define} ogni variabile decisionale viene associata a un
+dominio tramite la parola chiave \texttt{as}. I domini disponibili sono:
+
+\begin{itemize}
+  \item \texttt{Boolean}: variabile binaria, che assume valore $0$ o $1$;
+  \item \texttt{Real(min, max)}: variabile reale compresa tra i due estremi
+        indicati; se gli estremi sono omessi (\texttt{Real}) la variabile è
+        illimitata;
+  \item \texttt{NonNegativeReal(min, max)}: variabile reale non negativa; se gli
+        estremi sono omessi assume valori nell'intervallo $[0, +\infty)$;
+  \item \texttt{IntegerRange(min, max)}: variabile intera compresa tra i due
+        estremi, che in questo caso sono obbligatori.
+\end{itemize}
+
+Gli estremi possono essere espressioni, anche dipendenti da costanti o da indici
+di iterazione. Una dichiarazione come \texttt{x\_i as
+NonNegativeReal(Fmin[i], Fmax[i]) for i in 0..n} associa così a ciascuna
+variabile \texttt{x\_i} i propri estremi, letti dagli array \texttt{Fmin} e
+\texttt{Fmax}.
 
 \section{Libreria standard e funzioni definite dall'utente}
 \label{sec:funzioni}
 
-\todo[inline]{Elencare le funzioni built-in (su array, grafi, range) e descrivere il meccanismo di estensione con funzioni definite dall'utente (anche via JavaScript in ambiente WASM). Riferimento: \texttt{src/runtime\_builtin/}.}
+\paragraph{Libreria standard.}
+Il linguaggio offre una libreria di funzioni predefinite, utilizzabili nelle
+espressioni del modello. Le principali si possono raggruppare in tre famiglie.
+Le funzioni su \emph{collezioni} comprendono \texttt{len} (numero di elementi),
+\texttt{enumerate} (alias \texttt{enum}, che associa a ogni elemento il suo
+indice), \texttt{zip} (che combina più collezioni elemento per elemento),
+\texttt{range} (che genera un intervallo numerico) e le operazioni insiemistiche
+\texttt{union}, \texttt{intersection} e \texttt{difference}. Le funzioni sui
+\emph{grafi} comprendono \texttt{nodes} (alias \texttt{V}), \texttt{edges}
+(alias \texttt{E}), \texttt{neigh\_edges} (alias \texttt{N}, che restituisce gli
+archi incidenti a un nodo) e \texttt{neigh\_edges\_of} (alias \texttt{N\_of}).
+La disponibilità di alias come \texttt{V}, \texttt{E} e \texttt{N} avvicina la
+notazione a quella usuale della teoria dei grafi.
+
+\paragraph{Funzioni definite dall'utente.}
+Oltre alla libreria standard, l'utente può estendere il linguaggio con proprie
+funzioni e costanti. Questa possibilità è offerta soprattutto in ambiente web
+(Capitolo~\ref{cap:piattaforma}), dove le funzioni si dichiarano in TypeScript
+tramite l'API \texttt{makeRoocFunction}, specificandone il nome, i tipi dei
+parametri, il tipo restituito e l'implementazione. Le funzioni così registrate
+diventano disponibili nelle espressioni del modello allo stesso modo di quelle
+predefinite, e partecipano alla verifica statica dei tipi. Il meccanismo che
+rende possibile questa integrazione, basato sulla compilazione in WebAssembly e
+su un'interfaccia comune tra Rust e JavaScript, è descritto nel
+Capitolo~\ref{cap:piattaforma}.

@@ -3,29 +3,160 @@
 \chapter{Architettura del compilatore}
 \label{cap:architettura}
 
-\todo[inline]{Capitolo-ponte, breve: offre la visione d'insieme della pipeline che i capitoli successivi approfondiscono fase per fase.}
+Prima di affrontare nel dettaglio le singole fasi di compilazione, questo
+capitolo ne offre la visione d'insieme. Si descrive come la traduzione di un
+modello sia organizzata in una sequenza di trasformazioni e come tale sequenza
+sia realizzata, a livello implementativo, da un'astrazione componibile che
+chiameremo \emph{pipe}. I capitoli da~\ref{cap:parsing} a~\ref{cap:solver}
+approfondiscono poi ciascuna fase.
 
 \section{La pipeline multi-fase}
 \label{sec:pipeline}
 
-La compilazione di un modello ROOC procede attraverso una sequenza di
-trasformazioni, ciascuna delle quali raffina la rappresentazione del problema:
-dal codice sorgente al \texttt{PreModel}, al \texttt{Model} tipato, al
-\texttt{LinearModel}, alla forma standard e infine al \emph{tableau} del
-simplesso.
+La compilazione di un modello ROOC non avviene in un unico passo, ma attraverso
+una successione di \emph{rappresentazioni intermedie}, ognuna delle quali
+raffina la precedente avvicinandola a una forma risolvibile. Ogni
+rappresentazione è un tipo di dato a sé stante: il codice sorgente
+(\texttt{String}) viene dapprima associato a un parser, da cui si ottiene il
+\texttt{PreModel}, frutto della sola analisi sintattica; il \texttt{PreModel}
+viene poi sottoposto ad analisi semantica e trasformato nel \texttt{Model};
+quest'ultimo viene linearizzato in un \texttt{LinearModel}, ridotto alla forma
+standard (\texttt{StandardLinearModel}), tradotto nel \emph{tableau} del
+simplesso e infine risolto. La Figura~\ref{fig:pipeline} illustra questa
+sequenza.
 
-\todo[inline]{Inserire un diagramma della pipeline completa (sorgente $\rightarrow$ PreModel $\rightarrow$ Model $\rightarrow$ LinearModel $\rightarrow$ StandardLinearModel $\rightarrow$ Tableau $\rightarrow$ soluzione). Descrivere input/output di ogni stadio.}
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners, fill=codebg, minimum width=4.6cm,
+              minimum height=0.8cm, font=\ttfamily\small},
+  arr/.style={->, thick}
+]
+  \node[box] (s)   at (0, 0)    {String};
+  \node[box] (p)   at (0, -1.3) {Parser};
+  \node[box] (pm)  at (0, -2.6) {PreModel};
+  \node[box] (m)   at (0, -3.9) {Model};
+  \node[box] (lm)  at (0, -5.2) {LinearModel};
+  \node[box] (slm) at (0, -6.5) {StandardLinearModel};
+  \node[box] (t)   at (0, -7.8) {Tableau};
+  \node[box] (ot)  at (0, -9.1) {OptimalTableau(WithSteps)};
+
+  \draw[arr] (s)   -- node[right, font=\footnotesize] {\texttt{CompilerPipe}} (p);
+  \draw[arr] (p)   -- node[right, font=\footnotesize] {\texttt{PreModelPipe}} (pm);
+  \draw[arr] (pm)  -- node[right, font=\footnotesize] {\texttt{ModelPipe}} (m);
+  \draw[arr] (m)   -- node[right, font=\footnotesize] {\texttt{LinearModelPipe}} (lm);
+  \draw[arr] (lm)  -- node[right, font=\footnotesize] {\texttt{StandardLinearModelPipe}} (slm);
+  \draw[arr] (slm) -- node[right, font=\footnotesize] {\texttt{TableauPipe}} (t);
+  \draw[arr] (t)   -- node[right, font=\footnotesize] {\texttt{StepByStepSimplexPipe}} (ot);
+\end{tikzpicture}
+\caption{La pipeline di compilazione completa, dalla sorgente alla soluzione
+ottenuta tramite il simplesso passo-passo. Ogni nodo è una rappresentazione
+intermedia; ogni arco è la \emph{pipe} che effettua la trasformazione.}
+\label{fig:pipeline}
+\end{figure}
+
+È importante osservare che questa sequenza non è rigida. La coda della pipeline
+è \emph{configurabile}: a partire dal \texttt{LinearModel} è possibile, in
+alternativa al percorso verso il \emph{tableau}, invocare direttamente uno dei
+solver, ottenendo immediatamente una soluzione senza passare per la forma
+standard. La scelta delle fasi da eseguire dipende quindi da ciò che si vuole
+ottenere, come si vedrà nella prossima sezione.
 
 \section{L'astrazione \emph{Pipe}}
 \label{sec:pipe}
 
-Ogni stadio della pipeline è modellato come una \emph{Pipe} componibile, che
-trasforma un dato intermedio nel successivo. I dati intermedi sono entità di
-prima classe e serializzabili.
+L'intera pipeline è costruita su una singola, semplice astrazione. Ogni
+trasformazione è una \emph{pipe}, ossia un'unità che riceve un dato, lo elabora
+e ne restituisce un altro. Formalmente è un tipo che implementa il \emph{trait}
+\texttt{Pipeable}, costituito da un unico metodo:
 
-\todo[inline]{Descrivere il trait \texttt{Pipeable} e il \texttt{PipeRunner}. Spiegare come la composizione di pipe permetta di fermarsi a uno stadio qualsiasi. Riferimento: \texttt{src/pipe/}.}
+\begin{lstlisting}[language=rust, caption={Il trait \texttt{Pipeable}.}, label={lst:pipeable}]
+trait Pipeable {
+    fn pipe(&self, data: &mut PipeableData, context: &PipeContext)
+        -> Result<PipeableData, PipeError>;
+}
+\end{lstlisting}
+
+\paragraph{I dati e i loro tipi.}
+Tutti i dati che fluiscono tra le pipe sono rappresentati da un unico tipo
+enumerativo, \texttt{PipeableData}, le cui varianti corrispondono alle rappresentazioni
+intermedie della Figura~\ref{fig:pipeline} (\texttt{String}, \texttt{Parser},
+\texttt{PreModel}, \texttt{Model}, \texttt{LinearModel},
+\texttt{StandardLinearModel}, \texttt{Tableau} e le varie soluzioni). A ciascuna
+variante è associato un identificatore di tipo (\texttt{PipeDataType}), che
+permette di sapere quale dato una pipe abbia ricevuto o prodotto senza ispezionarne
+il contenuto.
+
+\paragraph{Il contesto di esecuzione.}
+Ogni pipe riceve, oltre al dato, un \texttt{PipeContext} condiviso, che mette a
+disposizione le costanti e le funzioni definite dall'utente. In questo modo le
+informazioni necessarie alla trasformazione (per esempio i dati dichiarati nel
+blocco \texttt{where} o le funzioni registrate dall'utente) sono accessibili in
+modo uniforme a tutte le fasi che ne hanno bisogno.
+
+\paragraph{Le pipe concrete.}
+La Tabella~\ref{tab:pipes} elenca le pipe disponibili con i rispettivi tipi di
+ingresso e di uscita. Si noti come le prime sei realizzino il percorso
+``canonico'' della Figura~\ref{fig:pipeline}, mentre le ultime cinque siano
+\emph{terminali} alternative che, a partire da un \texttt{LinearModel},
+producono direttamente una soluzione delegando a un solver
+(Capitolo~\ref{cap:solver}).
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{lll}
+\hline
+\textbf{Pipe} & \textbf{Ingresso} & \textbf{Uscita} \\
+\hline
+\texttt{CompilerPipe}            & \texttt{String}              & \texttt{Parser} \\
+\texttt{PreModelPipe}            & \texttt{Parser}              & \texttt{PreModel} \\
+\texttt{ModelPipe}               & \texttt{PreModel}            & \texttt{Model} \\
+\texttt{LinearModelPipe}         & \texttt{Model}               & \texttt{LinearModel} \\
+\texttt{StandardLinearModelPipe} & \texttt{LinearModel}         & \texttt{StandardLinearModel} \\
+\texttt{TableauPipe}             & \texttt{StandardLinearModel} & \texttt{Tableau} \\
+\texttt{StepByStepSimplexPipe}   & \texttt{Tableau}             & \texttt{OptimalTableauWithSteps} \\
+\texttt{RealSolver}              & \texttt{LinearModel}         & \texttt{RealSolution} \\
+\texttt{BinarySolverPipe}        & \texttt{LinearModel}         & \texttt{BinarySolution} \\
+\texttt{IntegerBinarySolverPipe} & \texttt{LinearModel}         & \texttt{IntegerBinarySolution} \\
+\texttt{MILPSolverPipe}          & \texttt{LinearModel}         & \texttt{MILPSolution} \\
+\texttt{AutoSolverPipe}          & \texttt{LinearModel}         & \texttt{MILPSolution} \\
+\hline
+\end{tabular}
+\caption{Le pipe disponibili e i tipi di dato che trasformano.}
+\label{tab:pipes}
+\end{table}
+
+\paragraph{Esecuzione di una sequenza di pipe.}
+Una sequenza di pipe viene eseguita da un \texttt{PipeRunner}, che ne contiene un
+elenco e le applica in ordine. Il dato iniziale viene passato alla prima pipe, il
+cui risultato è passato alla seconda, e così via. Un aspetto cruciale è che il
+\texttt{PipeRunner} non restituisce soltanto il risultato finale, ma
+l'\emph{intera successione} dei risultati intermedi: ogni rappresentazione
+prodotta lungo il percorso viene conservata.
 
 \section{Estensibilità e visualizzazione passo-passo}
 \label{sec:estensibilita}
 
-\todo[inline]{Argomentare come l'architettura a pipe abiliti (1) l'estensibilità (nuovi solver/stadi) e (2) la visualizzazione passo-passo usata a fini didattici nella piattaforma web (Cap.~\ref{cap:piattaforma}).}
+L'astrazione descritta ha due conseguenze rilevanti, che motivano la scelta
+architetturale.
+
+\paragraph{Estensibilità.}
+Poiché ogni fase è semplicemente un tipo che implementa \texttt{Pipeable},
+aggiungere una nuova trasformazione significa definire una nuova pipe, senza
+modificare quelle esistenti. Le pipe sono manipolate come oggetti-trait
+intercambiabili, e questo permette di comporle in modo flessibile: si possono
+inserire nuove fasi intermedie, sostituire un solver con un altro o prevedere
+percorsi alternativi. Anche la possibilità di terminare la pipeline con solver
+diversi (reale, binario, intero-binario, MILP o automatico) è una diretta
+conseguenza di questa impostazione.
+
+\paragraph{Visualizzazione passo-passo.}
+Il fatto che il \texttt{PipeRunner} conservi tutte le rappresentazioni
+intermedie è ciò che rende possibile il \emph{taglio didattico} della
+piattaforma (Capitolo~\ref{cap:piattaforma}). Anziché mostrare all'utente solo
+la soluzione finale, è possibile esporre ogni passaggio della compilazione: il
+modello dopo l'analisi semantica, la sua versione linearizzata, la forma
+standard e così via. In particolare, la pipe \texttt{StepByStepSimplexPipe}
+produce un risultato che registra ogni iterazione del simplesso, consentendo di
+visualizzare l'evoluzione del \emph{tableau} passo dopo passo, come si vedrà nel
+Capitolo~\ref{cap:solver}.
