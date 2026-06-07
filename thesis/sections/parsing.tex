@@ -35,8 +35,8 @@ separato: la gestione degli spazi e dei commenti è parte della grammatica
 stessa.
 
 \paragraph{La rappresentazione intermedia.}
-Il risultato del parsing non è il testo grezzo, ma una sua rappresentazione ad
-albero che ne cattura la struttura logica trascurando i dettagli sintattici
+Il risultato del parsing è una rappresentazione ad
+albero del testo sorgente che ne cattura la struttura logica trascurando i dettagli sintattici
 superflui. Questa \emph{rappresentazione intermedia} (IR) è la struttura dati su
 cui operano le fasi successive del compilatore. Una buona IR rispecchia da
 vicino i costrutti del linguaggio, così da rendere naturali le elaborazioni
@@ -87,22 +87,15 @@ trattate come un unico token senza gestione automatica degli spazi interni; le
 regole \emph{silenziose}, marcate con \texttt{\_}, non compaiono nell'albero
 risultante perché servono solo a strutturare la grammatica.
 
+\
+
 \begin{lstlisting}[language={}, caption={Esempi di regola atomica, silenziosa e di scelta ordinata.}, label={lst:grammar-misc}]
 objective_type = @{ ^"min" | ^"max" }
 exp = _{ unary_op? ~ exp_leaf ~ (binary_op ~ unary_op? ~ exp_leaf)* }
 \end{lstlisting}
 
-Infine, l'approccio \emph{scannerless} è evidente nel fatto che la gestione
-degli spazi e dei commenti è definita nella grammatica stessa, tramite le regole
-speciali \texttt{WHITESPACE} e \texttt{COMMENT}, anziché in un analizzatore
-lessicale separato.
-
 \paragraph{Dall'albero di parsing all'IR.}
-L'albero prodotto da PEST non è ancora la rappresentazione intermedia
-del modello, ma una descrizione fedele della struttura sintattica. Un insieme di
-funzioni di traduzione lo visita, recuperando le sottoparti tramite i tag (per
-esempio l'obiettivo, l'elenco dei vincoli, le costanti e i domini) e
-costruendo le strutture dati dell'IR descritte nella prossima sezione.
+L'albero prodotto da PEST viene poi visitato e trasformato nella rappresentazione intermedia del modello.
 
 \section{Il \texttt{PreModel} e l'Intermediate Language}
 \label{sec:premodel}
@@ -111,17 +104,7 @@ La rappresentazione intermedia di ROOC prende il nome di \texttt{PreModel}: è i
 modello così come risulta dalla sola analisi sintattica, prima dell'analisi
 semantica e della trasformazione. Esso raccoglie le quattro componenti di un
 modello, più un riferimento al codice sorgente originale, utile per la
-diagnostica:
-
-\begin{lstlisting}[language=rust, caption={La struttura del \texttt{PreModel} (campi principali).}, label={lst:premodel}]
-struct PreModel {
-    source: Option<String>,
-    objective: PreObjective,
-    constraints: Vec<PreConstraint>,
-    constants: Vec<Constant>,
-    domains: Vec<VariablesDomainDeclaration>,
-}
-\end{lstlisting}
+diagnostica.
 
 La funzione obiettivo è rappresentata da un \texttt{PreObjective}, che ne indica
 il tipo (minimizzazione o massimizzazione) e l'espressione associata. Ogni
@@ -136,6 +119,8 @@ varianti rispecchiano da vicino i costrutti del linguaggio descritti nel
 Capitolo~\ref{cap:linguaggio}: valori primitivi, variabili semplici e composte,
 accessi ad array, chiamate di funzione, \emph{block function} (con e senza
 \emph{scope}) e operazioni binarie e unarie (Listato~\ref{lst:preexp}).
+
+\
 
 \begin{lstlisting}[language=rust, caption={Versione semplificata dell'enumerazione \texttt{PreExp}.}, label={lst:preexp}]
 enum PreExp {
@@ -157,10 +142,7 @@ esempio un'operazione binaria racchiude i due sotto-espressioni operandi. Le
 variabili composte, come \texttt{x\_i}, sono rappresentate da un
 \texttt{CompoundVariable} che ne memorizza il nome e l'elenco delle espressioni
 usate come indice; analogamente, l'accesso a un array è descritto da un
-\texttt{AddressableAccess}. Si noti che a questo livello gli indici sono ancora
-espressioni non valutate: la loro risoluzione, che trasforma \texttt{x\_i} nelle
-concrete variabili del modello, avverrà solo nella fase di trasformazione
-(Capitolo~\ref{cap:semantica}).
+\texttt{AddressableAccess}.
 
 \section{Gestione e tracciamento degli errori}
 \label{sec:errori-parsing}

@@ -6,7 +6,7 @@
 Una volta che il sorgente è stato tradotto nella rappresentazione intermedia
 (Capitolo~\ref{cap:parsing}), il compilatore deve verificarne la correttezza e
 trasformarlo in una forma concreta. Queste due attività costituiscono l'analisi
-semantica, oggetto del presente capitolo.
+semantica.
 
 \section{Concetti teorici}
 \label{sec:semantica-teoria}
@@ -46,6 +46,8 @@ In ROOC ogni valore manipolato a tempo di esecuzione è una \texttt{Primitive}
 \texttt{PrimitiveKind}, che ne è la controparte statica. Mentre una
 \texttt{Primitive} contiene un valore concreto, una \texttt{PrimitiveKind} ne
 descrive soltanto la natura (Listato~\ref{lst:primitivekind}).
+
+\
 
 \begin{lstlisting}[language=rust, caption={Versione semplificata dell'enumerazione \texttt{PrimitiveKind}.}, label={lst:primitivekind}]
 enum PrimitiveKind {
@@ -112,6 +114,30 @@ all'editor della piattaforma web di mostrare il tipo di un'espressione al
 passaggio del cursore e di fornire suggerimenti, come si vedrà nel
 Capitolo~\ref{cap:piattaforma}.
 
+\paragraph{Un esempio di errore.}
+Per rendere concreto il comportamento del type checker, si supponga di alterare il
+modello dello zaino (Listato~\ref{lst:knapsack}) passando alla funzione
+\texttt{enumerate} la costante scalare \texttt{capacity} (un \texttt{Integer})
+anziché un array. Poiché \texttt{enumerate} richiede una collezione, la verifica
+fallisce e produce il messaggio del Listato~\ref{lst:typeerror}.
+
+\
+
+\begin{lstlisting}[language={}, caption={Errore di tipo con la relativa traccia posizionale.}, label={lst:typeerror}]
+[WrongArgument] expected "Any[]", got "Integer"
+	at 5:34 "capacity"
+	at 5:24 "enumerate(capacity)"
+	at 5:5 "sum((weight, i) in enumerate(capacity)) { weight * x_i }"
+\end{lstlisting}
+
+Il messaggio riporta il tipo atteso (\texttt{Any[]}, cioè una collezione di
+elementi di tipo qualsiasi) e quello effettivamente ricevuto (\texttt{Integer}),
+seguiti da una \emph{traccia} delle espressioni che racchiudono il punto
+incriminato, dalla foglia (\texttt{capacity}, riga~5 colonna~34) fino all'intero
+vincolo. Le posizioni provengono dalle annotazioni \texttt{Spanned} conservate
+nell'IR (Capitolo~\ref{cap:parsing}) e consentono di indicare con precisione il
+punto in cui l'errore ha origine.
+
 \section{Trasformazione \texttt{PreModel} $\rightarrow$ \texttt{Model}}
 \label{sec:trasformazione-modello}
 
@@ -139,8 +165,6 @@ numeri, variabili (identificate dal loro nome) e operazioni.
 enum Exp {
     Number(f64),
     Variable(String),
-    Min(Vec<Exp>),
-    Max(Vec<Exp>),
     BinOp(BinOp, Box<Exp>, Box<Exp>),
     UnOp(UnOp, Box<Exp>),
     // ...
@@ -151,32 +175,50 @@ La semplificazione è la conseguenza di tre operazioni svolte durante la
 trasformazione. Primo, le costanti e gli accessi agli array vengono
 \emph{valutati}: un riferimento a una costante è sostituito dal suo valore.
 Secondo, le \emph{block function} vengono \emph{espanse}: una sommatoria su un
-iteratore diventa un albero di addizioni tra i termini concreti, mentre le
-funzioni \texttt{min} e \texttt{max} diventano i corrispondenti nodi
-\texttt{Min} e \texttt{Max}. Terzo, le variabili composte vengono risolte nelle
-concrete variabili del modello, come descritto più avanti.
+iteratore diventa un albero di addizioni tra i termini concreti. Terzo, le variabili composte vengono risolte nelle
+variabili concrete del modello.
 
-\paragraph{Espansione degli iteratori.}
+\paragraph{Espansione degli iteratori e delle variabili composte.}
 Il cuore dell'espansione è una procedura ricorsiva di risoluzione degli insiemi
 di iterazione. Dato uno o più iteratori, essa valuta il rispettivo iterabile e,
 per ogni combinazione dei valori, introduce un nuovo frame in cui lega le
 variabili di iterazione ai valori correnti e invoca una funzione di
-\emph{callback}. Questa stessa procedura è usata in due contesti: per espandere
-il corpo di una \emph{block function} a ogni iterazione e per replicare un
-vincolo dotato di clausola \texttt{for}, generando un vincolo distinto per ogni
-combinazione di indici.
+\emph{callback}. La stessa procedura serve in due contesti: replicare un vincolo
+dotato di clausola \texttt{for}, generando un vincolo distinto per ogni
+combinazione di indici, ed espandere il corpo di una \emph{block scoped function}
+a ogni iterazione, combinando i risultati con l'operatore di aggregazione.
 
-\paragraph{Risoluzione delle variabili composte.}
-Una variabile composta come \texttt{x\_i} viene tradotta in una variabile del
-modello dal nome univoco. A tale scopo gli indici, ormai ridotti a valori
-concreti, vengono convertiti in stringa secondo regole semplici (un numero
-diventa la sua rappresentazione decimale, un valore booleano diventa
-\texttt{T} o \texttt{F}, una stringa resta invariata, un nodo di grafo diventa il
-proprio nome) e concatenati con un \emph{underscore}. Così, iterando \texttt{x\_i}
-su \texttt{i in 0..3}, si ottengono le variabili \texttt{x\_0}, \texttt{x\_1} e
-\texttt{x\_2}. Ogni variabile del modello è registrata nel dominio come una
-\texttt{DomainVariable}, che ne ricorda il tipo, la posizione di origine e il
-numero di utilizzi.
+In entrambi i contesti, ogni variabile composta come \texttt{x\_i} viene tradotta
+in una variabile del modello dal nome univoco: gli indici, ormai ridotti a valori
+concreti, sono convertiti in stringa secondo regole semplici (un numero diventa la
+sua rappresentazione decimale, un valore booleano diventa \texttt{T} o \texttt{F},
+una stringa resta invariata, un nodo di grafo diventa il proprio nome) e
+concatenati con un \emph{underscore}. Ogni variabile così ottenuta è registrata nel
+dominio come una \texttt{DomainVariable}, che ne ricorda il tipo, la posizione di
+origine e il numero di utilizzi.
+
+I tre meccanismi (iterazione di un vincolo, espansione di una \emph{block scoped
+function} e risoluzione delle variabili composte) agiscono di norma insieme. Si
+consideri il vincolo del Listato~\ref{lst:espansione}.
+
+\begin{lstlisting}[caption={Un vincolo che combina iterazione, sommatoria con \emph{scope} e variabili composte.}, label={lst:espansione}]
+sum(j in 0..i + 1) { x_j } <= i + 1 for i in 0..3
+\end{lstlisting}
+
+La clausola \texttt{for i in 0..3} replica il vincolo per \texttt{i = 0, 1, 2}; per
+ciascun valore di \texttt{i} la \emph{block scoped function} \texttt{sum} itera
+\texttt{j} sull'intervallo \texttt{0..i + 1}, il cui estremo dipende dall'indice
+esterno, espandendo la sommatoria in un albero di addizioni, e infine ogni
+\texttt{x\_j} è risolta nella corrispondente variabile del modello. Il risultato è
+la famiglia di vincoli concreti
+
+\begin{equation*}
+\begin{aligned}
+i = 0:\quad & x_0 \le 1, \\
+i = 1:\quad & x_0 + x_1 \le 2, \\
+i = 2:\quad & x_0 + x_1 + x_2 \le 3.
+\end{aligned}
+\end{equation*}
 
 \paragraph{Errori di trasformazione.}
 Gli errori che possono emergere in questa fase (variabili non dichiarate,

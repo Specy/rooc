@@ -34,18 +34,6 @@ minimizzando la loro somma: se il minimo raggiunto è zero, si è ottenuta una
 base ammissibile per il problema originale; la seconda fase ottimizza quindi la
 funzione obiettivo vera e propria a partire da tale base.
 
-\paragraph{Branch-and-bound per i problemi interi.}
-Il simplesso risolve problemi a variabili continue, ma non garantisce soluzioni
-intere. La tecnica più diffusa per la programmazione lineare intera è il
-\emph{branch-and-bound}: si risolve dapprima il \emph{rilassamento continuo} del
-problema (ignorando i vincoli di integralità); se una variabile che dovrebbe
-essere intera assume un valore frazionario, si \emph{ramifica} il problema in due
-sottoproblemi, imponendo nell'uno che la variabile sia minore o uguale alla
-parte intera inferiore del valore e nell'altro che sia maggiore o uguale a
-quella superiore. Il valore del rilassamento fornisce inoltre una
-\emph{limitazione} (\emph{bound}) che consente di potare i rami che non possono
-contenere soluzioni migliori di quella già trovata.
-
 \section{Applicazione in ROOC: il simplesso a due fasi}
 \label{sec:simplex}
 
@@ -53,46 +41,47 @@ ROOC include un'implementazione propria del metodo del simplesso, costruita sopr
 la forma standard prodotta nel Capitolo~\ref{cap:linearizzazione}. La struttura
 centrale è il \texttt{Tableau}, che mantiene i coefficienti dell'obiettivo, la
 matrice e il vettore dei termini noti dei vincoli, l'insieme delle variabili in
-base e il valore corrente.
-
-\paragraph{Costruzione del tableau.}
-La conversione dalla forma standard al tableau cerca anzitutto una base
-ammissibile immediata, individuando le colonne che formano già una matrice
-identità. Quando ciò non è possibile, si ricorre al metodo a due fasi descritto
-in precedenza: vengono aggiunte tante variabili artificiali quanti sono i
-vincoli e si risolve la prima fase per ottenere una base valida.
-
-\paragraph{Iterazione e pivot.}
-Una volta costruito il tableau, ogni passo dell'algoritmo verifica se la
-soluzione corrente è ottima; in caso contrario individua la variabile entrante e,
-tramite il test del rapporto, quella uscente, ed esegue il pivot. Se non esiste
-una variabile uscente valida il problema è illimitato. Il procedimento si ripete
-fino al raggiungimento dell'ottimo o di un limite massimo di iterazioni.
+base e il valore corrente. A partire dalla forma standard il solver costruisce il
+tableau, cercando una base ammissibile immediata e, quando questa non esiste,
+ricorrendo al metodo a due fasi descritto in precedenza; esegue quindi i vari
+passaggi del simplesso, iterando i pivot, fino a raggiungere l'ottimo, rilevare
+l'illimitatezza del problema o toccare un limite massimo di iterazioni.
 
 \paragraph{Risoluzione passo-passo.}
 Oltre alla risoluzione diretta, il tableau offre una modalità \emph{passo-passo}
-che, a ogni iterazione, registra lo stato del tableau prima del pivot insieme
-alle variabili entrante e uscente e al rapporto utilizzato. Il risultato è la
-sequenza completa dei passi che hanno condotto all'ottimo. È questa la
-funzionalità che, attraverso l'apposita pipe (Capitolo~\ref{cap:architettura}),
-alimenta la visualizzazione didattica della piattaforma
-(Capitolo~\ref{cap:piattaforma}), permettendo all'utente di osservare l'evoluzione
-del tableau a ogni iterazione. Trattandosi di un'implementazione orientata alla
-chiarezza più che alle prestazioni, questo simplesso è impiegato soprattutto a
-scopo illustrativo, mentre la risoluzione efficiente è affidata ai solver
-descritti nelle sezioni seguenti.
+che, a ogni iterazione, ne registra lo stato prima del pivot insieme alle
+variabili entrante e uscente: è questa la funzionalità che alimenta la
+visualizzazione didattica della piattaforma (Capitolo~\ref{cap:piattaforma}).
+Trattandosi di un'implementazione orientata alla chiarezza più che alle
+prestazioni, questo simplesso è impiegato soprattutto a scopo illustrativo, mentre
+la risoluzione efficiente è affidata ai solver descritti nelle sezioni seguenti.
 
 \section{\texttt{microlp}: fork ed estensione a MILP}
 \label{sec:microlp}
 
 \texttt{microlp} è un solver pubblicato come \emph{crate} Rust indipendente. Nasce
 come \emph{fork} di \texttt{minilp}, un crate ormai archiviato che implementava il
-solo metodo del simplesso, limitato a variabili continue. Nell'ambito di questo lavoro il crate è
-stato ripreso e mantenuto, ed esteso con il supporto a variabili \emph{intere} e
-\emph{binarie}: da risolutore di sola programmazione lineare è diventato così un
-risolutore di programmazione lineare intera mista (MILP), realizzando il
-supporto all'integralità tramite uno schema di branch-and-bound. Questa
-estensione costituisce uno dei contributi originali della tesi.
+solo metodo del simplesso, limitato a variabili continue. Nell'ambito di questo
+lavoro il crate è stato ripreso e mantenuto, ed esteso con il supporto a variabili
+\emph{intere} e \emph{binarie}: da risolutore di sola programmazione lineare è
+diventato così un risolutore di programmazione lineare intera mista (MILP). Questa
+estensione costituisce uno dei contributi originali della tesi. Il crate ha
+peraltro una diffusione che va oltre questo progetto: è pubblicato su
+\emph{crates.io},\footnote{\url{https://crates.io/crates/microlp}} dove ha superato
+il milione di download, ed è utilizzato da \texttt{good\_lp}, tra le più note
+librerie di programmazione lineare per Rust.
+
+\paragraph{Estensione al caso intero: branch-and-bound.}
+Il simplesso risolve problemi a variabili continue, ma non garantisce soluzioni
+intere. La tecnica con cui \texttt{microlp} affronta l'integralità è il
+\emph{branch-and-bound}: si risolve dapprima il \emph{rilassamento continuo} del
+problema, ignorando i vincoli di integralità; se una variabile che dovrebbe essere
+intera assume un valore frazionario, si \emph{ramifica} il problema in due
+sottoproblemi, imponendo nell'uno che la variabile sia minore o uguale alla parte
+intera inferiore del valore e nell'altro che sia maggiore o uguale a quella
+superiore. Il valore del rilassamento fornisce inoltre una \emph{limitazione}
+(\emph{bound}) che consente di potare i rami che non possono contenere soluzioni
+migliori di quella già trovata.
 
 All'interno di ROOC, \texttt{microlp} svolge un duplice ruolo: risolve i modelli
 puramente continui, come alternativa al backend esterno descritto più avanti, e

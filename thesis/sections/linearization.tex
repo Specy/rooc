@@ -85,18 +85,10 @@ combinazione lineare confrontata con una costante, conservando il tipo di
 relazione. Al termine, vengono mantenute soltanto le variabili effettivamente
 utilizzate, e i coefficienti sono disposti in vettori secondo un ordinamento
 fissato. Il risultato è un \texttt{LinearModel}, in cui ogni vincolo è un
-\texttt{LinearConstraint} (Listato~\ref{lst:linearconstraint}).
+\texttt{LinearConstraint}.
 
-\begin{lstlisting}[language=rust, caption={La struttura \texttt{LinearConstraint} (campi principali).}, label={lst:linearconstraint}]
-struct LinearConstraint {
-    name: String,
-    coefficients: Vec<f64>,
-    rhs: f64,
-    constraint_type: Comparison,
-}
-\end{lstlisting}
 
-\section{Linearizzazione di minimo, massimo e valore assoluto}
+\section{Linearizzazione di minimo e massimo}
 \label{sec:linearizzazione-minmax}
 
 Quando durante la linearizzazione si incontra un minimo o un massimo, si applica
@@ -108,13 +100,6 @@ dichiarata come reale, e per ogni argomento viene aggiunto un vincolo del tipo
 ausiliaria. Il massimo è trattato in modo speculare, con vincoli di tipo $\ge$.
 I vincoli così generati vengono immessi nello stesso processo di linearizzazione
 degli altri, finché non restano che espressioni lineari.
-
-\paragraph{Il valore assoluto.}
-Il valore assoluto è un ulteriore costrutto che si presterebbe a una
-riformulazione lineare analoga. Allo stato attuale, però, la sua linearizzazione
-non è implementata: incontrando un'espressione di valore assoluto, il
-compilatore segnala un errore di costrutto non supportato. Il suo trattamento è
-quindi rimandato agli sviluppi futuri (Capitolo~\ref{cap:conclusioni}).
 
 \section{Trasformazione in forma standard}
 \label{sec:forma-standard}
@@ -143,23 +128,13 @@ massimizzazione, i coefficienti dell'obiettivo vengono negati e viene registrato
 un apposito segnale, così da ricondurlo a una minimizzazione.
 
 \paragraph{Il modello in forma standard.}
-Il risultato è uno \texttt{StandardLinearModel} (Listato~\ref{lst:standardmodel}),
+Il risultato è uno \texttt{StandardLinearModel},
 che contiene l'elenco (ordinato) delle variabili, i coefficienti dell'obiettivo,
 i vincoli ridotti a uguaglianze, il termine costante dell'obiettivo
 (\texttt{objective\_offset}) e un indicatore (\texttt{flip\_objective}) che
 ricorda se l'obiettivo originale era di massimizzazione. Questi ultimi due valori
 permettono, una volta risolto il problema, di riconvertire il valore ottimo
 trovato in quello del problema di partenza.
-
-\begin{lstlisting}[language=rust, caption={La struttura \texttt{StandardLinearModel}.}, label={lst:standardmodel}]
-struct StandardLinearModel {
-    variables: Vec<String>,
-    objective: Vec<f64>,
-    objective_offset: f64,
-    flip_objective: bool,
-    constraints: Vec<EqualityConstraint>,
-}
-\end{lstlisting}
 
 A questo punto il modello è pronto per essere tradotto nel \emph{tableau} del
 simplesso e risolto, come si vedrà nel prossimo capitolo.

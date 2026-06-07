@@ -68,6 +68,8 @@ trasformazione è una \emph{pipe}, ossia un'unità che riceve un dato, lo elabor
 e ne restituisce un altro. Formalmente è un tipo che implementa il \emph{trait}
 \texttt{Pipeable}, costituito da un unico metodo:
 
+\
+
 \begin{lstlisting}[language=rust, caption={Il trait \texttt{Pipeable}.}, label={lst:pipeable}]
 trait Pipeable {
     fn pipe(&self, data: &mut PipeableData, context: &PipeContext)
@@ -149,12 +151,7 @@ diversi (reale, binario, intero-binario, MILP o automatico) è una diretta
 conseguenza di questa impostazione.
 
 \paragraph{Visualizzazione passo-passo.}
-Il fatto che il \texttt{PipeRunner} conservi tutte le rappresentazioni
-intermedie è ciò che rende possibile il \emph{taglio didattico} della
-piattaforma (Capitolo~\ref{cap:piattaforma}). Anziché mostrare all'utente solo
-la soluzione finale, è possibile esporre ogni passaggio della compilazione: il
-modello dopo l'analisi semantica, la sua versione linearizzata, la forma
-standard e così via. In particolare, la pipe \texttt{StepByStepSimplexPipe}
-produce un risultato che registra ogni iterazione del simplesso, consentendo di
-visualizzare l'evoluzione del \emph{tableau} passo dopo passo, come si vedrà nel
-Capitolo~\ref{cap:solver}.
+Il fatto che il \texttt{PipeRunner} conservi tutte le rappresentazioni intermedie,
+e non soltanto il risultato finale, è ciò che rende possibile il \emph{taglio
+didattico} della piattaforma, che le espone una per una anziché mostrare la sola
+soluzione (Capitolo~\ref{cap:piattaforma}).

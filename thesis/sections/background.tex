@@ -3,15 +3,11 @@
 \chapter{Background e stato dell'arte}
 \label{cap:background}
 
-Questo capitolo fornisce le basi necessarie a comprendere il resto della tesi.
-Si introducono dapprima i concetti fondamentali della programmazione lineare e
-della sua estensione intera (Sezioni~\ref{sec:lp-milp}
-e~\ref{sec:modelli-ottimizzazione}); si analizzano poi i principali linguaggi e
-strumenti di modellazione esistenti (Sezione~\ref{sec:stato-arte}), per
-inquadrare il contesto in cui si colloca ROOC; infine si richiamano i concetti
-di teoria dei compilatori (Sezione~\ref{sec:teoria-compilatori}) che verranno
-applicati nei capitoli successivi, e si delinea il posizionamento del progetto
-(Sezione~\ref{sec:posizionamento}).
+Questo capitolo fornisce le basi necessarie a comprendere il resto della tesi: i
+concetti fondamentali della programmazione lineare e della sua estensione intera,
+i principali linguaggi e strumenti di modellazione esistenti e i concetti di
+teoria dei compilatori applicati nei capitoli successivi. Si delinea infine il
+posizionamento di ROOC rispetto a tale panorama.
 
 \section{Programmazione lineare e MILP}
 \label{sec:lp-milp}
@@ -73,11 +69,9 @@ cui $x_j \in \{0, 1\}$, usate per modellare decisioni logiche. L'aggiunta del
 vincolo di integralità cambia radicalmente la natura del problema: mentre la
 programmazione lineare continua è risolvibile in tempo polinomiale, la
 programmazione lineare intera è in generale \emph{NP-hard}~\cite{wolsey1998,nemhauser1988}.
-La tecnica più diffusa per risolverla è il \emph{branch-and-bound}, che esplora
-in modo sistematico lo spazio delle soluzioni intere risolvendo una successione
-di rilassamenti continui; tale tecnica sarà ripresa nel
-Capitolo~\ref{cap:solver}, dove si descrive l'estensione del solver
-\texttt{microlp} al caso intero e binario.
+La tecnica più diffusa per risolverla è il \emph{branch-and-bound}, ripreso nel
+Capitolo~\ref{cap:solver}, dove se ne descrive l'impiego nell'estensione del
+solver \texttt{microlp} al caso intero e binario.
 
 \section{I modelli di ottimizzazione}
 \label{sec:modelli-ottimizzazione}
@@ -111,8 +105,7 @@ descrive un'intera famiglia di istanze. La separazione tra la \emph{struttura}
 del modello e i \emph{dati} di una particolare istanza è un principio cardine dei
 linguaggi di modellazione, ROOC compreso, e ne motiva i costrutti come gli
 iteratori e le sommatorie indicizzate, descritti nel
-Capitolo~\ref{cap:linguaggio}. Il problema dello zaino, insieme al problema del
-\emph{dominating set} su grafo, farà da esempio guida nel resto della tesi.
+Capitolo~\ref{cap:linguaggio}.
 
 \section{Linguaggi e strumenti di modellazione esistenti}
 \label{sec:stato-arte}
@@ -142,8 +135,7 @@ indipendente dal solver, \emph{compilato} in un formato intermedio (FlatZinc)
 risolvibile da diversi solver~\cite{minizinc2007}. Va infine distinto il livello
 del \emph{solver} vero e proprio: strumenti come \textbf{Gurobi}~\cite{gurobi} o
 \textbf{HiGHS}~\cite{highs2018} sono motori di risoluzione, non linguaggi di
-modellazione, e ROOC vi si appoggia come back-end intercambiabili
-(Capitolo~\ref{cap:solver}).
+modellazione.
 
 \section{Cenni di teoria dei linguaggi e dei compilatori}
 \label{sec:teoria-compilatori}

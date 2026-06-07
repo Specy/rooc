@@ -31,6 +31,8 @@ e i vincoli, e da due blocchi opzionali, \texttt{where} e \texttt{define}, che
 forniscono rispettivamente i dati e la dichiarazione del dominio delle variabili.
 La struttura generale è la seguente:
 
+\
+
 \begin{lstlisting}[caption={Struttura generale di un modello ROOC.}, label={lst:struttura}]
 min/max <espressione obiettivo>
 s.t.
@@ -62,8 +64,7 @@ ciascuna con la sintassi \texttt{let nome = valore}. Il valore può essere una
 qualunque espressione del linguaggio: oltre a primitive come numeri, stringhe,
 array (anche multidimensionali) e grafi, sono ammesse espressioni più
 articolate, come chiamate di funzione o operazioni tra altre costanti. È qui che
-vengono tipicamente forniti i dati della specifica istanza, mantenendoli
-separati dalla struttura del modello.
+vengono tipicamente forniti i dati della specifica istanza.
 
 \paragraph{Blocco \texttt{define}.}
 Il blocco opzionale \texttt{define} dichiara il \emph{dominio} delle variabili
@@ -75,13 +76,15 @@ possono essere indicizzate con una clausola \texttt{for}.
 \label{sec:esempio-guida}
 
 Per illustrare in modo concreto i costrutti del linguaggio si introducono due
-esempi che verranno richiamati nel resto della tesi: il problema dello zaino e
+esempi: il problema dello zaino e
 il problema del \emph{dominating set} su grafo.
 
 Il Listato~\ref{lst:knapsack} riprende il modello dello zaino già formalizzato
 nella Sezione~\ref{sec:modelli-ottimizzazione}. I dati dell'istanza (pesi,
 valori e capacità) sono dichiarati nel blocco \texttt{where}, mentre la variabile
 binaria $x_i$ è dichiarata nel blocco \texttt{define}, una per ciascun oggetto.
+
+\
 
 \begin{lstlisting}[caption={Il problema dello zaino in ROOC.}, label={lst:knapsack}]
 max sum((value, i) in enumerate(values)) { value * x_i }
@@ -153,7 +156,9 @@ cui elementi hanno tutti lo stesso tipo.
 Un grafo si dichiara con la parola chiave \texttt{Graph} seguita dall'elenco dei
 nodi e dei rispettivi archi uscenti. Ogni nodo ha la forma
 \texttt{Nodo -> [vicino1, vicino2, \ldots]}; a ciascun arco può essere associato
-un costo, indicato dopo il carattere \texttt{:}, come nel Listato~\ref{lst:grafo}.
+un costo, indicato dopo il carattere \texttt{:}
+
+\
 
 \begin{lstlisting}[caption={Dichiarazione di un grafo con costi sugli archi.}, label={lst:grafo}]
 let G = Graph {
@@ -175,12 +180,14 @@ numerico, scritto con \texttt{..} (estremo superiore escluso) o \texttt{..=}
 prodotta da una funzione come \texttt{nodes(G)} o \texttt{enumerate(\ldots)}. È
 possibile concatenare più iteratori separandoli con la virgola.
 
+\
+
 \begin{lstlisting}[caption={Esempi di iteratori.}, label={lst:iteratori}]
-for i in 0..10           // interi da 0 a 9 (estremo superiore escluso)
-for i in 0..=10          // interi da 0 a 10 (estremo superiore incluso)
-for v in nodes(G)        // i nodi di un grafo
+for i in 0..10     // interi da 0 a 9 (estremo superiore escluso)
+for i in 0..=10    // interi da 0 a 10 (estremo superiore incluso)
+for v in nodes(G)  // i nodi di un grafo
 for (value, i) in enumerate(values)   // coppie (elemento, indice)
-for i in 0..n, j in 0..n         // due iteratori concatenati
+for i in 0..n, j in 0..n   // due iteratori concatenati
 \end{lstlisting}
 
 \paragraph{Block functions e nozione di \emph{scope}.}
@@ -196,6 +203,8 @@ volta per ogni combinazione di valori degli iteratori, e i risultati sono
 combinati dall'operatore di aggregazione. Sono disponibili nelle varianti
 \texttt{sum}, \texttt{prod}, \texttt{min}, \texttt{max} e \texttt{avg}.
 
+\
+
 \begin{lstlisting}[caption={Block scoped function: lo scope introduce la variabile \texttt{i} e l'elemento \texttt{value}.}, label={lst:scoped}]
 sum((value, i) in enumerate(values)) { value * x_i }
 \end{lstlisting}
@@ -204,6 +213,8 @@ Le \emph{block function} prive di scope, invece, operano su un elenco di
 espressioni già note, senza introdurre nuove variabili: hanno la forma
 \texttt{nome\{a, b, c\}} e sono disponibili per \texttt{min}, \texttt{max} e
 \texttt{avg}.
+
+\
 
 \begin{lstlisting}[caption={Block function senza scope: opera su espressioni elencate esplicitamente.}, label={lst:noscope}]
 max{x_1, x_2, x_3}
@@ -231,12 +242,17 @@ x\_y} permette di trattare letteralmente un nome contenente l'underscore,
 disattivando l'espansione automatica.
 
 \paragraph{Destructuring.}
-Quando un iteratore produce tuple, è possibile decomporne le componenti
-direttamente nella dichiarazione, come in \texttt{(value, i) in
-enumerate(values)}: a ogni iterazione \texttt{value} assume il valore
-dell'elemento e \texttt{i} il suo indice. Il simbolo \texttt{\_} indica una
-componente da ignorare, come in \texttt{(\_, u) in neigh\_edges(v)}, dove
-interessa solo il nodo di arrivo dell'arco.
+Il \emph{destructuring} è la decomposizione di un valore strutturato, come una
+tupla, nelle sue componenti, ciascuna legata a un nome con un'unica scrittura
+anziché estraendole una a una; il simbolo \texttt{\_} segnala una componente che
+non interessa e che viene ignorata. In ROOC il destructuring si applica laddove un
+iteratore produce tuple: nella dichiarazione delle variabili di iterazione se ne
+decompongono direttamente le componenti. Per esempio, in \texttt{(value, i) in
+enumerate(values)} ogni elemento prodotto da \texttt{enumerate} è una coppia
+\texttt{(elemento, indice)}, e a ogni iterazione \texttt{value} assume il valore
+dell'elemento e \texttt{i} il suo indice; in \texttt{(\_, u) in neigh\_edges(v)},
+invece, di ciascun arco interessa soltanto il nodo di arrivo \texttt{u}, mentre la
+prima componente viene ignorata.
 
 \section{Operatori e definizione delle variabili}
 \label{sec:operatori-variabili}
@@ -248,8 +264,7 @@ di negazione. È supportata anche la \emph{moltiplicazione implicita}: una
 scrittura come \texttt{2x\_i} è interpretata come \texttt{2 * x\_i}. Gli
 operatori sono \emph{sovraccaricati} sui diversi tipi: oltre al consueto
 significato aritmetico sui tipi numerici, l'operatore \texttt{+} applicato a due
-stringhe ne produce la concatenazione. Le operazioni insiemistiche tra
-collezioni non sono espresse tramite operatori, ma tramite le funzioni
+stringhe ne produce la concatenazione. Sono implementate anche funzioni insiemistiche come
 \texttt{union}, \texttt{intersection} e \texttt{difference}
 (Sezione~\ref{sec:funzioni}).
 

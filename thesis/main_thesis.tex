@@ -140,6 +140,13 @@
     fixed,precision=2,
 }
 
+% Margini leggermente ridotti, per piu' spazio orizzontale in ogni pagina
+\geometry{textwidth=430pt, marginparwidth=60pt}
+
+% I blocchi di codice non vengono spezzati su piu' pagine (quando piu' corti di una pagina)
+\BeforeBeginEnvironment{lstlisting}{\par\medskip\noindent\begin{minipage}{\linewidth}}
+\AfterEndEnvironment{lstlisting}{\end{minipage}\par\medskip}
+
 \title{ROOC: linguaggio ed ambiente integrato per la modellazione e soluzione di problemi di ottimizzazione lineare}
 \author{Enrico Menichelli}
 \IDnumber{279061}
@@ -159,9 +166,31 @@
 \maketitle
 \dedication{}
 
-% \begin{abstract}
+\begin{abstract}
+L'ottimizzazione matematica permette di affrontare numerosi problemi decisionali
+in ambito industriale, logistico ed economico, ma tra la formulazione di un
+problema e la sua risoluzione si colloca la \emph{modellazione}: la traduzione del
+problema in un modello matematico trattabile da un risolutore. Gli strumenti
+esistenti per questa attività sono spesso commerciali, legati a un linguaggio di
+programmazione ospite o poco orientati all'apprendimento.
 
-% \end{abstract}
+Questa tesi presenta ROOC, un linguaggio dichiarativo per la modellazione di
+problemi di ottimizzazione lineare e l'ambiente che lo accompagna. ROOC adotta una
+notazione vicina a quella matematica e separa la struttura del modello dai dati; a
+partire da tale descrizione si comporta come un \emph{compilatore}, traducendo il
+modello di alto livello in una forma lineare standard attraverso una sequenza di
+trasformazioni ispezionabili, organizzate secondo un'architettura a \emph{pipe}.
+
+Il lavoro si concentra sul motore di ROOC. I contributi principali sono la
+progettazione del linguaggio, dotato di un sistema di tipi e di costrutti di alto
+livello quali iteratori, \emph{block function} e tipi di dato strutturati; la
+realizzazione di un compilatore multi-fase che riduce il modello alla forma
+standard; l'estensione del solver \texttt{microlp}, ottenuto come \emph{fork} del
+crate archiviato \texttt{minilp} e ampliato dal solo simplesso al supporto della
+programmazione lineare intera mista; e la distribuzione del motore come libreria
+riutilizzabile e come piattaforma web a fini didattici, eseguita interamente nel
+browser tramite la compilazione in WebAssembly.
+\end{abstract}
 
 \tableofcontents
 
