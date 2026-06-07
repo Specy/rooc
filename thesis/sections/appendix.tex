@@ -1,16 +1,28 @@
 %!TEX root = ../main_thesis.tex
 
-\chapter{Esempi di modelli}
+\chapter{Un esempio di compilazione: il problema della dieta}
 \label{app:esempi}
 
-A titolo di esempio completo si riporta il modello del \emph{problema della
-dieta}, che impiega gran parte dei costrutti del linguaggio descritti nel
-Capitolo~\ref{cap:linguaggio}: costanti scalari e array (anche
-multidimensionali), funzioni della libreria standard (\texttt{enumerate},
+Per illustrare in modo concreto l'intera pipeline di compilazione
+(Capitolo~\ref{cap:architettura}), si segue qui un singolo modello, il
+\emph{problema della dieta}, lungo le sue rappresentazioni intermedie: dal
+sorgente al \texttt{Model} prodotto dall'analisi semantica, alla sua versione
+lineare (\texttt{LinearModel}) e infine alla forma standard
+(\texttt{StandardLinearModel}). Il modello impiega gran parte dei costrutti del
+linguaggio descritti nel Capitolo~\ref{cap:linguaggio}: costanti scalari e array
+(anche multidimensionali), funzioni della libreria standard (\texttt{enumerate},
 \texttt{len}), sommatorie indicizzate, variabili composte, vincoli nominati e
-replicati tramite la clausola \texttt{for}, e variabili con estremi dipendenti
-dai dati. L'obiettivo è minimizzare il costo complessivo della dieta mantenendo
+replicati tramite la clausola \texttt{for}, e variabili con estremi dipendenti dai
+dati. L'obiettivo è minimizzare il costo complessivo della dieta mantenendo
 ciascun nutriente entro i limiti previsti.
+
+\section{Sorgente}
+\label{app:diet-sorgente}
+
+Il Listato~\ref{lst:diet} riporta il modello così come viene scritto dall'utente.
+I dati dell'istanza (costi, fabbisogni dei nutrienti, porzioni minime e massime e
+la matrice \texttt{a} dei valori nutrizionali) sono raccolti nel blocco
+\texttt{where}, separati dalla struttura del modello.
 
 \begin{lstlisting}[language=rooc, caption={Il problema della dieta in ROOC.}, label={lst:diet}]
 min sum((cost, i) in enumerate(C)) { cost * x_i }
@@ -45,4 +57,89 @@ where
 define
     //bound the amount of each serving of food i
     x_i as NonNegativeReal(Fmin[i], Fmax[i]) for i in 0..n
+\end{lstlisting}
+
+\section{Modello}
+\label{app:diet-model}
+
+L'analisi semantica e la trasformazione (Capitolo~\ref{cap:semantica}) producono
+il \texttt{Model} del Listato~\ref{lst:diet-model}, in cui tutte le astrazioni di
+alto livello sono state risolte. Le costanti sono state valutate e sostituite con
+i rispettivi valori; gli iteratori sono stati espansi: la clausola
+\texttt{for j in 0..len(Nmin)} replica i vincoli per i tre nutrienti, e il nome
+composto \texttt{min\_\{nutrient[j]\}} diventa \texttt{min\_protein},
+\texttt{min\_carbs} e \texttt{min\_fats}. Le sommatorie \texttt{sum(i in 0..f)}
+sono diventate somme dei tre termini concreti, con i coefficienti letti dalla
+matrice \texttt{a}, e le variabili composte \texttt{x\_i} sono state risolte in
+\texttt{x\_0}, \texttt{x\_1} e \texttt{x\_2}, ciascuna con dominio
+\texttt{NonNegativeReal(1, 5)} (gli estremi \texttt{Fmin[i]} e \texttt{Fmax[i]}
+valutati). Si noti che a questo livello possono ancora comparire termini con
+coefficiente nullo, come \texttt{0 * x\_0}.
+
+\
+
+\begin{lstlisting}[language=rooc, caption={Il \texttt{Model} dopo l'analisi semantica.}, label={lst:diet-model}]
+min 1.5 * x_0 + 0.5 * x_1 + 2 * x_2
+s.t.
+    min_protein: 30 * x_0 + 2 * x_1 + 2 * x_2 >= 50
+    min_carbs: 0 * x_0 + 45 * x_1 + 15 * x_2 >= 200
+    min_fats: 5 * x_0 + 0 * x_1 + 20 * x_2 >= 0
+    max_protein: 30 * x_0 + 2 * x_1 + 2 * x_2 <= 150
+    max_carbs: 0 * x_0 + 45 * x_1 + 15 * x_2 <= 300
+    max_fats: 5 * x_0 + 0 * x_1 + 20 * x_2 <= 70
+define
+    x_0, x_1, x_2 as NonNegativeReal(1, 5)
+\end{lstlisting}
+
+\section{Modello lineare}
+\label{app:diet-linear}
+
+La linearizzazione (Capitolo~\ref{cap:linearizzazione}) riduce ogni espressione a
+una combinazione lineare delle variabili. I termini con coefficiente nullo vengono
+eliminati (per esempio \texttt{0 * x\_0} scompare da \texttt{min\_carbs} e
+\texttt{0 * x\_1} da \texttt{min\_fats}) e si adotta la moltiplicazione implicita.
+Il risultato è il \texttt{LinearModel} del Listato~\ref{lst:diet-linear}, in cui
+restano soltanto le variabili effettivamente utilizzate in ciascun vincolo.
+
+\begin{lstlisting}[language=rooc, caption={Il \texttt{LinearModel} dopo la linearizzazione.}, label={lst:diet-linear}]
+min 1.5x_0 + 0.5x_1 + 2x_2
+s.t.
+    min_protein: 30x_0 + 2x_1 + 2x_2 >= 50
+    min_carbs: 45x_1 + 15x_2 >= 200
+    min_fats: 5x_0 + 20x_2 >= 0
+    max_protein: 30x_0 + 2x_1 + 2x_2 <= 150
+    max_carbs: 45x_1 + 15x_2 <= 300
+    max_fats: 5x_0 + 20x_2 <= 70
+define
+    x_0, x_1, x_2 as NonNegativeReal(1, 5)
+\end{lstlisting}
+
+\section{Forma standard}
+\label{app:diet-standard}
+
+L'ultima trasformazione (Sezione~\ref{sec:forma-standard}) riduce il modello alla
+forma standard del Listato~\ref{lst:diet-standard}, richiesta dal simplesso. Ogni
+disuguaglianza diventa un'uguaglianza con l'aggiunta di una variabile non
+negativa: una variabile sottratta per i vincoli di tipo \texttt{>=} e una aggiunta
+per quelli di tipo \texttt{<=} (qui con i nomi generati automaticamente
+\texttt{\$sl\_k} e \texttt{\$su\_k}). Inoltre gli estremi di ciascuna variabile,
+prima espressi dal dominio \texttt{NonNegativeReal(1, 5)}, diventano due vincoli
+espliciti (\texttt{>= 1} e \texttt{<= 5}), a loro volta normalizzati a uguaglianze.
+Poiché l'obiettivo era già di minimizzazione, non viene negato.
+
+\begin{lstlisting}[language=rooc, caption={Il modello in forma standard.}, label={lst:diet-standard}]
+min 1.5x_0 + 0.5x_1 + 2x_2
+s.t.
+    30x_0 + 2x_1 + 2x_2 - $sl_1 = 50
+    45x_1 + 15x_2 - $sl_2 = 200
+    5x_0 + 20x_2 - $sl_3 = 0
+    30x_0 + 2x_1 + 2x_2 + $su_1 = 150
+    45x_1 + 15x_2 + $su_2 = 300
+    5x_0 + 20x_2 + $su_3 = 70
+    x_0 - $sl_4 = 1
+    x_0 + $su_4 = 5
+    x_1 - $sl_5 = 1
+    x_1 + $su_5 = 5
+    x_2 - $sl_6 = 1
+    x_2 + $su_6 = 5
 \end{lstlisting}
