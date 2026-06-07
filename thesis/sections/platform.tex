@@ -53,8 +53,9 @@ define
 
 // composizione della pipeline: dal sorgente fino al solver automatico
 const pipe = new RoocRunnablePipe()
-for (const p of [Pipes.CompilerPipe, Pipes.PreModelPipe, Pipes.ModelPipe,
-                 Pipes.LinearModelPipe, Pipes.AutoSolverPipe]) {
+const pipes = [Pipes.CompilerPipe, Pipes.PreModelPipe, Pipes.ModelPipe,
+               Pipes.LinearModelPipe, Pipes.AutoSolverPipe]
+for (const p of pipes) {
     pipe.addPipeByName(p)
 }
 
@@ -62,7 +63,7 @@ const result = pipe.run(source, constants, [sqrt])
 if (result.isOk()) {
     const steps = result.value
     const solution = steps[steps.length - 1].data   // la soluzione finale
-    console.log("Valore ottimo:", solution.value)   // 40
+    console.log("Valore ottimo:", solution.value)
 }
 \end{lstlisting}
 
@@ -76,7 +77,20 @@ La piattaforma web è un'applicazione realizzata con SvelteKit e generata come
 sito statico, anch'essa quindi priva di componente server e ospitabile su un
 qualunque servizio di hosting statico. Il suo elemento centrale è un editor di
 codice, basato su Monaco, dotato di una definizione di linguaggio dedicata a ROOC
-per l'evidenziazione della sintassi.
+per l'evidenziazione della sintassi (Figura~\ref{fig:editor}).
+
+\begin{figure}[ht]
+\centering
+\IfFileExists{imgs/editor-ui.png}{%
+  \includegraphics[width=\textwidth]{editor-ui.png}%
+}{%
+  \fbox{\parbox{0.8\textwidth}{\centering Immagine non disponibile}}%
+}
+\caption{L'editor della piattaforma web, con il modello dello zaino a sinistra e,
+a destra, la pipeline di risoluzione configurabile come sequenza di stadi
+(compilatore, \emph{pre model}, \emph{model}, modello lineare, solver).}
+\label{fig:editor}
+\end{figure}
 
 \paragraph{Funzionalità da Language Server.}
 Sull'editor sono innestate alcune funzionalità tipiche di un \emph{Language

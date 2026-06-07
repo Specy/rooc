@@ -119,15 +119,3 @@ simplesso.
 La presenza di più solver, ciascuno adatto a un diverso tipo di modello, è
 gestita in modo trasparente da un \emph{auto-solver}, che ispeziona il dominio
 delle variabili e instrada il problema verso il risolutore appropriato.
-
-\section{Confronto qualitativo}
-\label{sec:confronto-solver}
-
-I solver descritti si collocano su un compromesso tra trasparenza, generalità e
-prestazioni. Il simplesso implementato nel progetto privilegia la trasparenza, a
-scapito delle prestazioni e con il limite delle sole variabili continue;
-\texttt{microlp} è il più generale e copre l'intera gamma dei modelli di ROOC;
-\texttt{copper} e Clarabel sono invece specializzati, rispettivamente, per i
-problemi binari e per quelli puramente continui. Grazie all'architettura a pipe,
-la scelta del solver, manuale o automatica, non richiede modifiche al resto
-della pipeline.
