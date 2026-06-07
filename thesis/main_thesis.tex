@@ -23,11 +23,16 @@
 %\counterwithout{footnote}{chapter}
 \usepackage{hyperref}
 
+% Colore dei link interni: giallo-ocra scuro (piu' leggibile del giallo puro).
+% Per regolarlo, modifica i valori RGB qui sotto (0 = nessuno, 1 = massimo).
+\usepackage{color}
+\definecolor{linkyellow}{rgb}{0.8, 0.55, 0.0}
+
 \hypersetup{
 % 			hyperfootnotes=true,			
 % 			bookmarks=true,			
 			colorlinks=true,
-			linkcolor=yellow,
+			linkcolor=linkyellow,
                         linktoc=page,
 			anchorcolor=black,
 			citecolor=red,
@@ -94,6 +99,18 @@
   morecomment=[l]{//},
   morecomment=[s]{/*}{*/},
   morestring=[b]",
+}
+
+% Definizione (parziale) del linguaggio TypeScript per il pacchetto listings
+\lstdefinelanguage{typescript}{
+  morekeywords={const, let, var, function, return, new, import, from, export,
+    if, else, for, of, in, type, interface, class, await, async, true, false},
+  morekeywords=[2]{number, string, boolean, void, Math},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
 }
 
 \lstdefinestyle{roocstyle}{

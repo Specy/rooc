@@ -6,14 +6,49 @@
 \section{Riepilogo dei contributi}
 \label{sec:riepilogo}
 
-\todo[inline]{Riepilogare i contributi della tesi: il linguaggio ROOC, il compilatore multi-fase, il solver MILP \texttt{microlp} e la piattaforma web didattica.}
+Questa tesi ha presentato ROOC, un linguaggio per la modellazione di problemi di
+ottimizzazione e l'ambiente che lo accompagna. Il lavoro si è concentrato sul
+\emph{motore}: un compilatore che traduce un modello, scritto in una notazione
+dichiarativa vicina alla matematica, in una forma lineare risolvibile da un
+solver.
+
+I contributi principali possono essere riassunti come segue. È stato progettato
+un \emph{linguaggio} dotato di un sistema di tipi e di costrutti di alto livello,
+come gli iteratori, le \emph{block function} e i tipi di dato strutturati
+(Capitolo~\ref{cap:linguaggio}). È stato realizzato un \emph{compilatore
+multi-fase} che, attraverso una sequenza di trasformazioni
+(Capitoli~\ref{cap:parsing}--\ref{cap:linearizzazione}), riduce il modello alla
+forma standard, e la cui architettura a \emph{pipe}
+(Capitolo~\ref{cap:architettura}) rende ogni fase componibile e ispezionabile. È
+stato esteso il solver \texttt{microlp}, a partire da un crate esistente
+limitato al simplesso, fino a coprire la programmazione lineare intera mista
+(Capitolo~\ref{cap:solver}). Infine, il motore è stato reso disponibile come
+libreria riutilizzabile e come piattaforma web didattica
+(Capitolo~\ref{cap:piattaforma}).
 
 \section{Limitazioni}
 \label{sec:limitazioni}
 
-\todo[inline]{Discutere le limitazioni note: linearizzazione del valore assoluto, assenza di vincoli logici, prestazioni del solver proprio rispetto ai backend industriali.}
+Il lavoro presenta alcune limitazioni note. Sul piano del linguaggio, la
+linearizzazione del valore assoluto non è ancora implementata, e mancano
+operatori logici che permetterebbero di esprimere in modo naturale vincoli di
+natura logica. Sul piano della risoluzione, il simplesso implementato nel
+progetto è orientato alla chiarezza didattica più che alle prestazioni, e la sua
+applicazione diretta è limitata ai modelli di dimensioni contenute; per i
+problemi più impegnativi ci si affida ai solver esterni. Infine, l'intera
+pipeline è oggi orientata ai modelli lineari, pur essendo l'architettura
+predisposta per ospitare in futuro forme diverse.
 
 \section{Sviluppi futuri}
 \label{sec:sviluppi-futuri}
 
-\todo[inline]{Delineare i possibili sviluppi: vincoli logici, ulteriori solver, miglioramenti del linguaggio e della piattaforma.}
+Diversi sono i possibili sviluppi. Il più immediato è il completamento della
+linearizzazione del valore assoluto e l'introduzione di operatori logici, che
+amplierebbero la classe di problemi di ottimizzazione combinatoria
+modellabili in modo diretto. L'architettura a pipe si presta inoltre
+all'aggiunta di nuovi solver e di nuove fasi di trasformazione, anche verso
+forme non lineari. Sul fronte della piattaforma, l'ulteriore arricchimento degli
+strumenti di visualizzazione e della documentazione interattiva ne rafforzerebbe
+la vocazione didattica. ROOC si conferma così non solo come uno strumento per
+risolvere modelli di ottimizzazione, ma anche come una base estensibile su cui
+continuare a costruire.

@@ -1,11 +1,48 @@
 %!TEX root = ../main_thesis.tex
 
-\chapter{Grammatica completa di ROOC}
-\label{app:grammatica}
-
-\todo[inline]{Riportare la grammatica PEST completa (\texttt{src/parser/grammar.pest}), eventualmente commentata.}
-
 \chapter{Esempi di modelli}
 \label{app:esempi}
 
-\todo[inline]{Raccogliere esempi di modelli ROOC completi (knapsack, dominating set, ecc.) con relativo modello lineare compilato e soluzione.}
+A titolo di esempio completo si riporta il modello del \emph{problema della
+dieta}, che impiega gran parte dei costrutti del linguaggio descritti nel
+Capitolo~\ref{cap:linguaggio}: costanti scalari e array (anche
+multidimensionali), funzioni della libreria standard (\texttt{enumerate},
+\texttt{len}), sommatorie indicizzate, variabili composte, vincoli nominati e
+replicati tramite la clausola \texttt{for}, e variabili con estremi dipendenti
+dai dati. L'obiettivo è minimizzare il costo complessivo della dieta mantenendo
+ciascun nutriente entro i limiti previsti.
+
+\begin{lstlisting}[language=rooc, caption={Il problema della dieta in ROOC.}, label={lst:diet}]
+min sum((cost, i) in enumerate(C)) { cost * x_i }
+s.t.
+
+    min_{nutrient[j]}: //diet must have at least of nutrient j
+        sum(i in 0..f) { a[i][j] * x_i} >= Nmin[j] for j in 0..len(Nmin)
+
+    max_{nutrient[j]}: //diet must have at most of nutrient j
+        sum(i in 0..f) { a[i][j] * x_i } <= Nmax[j] for j in 0..len(Nmax)
+
+where
+    // Cost of chicken, rice, avocado
+    let C = [1.5, 0.5, 2.0]
+    // Min and max of: protein, carbs, fats
+    let nutrient = ["protein", "carbs", "fats"]
+    let Nmin = [50, 200, 0]
+    let Nmax = [150, 300, 70]
+    // Min and max servings of each food
+    let Fmin = [1, 1, 1]
+    let Fmax = [5, 5, 5]
+    let a = [
+        //protein, carbs, fats
+        [30, 0, 5], // Chicken
+        [2, 45, 0], // Rice
+        [2, 15, 20] // Avocado
+    ]
+    // Number of foods
+    let f = len(a)
+    // Number of nutrients
+    let n = len(Nmax)
+define
+    //bound the amount of each serving of food i
+    x_i as NonNegativeReal(Fmin[i], Fmax[i]) for i in 0..n
+\end{lstlisting}

@@ -3,29 +3,110 @@
 \chapter{Dalla libreria alla piattaforma web}
 \label{cap:piattaforma}
 
-\todo[inline]{Capitolo di supporto: mostra come il motore (libreria Rust) diventi una libreria riusabile e una piattaforma web didattica. Mantenere il taglio sintetico, coerente con il focus sul motore.}
+I capitoli precedenti hanno descritto il motore di ROOC: il linguaggio, il
+compilatore e i solver. Questo capitolo mostra come tale motore, scritto in Rust,
+venga reso disponibile come libreria riutilizzabile e, soprattutto, come
+piattaforma web interattiva con finalità didattiche. 
 
 \section{Compilazione in WebAssembly e la libreria TypeScript}
 \label{sec:wasm}
 
-La libreria Rust viene compilata in WebAssembly tramite \texttt{wasm-pack} ed
-esposta a JavaScript/TypeScript attraverso \texttt{serde-wasm-bindgen}. Sopra
-di essa è costruita la libreria \texttt{@specy/rooc}, che offre un'API
-type-safe.
+Il motore di ROOC è scritto in Rust, ma è pensato per essere eseguito anche nel
+browser. A questo scopo viene compilato in \emph{WebAssembly}~\cite{webassembly}
+tramite lo strumento \texttt{wasm-pack}.
+Una conseguenza importante di questa scelta è che l'intero processo di
+compilazione e risoluzione avviene \emph{lato client}: non è richiesto alcun
+server.
 
-\todo[inline]{Descrivere il processo di build (Rust $\rightarrow$ WASM $\rightarrow$ pacchetto npm), la marshalling dei dati e l'API pubblica di \texttt{ts-lib}. Riferimenti: \texttt{src/lib.rs}, \texttt{src/pipe/pipe\_wasm\_runner.rs}, \texttt{ts-lib/}.}
+Sopra il modulo WebAssembly è costruita la libreria TypeScript
+\texttt{@specy/rooc}, che ne espone le funzionalità con un'interfaccia tipizzata.
+Attraverso di essa è possibile analizzare e compilare un modello, ottenerne la
+versione lineare o la resa in LaTeX, comporre ed eseguire le pipe
+(Capitolo~\ref{cap:architettura}) e registrare funzioni definite dall'utente. Il
+Listato~\ref{lst:tslib} mostra un esempio completo: si registra una funzione
+\texttt{sqrt} e una costante, si definisce un piccolo modello che le utilizza, e
+lo si risolve componendo la pipeline fino al solver automatico, leggendone infine
+il valore ottimo.
+
+\begin{lstlisting}[language=typescript, caption={Definizione di una funzione e di una costante, risoluzione di un modello con \texttt{@specy/rooc}.}, label={lst:tslib}]
+import { makeRoocFunction, RoocRunnablePipe, Pipes, PrimitiveKind } from "@specy/rooc"
+
+// funzione definita dall'utente: radice quadrata
+const sqrt = makeRoocFunction({
+    name: "sqrt",
+    parameters: [["of_num", PrimitiveKind.Number]],
+    returns: PrimitiveKind.Number,
+    call: (num) => ({ type: "Number", value: Math.sqrt(num.value) }),
+})
+
+// costante fornita dall'esterno
+const constants = [["base", { type: "Number", value: 16 }]]
+
+// la funzione sqrt e la costante "base" sono usate nel modello
+const source = `
+max sqrt(base) * x
+s.t.
+    x <= 10
+define
+    x as NonNegativeReal
+`
+
+// composizione della pipeline: dal sorgente fino al solver automatico
+const pipe = new RoocRunnablePipe()
+for (const p of [Pipes.CompilerPipe, Pipes.PreModelPipe, Pipes.ModelPipe,
+                 Pipes.LinearModelPipe, Pipes.AutoSolverPipe]) {
+    pipe.addPipeByName(p)
+}
+
+const result = pipe.run(source, constants, [sqrt])
+if (result.isOk()) {
+    const steps = result.value
+    const solution = steps[steps.length - 1].data   // la soluzione finale
+    console.log("Valore ottimo:", solution.value)   // 40
+}
+\end{lstlisting}
+
+Grazie a questa impostazione lo stesso motore è riutilizzabile in tre forme: come
+\emph{crate} Rust, come pacchetto npm e come componente eseguibile nel browser.
 
 \section{L'IDE web e l'LSP nel browser}
 \label{sec:ide-web}
 
-La piattaforma web è un'applicazione SvelteKit con editor Monaco. Un Language
-Server Protocol (LSP) parziale, eseguito interamente nel browser, fornisce
-evidenziazione della sintassi, hover dei tipi, completamento ed evidenziazione
-degli errori.
+La piattaforma web è un'applicazione realizzata con SvelteKit e generata come
+sito statico, anch'essa quindi priva di componente server e ospitabile su un
+qualunque servizio di hosting statico. Il suo elemento centrale è un editor di
+codice, basato su Monaco, dotato di una definizione di linguaggio dedicata a ROOC
+per l'evidenziazione della sintassi.
 
-\todo[inline]{Descrivere l'IDE: editor Monaco con linguaggio ROOC custom, l'LSP nel browser (diagnostica, hover, completamento, formattazione), il rendering LaTeX con KaTeX e la persistenza locale (IndexedDB). Riferimenti: \texttt{frontend/src/lib/Monaco.ts}, \texttt{frontend/src/lib/Rooc/}.}
+\paragraph{Funzionalità da Language Server.}
+Sull'editor sono innestate alcune funzionalità tipiche di un \emph{Language
+Server Protocol} (LSP), realizzate interamente nel browser appoggiandosi alla
+libreria WebAssembly. La segnalazione degli errori sfrutta la diagnostica del
+compilatore: gli errori di sintassi, di tipo e di trasformazione, corredati della
+loro posizione (Capitoli~\ref{cap:parsing} e~\ref{cap:semantica}), vengono
+evidenziati direttamente nel codice. Il passaggio del cursore su un'espressione
+ne mostra il tipo, ricavato dalla mappa dei token tipati prodotta dal type
+checker (Capitolo~\ref{cap:semantica}). Sono inoltre disponibili il completamento
+automatico e la formattazione del codice.
 
 \section{Valore didattico}
 \label{sec:valore-didattico}
 
-\todo[inline]{Argomentare il valore didattico: visualizzazione passo-passo della risoluzione, esecuzione di funzioni utente in sandbox, documentazione interattiva e condivisione dei modelli. Collegare all'astrazione a pipe (Cap.~\ref{cap:architettura}).}
+La caratteristica che distingue la piattaforma è la possibilità di ispezionare
+l'intero processo di risoluzione, e non soltanto il risultato finale. Come
+descritto nel Capitolo~\ref{cap:architettura}, l'architettura a pipe conserva
+tutte le rappresentazioni intermedie; la piattaforma le rende visibili, mostrando
+il modello dopo l'analisi semantica, la sua resa in LaTeX, la versione
+linearizzata, la forma standard e, infine, la risoluzione. In particolare, la
+modalità passo-passo del simplesso (Capitolo~\ref{cap:solver}) permette di
+osservare l'evoluzione del \emph{tableau} a ogni iterazione, con l'indicazione
+delle variabili entrante e uscente.
+
+A completamento, la piattaforma offre una documentazione interattiva del
+linguaggio, con esempi eseguibili direttamente nell'editor. L'insieme di queste
+funzionalità fa sì che ROOC non sia soltanto uno strumento per risolvere modelli
+di ottimizzazione, ma anche un mezzo per comprendere come tali modelli vengano
+compilati e risolti. In particolare, può essere d'aiuto agli studenti dei corsi
+di Ricerca Operativa e di Ottimizzazione Combinatoria, offrendo loro un ambiente
+in cui imparare a formulare un modello e a risolverlo con un solver, osservando
+al tempo stesso ogni fase del procedimento.

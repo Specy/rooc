@@ -3,30 +3,78 @@
 \chapter{Introduzione}
 \label{cap:introduzione}
 
-\todo[inline]{Capitolo introduttivo: presentare il contesto, il problema, gli obiettivi e i contributi della tesi. Stile discorsivo, una pagina o due.}
-
 \section{Contesto e motivazione}
 \label{sec:contesto}
 
-I problemi di ottimizzazione sono pervasivi in ambito industriale, logistico e
-scientifico, ma la loro formalizzazione in un modello matematico risolubile
-richiede competenze specialistiche e strumenti spesso poco accessibili. In
-questo capitolo si introduce il contesto della \emph{Ricerca Operativa} e
-dell'\emph{Ottimizzazione Combinatoria} da cui nasce il progetto.
+L'ottimizzazione matematica è uno strumento fondamentale per affrontare problemi
+decisionali in ambito industriale, logistico ed economico: dalla pianificazione
+della produzione all'allocazione di risorse, molte situazioni reali possono
+essere ricondotte alla ricerca della soluzione migliore tra molte alternative,
+nel rispetto di un insieme di vincoli. La \emph{Ricerca Operativa} e
+l'\emph{Ottimizzazione Combinatoria}, da cui peraltro deriva il nome del progetto
+ROOC, studiano proprio i metodi per formulare e risolvere problemi di questo tipo.
 
-\todo[inline]{Descrivere brevemente perché modellare problemi di ottimizzazione è difficile e perché serve un linguaggio dedicato.}
+Tra la formulazione di un problema e la sua risoluzione si colloca però
+un'attività non banale: la \emph{modellazione}, cioè la traduzione del problema
+in un modello matematico formale che un risolutore (\emph{solver}) sia in grado
+di trattare. Questa traduzione richiede competenze specialistiche e strumenti
+adeguati, e gli ambienti esistenti, pur potenti, sono spesso commerciali, legati
+a un linguaggio di programmazione ospite o poco orientati all'apprendimento.
 
 \section{Il problema e l'idea di ROOC}
 \label{sec:idea}
 
-\todo[inline]{Introdurre ROOC: un linguaggio di modellazione formale che, a partire da un modello e dai relativi dati, produce un modello lineare risolvibile con tecniche di ottimizzazione. Anticipare l'idea della pipeline di compilazione.}
+ROOC nasce per rendere più accessibile questa attività di modellazione. È un
+linguaggio dichiarativo, con una notazione vicina a quella matematica, che
+consente di descrivere un modello di ottimizzazione separandone la struttura dai
+dati. A partire da tale descrizione, ROOC si comporta come un \emph{compilatore}:
+attraverso una sequenza di trasformazioni traduce il modello di alto livello in
+una forma lineare standard, che viene poi affidata a un solver per ottenere la
+soluzione ottima.
+
+L'idea di fondo è dunque applicare le tecniche dei compilatori al dominio
+dell'ottimizzazione, ottenendo uno strumento che non solo risolve i modelli, ma
+ne rende ispezionabile ogni fase intermedia. Questa trasparenza, unita
+all'esecuzione interamente nel browser, conferisce a ROOC anche una valenza
+didattica.
 
 \section{Obiettivi e contributi}
 \label{sec:contributi}
 
-\todo[inline]{Elencare in modo puntuale i contributi: (1) il design del linguaggio, (2) il compilatore multi-fase, (3) il solver MILP \texttt{microlp}, (4) la libreria riusabile (Rust/WASM/TypeScript) e la piattaforma web didattica.}
+Il presente lavoro si concentra sul motore di ROOC, e in particolare sulla
+progettazione del linguaggio e del relativo compilatore. I contributi principali
+sono:
+
+\begin{itemize}
+  \item la progettazione di un \emph{linguaggio} di modellazione dotato di un
+        sistema di tipi e di costrutti di alto livello, quali iteratori,
+        \emph{block function} e tipi di dato strutturati
+        (Capitolo~\ref{cap:linguaggio});
+  \item la realizzazione di un \emph{compilatore multi-fase}, che traduce il
+        modello fino alla forma standard, organizzato secondo un'architettura a
+        \emph{pipe} che rende ogni fase componibile e ispezionabile
+        (Capitoli~\ref{cap:architettura}--\ref{cap:linearizzazione});
+  \item l'estensione del solver \texttt{microlp}, ottenuto come \emph{fork} del
+        crate archiviato \texttt{minilp} e ampliato dal solo simplesso al
+        supporto delle variabili intere e binarie, fino a coprire la
+        programmazione lineare intera mista (Capitolo~\ref{cap:solver});
+  \item la distribuzione del motore come libreria riutilizzabile e come
+        piattaforma web a fini didattici (Capitolo~\ref{cap:piattaforma}).
+\end{itemize}
 
 \section{Struttura della tesi}
 \label{sec:struttura}
 
-\todo[inline]{Riassumere il contenuto di ciascun capitolo successivo.}
+Il Capitolo~\ref{cap:background} introduce le basi di programmazione lineare e
+intera, i principali linguaggi di modellazione esistenti e
+richiama i concetti di teoria dei compilatori utilizzati nel seguito. Il
+Capitolo~\ref{cap:linguaggio} descrive il linguaggio ROOC dal punto di vista
+dell'utente. Il Capitolo~\ref{cap:architettura} presenta l'architettura del
+compilatore e l'astrazione a pipe. I Capitoli~\ref{cap:parsing},
+\ref{cap:semantica} e~\ref{cap:linearizzazione} approfondiscono le fasi del
+compilatore: rispettivamente l'analisi sintattica, l'analisi semantica e la
+linearizzazione con la riduzione alla forma standard. Il
+Capitolo~\ref{cap:solver} tratta la risoluzione dei modelli, con particolare
+attenzione al solver \texttt{microlp}. Il Capitolo~\ref{cap:piattaforma}
+illustra la libreria e la piattaforma web. Il Capitolo~\ref{cap:conclusioni},
+infine, riassume i contributi e delinea i possibili sviluppi futuri.

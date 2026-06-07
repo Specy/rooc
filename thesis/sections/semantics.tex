@@ -3,38 +3,186 @@
 \chapter{Analisi semantica: tipi e trasformazione del modello}
 \label{cap:semantica}
 
-\todo[inline]{Capitolo sull'analisi semantica. Anche qui: prima i concetti teorici, poi l'applicazione in ROOC.}
+Una volta che il sorgente è stato tradotto nella rappresentazione intermedia
+(Capitolo~\ref{cap:parsing}), il compilatore deve verificarne la correttezza e
+trasformarlo in una forma concreta. Queste due attività costituiscono l'analisi
+semantica, oggetto del presente capitolo.
 
 \section{Concetti teorici}
 \label{sec:semantica-teoria}
 
-Si presentano i concetti di analisi semantica nei compilatori: il \emph{sistema
-dei tipi}, la verifica statica dei tipi (\emph{type checking}), la nozione di
-\emph{scope} e di tabella dei simboli, e la distinzione tra rappresentazione di
-un valore a tempo di esecuzione e la sua descrizione a livello di tipo.
+\paragraph{Analisi semantica.}
+Mentre l'analisi sintattica stabilisce se un testo è \emph{ben formato},
+l'analisi semantica stabilisce se esso è anche \emph{dotato di significato}
+secondo le regole del linguaggio. Sono errori semantici, e non sintattici, l'uso
+di una variabile non dichiarata, l'applicazione di un operatore a operandi
+incompatibili o l'invocazione di una funzione con un numero errato di argomenti.
 
-\todo[inline]{TEORIA: cosa sono i sistemi di tipi, type checking statico vs dinamico, scope e ambienti (frame), inferenza/verifica delle firme di funzione.}
+\paragraph{Sistemi di tipi.}
+Lo strumento principale con cui si esprimono e si verificano queste regole è il
+\emph{sistema dei tipi}~\cite{pierce2002}. Un tipo classifica i valori in base
+alla loro natura (numeri, stringhe, collezioni, e così via) e impone vincoli su
+come essi possono essere combinati. La verifica statica dei tipi (\emph{type
+checking}) controlla tali vincoli prima dell'esecuzione, permettendo di
+respingere i programmi scorretti con un messaggio diagnostico anziché lasciarli
+fallire in un momento successivo. È utile distinguere fra il \emph{valore} che
+un'espressione assume e il \emph{tipo} che la descrive: il type checker ragiona
+sui tipi, ignorando i valori concreti.
+
+\paragraph{Ambiti e tabella dei simboli.}
+Per sapere a cosa si riferisce un nome, il type checker mantiene una
+\emph{tabella dei simboli} che associa a ogni identificatore il suo tipo. Poiché
+i linguaggi prevedono costrutti che introducono nomi validi solo localmente
+(in ROOC, gli iteratori), la tabella è organizzata in \emph{ambiti} (\emph{scope})
+annidati, tipicamente gestiti come una pila: l'ingresso in un nuovo costrutto
+introduce un ambito, la sua uscita lo rimuove, e la ricerca di un nome procede
+dall'ambito più interno verso quelli più esterni.
 
 \section{Applicazione in ROOC: il sistema dei tipi}
 \label{sec:tipi-rooc}
 
-Il sistema dei tipi di ROOC è rappresentato da \texttt{PrimitiveKind}, che
-descrive a livello statico le primitive del linguaggio (inclusi tipi composti
-come iterabili e tuple) e governa le regole di applicabilità di operatori e
-funzioni.
+In ROOC ogni valore manipolato a tempo di esecuzione è una \texttt{Primitive}
+(Capitolo~\ref{cap:linguaggio}); a essa corrisponde, sul piano dei tipi, una
+\texttt{PrimitiveKind}, che ne è la controparte statica. Mentre una
+\texttt{Primitive} contiene un valore concreto, una \texttt{PrimitiveKind} ne
+descrive soltanto la natura (Listato~\ref{lst:primitivekind}).
 
-\todo[inline]{APPLICAZIONE: descrivere \texttt{PrimitiveKind}, le regole degli operatori (\texttt{can\_apply\_binary\_op}) e le firme delle funzioni. Riferimento: \texttt{src/primitives/primitive.rs}.}
+\begin{lstlisting}[language=rust, caption={Versione semplificata dell'enumerazione \texttt{PrimitiveKind}.}, label={lst:primitivekind}]
+enum PrimitiveKind {
+    Number, Integer, PositiveInteger,
+    String, Boolean,
+    Graph, GraphNode, GraphEdge,
+    Iterable(Box<PrimitiveKind>),
+    Tuple(Vec<PrimitiveKind>),
+    Any,
+    // ...
+}
+\end{lstlisting}
+
+Due varianti meritano attenzione. \texttt{Iterable} è \emph{parametrica} sul tipo
+dei propri elementi: il tipo di \texttt{[1, 2, 3]} non è semplicemente ``collezione'',
+ma ``collezione di interi''. Analogamente, \texttt{Tuple} memorizza la sequenza dei
+tipi delle proprie componenti, eventualmente eterogenei. La variante \texttt{Any}
+rappresenta infine un tipo compatibile con qualunque altro, utile nei casi in cui
+una verifica troppo rigida sarebbe inopportuna.
+
+Il legame tra espressioni e tipi è dato dal \emph{trait} \texttt{WithType}, che
+ogni espressione implementa: il suo metodo \texttt{get\_type} calcola la
+\texttt{PrimitiveKind} di un'espressione a partire dal contesto. Su questa base
+si esprimono le regole del linguaggio: l'applicabilità di un operatore a una
+coppia di tipi e la corrispondenza tra gli argomenti di una chiamata e la
+\emph{firma} della funzione invocata. La violazione di tali regole produce un
+errore (per esempio un errore di operatore quando i due operandi hanno tipi
+incompatibili), trattato nella Sezione~\ref{sec:trasformazione-modello}.
 
 \section{Il type checker}
 \label{sec:type-checker}
 
-\todo[inline]{APPLICAZIONE: descrivere \texttt{TypeCheckerContext}, l'uso dei \texttt{Frame} per gli scope annidati (uno per livello di \texttt{for}), la mappa dei token tipati e la diagnostica dei tipi. Riferimento: \texttt{src/type\_checker/}.}
+La verifica dei tipi è realizzata dal trait \texttt{TypeCheckable}, implementato
+da tutte le entità dell'IR (espressioni, vincoli, dichiarazioni, l'intero
+modello). Il suo metodo \texttt{type\_check} attraversa ricorsivamente la
+struttura, segnalando il primo errore incontrato.
+
+\paragraph{Il contesto di verifica.}
+Lo stato della verifica è mantenuto da un \texttt{TypeCheckerContext}, che
+riunisce tre informazioni: una pila di \emph{frame}, il \emph{dominio statico}
+e una mappa dei token tipati. La pila di frame realizza gli ambiti annidati
+discussi in precedenza: ogni \texttt{Frame} è una tabella che associa nomi a
+\texttt{PrimitiveKind}, l'ingresso in un iteratore aggiunge un frame e la sua
+uscita lo rimuove. La ricerca del tipo di un nome scorre i frame dal più interno
+al più esterno, riproducendo le regole di visibilità lessicale. Il dominio
+statico raccoglie invece i tipi delle variabili decisionali dichiarate nel
+blocco \texttt{define}.
+
+\paragraph{Dichiarazione dei nomi.}
+Quando un iteratore introduce una nuova variabile, questa viene dichiarata nel
+frame corrente. La dichiarazione rifiuta i nomi che coincidono con parole
+riservate e, in modalità stretta, segnala la ridichiarazione di un nome già
+esistente. Regole
+analoghe valgono per gli indici delle variabili composte, che devono avere un
+tipo ammissibile (numerico, stringa o nodo di grafo) per poter formare il nome di
+una variabile del modello.
+
+\paragraph{La mappa dei token tipati.}
+Oltre a verificare la correttezza, il contesto popola una \emph{mappa dei token}
+che associa a ogni posizione del sorgente il tipo dell'elemento corrispondente,
+sotto forma di \texttt{TypedToken} (posizione, tipo ed eventuale identificatore).
+Questa mappa non è necessaria alla compilazione in sé, ma è ciò che permette
+all'editor della piattaforma web di mostrare il tipo di un'espressione al
+passaggio del cursore e di fornire suggerimenti, come si vedrà nel
+Capitolo~\ref{cap:piattaforma}.
 
 \section{Trasformazione \texttt{PreModel} $\rightarrow$ \texttt{Model}}
 \label{sec:trasformazione-modello}
 
 Superata la verifica dei tipi, il \texttt{PreModel} viene trasformato in un
-\texttt{Model}: le costanti vengono valutate, le variabili composte e gli
-iteratori risolti, e le \emph{block functions} espanse in espressioni concrete.
+\texttt{Model}. Questa fase è un vero e proprio \emph{lowering}: le astrazioni di
+alto livello del linguaggio vengono risolte ed espanse, producendo
+un'espressione molto più semplice e concreta.
 
-\todo[inline]{APPLICAZIONE: descrivere \texttt{transform\_parsed\_problem}, il \texttt{TransformerContext}, il \texttt{recursive\_set\_resolver} per la risoluzione di iteratori e variabili composte, e l'espansione delle \emph{block functions}. Riferimento: \texttt{src/parser/model\_transformer/}.}
+\paragraph{Preparazione del contesto.}
+Il punto di ingresso raccoglie tutte le costanti disponibili (quelle predefinite,
+quelle eventualmente fornite dall'esterno e quelle dichiarate nel blocco
+\texttt{where}) e tutte le funzioni (predefinite e definite dall'utente), e
+costruisce un \texttt{TransformerContext}. Quest'ultimo è l'analogo, sul piano
+dei \emph{valori}, del contesto di verifica: i suoi frame associano i nomi a
+valori concreti (\texttt{Primitive}) anziché a tipi, e un dominio raccoglie le
+variabili decisionali via via generate.
+
+\paragraph{Da \texttt{PreExp} a \texttt{Exp}.}
+Il risultato della trasformazione delle espressioni è il tipo \texttt{Exp}
+(Listato~\ref{lst:exp}), notevolmente più semplice della \texttt{PreExp} di
+partenza. Tutti i costrutti di alto livello sono scomparsi: restano soltanto
+numeri, variabili (identificate dal loro nome) e operazioni.
+
+\begin{lstlisting}[language=rust, caption={Versione semplificata dell'enumerazione \texttt{Exp}.}, label={lst:exp}]
+enum Exp {
+    Number(f64),
+    Variable(String),
+    Min(Vec<Exp>),
+    Max(Vec<Exp>),
+    BinOp(BinOp, Box<Exp>, Box<Exp>),
+    UnOp(UnOp, Box<Exp>),
+    // ...
+}
+\end{lstlisting}
+
+La semplificazione è la conseguenza di tre operazioni svolte durante la
+trasformazione. Primo, le costanti e gli accessi agli array vengono
+\emph{valutati}: un riferimento a una costante è sostituito dal suo valore.
+Secondo, le \emph{block function} vengono \emph{espanse}: una sommatoria su un
+iteratore diventa un albero di addizioni tra i termini concreti, mentre le
+funzioni \texttt{min} e \texttt{max} diventano i corrispondenti nodi
+\texttt{Min} e \texttt{Max}. Terzo, le variabili composte vengono risolte nelle
+concrete variabili del modello, come descritto più avanti.
+
+\paragraph{Espansione degli iteratori.}
+Il cuore dell'espansione è una procedura ricorsiva di risoluzione degli insiemi
+di iterazione. Dato uno o più iteratori, essa valuta il rispettivo iterabile e,
+per ogni combinazione dei valori, introduce un nuovo frame in cui lega le
+variabili di iterazione ai valori correnti e invoca una funzione di
+\emph{callback}. Questa stessa procedura è usata in due contesti: per espandere
+il corpo di una \emph{block function} a ogni iterazione e per replicare un
+vincolo dotato di clausola \texttt{for}, generando un vincolo distinto per ogni
+combinazione di indici.
+
+\paragraph{Risoluzione delle variabili composte.}
+Una variabile composta come \texttt{x\_i} viene tradotta in una variabile del
+modello dal nome univoco. A tale scopo gli indici, ormai ridotti a valori
+concreti, vengono convertiti in stringa secondo regole semplici (un numero
+diventa la sua rappresentazione decimale, un valore booleano diventa
+\texttt{T} o \texttt{F}, una stringa resta invariata, un nodo di grafo diventa il
+proprio nome) e concatenati con un \emph{underscore}. Così, iterando \texttt{x\_i}
+su \texttt{i in 0..3}, si ottengono le variabili \texttt{x\_0}, \texttt{x\_1} e
+\texttt{x\_2}. Ogni variabile del modello è registrata nel dominio come una
+\texttt{DomainVariable}, che ne ricorda il tipo, la posizione di origine e il
+numero di utilizzi.
+
+\paragraph{Errori di trasformazione.}
+Gli errori che possono emergere in questa fase (variabili non dichiarate,
+operatori inapplicabili, firme di funzione non rispettate, indici di tipo errato,
+e così via) sono rappresentati da un \texttt{TransformError}. Come anticipato nel
+Capitolo~\ref{cap:parsing}, man mano che un errore si propaga verso l'esterno gli
+viene associata la posizione del costrutto che lo ha generato, costruendo una
+\emph{traccia} che, a partire dal sorgente, permette di indicare con precisione
+dove l'errore ha avuto origine.
