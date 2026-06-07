@@ -118,121 +118,66 @@ Capitolo~\ref{cap:linguaggio}. Il problema dello zaino, insieme al problema del
 \label{sec:stato-arte}
 
 La modellazione di problemi di ottimizzazione è supportata da un'ampia gamma di
-strumenti, che si possono collocare lungo uno spettro che va dalle
-rappresentazioni di basso livello, vicine al solver, fino ai linguaggi
-algebrici di alto livello, vicini alla notazione matematica.
+strumenti, collocabili lungo uno spettro che va dalle rappresentazioni di basso
+livello, vicine al solver, fino ai linguaggi algebrici di alto livello, vicini
+alla notazione matematica.
 
-\paragraph{Formati di scambio di basso livello.}
-Formati testuali come il \emph{CPLEX LP format} e il formato \emph{MPS}
-descrivono direttamente la matrice dei coefficienti di un modello lineare. Sono
-pensati come interfaccia tra strumenti software e solver, non per essere scritti
-o letti dall'uomo: non offrono astrazioni quali iteratori, costanti simboliche o
-strutture dati, e impongono di esplicitare ogni singolo vincolo. ROOC è in grado
-di esportare in formato CPLEX LP, usato come interfaccia verso solver esterni.
+All'estremo di basso livello, formati testuali come il \emph{CPLEX LP} e l'\emph{MPS}
+descrivono direttamente la matrice dei coefficienti di un modello: sono pensati
+come interfaccia tra software e solver, non offrono astrazioni (iteratori,
+costanti simboliche, strutture dati) e impongono di esplicitare ogni vincolo.
+ROOC è in grado di esportare in formato CPLEX LP, usato come interfaccia verso
+solver esterni. Più in alto si collocano i \emph{linguaggi algebrici di
+modellazione} (AML), che esprimono i modelli con sommatorie, indici e parametri
+simbolici: il capostipite è \textbf{AMPL}~\cite{ampl2003}, prodotto commerciale
+di cui \textbf{GNU MathProg} riprende un sottoinsieme libero~\cite{glpk}, mentre
+\textbf{GAMS} ne è un altro storico rappresentante.
 
-\paragraph{Linguaggi algebrici di modellazione.}
-I \emph{linguaggi algebrici di modellazione} (\emph{Algebraic Modeling
-Languages}, AML) permettono di esprimere i modelli in una forma vicina a quella
-matematica, con sommatorie, indici e parametri simbolici. \textbf{AMPL} è il
-capostipite di questa famiglia: sviluppato presso i Bell Labs, separa nettamente
-modello e dati e si interfaccia con un gran numero di solver~\cite{ampl2003}. Si
-tratta però di un prodotto commerciale e a sorgente chiuso. \textbf{GNU
-MathProg} (GMPL) ne riprende un sottoinsieme in forma libera, come parte del GNU
-Linear Programming Kit~\cite{glpk}. \textbf{GAMS} è un altro storico ambiente
-commerciale della stessa categoria.
-
-\paragraph{Linguaggi embedded.}
-Una tendenza più recente è quella di offrire la modellazione come libreria
-all'interno di un linguaggio di programmazione general-purpose. \textbf{Pyomo}
-fornisce un'API a oggetti in Python~\cite{pyomo2017}, mentre \textbf{JuMP},
-embedded in Julia, sfrutta la metaprogrammazione del linguaggio ospite per
-ottenere al contempo espressività e prestazioni elevate~\cite{jump2017}. Questo
-approccio eredita gratuitamente l'ecosistema del linguaggio ospite, ma lega la
-sintassi del modello a quella di tale linguaggio.
-
-\paragraph{Linguaggi di modellazione a vincoli.}
-\textbf{MiniZinc} è un linguaggio open source per la \emph{programmazione a
-vincoli}, indipendente dal solver: un modello MiniZinc viene compilato in un
-formato intermedio di più basso livello (FlatZinc) che diversi solver, di tipo
-CP, MIP o SAT, possono poi risolvere~\cite{minizinc2007}. Questo schema, in cui
-un linguaggio di alto livello viene \emph{compilato} verso una forma intermedia
-solver-indipendente, è concettualmente vicino all'architettura di ROOC.
-
-\paragraph{Solver e relative API.}
-Va infine distinto il livello del \emph{solver} vero e proprio. Strumenti come
-\textbf{Gurobi}~\cite{gurobi} o \textbf{HiGHS}~\cite{highs2018} sono motori di
-risoluzione, corredati di API per la costruzione dei modelli, ma non
-costituiscono di per sé linguaggi di modellazione. ROOC si appoggia a solver di
-questo tipo come back-end intercambiabili (Capitolo~\ref{cap:solver}).
-
-\medskip
-Rispetto a questo panorama, ROOC si propone di unire alcune caratteristiche che
-raramente coesistono in un unico strumento: una sintassi dichiarativa vicina
-alla matematica, ma con un sistema di tipi ricco che include strutture dati come
-\emph{grafi}, tuple e iterabili; l'indipendenza dal solver tramite una pipeline
-di compilazione esplicita; l'esecuzione interamente lato client tramite
-WebAssembly; e un taglio didattico, con la possibilità di ispezionare ogni fase
-intermedia della risoluzione. Tali aspetti sono ripresi nella
-Sezione~\ref{sec:posizionamento}.
+Un approccio più recente offre la modellazione come libreria di un linguaggio
+general-purpose, come \textbf{Pyomo} in Python~\cite{pyomo2017} e \textbf{JuMP}
+in Julia~\cite{jump2017}: ne eredita l'ecosistema, ma lega la sintassi del
+modello a quella del linguaggio ospite. \textbf{MiniZinc} adotta invece uno
+schema concettualmente vicino a quello di ROOC: un linguaggio di alto livello,
+indipendente dal solver, \emph{compilato} in un formato intermedio (FlatZinc)
+risolvibile da diversi solver~\cite{minizinc2007}. Va infine distinto il livello
+del \emph{solver} vero e proprio: strumenti come \textbf{Gurobi}~\cite{gurobi} o
+\textbf{HiGHS}~\cite{highs2018} sono motori di risoluzione, non linguaggi di
+modellazione, e ROOC vi si appoggia come back-end intercambiabili
+(Capitolo~\ref{cap:solver}).
 
 \section{Cenni di teoria dei linguaggi e dei compilatori}
 \label{sec:teoria-compilatori}
 
 ROOC è, a tutti gli effetti, un \emph{compilatore}: traduce il linguaggio di
-modellazione, di alto livello, in rappresentazioni progressivamente più vicine a
-una forma risolvibile da un solver. La pipeline non è vincolata a un'unica forma
-di destinazione: l'implementazione attuale arriva fino a un modello lineare in
-forma standard, ma la stessa architettura potrebbe in futuro produrre modelli
-non lineari, fermarsi a una fase intermedia o aggiungere ulteriori
-trasformazioni. È quindi utile richiamare le fasi classiche di un
-compilatore~\cite{aho2006}, perché esse forniscono la struttura portante della
-pipeline descritta nel resto della tesi.
+modellazione in rappresentazioni progressivamente più vicine a una forma
+risolvibile da un solver. L'implementazione attuale arriva a un modello lineare
+in forma standard, ma l'architettura non è vincolata a tale destinazione. È
+quindi utile richiamare le fasi classiche di un compilatore~\cite{aho2006}, che
+forniscono la struttura portante del resto della tesi.
 
-\paragraph{Analisi lessicale e sintattica.}
-Le prime fasi di un compilatore riconoscono la struttura del testo sorgente.
-L'\emph{analisi lessicale} suddivide il flusso di caratteri in unità elementari
-(\emph{token}); l'\emph{analisi sintattica} (\emph{parsing}) verifica che la
-sequenza di token rispetti la grammatica del linguaggio e ne costruisce una
-rappresentazione ad albero, l'\emph{albero di sintassi astratta} (\emph{Abstract
-Syntax Tree}, AST). La grammatica è tradizionalmente espressa tramite una
-grammatica \emph{context-free} (CFG), spesso in notazione BNF.
+\paragraph{Analisi sintattica.}
+Le prime fasi riconoscono la struttura del testo: l'\emph{analisi lessicale}
+suddivide i caratteri in \emph{token} e l'\emph{analisi sintattica}
+(\emph{parsing}) ne costruisce un \emph{albero di sintassi astratta} (AST)
+secondo una grammatica. Accanto alle tradizionali grammatiche
+\emph{context-free} (CFG), le \emph{Parsing Expression Grammar}
+(PEG)~\cite{ford2004} offrono una formalizzazione non ambigua, grazie alla
+scelta ordinata delle alternative, e integrano analisi lessicale e sintattica in
+un'unica grammatica: proprietà che le rendono adatte a ROOC
+(Capitolo~\ref{cap:parsing}).
 
-\paragraph{Parsing Expression Grammar.}
-Una formalizzazione alternativa è data dalle \emph{Parsing Expression Grammar}
-(PEG)~\cite{ford2004}. A differenza delle CFG, le PEG sono intrinsecamente non
-ambigue: la scelta tra alternative è \emph{ordinata}, ossia si prova la prima
-alternativa e si passa alla successiva solo in caso di fallimento. Inoltre le
-PEG integrano analisi lessicale e sintattica in un'unica grammatica, eliminando
-la necessità di un lexer separato. Queste proprietà le rendono particolarmente
-adatte a un linguaggio come ROOC; la grammatica concreta, espressa con la
-libreria PEST, è descritta nel Capitolo~\ref{cap:parsing}.
-
-\paragraph{Analisi semantica e sistema dei tipi.}
+\paragraph{Dalle analisi al codice.}
 Superata l'analisi sintattica, l'\emph{analisi semantica} verifica che il
-programma sia semanticamente corretto, cioè che le regole del linguaggio
-vengano rispettate: che le variabili siano dichiarate, che le operazioni siano
-applicate a operandi di tipo compatibile, che le funzioni siano invocate con il
-numero e il tipo di argomenti corretti. Il \emph{sistema
-dei tipi} è lo strumento formale con cui si esprimono e si verificano queste
-proprietà~\cite{pierce2002}. In ROOC questa fase comprende anche la
-\emph{trasformazione} del modello, in cui costanti, iteratori e sommatorie
-vengono risolti ed espansi (Capitolo~\ref{cap:semantica}).
-
-\paragraph{Rappresentazione intermedia e \emph{lowering}.}
-I compilatori non traducono direttamente dall'AST al codice finale, ma passano
-attraverso una o più \emph{rappresentazioni intermedie} (IR), via via più
-vicine alla macchina di destinazione. Il processo di traduzione da una
-rappresentazione di livello superiore a una di livello inferiore prende il nome
-di \emph{lowering}. Nel caso di ROOC, il \emph{lowering} consiste nella
-\emph{linearizzazione} del modello, cioè l'eliminazione dei costrutti non
-lineari come \texttt{min}, \texttt{max} e valore assoluto, e nella sua riduzione
-alla forma standard, descritte nel Capitolo~\ref{cap:linearizzazione}.
-
-\paragraph{Generazione del codice.}
-L'ultima fase di un compilatore tradizionale produce il codice oggetto. In ROOC
-il ruolo del codice oggetto è svolto dal modello lineare in forma standard, che
-viene infine dato in pasto a un solver per ottenere la soluzione, come discusso
-nel Capitolo~\ref{cap:solver}.
+programma rispetti le regole del linguaggio (variabili dichiarate, operatori
+applicati a tipi compatibili, funzioni invocate correttamente) tramite il
+\emph{sistema dei tipi}~\cite{pierce2002}; in ROOC questa fase comprende anche la
+\emph{trasformazione} del modello (Capitolo~\ref{cap:semantica}). I compilatori
+passano poi attraverso una o più \emph{rappresentazioni intermedie}, traducendole
+verso forme via via più vicine alla destinazione (\emph{lowering}): in ROOC il
+lowering è la \emph{linearizzazione} e la riduzione alla forma standard
+(Capitolo~\ref{cap:linearizzazione}). Il ruolo del codice oggetto finale è
+infine svolto dal modello lineare, dato in pasto a un solver
+(Capitolo~\ref{cap:solver}).
 
 \section{Posizionamento di ROOC}
 \label{sec:posizionamento}

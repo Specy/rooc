@@ -124,15 +124,10 @@ delle variabili e instrada il problema verso il risolutore appropriato.
 \label{sec:confronto-solver}
 
 I solver descritti si collocano su un compromesso tra trasparenza, generalità e
-prestazioni. Il simplesso implementato nel progetto privilegia la
-\emph{trasparenza}: espone ogni passo della risoluzione ed è quindi prezioso a
-fini didattici, ma è limitato alle variabili continue e non è ottimizzato per le
-prestazioni. Il solver \texttt{microlp} è il più \emph{generale}, in quanto
-copre l'intera gamma dei modelli affrontabili da ROOC (continui, interi e misti),
-ed è per questo il motore predefinito per i problemi con variabili intere.
-\texttt{copper} è specializzato per i problemi a variabili binarie e interi-binari,
-dove l'approccio a vincoli risulta particolarmente efficace, mentre Clarabel
-offre una soluzione robusta per i problemi puramente continui. L'architettura a
-pipe (Capitolo~\ref{cap:architettura}) consente di selezionare il solver più
-adatto, o di lasciare che sia l'auto-solver a farlo, senza modificare il resto
+prestazioni. Il simplesso implementato nel progetto privilegia la trasparenza, a
+scapito delle prestazioni e con il limite delle sole variabili continue;
+\texttt{microlp} è il più generale e copre l'intera gamma dei modelli di ROOC;
+\texttt{copper} e Clarabel sono invece specializzati, rispettivamente, per i
+problemi binari e per quelli puramente continui. Grazie all'architettura a pipe,
+la scelta del solver, manuale o automatica, non richiede modifiche al resto
 della pipeline.
