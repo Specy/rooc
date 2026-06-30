@@ -133,9 +133,39 @@ modello a quella del linguaggio ospite. \textbf{MiniZinc} adotta invece uno
 schema concettualmente vicino a quello di ROOC: un linguaggio di alto livello,
 indipendente dal solver, \emph{compilato} in un formato intermedio (FlatZinc)
 risolvibile da diversi solver~\cite{minizinc2007}. Va infine distinto il livello
-del \emph{solver} vero e proprio: strumenti come \textbf{Gurobi}~\cite{gurobi} o
-\textbf{HiGHS}~\cite{highs2018} sono motori di risoluzione, non linguaggi di
-modellazione.
+del \emph{solver} vero e proprio: strumenti come \textbf{Gurobi}~\cite{gurobi},
+\textbf{CPLEX}~\cite{cplex} o \textbf{HiGHS}~\cite{highs2018} sono motori di
+risoluzione, non linguaggi di modellazione.
+
+Questi strumenti costituiscono lo stato dell'arte con cui ROOC si confronta, e il
+loro punto di forza è la \emph{generalità}. I linguaggi algebrici come AMPL o GAMS
+coprono un ampio ventaglio di classi di problemi (lineari, interi, non lineari) e
+si interfacciano con i solver più diversi, mentre motori come Gurobi e CPLEX
+offrono prestazioni di livello industriale, frutto di decenni di sviluppo e di
+ottimizzazioni sofisticate. Per problemi di grande dimensione o in contesti
+produttivi, dove ciò che conta è poter modellare qualunque cosa e risolverla nel
+minor tempo possibile, questi strumenti restano la scelta naturale.
+
+Questa generalità richiede una sintassi e una semantica ricche, articolate e complesse, e dunque una curva
+di apprendimento ripida; molti di questi strumenti sono inoltre commerciali e a
+sorgente chiuso, oppure richiedono di padroneggiare un linguaggio di
+programmazione ospite, come Python per Pyomo o Julia per JuMP, e di allestire un
+ambiente di esecuzione. Per chi muove i primi passi nella modellazione, il
+rischio è che lo sforzo iniziale sia rivolto più allo strumento che ai concetti
+che si vorrebbero apprendere.
+
+ROOC ha come obiettivo offrire un linguaggio capace di rappresentare con
+facilità modelli in grado di fare cose utili, senza per questo risultare difficile
+da comprendere. Da questo obiettivo discendono le sue priorità: una sintassi
+contenuta e vicina alla notazione matematica; una diagnostica che indica con
+precisione \emph{dove} si è commesso un errore, così da accompagnare l'utente
+nella correzione; la possibilità di \emph{estendere} il linguaggio con funzioni e
+costanti proprie quando i costrutti predefiniti non bastano; e, soprattutto, un
+orientamento all'\emph{apprendimento} della modellazione e della risoluzione di
+problemi tramite la programmazione lineare. ROOC non compete dunque
+con gli strumenti citati sul terreno della generalità o delle prestazioni, ma
+occupa lo spazio, meno presidiato, di uno strumento pensato prima di tutto per
+imparare.
 
 \section{Cenni di teoria dei linguaggi e dei compilatori}
 \label{sec:teoria-compilatori}

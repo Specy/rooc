@@ -35,7 +35,7 @@
 			linkcolor=linkyellow,
                         linktoc=page,
 			anchorcolor=black,
-			citecolor=red,
+			citecolor=linkyellow,
 			urlcolor=blue,
 			pdftitle={ROOC: linguaggio ed ambiente integrato per la modellazione e soluzione di problemi di ottimizzazione lineare},
 			pdfauthor={Enrico Menichelli},
@@ -113,6 +113,16 @@
   morestring=[b]',
 }
 
+% Definizione (parziale) del linguaggio PEST per il pacchetto listings
+\lstdefinelanguage{pest}{
+  morekeywords={SOI, EOI, ANY, NEWLINE, WHITESPACE, COMMENT, PUSH, POP, PEEK,
+    DROP, ASCII_DIGIT, ASCII_HEX_DIGIT, ASCII_ALPHANUMERIC, LETTER, NUMBER},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+}
+
 \lstdefinestyle{roocstyle}{
   language=rooc,
   alsoletter={_},
@@ -141,8 +151,10 @@
     fixed,precision=2,
 }
 
-% Margini leggermente ridotti, per piu' spazio orizzontale in ogni pagina
-\geometry{textwidth=430pt, marginparwidth=60pt}
+% Margini leggermente ridotti, per piu' spazio orizzontale in ogni pagina:
+% override attualmente disattivato, si usano i margini originali della classe
+% (textwidth=396pt). Per ripristinare i margini ridotti, decommentare la riga:
+% \geometry{textwidth=430pt, marginparwidth=60pt}
 
 % I blocchi di codice non vengono spezzati su piu' pagine (quando piu' corti di una pagina)
 \BeforeBeginEnvironment{lstlisting}{\par\medskip\noindent\begin{minipage}{\linewidth}}

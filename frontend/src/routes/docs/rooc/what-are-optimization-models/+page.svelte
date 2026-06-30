@@ -97,7 +97,7 @@
         </li>
     </ul>
     <p>
-        By defining these three components-decision variables, objective function, and constraints—we've turned our
+        By defining these three components-decision variables, objective function, and constraints, we've turned our
         everyday grocery problem into a formal optimization model that can be solved using mathematical
         techniques.
     </p>

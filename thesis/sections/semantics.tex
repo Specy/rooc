@@ -201,6 +201,8 @@ I tre meccanismi (iterazione di un vincolo, espansione di una \emph{block scoped
 function} e risoluzione delle variabili composte) agiscono di norma insieme. Si
 consideri il vincolo del Listato~\ref{lst:espansione}.
 
+\
+ 
 \begin{lstlisting}[caption={Un vincolo che combina iterazione, sommatoria con \emph{scope} e variabili composte.}, label={lst:espansione}]
 sum(j in 0..i + 1) { x_j } <= i + 1 for i in 0..3
 \end{lstlisting}

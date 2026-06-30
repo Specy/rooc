@@ -52,15 +52,17 @@ linguaggio, comprese le sue particolarità come la moltiplicazione implicita.
 \label{sec:grammatica-pest}
 
 ROOC definisce la propria sintassi tramite \textbf{PEST}, una libreria Rust che
-implementa le PEG. La grammatica è scritta in un file dedicato e viene tradotta
-in un parser a tempo di compilazione.
+implementa le PEG. La grammatica è scritta in un file dedicato\footnote{La
+grammatica completa è disponibile nel repository del progetto:
+\url{https://github.com/Specy/rooc/blob/main/src/parser/grammar.pest}} e viene
+tradotta in un parser a tempo di compilazione.
 
 \paragraph{La regola principale.}
 La regola di partenza, \texttt{problem}, descrive la struttura complessiva di un
 modello: la funzione obiettivo, la sezione dei vincoli e i blocchi opzionali
 \texttt{where} e \texttt{define} (Listato~\ref{lst:grammar-problem}).
 
-\begin{lstlisting}[language={}, caption={La regola principale della grammatica.}, label={lst:grammar-problem}]
+\begin{lstlisting}[language=pest, caption={La regola principale della grammatica.}, label={lst:grammar-problem}]
 problem = {
     SOI ~ nl* ~
     #objective = objective ~ nl+ ~
@@ -72,24 +74,42 @@ problem = {
 }
 \end{lstlisting}
 
-Questo frammento mostra diverse caratteristiche delle PEG e di PEST. L'operatore
-\texttt{\textasciitilde} indica la sequenza e il suffisso \texttt{?}
-l'opzionalità; \texttt{SOI} ed \texttt{EOI} marcano l'inizio e la fine
-dell'input. Le scritture come \texttt{\#objective = \ldots} sono \emph{tag}: una
-funzionalità di PEST che assegna un nome a una sottoparte della regola,
-rendendola facilmente recuperabile in fase di costruzione dell'IR senza dover
-contare la posizione dei nodi.
+\begin{table}[H]
+\centering
+\begin{tabular}{l p{0.70\textwidth}}
+\hline
+\textbf{Costrutto} & \textbf{Significato} \\
+\hline
+\texttt{\#nome = \ldots} & \emph{Tag}: assegna un nome a una sottoparte della regola, rendendola facilmente recuperabile in fase di costruzione dell'IR. \\
+\texttt{\textasciitilde} & \emph{Sequenza}: gli elementi devono comparire in successione, nell'ordine indicato. \\
+\texttt{\textbar} & \emph{Scelta ordinata}: le alternative sono provate da sinistra a destra e si accetta la prima che ha successo. \\
+\texttt{?}, \texttt{*}, \texttt{+} & \emph{Quantificatori}: l'elemento compare rispettivamente zero o una volta, zero o più volte, una o più volte. \\
+\texttt{nl} & Regola ausiliaria che riconosce un'interruzione di riga (\emph{newline}). \\
+\texttt{\textasciicircum\textquotedbl\ldots\textquotedbl} & Stringa letterale \emph{case-insensitive}: \texttt{\textasciicircum\textquotedbl s.t.\textquotedbl}. \\
+\texttt{@\{\ldots\}} & Regola \emph{atomica}: trattata come un unico token terminale. \\
+\texttt{\_\{\ldots\}} & Regola \emph{silenziosa}: non compare nell'albero risultante perché serve solo a strutturare la grammatica. \\
+\texttt{(\ldots)} & Raggruppamento: applica un operatore (per esempio \texttt{?} o \texttt{*}) a un gruppo di elementi. \\
+\texttt{SOI}, \texttt{EOI} & Inizio (\emph{Start Of Input}) e fine (\emph{End Of Input}) dell'input. \\
+\hline
+\end{tabular}
+\caption{Gli operatori della grammatica PEG/PEST utilizzati in ROOC.}
+\label{tab:pest-operatori}
+\end{table}
+
+La regola \texttt{problem} (Listato~\ref{lst:grammar-problem}) impiega gran parte
+degli operatori delle PEG e delle estensioni introdotte da PEST, il cui
+significato è riassunto nella Tabella~\ref{tab:pest-operatori}.
 
 \paragraph{Regole atomiche, silenziose e scelta ordinata.}
-Altre regole illustrano ulteriori meccanismi. La scelta ordinata si esprime con
-l'operatore \texttt{|}; le regole \emph{atomiche}, marcate con \texttt{@}, sono
-trattate come un unico token senza gestione automatica degli spazi interni; le
-regole \emph{silenziose}, marcate con \texttt{\_}, non compaiono nell'albero
-risultante perché servono solo a strutturare la grammatica.
+Il Listato~\ref{lst:grammar-misc} mostra in concreto alcuni di questi operatori:
+la regola \texttt{objective\_type} è \emph{atomica} (\texttt{@}) e impiega la
+scelta ordinata (\texttt{\textbar}) tra due stringhe \emph{case-insensitive},
+mentre \texttt{exp} è \emph{silenziosa} (\texttt{\_}) e combina opzionalità e
+ripetizione.
 
 \
 
-\begin{lstlisting}[language={}, caption={Esempi di regola atomica, silenziosa e di scelta ordinata.}, label={lst:grammar-misc}]
+\begin{lstlisting}[language=pest, caption={Esempi di regola atomica, silenziosa e di scelta ordinata.}, label={lst:grammar-misc}]
 objective_type = @{ ^"min" | ^"max" }
 exp = _{ unary_op? ~ exp_leaf ~ (binary_op ~ unary_op? ~ exp_leaf)* }
 \end{lstlisting}

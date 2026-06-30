@@ -30,39 +30,39 @@ il valore ottimo.
 
 \begin{lstlisting}[language=typescript, caption={Definizione di una funzione e di una costante, risoluzione di un modello con \texttt{@specy/rooc}.}, label={lst:tslib}]
 import { makeRoocFunction, RoocRunnablePipe, Pipes, PrimitiveKind } from "@specy/rooc"
-
 // funzione definita dall'utente: radice quadrata
 const sqrt = makeRoocFunction({
     name: "sqrt",
     parameters: [["of_num", PrimitiveKind.Number]],
     returns: PrimitiveKind.Number,
-    call: (num) => ({ type: "Number", value: Math.sqrt(num.value) }),
+    call: (num) => ({ 
+      type: "Number", 
+      value: Math.sqrt(num.value) 
+    }),
 })
-
 // costante fornita dall'esterno
 const constants = [["base", { type: "Number", value: 16 }]]
-
 // la funzione sqrt e la costante "base" sono usate nel modello
 const source = `
 max sqrt(base) * x
 s.t.
     x <= 10
 define
-    x as NonNegativeReal
-`
-
-// composizione della pipeline: dal sorgente fino al solver automatico
+    x as NonNegativeReal`
+// composizione della pipeline di esecuzione
 const pipe = new RoocRunnablePipe()
-const pipes = [Pipes.CompilerPipe, Pipes.PreModelPipe, Pipes.ModelPipe,
-               Pipes.LinearModelPipe, Pipes.AutoSolverPipe]
+const pipes = [
+      Pipes.CompilerPipe, Pipes.PreModelPipe, 
+      Pipes.ModelPipe, Pipes.LinearModelPipe, 
+      Pipes.AutoSolverPipe
+]
 for (const p of pipes) {
     pipe.addPipeByName(p)
 }
-
 const result = pipe.run(source, constants, [sqrt])
 if (result.isOk()) {
     const steps = result.value
-    const solution = steps[steps.length - 1].data   // la soluzione finale
+    const solution = steps[steps.length - 1].data
     console.log("Valore ottimo:", solution.value)
 }
 \end{lstlisting}
@@ -79,18 +79,32 @@ qualunque servizio di hosting statico. Il suo elemento centrale è un editor di
 codice, basato su Monaco, dotato di una definizione di linguaggio dedicata a ROOC
 per l'evidenziazione della sintassi (Figura~\ref{fig:editor}).
 
-\begin{figure}[ht]
+\begin{figure}[H]
 \centering
-\IfFileExists{imgs/editor-ui.png}{%
-  \includegraphics[width=\textwidth]{editor-ui.png}%
+\IfFileExists{imgs/editor-ui-1.png}{%
+  \includegraphics[width=\textwidth]{editor-ui-1.png}%
 }{%
   \fbox{\parbox{0.8\textwidth}{\centering Immagine non disponibile}}%
 }
-\caption{L'editor della piattaforma web, con il modello dello zaino a sinistra e,
-a destra, la pipeline di risoluzione configurabile come sequenza di stadi
-(compilatore, \emph{pre model}, \emph{model}, modello lineare, solver).}
+\caption{L'editor della piattaforma web: a sinistra l'area di scrittura del
+modello, a destra il pannello con la pipeline di risoluzione, configurabile come
+sequenza di stadi.}
 \label{fig:editor}
 \end{figure}
+
+\noindent I riquadri numerati nella Figura~\ref{fig:editor} indicano:
+\begin{enumerate}
+  \item l'\textbf{editor di codice}, in cui si scrive il modello ROOC (qui il
+        problema della dieta dell'Appendice~\ref{app:esempi}), con evidenziazione
+        della sintassi e diagnostica in linea;
+  \item la \textbf{barra degli strumenti}, con le azioni per allegare file,
+        mostrare il \emph{runtime} e accedere al repository, alla condivisione e
+        alla documentazione;
+  \item il pannello che rappresenta la \emph{pipeline} come
+        sequenza di stadi configurabili che l'utente può aggiungere e rimuovere;
+  \item i \textbf{controlli di esecuzione}, con la scelta della pipeline
+        predefinita e i pulsanti per ripristinare ed eseguire il modello.
+\end{enumerate}
 
 \paragraph{Funzionalità da Language Server.}
 Sull'editor sono innestate alcune funzionalità tipiche di un \emph{Language
@@ -111,10 +125,62 @@ l'intero processo di risoluzione, e non soltanto il risultato finale. Come
 descritto nel Capitolo~\ref{cap:architettura}, l'architettura a pipe conserva
 tutte le rappresentazioni intermedie; la piattaforma le rende visibili, mostrando
 il modello dopo l'analisi semantica, la sua resa in LaTeX, la versione
-linearizzata, la forma standard e, infine, la risoluzione. In particolare, la
-modalità passo-passo del simplesso (Capitolo~\ref{cap:solver}) permette di
-osservare l'evoluzione del \emph{tableau} a ogni iterazione, con l'indicazione
-delle variabili entrante e uscente.
+linearizzata, la forma standard e, infine, la risoluzione
+(Figura~\ref{fig:output}).
+
+\begin{figure}[H]
+\centering
+\IfFileExists{imgs/editor-ui-2.png}{%
+  \includegraphics[width=\textwidth]{editor-ui-2.png}%
+}{%
+  \fbox{\parbox{0.8\textwidth}{\centering Immagine non disponibile}}%
+}
+\caption{Le rappresentazioni intermedie esposte dopo l'esecuzione, dal modello
+alla forma standard.}
+\label{fig:output}
+\end{figure}
+
+\noindent I riquadri numerati nella Figura~\ref{fig:output} indicano:
+\begin{enumerate}
+  \setcounter{enumi}{4}
+  \item il \textbf{Model}, ottenuto dopo l'analisi semantica
+        (Capitolo~\ref{cap:semantica}), in cui le astrazioni di alto livello sono
+        risolte: le costanti sono valutate e gli iteratori espansi;
+  \item il \textbf{modello lineare}, in cui ogni espressione è ridotta a una
+        combinazione lineare delle variabili (qui mostrato compresso dato che già lineare);
+  \item il \textbf{modello in forma standard}, con i vincoli ridotti a
+        uguaglianze tramite variabili di \emph{slack} e \emph{surplus}, pronto
+        per il simplesso.
+\end{enumerate}
+
+In particolare, la modalità passo-passo del simplesso (Capitolo~\ref{cap:solver})
+permette di osservare l'evoluzione del \emph{tableau} a ogni iterazione, con
+l'indicazione delle variabili entrante e uscente
+(Figura~\ref{fig:simplex-steps}).
+
+\begin{figure}[H]
+\centering
+\IfFileExists{imgs/editor-ui-3.png}{%
+  \includegraphics[width=\textwidth]{editor-ui-3.png}%
+}{%
+  \fbox{\parbox{0.8\textwidth}{\centering Immagine non disponibile}}%
+}
+\caption{La risoluzione passo-passo del simplesso e la soluzione finale del
+problema della dieta.}
+\label{fig:simplex-steps}
+\end{figure}
+
+\noindent I riquadri numerati nella Figura~\ref{fig:simplex-steps} indicano:
+\begin{enumerate}
+  \setcounter{enumi}{7}
+  \item la \textbf{risoluzione passo-passo} del simplesso, con la navigazione tra
+        le iterazioni e l'indicazione, a ogni \emph{pivot}, delle variabili
+        entrante e uscente;
+  \item il \textbf{tableau ottimo}, raggiunto al termine delle iterazioni, con il
+        relativo valore ottimo della funzione obiettivo;
+  \item la \textbf{soluzione}, ossia i valori assunti dalle variabili del modello
+        (\texttt{x\_0}, \texttt{x\_1}, \texttt{x\_2} e le variabili ausiliarie).
+\end{enumerate}
 
 A completamento, la piattaforma offre una documentazione interattiva del
 linguaggio, con esempi eseguibili direttamente nell'editor. L'insieme di queste
