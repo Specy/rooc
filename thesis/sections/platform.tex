@@ -28,6 +28,7 @@ Listato~\ref{lst:tslib} mostra un esempio completo: si registra una funzione
 lo si risolve componendo la pipeline fino al solver automatico, leggendone infine
 il valore ottimo.
 
+\keeptogetherfalse
 \begin{lstlisting}[language=typescript, caption={Definizione di una funzione e di una costante, risoluzione di un modello con \texttt{@specy/rooc}.}, label={lst:tslib}]
 import { makeRoocFunction, RoocRunnablePipe, Pipes, PrimitiveKind } from "@specy/rooc"
 // funzione definita dall'utente: radice quadrata
@@ -66,6 +67,7 @@ if (result.isOk()) {
     console.log("Valore ottimo:", solution.value)
 }
 \end{lstlisting}
+\keeptogethertrue
 
 Grazie a questa impostazione lo stesso motore è riutilizzabile in tre forme: come
 \emph{crate} Rust, come pacchetto npm e come componente eseguibile nel browser.

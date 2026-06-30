@@ -21,11 +21,11 @@
 \usepackage[nottoc, notlof, notlot]{tocbibind}
 %\onehalfspacing
 %\counterwithout{footnote}{chapter}
+\usepackage{xcolor}
 \usepackage{hyperref}
 
 % Colore dei link interni: giallo-ocra scuro (piu' leggibile del giallo puro).
 % Per regolarlo, modifica i valori RGB qui sotto (0 = nessuno, 1 = massimo).
-\usepackage{color}
 \definecolor{linkyellow}{rgb}{0.8, 0.55, 0.0}
 
 \hypersetup{
@@ -60,7 +60,6 @@
 
 % show code
 \usepackage{inconsolata}
-\usepackage{color}
 \usepackage{listings}
 % 
 
@@ -157,8 +156,13 @@
 % \geometry{textwidth=430pt, marginparwidth=60pt}
 
 % I blocchi di codice non vengono spezzati su piu' pagine (quando piu' corti di una pagina)
-\BeforeBeginEnvironment{lstlisting}{\par\medskip\noindent\begin{minipage}{\linewidth}}
-\AfterEndEnvironment{lstlisting}{\end{minipage}\par\medskip}
+% I blocchi di codice corti restano su un'unica pagina (minipage); per i listati
+% piu' lunghi di una pagina si puo' disattivare il wrap con \keeptogetherfalse,
+% in modo che il listato possa spezzarsi su piu' pagine.
+\newif\ifkeeptogether
+\keeptogethertrue
+\BeforeBeginEnvironment{lstlisting}{\par\medskip\noindent\ifkeeptogether\begin{minipage}{\linewidth}\fi}
+\AfterEndEnvironment{lstlisting}{\ifkeeptogether\end{minipage}\fi\par\medskip}
 
 \title{ROOC: linguaggio ed ambiente integrato per la modellazione e soluzione di problemi di ottimizzazione lineare}
 \author{Enrico Menichelli}
