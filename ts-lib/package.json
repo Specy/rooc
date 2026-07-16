@@ -2,12 +2,18 @@
   "type": "module",
   "name": "@specy/rooc",
   "description": "Optimization modeling language",
-  "version": "1.6.0",
-  "license": "GPL-3.0",
+  "version": "2.1.0",
+  "license": "MPL-2.0",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "exports": {
-    ".": "./dist/index.js",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
     "./src/runtime": {
       "import": "./dist/runtime.js",
       "types": "./dist/runtime.d.ts"
@@ -15,6 +21,10 @@
     "./runtime": {
       "import": "./dist/runtime.js",
       "types": "./dist/runtime.d.ts"
+    },
+    "./pkg": {
+      "import": "./dist/pkg/rooc.js",
+      "types": "./dist/pkg/rooc.d.ts"
     }
   },
   "repository": {

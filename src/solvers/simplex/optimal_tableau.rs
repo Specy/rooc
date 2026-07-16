@@ -26,8 +26,10 @@ impl OptimalTableau {
         &self.values
     }
     pub fn optimal_value(&self) -> f64 {
+        //the offset is in the original problem's frame, it must not be
+        //negated together with the tableau value when the objective was flipped
         let flip = if self.flip_result { -1.0 } else { 1.0 };
-        -(self.tableau.current_value() + self.tableau.value_offset()) * flip
+        -self.tableau.current_value() * flip + self.tableau.value_offset()
     }
     pub fn tableau(&self) -> &Tableau {
         &self.tableau
@@ -36,16 +38,41 @@ impl OptimalTableau {
     pub fn as_lp_solution(&self) -> LpSolution<f64> {
         let values = self.variables_values().clone();
         let value = self.optimal_value();
-        let assignment = self
-            .tableau
-            .variables()
+        let names = self.tableau.variables();
+        // Map standard-form variables back to the original model's variables:
+        // recombine a free variable's split `x = $px - $mx`, and drop the internal
+        // slack/surplus/artificial variables the standardizer/two-phase added.
+        let map: IndexMap<String, f64> = names
             .iter()
-            .zip(values.iter())
-            .map(|(var, val)| crate::solvers::Assignment {
-                name: var.clone(),
-                value: *val,
-            })
+            .cloned()
+            .zip(values.iter().cloned())
             .collect();
+        let mut assignment = Vec::new();
+        for (name, val) in names.iter().zip(values.iter()) {
+            if name.starts_with("$su_") || name.starts_with("$sl_") || name.starts_with("$a_") {
+                continue; // internal slack/surplus/artificial variable
+            }
+            // Negative half of a free-variable split: already accounted for by the positive half.
+            if let Some(rest) = name.strip_prefix("$m") {
+                if map.contains_key(&format!("$p{}", rest)) {
+                    continue;
+                }
+            }
+            // Positive half of a free-variable split: reconstruct the original variable.
+            if let Some(rest) = name.strip_prefix("$p") {
+                if let Some(minus) = map.get(&format!("$m{}", rest)) {
+                    assignment.push(crate::solvers::Assignment {
+                        name: rest.to_string(),
+                        value: *val - *minus,
+                    });
+                    continue;
+                }
+            }
+            assignment.push(crate::solvers::Assignment {
+                name: name.clone(),
+                value: *val,
+            });
+        }
         LpSolution::new(assignment, value, IndexMap::new())
     }
 }

@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 use rooc::pipe::{
-    BinarySolverPipe, LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData,
+    MILPSolverPipe, LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData,
     PreModelPipe,
 };
 
@@ -21,7 +21,7 @@ define
         Box::new(PreModelPipe::new()),
         Box::new(ModelPipe::new()),
         Box::new(LinearModelPipe::new()),
-        Box::new(BinarySolverPipe::new()),
+        Box::new(MILPSolverPipe::new()),
     ]);
     let result = pipe_runner
         .run(
@@ -33,7 +33,7 @@ define
         .into_iter()
         .last()
         .unwrap()
-        .to_binary_solution()
+        .to_milp_solution()
         .unwrap();
 
     println!("{}", last)

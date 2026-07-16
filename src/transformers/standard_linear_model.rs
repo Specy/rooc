@@ -166,45 +166,88 @@ impl StandardLinearModel {
                         "Initial problem is infeasible".to_string(),
                     ));
                 }
-                let new_basis = tableau.in_basis().clone();
-                //check that the new basis is valid,
-                if new_basis.iter().all(|&i| i < number_of_variables) {
-                    //restore the original objective function
-                    let mut new_a = tableau.a_matrix().clone();
-                    //remove the artificial variables from the tableau
-                    for row in new_a.iter_mut() {
-                        row.resize(number_of_variables, 0.0);
+                // The Phase 1 optimum is 0, so the problem is feasible. Some artificial
+                // variables may still be basic at value 0 (e.g. with redundant/linearly
+                // dependent constraints). Drive each such artificial out of the basis by
+                // pivoting on any structural column with a non-zero entry in its row; a
+                // row with no structural support is a redundant constraint and is dropped.
+                let mut a = tableau.a_matrix().clone();
+                let mut b = tableau.b_vec().clone();
+                let mut basis = tableau.in_basis().clone();
+                let mut rows_to_drop: Vec<usize> = Vec::new();
+                for row in 0..basis.len() {
+                    if basis[row] < number_of_variables {
+                        continue; // a structural variable is basic in this row, all good
                     }
-                    let mut value = 0.0;
-                    let mut new_c = self.c_vec();
-                    let new_b = tableau.b_vec().clone();
-                    //put in the original objective function in canonical form
-                    for (row_index, variable_index) in new_basis.iter().enumerate() {
-                        //values in base need to be 0, we know that the coefficient in basis is 0 or 1 so we can
-                        //simply multiply by the coefficient of the row
-                        let coefficient = new_c[*variable_index];
-                        for (index, c) in new_c.iter_mut().enumerate() {
-                            *c -= coefficient * new_a[row_index][index];
+                    let pivot_col = (0..number_of_variables).find(|&j| float_ne(a[row][j], 0.0));
+                    match pivot_col {
+                        Some(col) => {
+                            let pivot = a[row][col];
+                            let width = a[row].len();
+                            for j in 0..width {
+                                a[row][j] /= pivot;
+                            }
+                            b[row] /= pivot;
+                            for r in 0..a.len() {
+                                if r == row {
+                                    continue;
+                                }
+                                let factor = a[r][col];
+                                if factor == 0.0 {
+                                    continue;
+                                }
+                                for j in 0..width {
+                                    a[r][j] -= factor * a[row][j];
+                                }
+                                b[r] -= factor * b[row];
+                            }
+                            basis[row] = col;
                         }
-                        value -= coefficient * new_b[row_index];
+                        None => rows_to_drop.push(row),
                     }
-
-                    Ok(Tableau::new(
-                        new_c,
-                        new_a,
-                        new_b,
-                        new_basis,
-                        value,
-                        self.objective_offset(),
-                        self.variables(),
-                        self.flip_objective,
-                    ))
-                } else {
-                    Err(CanonicalTransformError::InvalidBasis(format!(
+                }
+                // Build the Phase 2 tableau over the structural columns only, dropping the
+                // artificial columns and any redundant rows.
+                let mut new_a: Vec<Vec<f64>> = Vec::new();
+                let mut new_b: Vec<f64> = Vec::new();
+                let mut new_basis: Vec<usize> = Vec::new();
+                for row in 0..a.len() {
+                    if rows_to_drop.contains(&row) {
+                        continue;
+                    }
+                    let mut coeffs = a[row].clone();
+                    coeffs.truncate(number_of_variables);
+                    new_a.push(coeffs);
+                    new_b.push(b[row]);
+                    new_basis.push(basis[row]);
+                }
+                if !new_basis.iter().all(|&i| i < number_of_variables) {
+                    // Should not happen: every artificial was pivoted out or its row dropped.
+                    return Err(CanonicalTransformError::InvalidBasis(format!(
                         "Invalid basis: {:?}",
                         new_basis
-                    )))
+                    )));
                 }
+                //restore the original objective function in canonical form
+                let mut value = 0.0;
+                let mut new_c = self.c_vec();
+                for (row_index, variable_index) in new_basis.iter().enumerate() {
+                    let coefficient = new_c[*variable_index];
+                    for (index, c) in new_c.iter_mut().enumerate() {
+                        *c -= coefficient * new_a[row_index][index];
+                    }
+                    value -= coefficient * new_b[row_index];
+                }
+                Ok(Tableau::new(
+                    new_c,
+                    new_a,
+                    new_b,
+                    new_basis,
+                    value,
+                    self.objective_offset(),
+                    self.variables(),
+                    self.flip_objective,
+                ))
             }
             Err(e) => Err(CanonicalTransformError::SimplexError(format!(
                 "Error solving initial tableau: {:?}",

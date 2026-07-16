@@ -1,8 +1,11 @@
-use crate::{float_eq, math::{float_ge, float_gt, float_le, float_lt}};
 #[allow(unused_imports)]
 use crate::prelude::*;
 use crate::solvers::{
     OptimalTableau, OptimalTableauWithSteps, SimplexError, SimplexStep, StepAction,
+};
+use crate::{
+    float_eq,
+    math::{float_ge, float_gt, float_le, float_lt},
 };
 use core::fmt;
 use std::fmt::Display;
@@ -109,15 +112,27 @@ impl Tableau {
         let mut iteration = 0;
         let empty = vec![];
         let mut steps = vec![];
-        while iteration <= limit {
+        let mut stalls = 0i64;
+        let mut last_value = self.current_value;
+        let stall_limit = (self.c.len() + self.a.len()) as i64 + 1;
+        while iteration < limit {
             let prev = self.clone();
-            match self.step(&empty) {
+            // Fall back to Bland's rule once the objective has stalled (repeated
+            // degenerate pivots) to guarantee termination without cycling.
+            let use_bland = stalls > stall_limit;
+            match self.step_inner(&empty, use_bland) {
                 Ok(StepAction::Pivot {
                     entering,
                     leaving,
                     ratio,
                 }) => {
                     iteration += 1;
+                    if float_eq(self.current_value, last_value) {
+                        stalls += 1;
+                    } else {
+                        stalls = 0;
+                        last_value = self.current_value;
+                    }
                     steps.push(SimplexStep::new(prev, entering, leaving, ratio));
                 }
                 Ok(StepAction::Finished) => {
@@ -140,10 +155,20 @@ impl Tableau {
         variables_to_avoid: &[usize],
     ) -> Result<OptimalTableau, SimplexError> {
         let mut iteration = 0;
-        while iteration <= limit {
-            match self.step(variables_to_avoid) {
+        let mut stalls = 0i64;
+        let mut last_value = self.current_value;
+        let stall_limit = (self.c.len() + self.a.len()) as i64 + 1;
+        while iteration < limit {
+            let use_bland = stalls > stall_limit;
+            match self.step_inner(variables_to_avoid, use_bland) {
                 Ok(StepAction::Pivot { .. }) => {
                     iteration += 1;
+                    if float_eq(self.current_value, last_value) {
+                        stalls += 1;
+                    } else {
+                        stalls = 0;
+                        last_value = self.current_value;
+                    }
                 }
                 Ok(StepAction::Finished) => {
                     return Ok(OptimalTableau::new(self.variables_values(), self.clone()));
@@ -156,11 +181,22 @@ impl Tableau {
         Err(SimplexError::IterationLimitReached)
     }
     pub fn step(&mut self, variables_to_avoid: &[usize]) -> Result<StepAction, SimplexError> {
+        self.step_inner(variables_to_avoid, false)
+    }
+
+    fn step_inner(
+        &mut self,
+        variables_to_avoid: &[usize],
+        use_bland: bool,
+    ) -> Result<StepAction, SimplexError> {
         if self.is_optimal() {
             return Ok(StepAction::Finished);
         }
-        match self.find_h(variables_to_avoid) {
-            None => Err(SimplexError::Unbounded),
+        match self.find_h(variables_to_avoid, use_bland) {
+            // No non-basic column has a negative reduced cost => the tableau is optimal,
+            // NOT unbounded. Unboundedness is detected below by `find_t` returning `None`
+            // (an entering column with no positive pivot candidate).
+            None => Ok(StepAction::Finished),
             Some(h) => {
                 let t = self.find_t(h, variables_to_avoid);
                 match t {
@@ -188,16 +224,22 @@ impl Tableau {
     }
 
     //finds the variable that will enter the basis
-    #[allow(unused)]
-    fn find_h(&self, variables_to_avoid: &[usize]) -> Option<usize> {
-        //uses the Bland's rule for anti-cycling
-        let min = self
+    fn find_h(&self, _variables_to_avoid: &[usize], use_bland: bool) -> Option<usize> {
+        let eligible = self
             .c
             .iter()
             .enumerate()
-            .filter(|(i, c)| !self.in_basis.contains(i) && float_lt(**c, 0.0))
-            .min_by(|(_, c1), (_, c2)| c1.partial_cmp(c2).unwrap());
-        min.map(|(i, _)| i)
+            .filter(|(i, c)| !self.in_basis.contains(i) && float_lt(**c, 0.0));
+        if use_bland {
+            // Bland's rule: smallest-index eligible column, guarantees termination.
+            eligible.map(|(i, _)| i).min()
+        } else {
+            // Dantzig's rule: most-negative reduced cost (fast in practice).
+            // `unwrap_or(Equal)` avoids a panic if a reduced cost is ever NaN.
+            eligible
+                .min_by(|(_, c1), (_, c2)| c1.partial_cmp(c2).unwrap_or(std::cmp::Ordering::Equal))
+                .map(|(i, _)| i)
+        }
     }
 
     //finds the variable that will leave the basis, prioritize variabls_to_prefer

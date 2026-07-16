@@ -10,9 +10,9 @@ export const RoocLanguage = {
     defaultToken: 'invalid',
     ignoreCase: true,
     tokenPostfix: '.rooc',
-    keywords: ["where", "for", "min", "max", "in", "as", "define", "let", 'solve'],
+    keywords: ["where", "for", "min", "max", "in", "as", "define", "let", 'solve', "and", "or", "not", "implies", "iff", "xor"],
     literals: ["true", "false"],
-    operators: ["+", "-", "/", "*", "!", "&", "|", "=", "<=", "=>", "<", ">"],
+    operators: ["+", "-", "/", "*", "!", "&&", "||", "=", "<=", ">=", "<", ">", "->", "<->"],
     symbols: /[=><!~?:&|+\-*\/\^%]+/,
     digits: /\d+(_+\d+)*/,
     tokenizer: {
@@ -139,7 +139,15 @@ const keywords = {
     'as': 'Assert that the domain of variable is of a certain type',
     'define': 'Define the domain of the variables in your model, all variables must be defined',
     'let': 'Define a variable in the model',
-    'solve': 'Define the model as a satisfiability problem and not an optimization problem'
+    'solve': 'Define the model as a satisfiability problem and not an optimization problem',
+    'and': 'Logic conjunction, true when both operands are true, alias &&',
+    'or': 'Logic disjunction, true when at least one operand is true, alias ||',
+    'not': 'Logic negation, alias !',
+    'implies': 'Logic implication, false only when the left side is true and the right side is false, alias ->',
+    'iff': 'Logic biconditional, true when both operands have the same value, alias <->',
+    'xor': 'Logic exclusive disjunction, true when the operands have different values',
+    'true': 'Boolean true literal',
+    'false': 'Boolean false literal'
 }
 const domainTypes = {
     'Boolean': 'A boolean value {0,1}',
@@ -358,7 +366,8 @@ export function makeRoocCompletionToken(entry: PossibleCompletionToken) {
 export type RoocCompletionToken = ReturnType<typeof makeRoocCompletionToken>
 
 const suggestedKeywords = [
-    'where', 'for', 'in', 's.t.', 'as', 'define', 'let', 'solve'
+    'where', 'for', 'in', 's.t.', 'as', 'define', 'let', 'solve',
+    'and', 'or', 'not', 'implies', 'iff', 'xor', 'true', 'false'
 ].map(k => ({
     label: k,
     kind: languages.CompletionItemKind.Keyword,

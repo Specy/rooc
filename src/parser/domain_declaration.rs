@@ -139,6 +139,18 @@ impl VariablesDomainDeclaration {
             .collect()
     }
 
+    /// Returns the family shape of the compound variables declared in this
+    /// domain, as base name and number of indexes, like ("x", 1) for x_i
+    pub fn static_compound_variables(&self) -> Vec<(String, usize)> {
+        self.variables
+            .iter()
+            .filter_map(|v| match &v.value() {
+                Variable::CompoundVariable(c) => Some((c.name.clone(), c.indexes.len())),
+                _ => None,
+            })
+            .collect()
+    }
+
     /// Returns reference to iteration sets
     pub fn iteration(&self) -> &Vec<IterableSet> {
         &self.iteration

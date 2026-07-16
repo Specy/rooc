@@ -6,7 +6,7 @@ use rooc::RoocParser;
 use rooc::model_transformer::{TransformError, TransformerContext};
 use rooc::type_checker::type_checker_context::{FunctionContext, TypeCheckerContext};
 use rooc::{Constant, IterableKind, Primitive, PrimitiveKind};
-use rooc::{FunctionContextMap, solve_integer_binary_lp_problem};
+use rooc::{FunctionContextMap, solve_milp_lp_problem};
 
 fn main() {
     let source = "
@@ -35,7 +35,7 @@ define
 
     let model = parsed.transform(constants, &fns).unwrap();
     let linear = Linearizer::linearize(model).unwrap();
-    let solution = solve_integer_binary_lp_problem(&linear).unwrap();
+    let solution = solve_milp_lp_problem(&linear).unwrap();
     println!("{}", solution)
 }
 

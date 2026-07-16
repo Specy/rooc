@@ -28,7 +28,6 @@ Listato~\ref{lst:tslib} mostra un esempio completo: si registra una funzione
 lo si risolve componendo la pipeline fino al solver automatico, leggendone infine
 il valore ottimo.
 
-\keeptogetherfalse
 \begin{lstlisting}[language=typescript, caption={Definizione di una funzione e di una costante, risoluzione di un modello con \texttt{@specy/rooc}.}, label={lst:tslib}]
 import { makeRoocFunction, RoocRunnablePipe, Pipes, PrimitiveKind } from "@specy/rooc"
 // funzione definita dall'utente: radice quadrata
@@ -61,11 +60,9 @@ for (const p of pipes) {
     pipe.addPipeByName(p)
 }
 const result = pipe.run(source, constants, [sqrt])
-if (result.isOk()) {
-    const steps = result.value
-    const solution = steps[steps.length - 1].data
-    console.log("Valore ottimo:", solution.value)
-}
+const steps = result.value.unwrap()
+const solution = steps[steps.length - 1].data
+console.log("Valore ottimo:", solution.value)
 \end{lstlisting}
 \keeptogethertrue
 

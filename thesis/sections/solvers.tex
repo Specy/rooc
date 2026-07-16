@@ -104,10 +104,8 @@ il valore ottimo.
 Oltre al solver proprio, ROOC integra alcuni backend esterni, ciascuno
 specializzato per una particolare classe di problemi. Per i modelli a sole
 variabili continue è disponibile il solver \emph{Clarabel}, utilizzato tramite la
-libreria \texttt{good\_lp}. Per i modelli a sole variabili binarie, e per quelli
-interi-binari, si ricorre a \texttt{copper}, una libreria di programmazione a
-vincoli che affronta il problema per propagazione dei vincoli anziché con il
-simplesso.
+libreria \texttt{good\_lp}. I modelli con variabili intere o binarie vengono invece
+risolti tramite il solver integrato \texttt{microlp}.
 
 \paragraph{Selezione automatica del solver.}
 La presenza di più solver, ciascuno adatto a un diverso tipo di modello, è

@@ -188,6 +188,8 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
         Err(e) => match e {
             microlp::Error::Unbounded => Err(SolverError::Unbounded),
             microlp::Error::Infeasible => Err(SolverError::Infisible),
+            microlp::Error::InvalidOptions(s) => Err(SolverError::Other(s)),
+            microlp::Error::InvalidOperation(s) => Err(SolverError::Other(s)),
             microlp::Error::InternalError(s) => Err(SolverError::Other(s)),
         },
     }

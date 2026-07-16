@@ -39,3 +39,7 @@ Cargo.lock
 # Added by cargo
 
 /target
+
+# Superpowers plans and specs
+docs/superpowers/plans/
+docs/superpowers/specs/

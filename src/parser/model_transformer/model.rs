@@ -17,7 +17,6 @@ use crate::{primitives::Primitive, utils::Spanned};
 use core::fmt;
 use indexmap::IndexMap;
 use serde::Serialize;
-use std::cell::Cell;
 
 /// Represents a mathematical expression in the optimization model.
 ///
@@ -29,6 +28,7 @@ use std::cell::Cell;
 /// - Binary operations (add, subtract, multiply, divide)
 /// - Unary operations (negation)
 #[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "value")]
 pub enum Exp {
     /// A numeric literal value
     Number(f64),
@@ -40,6 +40,18 @@ pub enum Exp {
     Min(Vec<Exp>),
     /// Maximum of multiple expressions
     Max(Vec<Exp>),
+    /// Logic conjunction of multiple expressions
+    And(Vec<Exp>),
+    /// Logic disjunction of multiple expressions
+    Or(Vec<Exp>),
+    /// Logic negation of an expression
+    Not(Box<Exp>),
+    /// Logic exclusive disjunction between two expressions
+    Xor(Box<Exp>, Box<Exp>),
+    /// Logic implication between two expressions
+    Implies(Box<Exp>, Box<Exp>),
+    /// Logic biconditional between two expressions
+    Iff(Box<Exp>, Box<Exp>),
     /// Binary operation between two expressions
     BinOp(BinOp, Box<Exp>, Box<Exp>),
     /// Unary operation on an expression
@@ -50,6 +62,8 @@ pub enum Exp {
 #[allow(non_upper_case_globals)]
 #[cfg(target_arch = "wasm32")]
 pub const IExp: &'static str = r#"
+export type SerializedBinOp = { type: keyof typeof BinOp }
+export type SerializedUnOp = { type: keyof typeof UnOp }
 export type SerializedExp = {
     type: "Number",
     value: number
@@ -66,18 +80,29 @@ export type SerializedExp = {
     type: "Max",
     value: SerializedExp[]
 } | {
+    type: "And",
+    value: SerializedExp[]
+} | {
+    type: "Or",
+    value: SerializedExp[]
+} | {
+    type: "Not",
+    value: SerializedExp
+} | {
+    type: "Xor",
+    value: [SerializedExp, SerializedExp]
+} | {
+    type: "Implies",
+    value: [SerializedExp, SerializedExp]
+} | {
+    type: "Iff",
+    value: [SerializedExp, SerializedExp]
+} | {
     type: "BinOp",
-    value: {
-        op: BinOp,
-        lhs: SerializedExp,
-        rhs: SerializedExp
-    }
+    value: [SerializedBinOp, SerializedExp, SerializedExp]
 } | {
     type: "UnOp",
-    value: {
-        op: UnOp,
-        exp: SerializedExp
-    }
+    value: [SerializedUnOp, SerializedExp]
 }
 "#;
 
@@ -132,58 +157,49 @@ impl Exp {
             Exp::BinOp(op, lhs, rhs) => {
                 let lhs = lhs.simplify();
                 let rhs = rhs.simplify();
-                match (op, lhs, rhs) {
-                    (op, Exp::Number(lhs), Exp::Number(rhs)) => match op {
-                        BinOp::Add => Exp::Number(lhs + rhs),
-                        BinOp::Sub => Exp::Number(lhs - rhs),
-                        BinOp::Mul => Exp::Number(lhs * rhs),
-                        BinOp::Div => Exp::Number(lhs / rhs),
+                match op {
+                    BinOp::Add => match (lhs, rhs) {
+                        (Exp::Number(lhs), Exp::Number(rhs)) => Exp::Number(lhs + rhs),
+                        (Exp::Number(0.0), rhs) => rhs,
+                        (lhs, Exp::Number(0.0)) => lhs,
+                        (lhs, rhs) => Exp::BinOp(BinOp::Add, lhs.to_box(), rhs.to_box()),
                     },
-                    (BinOp::Add, Exp::Number(0.0), rhs) => rhs,
-                    (BinOp::Add, lhs, Exp::Number(0.0)) => lhs,
-                    (BinOp::Sub, lhs, Exp::Number(0.0)) => lhs,
-                    (BinOp::Mul, Exp::Number(0.0), _) => Exp::Number(0.0),
-                    (BinOp::Mul, _, Exp::Number(0.0)) => Exp::Number(0.0),
-                    (BinOp::Mul, Exp::Number(1.0), rhs) => rhs,
-                    (BinOp::Mul, lhs, Exp::Number(1.0)) => lhs,
-                    (BinOp::Div, lhs, Exp::Number(1.0)) => lhs,
-                    //this would be an error, keep it as it is
-                    (BinOp::Div, lhs, Exp::Number(0.0)) => {
-                        Exp::BinOp(BinOp::Div, lhs.to_box(), Exp::Number(0.0).to_box())
-                    }
-                    (BinOp::Div, Exp::Number(0.0), _) => Exp::Number(0.0),
-                    // num1 + num2 + x = (num1 + num2) + x
-                    // num1 - num2 - x = (num1 - num2) - x
-                    // num1 * num2 * x = (num1 * num2) * x
-                    // num1 / num2 / x = (num1 / num2) / x
-                    (op, Exp::Number(lhs), Exp::BinOp(op2, inner_lhs, inner_rhs)) => {
-                        let inner_lhs = inner_lhs.simplify();
-                        let inner_rhs = inner_rhs.simplify();
-                        if *op != op2 {
-                            return Exp::BinOp(
-                                *op,
-                                Exp::Number(lhs).to_box(),
-                                Exp::BinOp(op2, inner_lhs.to_box(), inner_rhs.to_box()).to_box(),
-                            );
+                    BinOp::Sub => match (lhs, rhs) {
+                        (Exp::Number(lhs), Exp::Number(rhs)) => Exp::Number(lhs - rhs),
+                        (lhs, Exp::Number(0.0)) => lhs,
+                        (lhs, rhs) => Exp::BinOp(BinOp::Sub, lhs.to_box(), rhs.to_box()),
+                    },
+                    BinOp::Mul => match (lhs, rhs) {
+                        (Exp::Number(lhs), Exp::Number(rhs)) => Exp::Number(lhs * rhs),
+                        (Exp::Number(0.0), _) | (_, Exp::Number(0.0)) => Exp::Number(0.0),
+                        (Exp::Number(1.0), rhs) => rhs,
+                        (lhs, Exp::Number(1.0)) => lhs,
+                        (lhs, rhs) => Exp::BinOp(BinOp::Mul, lhs.to_box(), rhs.to_box()),
+                    },
+                    BinOp::Div => match (lhs, rhs) {
+                        (Exp::Number(lhs), Exp::Number(rhs)) => {
+                            if rhs == 0.0 {
+                                Exp::BinOp(
+                                    BinOp::Div,
+                                    Exp::Number(lhs).to_box(),
+                                    Exp::Number(rhs).to_box(),
+                                )
+                            } else {
+                                Exp::Number(lhs / rhs)
+                            }
                         }
-                        if let Exp::Number(rhs) = inner_lhs {
-                            let val = match op {
-                                BinOp::Add => lhs + rhs,
-                                BinOp::Sub => lhs - rhs,
-                                BinOp::Mul => lhs * rhs,
-                                BinOp::Div => lhs / rhs,
-                            };
-                            Exp::BinOp(op2, Exp::Number(val).to_box(), inner_rhs.to_box())
-                        } else {
-                            Exp::BinOp(
-                                *op,
-                                Exp::Number(lhs).to_box(),
-                                Exp::BinOp(op2, inner_lhs.to_box(), inner_rhs.to_box()).to_box(),
-                            )
-                        }
-                    }
-                    //keep the rest equal
-                    (op, lhs, rhs) => Exp::BinOp(*op, lhs.to_box(), rhs.to_box()),
+                        (lhs, Exp::Number(1.0)) => lhs,
+                        // Keep zero numerators and divisors visible so
+                        // variable denominators and division by zero are still
+                        // diagnosed by the linearizer.
+                        (lhs, rhs) => Exp::BinOp(BinOp::Div, lhs.to_box(), rhs.to_box()),
+                    },
+                    // Logic operators are normalized into structural variants.
+                    BinOp::And => Exp::And(vec![lhs, rhs]).simplify(),
+                    BinOp::Or => Exp::Or(vec![lhs, rhs]).simplify(),
+                    BinOp::Xor => Exp::Xor(lhs.to_box(), rhs.to_box()).simplify(),
+                    BinOp::Implies => Exp::Implies(lhs.to_box(), rhs.to_box()).simplify(),
+                    BinOp::Iff => Exp::Iff(lhs.to_box(), rhs.to_box()).simplify(),
                 }
             }
             Exp::UnOp(op, exp) => {
@@ -193,9 +209,64 @@ impl Exp {
                         Exp::Number(value) => Exp::Number(-value),
                         _ => Exp::UnOp(UnOp::Neg, exp.to_box()),
                     },
+                    //normalized into the structural logic variant
+                    UnOp::Not => match exp {
+                        Exp::Number(value) => Exp::Number(logic_number(!num_truthy(value))),
+                        exp => Exp::Not(exp.to_box()),
+                    },
+                }
+            }
+            Exp::Abs(exp) => {
+                //if the inner expression is a number, return its absolute value
+                let exp = exp.simplify();
+                match exp {
+                    Exp::Number(value) => Exp::Number(value.abs()),
+                    exp => Exp::Abs(exp.to_box()),
+                }
+            }
+            Exp::And(exps) => simplify_logic_nary(exps, true),
+            Exp::Or(exps) => simplify_logic_nary(exps, false),
+            Exp::Not(exp) => {
+                let exp = exp.simplify();
+                match exp {
+                    Exp::Number(value) => Exp::Number(logic_number(!num_truthy(value))),
+                    exp => Exp::Not(exp.to_box()),
+                }
+            }
+            Exp::Xor(lhs, rhs) => {
+                let lhs = lhs.simplify();
+                let rhs = rhs.simplify();
+                match (lhs, rhs) {
+                    (Exp::Number(a), Exp::Number(b)) => {
+                        Exp::Number(logic_number(num_truthy(a) != num_truthy(b)))
+                    }
+                    (lhs, rhs) => Exp::Xor(lhs.to_box(), rhs.to_box()),
+                }
+            }
+            Exp::Implies(lhs, rhs) => {
+                let lhs = lhs.simplify();
+                let rhs = rhs.simplify();
+                match (lhs, rhs) {
+                    (Exp::Number(a), Exp::Number(b)) => {
+                        Exp::Number(logic_number(!num_truthy(a) || num_truthy(b)))
+                    }
+                    (lhs, rhs) => Exp::Implies(lhs.to_box(), rhs.to_box()),
+                }
+            }
+            Exp::Iff(lhs, rhs) => {
+                let lhs = lhs.simplify();
+                let rhs = rhs.simplify();
+                match (lhs, rhs) {
+                    (Exp::Number(a), Exp::Number(b)) => {
+                        Exp::Number(logic_number(num_truthy(a) == num_truthy(b)))
+                    }
+                    (lhs, rhs) => Exp::Iff(lhs.to_box(), rhs.to_box()),
                 }
             }
             Exp::Max(exps) => {
+                if exps.is_empty() {
+                    return Exp::Max(vec![]);
+                }
                 //if they are all numbers, return the max
                 let nums = exps
                     .iter()
@@ -216,6 +287,9 @@ impl Exp {
                 }
             }
             Exp::Min(exps) => {
+                if exps.is_empty() {
+                    return Exp::Min(vec![]);
+                }
                 //if they are all numbers, return the min
                 let nums = exps
                     .iter()
@@ -269,13 +343,15 @@ impl Exp {
                     .flatten()
                 }
                 //-(a)b = -ab
-                (BinOp::Mul, Exp::UnOp(op @ UnOp::Neg, lhs), c) => {
-                    Exp::UnOp(op, Exp::make_binop(BinOp::Mul, *lhs, c).flatten().to_box())
-                }
+                (BinOp::Mul, Exp::UnOp(UnOp::Neg, lhs), c) => Exp::UnOp(
+                    UnOp::Neg,
+                    Exp::make_binop(BinOp::Mul, *lhs, c).flatten().to_box(),
+                ),
                 //a(-b) = -ab
-                (BinOp::Mul, c, Exp::UnOp(op @ UnOp::Neg, rhs)) => {
-                    Exp::UnOp(op, Exp::make_binop(BinOp::Mul, c, *rhs).flatten().to_box())
-                }
+                (BinOp::Mul, c, Exp::UnOp(UnOp::Neg, rhs)) => Exp::UnOp(
+                    UnOp::Neg,
+                    Exp::make_binop(BinOp::Mul, c, *rhs).flatten().to_box(),
+                ),
                 //(a +- b)/c = a/c +- b/c
                 (BinOp::Div, Exp::BinOp(inner_op @ (BinOp::Add | BinOp::Sub), lhs, rhs), c) => {
                     Exp::BinOp(
@@ -287,7 +363,35 @@ impl Exp {
                     )
                 }
 
-                (op, lhs, rhs) => Exp::BinOp(op, lhs.flatten().to_box(), rhs.flatten().to_box()),
+                (BinOp::Add, lhs, rhs) => {
+                    Exp::BinOp(BinOp::Add, lhs.flatten().to_box(), rhs.flatten().to_box())
+                }
+                (BinOp::Sub, lhs, rhs) => {
+                    Exp::BinOp(BinOp::Sub, lhs.flatten().to_box(), rhs.flatten().to_box())
+                }
+                (BinOp::Mul, lhs, rhs) => {
+                    Exp::BinOp(BinOp::Mul, lhs.flatten().to_box(), rhs.flatten().to_box())
+                }
+                (BinOp::Div, lhs, rhs) => {
+                    Exp::BinOp(BinOp::Div, lhs.flatten().to_box(), rhs.flatten().to_box())
+                }
+                (BinOp::And, lhs, rhs) => {
+                    Exp::BinOp(BinOp::And, lhs.flatten().to_box(), rhs.flatten().to_box())
+                }
+                (BinOp::Or, lhs, rhs) => {
+                    Exp::BinOp(BinOp::Or, lhs.flatten().to_box(), rhs.flatten().to_box())
+                }
+                (BinOp::Xor, lhs, rhs) => {
+                    Exp::BinOp(BinOp::Xor, lhs.flatten().to_box(), rhs.flatten().to_box())
+                }
+                (BinOp::Implies, lhs, rhs) => Exp::BinOp(
+                    BinOp::Implies,
+                    lhs.flatten().to_box(),
+                    rhs.flatten().to_box(),
+                ),
+                (BinOp::Iff, lhs, rhs) => {
+                    Exp::BinOp(BinOp::Iff, lhs.flatten().to_box(), rhs.flatten().to_box())
+                }
             },
             _ => self,
         }
@@ -298,7 +402,17 @@ impl Exp {
     /// # Returns
     /// true if the expression is a number or variable, false otherwise
     pub fn is_leaf(&self) -> bool {
-        !matches!(self, Exp::BinOp(_, _, _) | Exp::UnOp(_, _))
+        !matches!(
+            self,
+            Exp::BinOp(_, _, _)
+                | Exp::UnOp(_, _)
+                | Exp::And(_)
+                | Exp::Or(_)
+                | Exp::Not(_)
+                | Exp::Xor(_, _)
+                | Exp::Implies(_, _)
+                | Exp::Iff(_, _)
+        )
     }
 
     /// Converts the expression to a string with proper operator precedence.
@@ -320,7 +434,14 @@ impl Exp {
                 } else {
                     //TODO improve this
                     match last_operator {
-                        BinOp::Add | BinOp::Mul | BinOp::Div => {
+                        BinOp::Add
+                        | BinOp::Mul
+                        | BinOp::Div
+                        | BinOp::And
+                        | BinOp::Or
+                        | BinOp::Xor
+                        | BinOp::Implies
+                        | BinOp::Iff => {
                             format!("{} {} {}", string_lhs, op, string_rhs)
                         }
                         BinOp::Sub => match rhs.is_leaf() {
@@ -335,12 +456,105 @@ impl Exp {
     }
 }
 
+/// Whether a constant number counts as true, everything except zero does.
+fn num_truthy(value: f64) -> bool {
+    value != 0.0
+}
+
+/// Converts a truth value into its 0/1 numeric representation.
+fn logic_number(value: bool) -> f64 {
+    if value { 1.0 } else { 0.0 }
+}
+
+/// Simplifies an n-ary logic expression: children are simplified, nested
+/// expressions of the same kind are flattened, identity constants dropped and
+/// absorbing constants short-circuit the whole expression.
+fn simplify_logic_nary(exps: &[Exp], is_and: bool) -> Exp {
+    let mut flattened: Vec<Exp> = Vec::new();
+    for exp in exps {
+        let exp = exp.simplify();
+        match (is_and, exp) {
+            (true, Exp::And(inner)) => flattened.extend(inner),
+            (false, Exp::Or(inner)) => flattened.extend(inner),
+            (_, exp) => flattened.push(exp),
+        }
+    }
+    let mut result: Vec<Exp> = Vec::new();
+    for exp in flattened {
+        if let Exp::Number(value) = exp {
+            let truthy = num_truthy(value);
+            if is_and && !truthy {
+                return Exp::Number(0.0);
+            }
+            if !is_and && truthy {
+                return Exp::Number(1.0);
+            }
+            //identity constants are dropped
+        } else {
+            result.push(exp);
+        }
+    }
+    match result.len() {
+        0 => Exp::Number(logic_number(is_and)),
+        1 => result.into_iter().next().unwrap(),
+        _ => {
+            if is_and {
+                Exp::And(result)
+            } else {
+                Exp::Or(result)
+            }
+        }
+    }
+}
+
+/// Formats a logic operand, wrapping it in parenthesis unless it is a leaf
+/// or a negation of a leaf, which are unambiguous on their own.
+fn logic_operand_to_string(exp: &Exp) -> String {
+    match exp {
+        exp if exp.is_leaf() => exp.to_string(),
+        Exp::Not(inner) if inner.is_leaf() => exp.to_string(),
+        exp => format!("({})", exp),
+    }
+}
+
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             Exp::Number(value) => value.to_string(),
             Exp::Variable(name) => name.clone(),
-            Exp::Abs(exp) => format!("|{}|", exp),
+            Exp::Abs(exp) => format!("abs{{ {} }}", exp),
+            Exp::And(exps) => exps
+                .iter()
+                .map(logic_operand_to_string)
+                .collect::<Vec<_>>()
+                .join(" and "),
+            Exp::Or(exps) => exps
+                .iter()
+                .map(logic_operand_to_string)
+                .collect::<Vec<_>>()
+                .join(" or "),
+            Exp::Not(exp) => {
+                if exp.is_leaf() {
+                    format!("not {}", exp)
+                } else {
+                    format!("not ({})", exp)
+                }
+            }
+            Exp::Xor(lhs, rhs) => format!(
+                "{} xor {}",
+                logic_operand_to_string(lhs),
+                logic_operand_to_string(rhs)
+            ),
+            Exp::Implies(lhs, rhs) => format!(
+                "{} implies {}",
+                logic_operand_to_string(lhs),
+                logic_operand_to_string(rhs)
+            ),
+            Exp::Iff(lhs, rhs) => format!(
+                "{} iff {}",
+                logic_operand_to_string(lhs),
+                logic_operand_to_string(rhs)
+            ),
             Exp::Min(exps) => format!(
                 "min{{ {} }}",
                 exps.iter()
@@ -387,7 +601,7 @@ pub struct Objective {
 #[cfg(target_arch = "wasm32")]
 pub const IObjective: &'static str = r#"
 export type SerializedObjective = {
-    objective_type: OptimizationType,
+    objective_type: SerializedOptimizationType,
     rhs: SerializedExp
 }
 "#;
@@ -423,6 +637,9 @@ pub struct Constraint {
     constraint_type: Comparison,
     /// Right-hand side expression
     rhs: Exp,
+    /// Whether the source asserted the left-hand side without an explicit
+    /// comparison.
+    is_logic_assertion: bool,
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
@@ -431,8 +648,9 @@ pub struct Constraint {
 pub const ICondition: &'static str = r#"
 export type SerializedCondition = {
     lhs: SerializedExp,
-    constraint_type: Comparison,
-    rhs: SerializedExp
+    constraint_type: SerializedComparison,
+    rhs: SerializedExp,
+    is_logic_assertion: boolean,
     name: string
 }
 "#;
@@ -451,6 +669,18 @@ impl Constraint {
             lhs,
             constraint_type,
             rhs,
+            is_logic_assertion: false,
+        }
+    }
+
+    /// Creates a constraint that directly asserts a logic expression.
+    pub fn new_logic_assertion(lhs: Exp, name: String) -> Self {
+        Self {
+            name,
+            lhs,
+            constraint_type: Comparison::Equal,
+            rhs: Exp::Number(1.0),
+            is_logic_assertion: true,
         }
     }
 
@@ -461,20 +691,49 @@ impl Constraint {
     pub fn into_parts(self) -> (Exp, Comparison, Exp, String) {
         (self.lhs, self.constraint_type, self.rhs, self.name)
     }
+
+    /// Returns the constraint name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Returns the left-hand side expression.
+    pub fn lhs(&self) -> &Exp {
+        &self.lhs
+    }
+
+    /// Returns the comparison operator.
+    pub fn constraint_type(&self) -> Comparison {
+        self.constraint_type
+    }
+
+    /// Returns the right-hand side expression.
+    pub fn rhs(&self) -> &Exp {
+        &self.rhs
+    }
+
+    /// Returns whether the source used the bare logic-assertion form.
+    pub fn is_logic_assertion(&self) -> bool {
+        self.is_logic_assertion
+    }
 }
 
 impl fmt::Display for Constraint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = if self.name.starts_with("_c") {
+        let name = if self.name.is_empty() {
             "".to_string()
         } else {
             format!("{}: ", self.name)
         };
-        write!(
-            f,
-            "{}{} {} {}",
-            name, self.lhs, self.constraint_type, self.rhs
-        )
+        if self.is_logic_assertion {
+            write!(f, "{}{}", name, self.lhs)
+        } else {
+            write!(
+                f,
+                "{}{} {} {}",
+                name, self.lhs, self.constraint_type, self.rhs
+            )
+        }
     }
 }
 
@@ -657,7 +916,6 @@ pub fn transform_constraint(
     constraint: &PreConstraint,
     context: &mut TransformerContext,
     fn_context: &FunctionContext,
-    index: usize,
 ) -> Result<Constraint, TransformError> {
     let lhs = constraint.lhs.into_exp(context, fn_context)?;
     let rhs = constraint.rhs.into_exp(context, fn_context)?;
@@ -665,10 +923,7 @@ pub fn transform_constraint(
         Some(v) => match v.value() {
             Variable::CompoundVariable(c) => {
                 let indexes = c
-                    .indexes
-                    .iter()
-                    .map(|v| v.as_primitive(context, fn_context))
-                    .collect::<Result<Vec<Primitive>, TransformError>>()
+                    .compute_indexes(context, fn_context)
                     .map_err(|e| e.add_span(v.span()))?;
                 context
                     .flatten_compound_variable(&c.name, &indexes)
@@ -676,9 +931,15 @@ pub fn transform_constraint(
             }
             Variable::Variable(name) => name.clone(),
         },
-        None => format!("_c{}", index),
+        // unnamed constraints stay unnamed: generated row names would only
+        // clutter the compiled output
+        None => String::new(),
     };
-    Ok(Constraint::new(lhs, constraint.constraint_type, rhs, name))
+    if constraint.is_logic_assertion() {
+        Ok(Constraint::new_logic_assertion(lhs, name))
+    } else {
+        Ok(Constraint::new(lhs, constraint.constraint_type, rhs, name))
+    }
 }
 
 /// Transforms a pre-constraint with iteration into multiple constraints.
@@ -694,13 +955,9 @@ pub fn transform_constraint_with_iteration(
     constraint: &PreConstraint,
     context: &mut TransformerContext,
     fn_context: &FunctionContext,
-    last_index: usize,
 ) -> Result<Vec<Constraint>, TransformError> {
-    let index = Cell::new(last_index);
     if constraint.iteration.is_empty() {
-        return Ok(vec![transform_constraint(
-            constraint, context, fn_context, last_index,
-        )?]);
+        return Ok(vec![transform_constraint(constraint, context, fn_context)?]);
     }
     let mut results: Vec<Constraint> = Vec::new();
     recursive_set_resolver(
@@ -709,10 +966,7 @@ pub fn transform_constraint_with_iteration(
         fn_context,
         &mut results,
         0,
-        &|c| {
-            index.set(index.get() + 1);
-            transform_constraint(constraint, c, fn_context, index.get())
-        },
+        &|c| transform_constraint(constraint, c, fn_context),
     )
     .map_err(|e| e.add_span(&constraint.span))?;
     Ok(results)
@@ -752,11 +1006,8 @@ pub fn transform_model(
 ) -> Result<Model, TransformError> {
     let objective = transform_objective(problem.objective(), &mut context, fn_context)?;
     let mut constraints: Vec<Constraint> = Vec::new();
-    let mut index = 0;
     for constraint in problem.constraints().iter() {
-        let transformed =
-            transform_constraint_with_iteration(constraint, &mut context, fn_context, index)?;
-        index += transformed.len();
+        let transformed = transform_constraint_with_iteration(constraint, &mut context, fn_context)?;
         for transformed_constraint in transformed {
             constraints.push(transformed_constraint);
         }
@@ -787,4 +1038,72 @@ pub fn transform_parsed_problem(
     let context =
         TransformerContext::new_from_constants(c, pre_problem.domains().clone(), &fn_context)?;
     transform_model(pre_problem, context, &fn_context)
+}
+
+#[cfg(test)]
+mod serialization_tests {
+    use super::{Constraint, Exp};
+    use crate::math::{BinOp, Comparison};
+    use crate::parser::il::PreExp;
+    use crate::utils::{InputSpan, Spanned};
+
+    #[test]
+    fn serialized_expressions_use_the_declared_tagged_shape() {
+        let exp = Exp::Xor(
+            Exp::Variable("a".to_string()).to_box(),
+            Exp::Variable("b".to_string()).to_box(),
+        );
+
+        let serialized = serde_json::to_value(exp).unwrap();
+
+        assert_eq!(serialized["type"], "Xor");
+        assert_eq!(serialized["value"][0]["type"], "Variable");
+        assert_eq!(serialized["value"][0]["value"], "a");
+        assert_eq!(serialized["value"][1]["value"], "b");
+    }
+
+    #[test]
+    fn serialized_pre_expressions_match_the_tuple_contract() {
+        let span = InputSpan::default();
+        let exp = PreExp::BinaryOperation(
+            Spanned::new(BinOp::Or, span.clone()),
+            PreExp::Variable(Spanned::new("a".to_string(), span.clone())).to_boxed(),
+            PreExp::Variable(Spanned::new("b".to_string(), span)).to_boxed(),
+        );
+
+        let serialized = serde_json::to_value(exp).unwrap();
+
+        assert_eq!(serialized["type"], "BinaryOperation");
+        assert_eq!(serialized["value"][0]["value"]["type"], "Or");
+        assert_eq!(serialized["value"][1]["type"], "Variable");
+        assert_eq!(serialized["value"][1]["value"]["value"], "a");
+    }
+
+    #[test]
+    fn serialized_operators_and_assertions_match_the_typescript_contract() {
+        let exp = Exp::BinOp(
+            BinOp::Add,
+            Exp::Variable("a".to_string()).to_box(),
+            Exp::Number(1.0).to_box(),
+        );
+        let serialized = serde_json::to_value(exp).unwrap();
+        assert_eq!(serialized["value"][0]["type"], "Add");
+
+        let assertion = Constraint::new_logic_assertion(
+            Exp::Variable("flag".to_string()),
+            "assert_flag".to_string(),
+        );
+        let serialized = serde_json::to_value(assertion).unwrap();
+        assert_eq!(serialized["constraint_type"]["type"], "Equal");
+        assert_eq!(serialized["is_logic_assertion"], true);
+
+        let comparison = Constraint::new(
+            Exp::Variable("flag".to_string()),
+            Comparison::Equal,
+            Exp::Number(1.0),
+            "compare_flag".to_string(),
+        );
+        let serialized = serde_json::to_value(comparison).unwrap();
+        assert_eq!(serialized["is_logic_assertion"], false);
+    }
 }

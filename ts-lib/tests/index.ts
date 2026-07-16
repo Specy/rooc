@@ -1,4 +1,5 @@
 import { WasmPipeRunner,Pipes} from '../src/pkg/rooc.js'
+import {RoocParser} from '../src/index.ts'
 
 
 const model = `
@@ -25,3 +26,33 @@ const pipes = [
 const res = WasmPipeRunner.new_wasm(pipes).wasm_run_from_string(model, [], [])
 
 console.log(res[res.length - 1])
+
+function assert(condition: boolean, message: string): asserts condition {
+    if (!condition) throw new Error(message)
+}
+
+const logicSource = `
+min abs { x }
+s.t.
+    a or b
+    b = true
+define
+    x as Real(-1, 1)
+    a, b as Boolean
+`
+const parser = new RoocParser(logicSource)
+const preModel = parser.compile().unwrap().serialize()
+const serializedAbs = preModel.objective.rhs
+assert(serializedAbs.type === 'BlockFunction', 'abs must serialize as a registered block function')
+assert(serializedAbs.value.value.kind.type === 'Abs', 'abs block kind must be serialized')
+const serializedOr = preModel.constraints[0].lhs
+assert(serializedOr.type === 'BinaryOperation', 'pre-model or must be a binary operation')
+assert(serializedOr.value[0].value.type === 'Or', 'serialized pre-model operator must be tagged')
+assert(preModel.constraints[0].is_logic_assertion, 'bare constraint must retain its assertion flag')
+assert(!preModel.constraints[1].is_logic_assertion, 'explicit comparison must not become an assertion')
+
+const transformed = parser.compileAndTransform().unwrap().serialize()
+assert(transformed.objective.rhs.type === 'Abs', 'transformed abs must use the Exp::Abs tag')
+assert(transformed.constraints[0].lhs.type === 'Or', 'transformed logic expression must be tagged')
+assert(transformed.constraints[0].is_logic_assertion, 'model must retain the assertion flag')
+assert(!transformed.constraints[1].is_logic_assertion, 'model must retain explicit comparisons')

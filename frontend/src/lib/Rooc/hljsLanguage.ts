@@ -1,8 +1,8 @@
 import hljs from 'highlight.js/lib/core';
 
-const hljskeywords = ["where", "for", "min", "max", "in", "s.t.", "as", "define", "let", "subject", "to"]
+const hljskeywords = ["where", "for", "min", "max", "in", "s.t.", "as", "define", "let", "subject", "to", "solve", "and", "or", "not", "implies", "iff", "xor"]
 const hljsLiterals = ["true", "false"]
-const hljsOperators = ["+", "-", "/", "*", "!", "&", "|", "<=", ">=", "="]
+const hljsOperators = ["<->", "->", "&&", "||", "<=", ">=", "=", "<", ">", "+", "-", "/", "*", "!"]
 export const highlightJsGrammar = {
     case_insensitive: true,
     keywords: {

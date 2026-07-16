@@ -1,4 +1,4 @@
-import type {SerializedIterable, SerializedPrimitive, SerializedPrimitiveKind} from "./pkg/rooc";
+import type {SerializedIterable, SerializedPrimitive, SerializedPrimitiveKind} from "./pkg/rooc.js";
 import Fuse from 'fuse.js'
 
 export const PrimitiveKind = {
@@ -43,10 +43,8 @@ export enum PipeDataType {
     Tableau = 6,
     OptimalTableau = 7,
     OptimalTableauWithSteps = 8,
-    BinarySolution = 9,
-    IntegerBinarySolution = 10,
-    RealSolution = 11,
-    MILPSolution = 12,
+    RealSolution = 9,
+    MILPSolution = 10,
 }
 
 export enum Pipes {
@@ -58,10 +56,8 @@ export enum Pipes {
     TableauPipe = 5,
     RealPipe = 6,
     StepByStepSimplexPipe = 7,
-    BinarySolverPipe = 8,
-    IntegerBinarySolverPipe = 9,
-    MILPSolverPipe = 10,
-    AutoSolverPipe = 11,
+    MILPSolverPipe = 8,
+    AutoSolverPipe = 9,
 }
 
 export type NamedParameter = {
@@ -244,6 +240,12 @@ export const RUNTIME_BLOCK_SCOPED_FUNCTIONS = new Map([
     makeRuntimeBlockScopedFunctionEntry("min", "Expands the inner expression into the minimum of all elements"),
     makeRuntimeBlockScopedFunctionEntry("max", "Expands the inner expression into the maximum of all elements"),
     makeRuntimeBlockScopedFunctionEntry("avg", "Expands the inner expression into the average of all elements"),
+    makeRuntimeBlockScopedFunctionEntry("all", "Logic conjunction of all elements, true when every element is true"),
+    makeRuntimeBlockScopedFunctionEntry("conjunction", "Logic conjunction of all elements, true when every element is true, alias of all"),
+    makeRuntimeBlockScopedFunctionEntry("any", "Logic disjunction of all elements, true when at least one element is true"),
+    makeRuntimeBlockScopedFunctionEntry("disjunction", "Logic disjunction of all elements, true when at least one element is true, alias of any"),
+    makeRuntimeBlockScopedFunctionEntry("xor", "Logic exclusive disjunction of all elements, true when an odd number of elements is true"),
+    makeRuntimeBlockScopedFunctionEntry("exclusive_disjunction", "Logic exclusive disjunction of all elements, true when an odd number of elements is true, alias of xor"),
 ])
 
 export type RuntimeBlockFunction = {
@@ -260,6 +262,13 @@ export const RUNTIME_BLOCK_FUNCTIONS = new Map([
     makeRuntimeBlockFunctionEntry("min", "Computes the inner expression as the minimum of all elements"),
     makeRuntimeBlockFunctionEntry("max", "Computes the inner expression as the maximum of all elements"),
     makeRuntimeBlockFunctionEntry("avg", "Computes the inner expression as the average of all elements"),
+    makeRuntimeBlockFunctionEntry("abs", "Computes the absolute value of the inner expression"),
+    makeRuntimeBlockFunctionEntry("all", "Logic conjunction of the elements, true when every element is true"),
+    makeRuntimeBlockFunctionEntry("conjunction", "Logic conjunction of the elements, true when every element is true, alias of all"),
+    makeRuntimeBlockFunctionEntry("any", "Logic disjunction of the elements, true when at least one element is true"),
+    makeRuntimeBlockFunctionEntry("disjunction", "Logic disjunction of the elements, true when at least one element is true, alias of any"),
+    makeRuntimeBlockFunctionEntry("xor", "Logic exclusive disjunction of the elements, true when an odd number of elements is true"),
+    makeRuntimeBlockFunctionEntry("exclusive_disjunction", "Logic exclusive disjunction of the elements, true when an odd number of elements is true, alias of xor"),
 ])
 
 export const RUNTIME_FUNCTIONS = ROOC_RUNTIME_FUNCTIONS.values()
@@ -408,20 +417,7 @@ export const pipeDescriptions = {
         PipeDataType.Tableau,
         PipeDataType.OptimalTableauWithSteps
     ),
-    [Pipes.BinarySolverPipe]: makePipeDescriptionEntry(
-        Pipes.BinarySolverPipe,
-        "Binary solver",
-        "Runs a binary variable solver to find the optimal solution, the variables must be binary",
-        PipeDataType.LinearModel,
-        PipeDataType.BinarySolution
-    ),
-    [Pipes.IntegerBinarySolverPipe]: makePipeDescriptionEntry(
-        Pipes.IntegerBinarySolverPipe,
-        "Integer binary solver",
-        "Runs a binary and integer variable solver to find the optimal solution, the variables must be binary or integer",
-        PipeDataType.LinearModel,
-        PipeDataType.IntegerBinarySolution
-    ),
+
     [Pipes.MILPSolverPipe]: makePipeDescriptionEntry(
         Pipes.MILPSolverPipe,
         "MILP solver",
@@ -463,8 +459,6 @@ export const pipeDataDescriptions = {
     [PipeDataType.Tableau]: makePipeDataEntry(PipeDataType.Tableau, "Tableau", "The tableau for the simplex algorithm"),
     [PipeDataType.OptimalTableau]: makePipeDataEntry(PipeDataType.OptimalTableau, "Optimal Tableau", "The tableau after running the simplex algorithm"),
     [PipeDataType.OptimalTableauWithSteps]: makePipeDataEntry(PipeDataType.OptimalTableauWithSteps, "Optimal Tableau with Steps", "The tableau at each step of the simplex algorithm"),
-    [PipeDataType.BinarySolution]: makePipeDataEntry(PipeDataType.BinarySolution, "Binary Solution", "The optimal solution of a binary model"),
-    [PipeDataType.IntegerBinarySolution]: makePipeDataEntry(PipeDataType.IntegerBinarySolution, "Integer Binary Solution", "The optimal solution of a binary or integer model"),
     [PipeDataType.RealSolution]: makePipeDataEntry(PipeDataType.RealSolution, "Real Solution", "The optimal solution of a linear model where variables have real values"),
     [PipeDataType.MILPSolution]: makePipeDataEntry(PipeDataType.MILPSolution, "MILP Solution", "The optimal solution of a linear model where variables are either real, boolean or integer"),
 } satisfies Record<PipeDataType, PipeDataDescription>

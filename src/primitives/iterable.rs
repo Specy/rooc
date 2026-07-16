@@ -222,17 +222,20 @@ impl IterableKind {
                 return Ok(val);
             } else {
                 match current {
-                    IterableKind::Iterables(v) => {
-                        if i < v.len() {
-                            current = &v[i];
-                        } else {
-                            return Err(TransformError::OutOfBounds(format!(
-                                "cannot access index {} of {}",
-                                i, self
-                            )));
-                        }
+                    IterableKind::Iterables(v) if i < v.len() => {
+                        current = &v[i];
                     }
-                    _ => {
+                    IterableKind::Iterables(_)
+                    | IterableKind::Numbers(_)
+                    | IterableKind::Integers(_)
+                    | IterableKind::PositiveIntegers(_)
+                    | IterableKind::Strings(_)
+                    | IterableKind::Edges(_)
+                    | IterableKind::Nodes(_)
+                    | IterableKind::Tuples(_)
+                    | IterableKind::Graphs(_)
+                    | IterableKind::Booleans(_)
+                    | IterableKind::Anys(_) => {
                         return Err(TransformError::OutOfBounds(format!(
                             "cannot access index {} of {}",
                             i, self

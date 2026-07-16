@@ -271,6 +271,21 @@ impl RoocFunction for ZipArrays {
     }
 }
 
+/// Equality that compares numeric primitives by value across numeric subtypes, so that
+/// e.g. `Integer(2)`, `PositiveInteger(2)` and `Number(2.0)` are considered equal (the
+/// derived `PartialEq` on `Primitive` requires the same variant). Non-numeric primitives
+/// fall back to structural equality.
+fn primitive_value_eq(a: &Primitive, b: &Primitive) -> bool {
+    match (a.as_number_cast(), b.as_number_cast()) {
+        (Ok(x), Ok(y)) => crate::math::float_eq(x, y),
+        _ => a == b,
+    }
+}
+
+fn contains_value(haystack: &[Primitive], needle: &Primitive) -> bool {
+    haystack.iter().any(|p| primitive_value_eq(p, needle))
+}
+
 #[derive(Debug, Serialize, Clone)]
 pub struct ArrayDifference {}
 
@@ -287,7 +302,10 @@ impl RoocFunction for ArrayDifference {
         let first = args[0].as_iterator(context, fn_context)?.to_primitives();
         let second = args[1].as_iterator(context, fn_context)?.to_primitives();
 
-        let first = first.into_iter().filter(|i| !second.contains(i)).collect();
+        let first = first
+            .into_iter()
+            .filter(|i| !contains_value(&second, i))
+            .collect();
         Ok(Primitive::Iterable(IterableKind::Anys(first).flatten()))
     }
 
@@ -335,10 +353,16 @@ impl RoocFunction for ArrayUnion {
         if args.len() != 2 {
             return Err(default_wrong_number_of_arguments(self, args, fn_context));
         }
-        let mut first = args[0].as_iterator(context, fn_context)?.to_primitives();
+        let first = args[0].as_iterator(context, fn_context)?.to_primitives();
         let second = args[1].as_iterator(context, fn_context)?.to_primitives();
-        first.extend(second);
-        Ok(Primitive::Iterable(IterableKind::Anys(first).flatten()))
+        // Set union: concatenate then drop duplicates (by numeric value where applicable).
+        let mut result: Vec<Primitive> = Vec::new();
+        for p in first.into_iter().chain(second.into_iter()) {
+            if !contains_value(&result, &p) {
+                result.push(p);
+            }
+        }
+        Ok(Primitive::Iterable(IterableKind::Anys(result).flatten()))
     }
 
     fn type_signature(
@@ -389,7 +413,10 @@ impl RoocFunction for ArrayIntersection {
         let first = args[0].as_iterator(context, fn_context)?.to_primitives();
         let second = args[1].as_iterator(context, fn_context)?.to_primitives();
 
-        let result = first.into_iter().filter(|i| second.contains(i)).collect();
+        let result = first
+            .into_iter()
+            .filter(|i| contains_value(&second, i))
+            .collect();
         Ok(Primitive::Iterable(IterableKind::Anys(result).flatten()))
     }
 

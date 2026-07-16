@@ -31,7 +31,7 @@ import {
     JsPipable
 } from './pkg/rooc.js'
 import {Err, Ok, Result} from 'ts-results-es'
-import {ExtractArgTypes, ExtractReturnArgs} from "./runtime";
+import type {ExtractArgTypes, ExtractReturnArgs} from "./runtime.js";
 
 export type ConstantEntry = [name: string, value: SerializedPrimitive]
 
@@ -312,8 +312,6 @@ export type RoocData =
     RoocType<PipeDataType.Tableau, SimplexTableau> |
     RoocType<PipeDataType.OptimalTableau, OptimalTableau> |
     RoocType<PipeDataType.OptimalTableauWithSteps, OptimalTableauWithSteps> |
-    RoocType<PipeDataType.BinarySolution, LpSolution<boolean>> |
-    RoocType<PipeDataType.IntegerBinarySolution, LpSolution<VarValue>> |
     RoocType<PipeDataType.RealSolution, LpSolution<number>> |
     RoocType<PipeDataType.MILPSolution, LpSolution<MILPValue>>
 
@@ -323,12 +321,6 @@ export type JsPipableData = {
 } | {
     type: "LinearModel"
     value: SerializedLinearModel
-} | {
-    type: "BinarySolution"
-    value: LpSolution<boolean>
-} | {
-    type: "IntegerBinarySolution"
-    value: LpSolution<VarValue>
 } | {
     type: "RealSolution"
     value: LpSolution<number>
@@ -363,16 +355,6 @@ function toRoocData(data: WasmPipableData): RoocData {
             return {
                 type: PipeDataType.OptimalTableauWithSteps,
                 data: new OptimalTableauWithSteps(data.to_optimal_tableau_with_steps())
-            }
-        case PipeDataType.BinarySolution:
-            return {
-                type: PipeDataType.BinarySolution,
-                data: data.to_binary_solution()
-            }
-        case PipeDataType.IntegerBinarySolution:
-            return {
-                type: PipeDataType.IntegerBinarySolution,
-                data: data.to_integer_binary_solution()
             }
         case PipeDataType.RealSolution:
             return {
@@ -934,7 +916,7 @@ export type LpSolution<T> = {
 }
 
 
-export * from './runtime'
+export * from './runtime.js'
 
 
 export type {
@@ -969,10 +951,10 @@ export type {
     ParseError,
     SerializedVariableToAssert,
     SerializedVariablesDomainDeclaration,
-} from './pkg/rooc'
+    VariableType,
+} from './pkg/rooc.js'
 
 export {
-    VariableType,
     BlockFunctionKind,
     BlockScopedFunctionKind,
     UnOp,
@@ -980,4 +962,4 @@ export {
     Comparison,
     OptimizationType,
 
-} from './pkg/rooc'
+} from './pkg/rooc.js'

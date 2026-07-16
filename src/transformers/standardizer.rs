@@ -1,4 +1,3 @@
-use crate::math::float_eq;
 use crate::math::{Comparison, OptimizationType, VariableType};
 use crate::parser::model_transformer::DomainVariable;
 use crate::solvers::{SolverError, find_invalid_variables};
@@ -156,17 +155,15 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
             ),
         );
         context.total_variables += 1; //we add two variables, but one is removed, so only one is added
+        // Every constraint and the objective must receive EXACTLY two appended columns
+        // per free variable (in the same order), otherwise the positional column layout
+        // used by the removal/zero-padding below gets misaligned and one variable's
+        // split lands in another variable's slots. Do NOT skip on a zero coefficient.
         constraints.iter_mut().for_each(|c| {
             let original_coefficient = c.coefficients()[*i];
-            if float_eq(original_coefficient, 0.0) {
-                return;
-            }
             c.coefficients_mut().push(original_coefficient);
             c.coefficients_mut().push(-original_coefficient);
         });
-        if float_eq(objective[*i], 0.0) {
-            continue;
-        }
         objective.push(objective[*i]);
         objective.push(-objective[*i]);
     }
@@ -265,23 +262,25 @@ pub fn normalize_constraint(
             Ok((equality_constraint, None))
         }
         Comparison::LessOrEqual => {
+            // `<=` gets a (non-negative) slack variable: ax + s = b
             coefficients.resize(context.total_variables, 0.0);
             coefficients.push(1.0);
-            context.surplus_index += 1;
-            let equality_constraint = EqualityConstraint::new(coefficients, rhs);
-            Ok((
-                equality_constraint,
-                Some(format!("$su_{}", context.surplus_index)),
-            ))
-        }
-        Comparison::GreaterOrEqual => {
-            coefficients.resize(context.total_variables, 0.0);
-            coefficients.push(-1.0);
             context.slack_index += 1;
             let equality_constraint = EqualityConstraint::new(coefficients, rhs);
             Ok((
                 equality_constraint,
                 Some(format!("$sl_{}", context.slack_index)),
+            ))
+        }
+        Comparison::GreaterOrEqual => {
+            // `>=` gets a (non-negative) surplus variable: ax - s = b
+            coefficients.resize(context.total_variables, 0.0);
+            coefficients.push(-1.0);
+            context.surplus_index += 1;
+            let equality_constraint = EqualityConstraint::new(coefficients, rhs);
+            Ok((
+                equality_constraint,
+                Some(format!("$su_{}", context.surplus_index)),
             ))
         }
         _ => Err(SolverError::UnavailableComparison {

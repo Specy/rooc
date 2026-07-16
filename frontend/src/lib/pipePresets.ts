@@ -1,5 +1,5 @@
-import {Pipes} from "@specy/rooc/runtime"
-import {type AppPipe, InternalPipe} from "$lib/appPipes/AppPipes";
+import { Pipes } from "@specy/rooc/runtime"
+import { type AppPipe, InternalPipe } from "$lib/appPipes/AppPipes";
 
 export type PipePreset = {
     name: string,
@@ -7,10 +7,10 @@ export type PipePreset = {
 }
 
 function makePipePreset(name: string, pipes: AppPipe[]): PipePreset {
-    return {name, pipes}
+    return { name, pipes }
 }
 
-export const HIGHS_CPLEX_LP_SOLVER_NAME ="HiGHS CPLEX LP solver"
+export const HIGHS_CPLEX_LP_SOLVER_NAME = "HiGHS CPLEX LP solver"
 
 export const pipePresets = [
     makePipePreset("Auto solver", [
@@ -20,12 +20,14 @@ export const pipePresets = [
         Pipes.LinearModelPipe,
         Pipes.AutoSolverPipe
     ]),
-    makePipePreset("HiGHS solver", [
+    makePipePreset("Simplex solver Step by Step", [
         Pipes.CompilerPipe,
         Pipes.PreModelPipe,
         Pipes.ModelPipe,
         Pipes.LinearModelPipe,
-        InternalPipe.HiGHS
+        Pipes.StandardLinearModelPipe,
+        Pipes.TableauPipe,
+        Pipes.StepByStepSimplexPipe
     ]),
     makePipePreset("MILP solver", [
         Pipes.CompilerPipe,
@@ -41,28 +43,12 @@ export const pipePresets = [
         Pipes.LinearModelPipe,
         Pipes.RealPipe
     ]),
-    makePipePreset("Binary solver", [
+    makePipePreset("HiGHS solver", [
         Pipes.CompilerPipe,
         Pipes.PreModelPipe,
         Pipes.ModelPipe,
         Pipes.LinearModelPipe,
-        Pipes.BinarySolverPipe,
-    ]),
-    makePipePreset("Integer & binary solver", [
-        Pipes.CompilerPipe,
-        Pipes.PreModelPipe,
-        Pipes.ModelPipe,
-        Pipes.LinearModelPipe,
-        Pipes.IntegerBinarySolverPipe
-    ]),
-    makePipePreset("Simplex solver Step by Step", [
-        Pipes.CompilerPipe,
-        Pipes.PreModelPipe,
-        Pipes.ModelPipe,
-        Pipes.LinearModelPipe,
-        Pipes.StandardLinearModelPipe,
-        Pipes.TableauPipe,
-        Pipes.StepByStepSimplexPipe
+        InternalPipe.HiGHS
     ]),
     makePipePreset("To standard form", [
         Pipes.CompilerPipe,

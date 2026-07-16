@@ -67,12 +67,24 @@ pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64
         let def = match var.get_type() {
             VariableType::Real(min, max) => def.min(*min).max(*max),
             VariableType::NonNegativeReal(min, max) => def.min(*min).max(*max),
-            _ => panic!(),
+            other => {
+                return Err(SolverError::Other(format!(
+                    "the real solver only supports continuous variables, got {:?} for \"{}\"",
+                    other, name
+                )));
+            }
         };
         let var = variables.add(def);
         created_vars.insert(name.clone(), var);
     }
     let vars = lp.variables();
+    if lp.objective().len() != vars.len() {
+        return Err(SolverError::Other(format!(
+            "objective length {} does not match variable count {}",
+            lp.objective().len(),
+            vars.len()
+        )));
+    }
     let obj_exp = match lp.optimization_type() {
         OptimizationType::Satisfy => 0.into(),
         OptimizationType::Max | OptimizationType::Min => vars.iter().zip(lp.objective()).fold(

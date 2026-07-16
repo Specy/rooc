@@ -30,8 +30,10 @@ constraint_list = { (constraint ~ (nl* ~constraint)*)?}
 constraint = {
   #constraint_name = (constraint_name)? ~
   #constraint_lhs = (tagged_exp) ~
-  #constraint_relation = comparison ~
-  #constraint_rhs = tagged_exp ~
+  (
+    #constraint_relation = comparison ~
+    #constraint_rhs = tagged_exp
+  )? ~
   #constraint_iteration = (nl* ~ for_iteration)?
 }
 constraint_name = {
@@ -83,12 +85,11 @@ range_iterator = {
 // expressions
 tagged_exp = { exp }
 exp         = _{ unary_op? ~ exp_leaf ~ (binary_op ~ unary_op? ~ exp_leaf)* }
-exp_leaf    = _{  block_scoped_function | block_function | function | implicit_mul | parenthesis | modulo  | array_access | primitive | variable  }
+exp_leaf    = _{  block_scoped_function | block_function | function | implicit_mul | parenthesis | array_access | primitive | variable  }
 implicit_mul = {
-	(number | parenthesis | modulo){2,} ~ variable? |
-  (number | parenthesis | modulo) ~ variable
+	(number | parenthesis){2,} ~ variable? |
+  (number | parenthesis) ~ variable
 }
-modulo      =  { "|" ~ exp ~ "|" }
 parenthesis =  { "(" ~ exp ~ ")" }
 function = {  #function_name = function_name ~ "(" ~ #function_pars = function_pars ~ ")"}
 function_pars = { (tagged_exp ~(comma ~ tagged_exp)*)?}
@@ -128,24 +129,35 @@ variable       = _{ !(keyword) ~ (compound_variable | simple_variable | escaped_
 // terminal characters
 objective_type = @{ ^"min" | ^"max" }
 comparison     = @{ "<=" | ">=" | "=" | "<" | ">" }
-simple_variable   = @{ "$"? ~ LETTER ~ (LETTER | NUMBER)* }
+simple_variable   = @{ "$"? ~ "_"* ~ LETTER ~ (LETTER | NUMBER)* }
 
 escaped_compound_variable = { "\\" ~ compound_variable }
 compound_variable = { simple_variable? ~ ("_" ~ compound_variable_body)+ }
-compound_variable_body = _{ (simple_variable | number) | "{" ~ nl* ~ (tagged_exp) ~ nl* ~ "}" }
+//an underscore prefixed body is a literal name fragment: it keeps compiler
+//generated names such as set_A__2 parseable and is never substituted
+underscore_literal = @{ "_"+ ~ (LETTER | NUMBER)+ }
+compound_variable_body = _{ (underscore_literal | simple_variable | number) | "{" ~ nl* ~ (tagged_exp) ~ nl* ~ "}" }
 number    = _{ float | integer }
 integer = @{ '0'..'9'+ }
 float    = @{ '0'..'9'+ ~ "." ~ ('0'..'9')+ }
 signed_number = @{ "-"? ~ number}
-keyword = { "for " | "min " | "max " | "where " | "true " | "false " | "in " | "as " | "define " | "let " | "solve "}
-binary_op = _{ mul | add | sub | div }
+//atomic so that the boundary lookahead is not skipped over whitespace, the
+//boundary makes sure identifiers merely starting with a keyword stay valid
+keyword = @{ ("for" | "min" | "max" | "where" | "true" | "false" | "in" | "as" | "define" | "let" | "solve" | "and" | "or" | "not" | "implies" | "iff" | "xor") ~ !(LETTER | NUMBER | "_") }
+binary_op = _{ mul | add | iff_op | implies_op | sub | div | or_op | xor_op | and_op }
 mul = { "*" }
 add = { "+" }
 sub = { "-" }
 div = { "/" }
+and_op     = @{ ("and" ~ !(LETTER | NUMBER | "_")) | "&&" }
+or_op      = @{ ("or" ~ !(LETTER | NUMBER | "_")) | "||" }
+xor_op     = @{ "xor" ~ !(LETTER | NUMBER | "_") }
+implies_op = @{ ("implies" ~ !(LETTER | NUMBER | "_")) | "->" }
+iff_op     = @{ ("iff" ~ !(LETTER | NUMBER | "_")) | "<->" }
 
-unary_op  = _{ neg }
+unary_op  = _{ neg | not_op }
 neg = { "-" }
+not_op = @{ ("not" ~ !(LETTER | NUMBER | "_")) | "!" }
 
 string = ${ "\"" ~ inner_string ~ "\"" }
 inner_string = @{ char* }

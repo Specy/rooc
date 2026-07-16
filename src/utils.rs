@@ -65,11 +65,11 @@ impl InputSpan {
     /// * `Ok(&str)` - The extracted text slice if the span is valid
     /// * `Err(String)` - Error message if the span is out of bounds
     pub fn span_text<'a>(&self, text: &'a str) -> Result<&'a str, String> {
-        let _indices = text.char_indices();
-        let end = (self.start + self.len) as usize;
+        // `start`/`len` are pest BYTE offsets, so index the string by bytes (not chars),
+        // otherwise any multi-byte character (e.g. the canonical `≤`/`≥`) shifts the slice.
         let start = self.start as usize;
-        let len = text.chars().count();
-        if start > len || end > len {
+        let end = (self.start + self.len) as usize;
+        if start > text.len() || end > text.len() {
             return Err(format!(
                 "Span out of bounds: {}..{} (text len: {})",
                 start,
@@ -77,7 +77,9 @@ impl InputSpan {
                 text.len()
             ));
         }
-        Ok(utf8_slice::slice(text, start, end))
+        text.get(start..end).ok_or_else(|| {
+            format!("Span {start}..{end} does not fall on character boundaries")
+        })
     }
 }
 

@@ -69,6 +69,13 @@ pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, 
     let variables = lp.variables();
     let domain = lp.domain();
     let objective = lp.objective();
+    if objective.len() != variables.len() {
+        return Err(SolverError::Other(format!(
+            "objective length {} does not match variable count {}",
+            objective.len(),
+            variables.len()
+        )));
+    }
     let mut microlp_vars = Vec::with_capacity(variables.len());
     let opt_type = match lp.optimization_type() {
         OptimizationType::Max => OptimizationDirection::Maximize,
@@ -135,10 +142,7 @@ pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, 
                     }
                 })
                 .collect();
-            let coeffs = microlp_vars
-                .iter()
-                .map(|v| s.var_value(*v))
-                .collect();
+            let coeffs = microlp_vars.iter().map(|v| s.var_value(*v)).collect();
             let constraints = make_constraints_map_from_assignment(lp, &coeffs);
             Ok(LpSolution::new(
                 assignment,
@@ -149,6 +153,8 @@ pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, 
         Err(e) => Err(match e {
             Error::InternalError(s) => SolverError::Other(s),
             Error::Unbounded => SolverError::Unbounded,
+            Error::InvalidOptions(s) => SolverError::Other(s),
+            Error::InvalidOperation(s) => SolverError::Other(s),
             Error::Infeasible => SolverError::Infisible,
         }),
     }

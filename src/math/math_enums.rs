@@ -204,6 +204,18 @@ impl FromStr for PreVariableType {
 }
 
 impl PreVariableType {
+    /// Returns the primitive kind that a variable of this domain assumes
+    /// inside expressions: booleans keep their type, every other domain is
+    /// a number.
+    pub fn static_primitive_kind(&self) -> PrimitiveKind {
+        match self {
+            PreVariableType::Boolean => PrimitiveKind::Boolean,
+            PreVariableType::NonNegativeReal(_, _)
+            | PreVariableType::Real(_, _)
+            | PreVariableType::IntegerRange(_, _) => PrimitiveKind::Number,
+        }
+    }
+
     /// Returns a list of all available variable type names as strings
     pub fn kinds_to_string() -> Vec<String> {
         vec![

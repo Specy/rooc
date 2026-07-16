@@ -18,11 +18,15 @@ lazy_static::lazy_static! {
     static ref PRATT_PARSER: PrattParser<Rule> = {
         use pest::pratt_parser::{Assoc::*, Op};
         PrattParser::new()
+            .op(Op::infix(Rule::implies_op, Right) | Op::infix(Rule::iff_op, Left))
+            .op(Op::infix(Rule::or_op, Left))
+            .op(Op::infix(Rule::xor_op, Left))
+            .op(Op::infix(Rule::and_op, Left))
             .op(Op::infix(Rule::add, Left) | Op::infix(Rule::sub, Left))
             .op(Op::infix(Rule::mul, Left) | Op::infix(Rule::div, Left))
             //.op(Op::infix(Rule::pow, Right)) TODO should i add this?
             //.op(Op::infix(Rule::fac, Left)) TODO should i add this?
-            .op(Op::prefix(Rule::neg))
+            .op(Op::prefix(Rule::neg) | Op::prefix(Rule::not_op))
     };
 }
 //TODO add implicit multiplication: 2x = 2 * x, should this be as a preprocessor? or part of the grammar?
@@ -36,6 +40,11 @@ pub(crate) fn parse_exp(exp_to_parse: Pair<Rule>) -> Result<PreExp, CompilationE
                 Rule::sub => BinOp::Sub,
                 Rule::mul => BinOp::Mul,
                 Rule::div => BinOp::Div,
+                Rule::and_op => BinOp::And,
+                Rule::or_op => BinOp::Or,
+                Rule::xor_op => BinOp::Xor,
+                Rule::implies_op => BinOp::Implies,
+                Rule::iff_op => BinOp::Iff,
                 _ => return err_unexpected_token!("found {}, expected op", op),
             };
             Ok(PreExp::BinaryOperation(
@@ -48,6 +57,7 @@ pub(crate) fn parse_exp(exp_to_parse: Pair<Rule>) -> Result<PreExp, CompilationE
             let span = InputSpan::from_pair(&op);
             let op = match op.as_rule() {
                 Rule::neg => UnOp::Neg,
+                Rule::not_op => UnOp::Not,
                 _ => return err_unexpected_token!("found {}, expected op", op),
             };
             Ok(PreExp::UnaryOperation(
@@ -86,10 +96,6 @@ pub(crate) fn parse_exp_leaf(exp: Pair<Rule>) -> Result<PreExp, CompilationError
             Ok(PreExp::Primitive(spanned))
         }
         Rule::parenthesis => parse_exp(exp),
-        Rule::modulo => {
-            let exp = parse_exp(exp)?;
-            Ok(PreExp::Abs(span, Box::new(exp)))
-        }
         Rule::implicit_mul => {
             let exps = exp
                 .clone()

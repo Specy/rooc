@@ -45,8 +45,8 @@ pub fn escape_latex(string: &str) -> String {
             '%' => result.push_str("\\%"),
             '$' => result.push_str("\\$"),
             '#' => result.push_str("\\#"),
-            '^' => result.push_str("\\^"),
-            '~' => result.push_str("\\~"),
+            '^' => result.push_str("\\textasciicircum{}"),
+            '~' => result.push_str("\\textasciitilde{}"),
             '\\' => result.push_str("\\textbackslash{}"),
             _ => result.push(c),
         }

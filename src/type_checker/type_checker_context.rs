@@ -157,9 +157,23 @@ impl<'a> FunctionContext<'a> {
 }
 
 /// Main context for type checking, maintaining variable scopes and type information.
+/// The statically known type of a family of compound variables, like the
+/// x_i in "x_i as Boolean for i in 0..3".
+pub enum CompoundFamilyKind {
+    /// Every declaration of the family agrees on this kind
+    Uniform(PrimitiveKind),
+    /// Different declarations of the same family shape declare different
+    /// kinds (legal when their index sets are disjoint), the exact type of a
+    /// member is only known once the iterations are expanded
+    Mixed,
+}
+
 pub struct TypeCheckerContext {
     frames: Vec<Frame<PrimitiveKind>>,
     static_domain: IndexMap<String, StaticVariableType>,
+    //declared types of compound variable families, keyed by base name and
+    //number of indexes (("x", 1) for x_i)
+    static_compound_domain: IndexMap<(String, usize), CompoundFamilyKind>,
     token_map: IndexMap<u32, TypedToken>,
 }
 
@@ -189,6 +203,7 @@ impl TypeCheckerContext {
             frames: vec![frame],
             token_map,
             static_domain,
+            static_compound_domain: IndexMap::new(),
         }
     }
 
@@ -272,6 +287,45 @@ impl TypeCheckerContext {
         self.static_domain.get(name)
     }
 
+    /// Sets the declared types of compound variable families. Declarations of
+    /// the same family shape with the same kind merge, with different kinds
+    /// the family becomes Mixed.
+    ///
+    /// # Arguments
+    /// * `domain` - Vector of ((base name, arity), declared type) pairs
+    pub fn set_static_compound_domain(&mut self, domain: Vec<((String, usize), PreVariableType)>) {
+        for (key, v) in domain {
+            let kind = v.static_primitive_kind();
+            match self.static_compound_domain.get(&key) {
+                None => {
+                    self.static_compound_domain
+                        .insert(key, CompoundFamilyKind::Uniform(kind));
+                }
+                Some(CompoundFamilyKind::Uniform(existing)) if *existing == kind => {}
+                Some(_) => {
+                    self.static_compound_domain
+                        .insert(key, CompoundFamilyKind::Mixed);
+                }
+            }
+        }
+    }
+
+    /// Gets the declared kind of a compound variable family.
+    ///
+    /// # Arguments
+    /// * `name` - Base name of the compound variable (x for x_i)
+    /// * `arity` - Number of indexes of the compound variable (1 for x_i)
+    ///
+    /// # Returns
+    /// Reference to the CompoundFamilyKind if any declaration matches, None otherwise
+    pub fn static_compound_variable_of(
+        &self,
+        name: &str,
+        arity: usize,
+    ) -> Option<&CompoundFamilyKind> {
+        self.static_compound_domain.get(&(name.to_string(), arity))
+    }
+
     /// Removes and returns the top scope frame.
     ///
     /// # Returns
@@ -316,16 +370,18 @@ impl TypeCheckerContext {
         fn_context: &FunctionContext,
     ) -> Result<(), TransformError> {
         for index in compound_indexes {
-            index.type_check(self, fn_context)?;
             let value = match index {
-                PreExp::Variable(v) => self.value_of(v).cloned(),
-                PreExp::Primitive(p) => Some(p.value.get_type()),
-                _ => Some(index.get_type(self, fn_context)),
+                //an unbound identifier index is a literal name fragment
+                PreExp::Variable(v) => match self.value_of(v).cloned() {
+                    Some(kind) => kind,
+                    None => PrimitiveKind::String,
+                },
+                PreExp::Primitive(p) => p.value.get_type(),
+                _ => {
+                    index.type_check(self, fn_context)?;
+                    index.get_type(self, fn_context)
+                }
             };
-            if value.is_none() {
-                return Err(TransformError::UndeclaredVariable(index.to_string()));
-            }
-            let value = value.unwrap();
             match value {
                 PrimitiveKind::Number
                 | PrimitiveKind::Integer

@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use rooc::Linearizer;
 use rooc::RoocParser;
-use rooc::solve_integer_binary_lp_problem;
+use rooc::solve_milp_lp_problem;
 
 fn main() {
     let source = "
@@ -19,6 +19,6 @@ define
     let parsed = rooc.parse().unwrap();
     let model = parsed.transform(vec![], &IndexMap::new()).unwrap();
     let linear = Linearizer::linearize(model).unwrap();
-    let solution = solve_integer_binary_lp_problem(&linear).unwrap();
+    let solution = solve_milp_lp_problem(&linear).unwrap();
     println!("{}", solution)
 }

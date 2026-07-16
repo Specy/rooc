@@ -1,9 +1,6 @@
 use crate::math::{Comparison, OptimizationType, VariableType};
 use crate::parser::model_transformer::DomainVariable;
-use copper::views::{Times, ViewExt};
-use copper::{VarId, VarIdBinary};
 use indexmap::IndexMap;
-use num_traits::ToPrimitive;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 #[allow(unused)]
@@ -234,52 +231,4 @@ where
         .collect::<Vec<_>>()
 }
 
-/// Processes coefficients and variables to create Times expressions, filtering based on index.
-///
-/// # Arguments
-/// * `coefficients` - Iterator of coefficient values
-/// * `variables` - Iterator of variable IDs
-/// * `filter_fn` - Function that returns true for indices to include
-///
-/// # Returns
-/// Optional vector of Times expressions if all coefficients can be converted to i32
-pub fn process_variables<'a, F>(
-    coefficients: impl Iterator<Item = &'a f64>,
-    variables: impl Iterator<Item = &'a VarId>,
-    filter_fn: F,
-) -> Option<Vec<Times<VarId>>>
-where
-    F: Fn(usize) -> bool,
-{
-    coefficients
-        .enumerate()
-        .filter(|(i, _c)| filter_fn(*i))
-        .zip(variables)
-        .map(|((_, c), v)| c.to_i32().map(|c| v.times(c)))
-        .collect::<Option<Vec<_>>>()
-}
 
-/// Similar to process_variables but works with binary variables.
-///
-/// # Arguments
-/// * `coefficients` - Iterator of coefficient values
-/// * `variables` - Iterator of binary variable IDs
-/// * `filter_fn` - Function that returns true for indices to include
-///
-/// # Returns
-/// Optional vector of Times expressions if all coefficients can be converted to i32
-pub fn process_variables_binary<'a, F>(
-    coefficients: impl Iterator<Item = &'a f64>,
-    variables: impl Iterator<Item = &'a VarIdBinary>,
-    filter_fn: F,
-) -> Option<Vec<Times<VarIdBinary>>>
-where
-    F: Fn(usize) -> bool,
-{
-    coefficients
-        .enumerate()
-        .filter(|(i, _c)| filter_fn(*i))
-        .zip(variables)
-        .map(|((_, c), v)| c.to_i32().map(|c| v.times(c)))
-        .collect::<Option<Vec<_>>>()
-}

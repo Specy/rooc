@@ -307,6 +307,19 @@ pub fn parse_graph_node(node: &Pair<Rule>) -> Result<GraphNode, CompilationError
                 .into_inner()
                 .map(|e| parse_graph_edge(&e, &name))
                 .collect::<Result<Vec<GraphEdge>, CompilationError>>()?;
+            // Reject parallel edges (duplicate destination); the node's adjacency map
+            // would otherwise silently collapse them into a single edge.
+            let mut seen: Vec<&str> = Vec::new();
+            for e in &edges {
+                if seen.contains(&e.to.as_str()) {
+                    return err_unexpected_token!(
+                        "parallel edges are not supported, duplicate destination \"{1}\" in graph node: {0}",
+                        node,
+                        e.to.clone()
+                    );
+                }
+                seen.push(e.to.as_str());
+            }
             Ok(GraphNode::new(name, edges))
         }
         (Some(name), None) => {
@@ -390,6 +403,21 @@ pub fn parse_constraint(constraint: &Pair<Rule>) -> Result<PreConstraint, Compil
                         InputSpan::from_pair(constraint),
                     ))
                 }
+                //a constraint without a comparison asserts a logic expression,
+                //it is desugared into "expression = true"
+                (None, None, Some(lhs), iteration) => {
+                    let iteration = match iteration {
+                        Some(iteration) => parse_set_iterator_list(&iteration.into_inner())?,
+                        None => vec![],
+                    };
+                    let span = InputSpan::from_pair(constraint);
+                    Ok(PreConstraint::new_logic_assertion(
+                        name,
+                        parse_exp(lhs)?,
+                        iteration,
+                        span,
+                    ))
+                }
                 _ => bail_missing_token!("Missing constraint body", constraint),
             }
         }
@@ -463,7 +491,18 @@ pub fn parse_block_function(exp: &Pair<Rule>) -> Result<PreExp, CompilationError
         .into_inner()
         .map(parse_exp)
         .collect::<Result<Vec<PreExp>, CompilationError>>()?;
-    let kind = parse_block_function_type(&name.unwrap())?;
+    let name = name.unwrap();
+    let kind = parse_block_function_type(&name)?;
+    if let Some(expected) = kind.exact_arity()
+        && members.len() != expected
+    {
+        return err_unexpected_token!(
+            "the block {} takes exactly {} expression, got {}",
+            exp,
+            expected,
+            members.len()
+        );
+    }
     let fun = BlockFunction::new(kind, members);
     Ok(PreExp::BlockFunction(Spanned::new(fun, span)))
 }
@@ -474,26 +513,27 @@ pub fn parse_compound_variable(
     match compound_variable.as_rule() {
         Rule::compound_variable => {
             let mut fields = compound_variable.clone().into_inner().collect::<Vec<_>>();
-            let str = compound_variable.as_str();
-            let starts_with = str.chars().next().unwrap_or('_');
-            if starts_with == '_' {
-                //compound variable has no name, only indexes
-                let indexes = fields
-                    .into_iter()
-                    .map(|i| parse_compound_variable_index(i))
-                    .collect::<Result<Vec<_>, CompilationError>>()?;
-                Ok(CompoundVariable::new("".to_string(), indexes))
-            } else if fields.len() >= 2 {
-                //compound variable has name and indexes
-                let name = fields.remove(0);
-                let indexes = fields
-                    .into_iter()
-                    .map(|i| parse_compound_variable_index(i))
-                    .collect::<Result<Vec<_>, CompilationError>>()?;
-                Ok(CompoundVariable::new(name.as_str().to_string(), indexes))
-            } else {
-                err_unexpected_token!("found {}, expected compound variable", compound_variable)
+            if fields.is_empty() {
+                return err_unexpected_token!(
+                    "found {}, expected compound variable",
+                    compound_variable
+                );
             }
+            //the base name is a simple variable that starts where the whole
+            //compound starts; names like _1 or _{i} begin directly with an
+            //index and have no base
+            let has_base = fields[0].as_rule() == Rule::simple_variable
+                && fields[0].as_span().start() == compound_variable.as_span().start();
+            let name = if has_base {
+                fields.remove(0).as_str().to_string()
+            } else {
+                String::new()
+            };
+            let indexes = fields
+                .into_iter()
+                .map(|i| parse_compound_variable_index(i))
+                .collect::<Result<Vec<_>, CompilationError>>()?;
+            Ok(CompoundVariable::new(name, indexes))
         }
         _ => err_unexpected_token!("Expected compound variable but got: {}", compound_variable),
     }
@@ -514,6 +554,14 @@ pub fn parse_compound_variable_index(
             let span = InputSpan::from_pair(&compound_variable_index);
             Ok(PreExp::Variable(Spanned::new(
                 compound_variable_index.as_str()[1..].to_string(),
+                span,
+            )))
+        }
+        Rule::underscore_literal => {
+            //a literal name fragment such as the _2 in set_A__2
+            let span = InputSpan::from_pair(&compound_variable_index);
+            Ok(PreExp::Primitive(Spanned::new(
+                Primitive::String(compound_variable_index.as_str().to_string()),
                 span,
             )))
         }

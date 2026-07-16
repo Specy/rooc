@@ -2,9 +2,7 @@ use crate::pipe::PipeContext;
 use crate::pipe::pipe_definitions::{PipeError, Pipeable, PipeableData};
 #[allow(unused_imports)]
 use crate::prelude::*;
-use crate::solvers::{
-    solve_binary_lp_problem, solve_integer_binary_lp_problem, solve_real_lp_problem_clarabel,
-};
+use crate::solvers::solve_real_lp_problem_clarabel;
 use crate::transformers::Linearizer;
 use crate::{RoocParser, auto_solver, solve_milp_lp_problem};
 
@@ -20,8 +18,6 @@ pub enum Pipes {
     TableauPipe,
     RealPipe,
     StepByStepSimplexPipe,
-    BinarySolverPipe,
-    IntegerBinarySolverPipe,
     MILPSolverPipe,
     AutoSolverPipe,
 }
@@ -259,62 +255,18 @@ impl DualPipe {
 #[allow(dead_code)]
 impl Pipeable for DualPipe {
     fn pipe(&self, data: &mut PipeableData, _: &PipeContext) -> Result<PipeableData, PipeError> {
-        let model = data.as_linear_model()?.clone();
-        //TODO: Implement dual
-        let dual = model;
-        Ok(PipeableData::LinearModel(dual))
+        // The dual transformation is not implemented; fail loudly instead of returning the
+        // primal unchanged (which would silently masquerade as the dual).
+        let _ = data.as_linear_model()?;
+        Err(PipeError::Other(
+            "Dual transformation is not implemented".to_string(),
+        ))
     }
 }
 
 //-------------------- Binary solver --------------------
 
-/// Pipe that solves the linear model using a binary solver
-pub struct BinarySolverPipe {}
-impl Default for BinarySolverPipe {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
-impl BinarySolverPipe {
-    pub fn new() -> BinarySolverPipe {
-        BinarySolverPipe {}
-    }
-}
-impl Pipeable for BinarySolverPipe {
-    fn pipe(&self, data: &mut PipeableData, _: &PipeContext) -> Result<PipeableData, PipeError> {
-        let linear_model = data.as_linear_model()?;
-        let binary_solution = solve_binary_lp_problem(linear_model);
-        match binary_solution {
-            Ok(solution) => Ok(PipeableData::BinarySolution(solution)),
-            Err(e) => Err(PipeError::SolverError(e)),
-        }
-    }
-}
-//-------------------- Integer Binary solver --------------------
-/// Pipe that solves the linear model using an integer binary solver
-pub struct IntegerBinarySolverPipe {}
-impl Default for IntegerBinarySolverPipe {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl IntegerBinarySolverPipe {
-    pub fn new() -> IntegerBinarySolverPipe {
-        IntegerBinarySolverPipe {}
-    }
-}
-impl Pipeable for IntegerBinarySolverPipe {
-    fn pipe(&self, data: &mut PipeableData, _: &PipeContext) -> Result<PipeableData, PipeError> {
-        let linear_model = data.as_linear_model()?;
-        let integer_binary_solution = solve_integer_binary_lp_problem(linear_model);
-        match integer_binary_solution {
-            Ok(solution) => Ok(PipeableData::IntegerBinarySolution(solution)),
-            Err(e) => Err(PipeError::SolverError(e)),
-        }
-    }
-}
 
 //-------------------- MILP solver --------------------
 /// Pipe that solves linear models using a MILP solver

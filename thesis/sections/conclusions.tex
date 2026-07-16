@@ -14,8 +14,8 @@ solver.
 
 I contributi principali possono essere riassunti come segue. È stato progettato
 un \emph{linguaggio} dotato di un sistema di tipi e di costrutti di alto livello,
-come gli iteratori, le \emph{block function} e i tipi di dato strutturati
-(Capitolo~\ref{cap:linguaggio}). È stato realizzato un \emph{compilatore
+come gli iteratori, le \emph{block function}, gli operatori logici e i tipi di
+dato strutturati (Capitolo~\ref{cap:linguaggio}). È stato realizzato un \emph{compilatore
 multi-fase} che, attraverso una sequenza di trasformazioni
 (Capitoli~\ref{cap:parsing}--\ref{cap:linearizzazione}), riduce il modello alla
 forma standard, e la cui architettura a \emph{pipe}
@@ -29,9 +29,12 @@ libreria riutilizzabile e come piattaforma web didattica
 \section{Limitazioni}
 \label{sec:limitazioni}
 
-Il lavoro presenta alcune limitazioni note. Sul piano del linguaggio, mancano
-operatori logici che permetterebbero di esprimere in modo naturale vincoli di
-natura logica. Sul piano della risoluzione, il simplesso implementato nel
+Il lavoro presenta alcune limitazioni note. Sul piano del linguaggio, gli
+operatori logici si applicano soltanto a espressioni booleane: non è possibile
+usare un confronto aritmetico come atomo logico (per esempio $(x + y \le 5)
+\lor b$), costrutto che richiederebbe la riformulazione dei confronti tramite
+costanti \emph{big-M} e quindi un'analisi dei limiti delle variabili. Sul piano
+della risoluzione, il simplesso implementato nel
 progetto è orientato alla chiarezza didattica più che alle prestazioni, e la sua
 applicazione diretta è limitata ai modelli di dimensioni contenute; per i
 problemi più impegnativi ci si affida ai solver esterni. Infine, l'intera
@@ -41,8 +44,9 @@ predisposta per ospitare in futuro forme diverse.
 \section{Sviluppi futuri}
 \label{sec:sviluppi-futuri}
 
-Diversi sono i possibili sviluppi. Il più immediato è l'introduzione di operatori
-logici, che amplierebbero la classe di problemi di ottimizzazione combinatoria
+Diversi sono i possibili sviluppi. Il più immediato è l'estensione degli
+operatori logici ai confronti aritmetici (\emph{vincoli indicatore}), che
+completerebbe la copertura dei problemi di ottimizzazione combinatoria
 modellabili in modo diretto. L'architettura a pipe si presta inoltre
 all'aggiunta di nuovi solver e di nuove fasi di trasformazione, anche verso
 forme non lineari. Sul fronte della piattaforma, l'ulteriore arricchimento degli

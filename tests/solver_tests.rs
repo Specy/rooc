@@ -5,9 +5,8 @@ pub mod solver_tests {
 
     use indexmap::IndexMap;
     use rooc::common::LpSolution;
-    use rooc::linear_integer_binary_solver::IntOrBoolValue;
     use rooc::pipe::{
-        BinarySolverPipe, CompilerPipe, IntegerBinarySolverPipe, LinearModelPipe, MILPSolverPipe,
+        CompilerPipe, LinearModelPipe, MILPSolverPipe,
         ModelPipe, PreModelPipe, RealSolver, StandardLinearModelPipe, TableauPipe,
     };
     use rooc::pipe::{PipeContext, PipeRunner};
@@ -92,64 +91,34 @@ pub mod solver_tests {
     }
 
     #[allow(unused)]
-    #[allow(clippy::result_large_err)]
-    fn solve_binary(source: &str) -> Result<LpSolution<bool>, PipeError> {
-        let pipe_runner = PipeRunner::new(vec![
-            Box::new(CompilerPipe::new()),
-            Box::new(PreModelPipe::new()),
-            Box::new(ModelPipe::new()),
-            Box::new(LinearModelPipe::new()),
-            Box::new(BinarySolverPipe::new()),
-        ]);
-
-        let result = pipe_runner.run(
-            PipeableData::String(source.to_string()),
-            &PipeContext::new(vec![], &IndexMap::new()),
-        );
-        match result {
-            Ok(data) => {
-                let last = data.last().unwrap();
-                match last {
-                    PipeableData::BinarySolution(data) => Ok(data.clone()),
-                    _ => Err(PipeError::InvalidData {
-                        expected: PipeDataType::BinarySolution,
-                        got: last.get_type(),
-                    }),
-                }
-            }
-            Err((error, _context)) => Err(error),
+    fn assert_correct_named_real_solution(
+        solution: (OptimalTableauWithSteps, LpSolution<f64>),
+        expected_value: f64,
+        expected_variables: &[(&str, f64)],
+    ) {
+        assert_precision(solution.1.value(), expected_value);
+        assert_precision(solution.0.result().optimal_value(), expected_value);
+        let tableau_solution = solution.0.result().as_lp_solution();
+        for (name, expected) in expected_variables {
+            let real_value = solution
+                .1
+                .assignment()
+                .iter()
+                .find(|assignment| assignment.name == *name)
+                .unwrap_or_else(|| panic!("missing variable {name} in real solver result"))
+                .value;
+            let tableau_value = tableau_solution
+                .assignment()
+                .iter()
+                .find(|assignment| assignment.name == *name)
+                .unwrap_or_else(|| panic!("missing variable {name} in tableau result"))
+                .value;
+            assert_precision(real_value, *expected);
+            assert_precision(tableau_value, *expected);
         }
     }
 
-    #[allow(unused)]
-    #[allow(clippy::result_large_err)]
-    fn solve_integer_binary(source: &str) -> Result<LpSolution<IntOrBoolValue>, PipeError> {
-        let pipe_runner = PipeRunner::new(vec![
-            Box::new(CompilerPipe::new()),
-            Box::new(PreModelPipe::new()),
-            Box::new(ModelPipe::new()),
-            Box::new(LinearModelPipe::new()),
-            Box::new(IntegerBinarySolverPipe::new()),
-        ]);
 
-        let result = pipe_runner.run(
-            PipeableData::String(source.to_string()),
-            &PipeContext::new(vec![], &IndexMap::new()),
-        );
-        match result {
-            Ok(data) => {
-                let last = data.last().unwrap();
-                match last {
-                    PipeableData::IntegerBinarySolution(data) => Ok(data.clone()),
-                    _ => Err(PipeError::InvalidData {
-                        expected: PipeDataType::IntegerBinarySolution,
-                        got: last.get_type(),
-                    }),
-                }
-            }
-            Err((error, _context)) => Err(error),
-        }
-    }
 
     #[allow(unused)]
     #[allow(clippy::result_large_err)]
@@ -172,7 +141,7 @@ pub mod solver_tests {
                 match last {
                     PipeableData::MILPSolution(data) => Ok(data.clone()),
                     _ => Err(PipeError::InvalidData {
-                        expected: PipeDataType::IntegerBinarySolution,
+                        expected: PipeDataType::MILPSolution,
                         got: last.get_type(),
                     }),
                 }
@@ -211,58 +180,7 @@ pub mod solver_tests {
         );
     }
 
-    #[allow(unused)]
-    fn assert_variables_binary(variables: &Vec<bool>, expected: &Vec<bool>, lax_var_num: bool) {
-        if variables.len() != expected.len() && !lax_var_num {
-            panic!(
-                "Different length, expected {:?} but got {:?}",
-                expected, variables
-            );
-        }
-        for (v, e) in variables.iter().zip(expected.iter()) {
-            if *v != *e {
-                panic!(
-                    "{:?}!={:?} Expected  {:?} but got {:?}",
-                    v, e, expected, variables
-                );
-            }
-        }
-    }
 
-    #[allow(unused)]
-    fn assert_variables_integer(
-        variables: &[IntOrBoolValue],
-        expected: &[IntOrBoolValue],
-        lax_var_num: bool,
-    ) {
-        if variables.len() != expected.len() && !lax_var_num {
-            panic!(
-                "Different length, expected {:?} but got {:?}",
-                expected, variables
-            );
-        }
-        for (v, e) in variables.iter().zip(expected.iter()) {
-            match (v, e) {
-                (IntOrBoolValue::Bool(v), IntOrBoolValue::Bool(e)) => {
-                    if *v != *e {
-                        panic!(
-                            "{:?}!={:?} Expected  {:?} but got {:?}",
-                            v, e, expected, variables
-                        );
-                    }
-                }
-                (IntOrBoolValue::Int(v), IntOrBoolValue::Int(e)) => {
-                    if *v != *e {
-                        panic!(
-                            "{:?}!={:?} Expected  {:?} but got {:?}",
-                            v, e, expected, variables
-                        );
-                    }
-                }
-                _ => panic!("Different types"),
-            }
-        }
-    }
     #[allow(unused)]
     fn assert_variables_milp(variables: &[MILPValue], expected: &[MILPValue], lax_var_num: bool) {
         if variables.len() != expected.len() && !lax_var_num {
@@ -326,7 +244,7 @@ pub mod solver_tests {
         x_1, x_2 as NonNegativeReal
     "#;
         let solution = solve(source).unwrap();
-        assert_correct_solution(solution, 21.0, vec![vec![9.0, 6.0, 14.0, 0.0, 0.0, 6.0]]);
+        assert_correct_named_real_solution(solution, 21.0, &[("x_1", 9.0), ("x_2", 6.0)]);
     }
 
     #[test]
@@ -343,10 +261,10 @@ pub mod solver_tests {
         x_1, x_2, x_3, x_4 as NonNegativeReal
     "#;
         let solution = solve(source).unwrap();
-        assert_correct_solution(
+        assert_correct_named_real_solution(
             solution,
             107.0,
-            vec![vec![8.0, 0.0, 9.0, 11.0, 0.0, 0.0, 0.0]],
+            &[("x_1", 8.0), ("x_2", 0.0), ("x_3", 9.0), ("x_4", 11.0)],
         );
     }
 
@@ -426,7 +344,7 @@ pub mod solver_tests {
         x_1, x_2 as NonNegativeReal
     "#;
         let solution = solve(source).unwrap();
-        assert_correct_solution(solution, 12.0, vec![vec![4.0, 4.0, 6.0, 2.0, 0.0, 0.0]]);
+        assert_correct_named_real_solution(solution, 12.0, &[("x_1", 4.0), ("x_2", 4.0)]);
     }
 
     #[test]
@@ -468,10 +386,10 @@ pub mod solver_tests {
                  z_i as NonNegativeReal for i in list
      "#;
         let solution = solve(source).unwrap();
-        assert_correct_solution(
+        assert_correct_named_real_solution(
             solution,
             34.0,
-            vec![vec![10.0, 4.0, 8.0, 12.0, 0.0, 0.0, 0.0, 0.0]],
+            &[("x", 10.0), ("z_2", 4.0), ("z_4", 8.0), ("z_6", 12.0)],
         );
     }
 
@@ -488,14 +406,26 @@ pub mod solver_tests {
         x_1, x_2 as NonNegativeReal
     "#;
         let solution = solve(source).unwrap();
-        assert_correct_solution(
-            solution,
-            18.0,
-            vec![
-                vec![22.0 / 3.0, 10.0 / 3.0, 0.0, 8.0, 0.0],
-                vec![6.03716, 5.92566],
-            ],
-        );
+        assert_precision(solution.1.value(), 18.0);
+        assert_precision(solution.0.result().optimal_value(), 18.0);
+        let tableau_solution = solution.0.result().as_lp_solution();
+        for result in [&solution.1, &tableau_solution] {
+            let x_1 = result
+                .assignment()
+                .iter()
+                .find(|assignment| assignment.name == "x_1")
+                .expect("missing x_1")
+                .value;
+            let x_2 = result
+                .assignment()
+                .iter()
+                .find(|assignment| assignment.name == "x_2")
+                .expect("missing x_2")
+                .value;
+            assert_precision(2.0 * x_1 + x_2, 18.0);
+            assert!(x_2 <= x_1 + 4.0 + 1e-9);
+            assert!(x_1 <= x_2 + 4.0 + 1e-9);
+        }
     }
 
     #[test]
@@ -555,26 +485,14 @@ define
 
     "#;
         let solution = solve(source).unwrap();
-        assert_correct_solution(
+        assert_correct_named_real_solution(
             solution,
             6.04444,
-            vec![vec![
-                1.3259259259259264,
-                4.111111111111111,
-                0.9999999999999998,
-                0.0,
-                0.0,
-                26.62962962962963,
-                100.0,
-                100.0,
-                43.37037037037037,
-                0.32592592592592595,
-                3.6740740740740745,
-                3.111111111111111,
-                0.8888888888888888,
-                0.0,
-                4.0,
-            ]],
+            &[
+                ("x_0", 1.3259259259259264),
+                ("x_1", 4.111111111111111),
+                ("x_2", 0.9999999999999998),
+            ],
         );
     }
 
@@ -617,13 +535,32 @@ define
     define
         x_i as Boolean for i in 0..len(weights)
     "#;
-        let solution = solve_binary(source).unwrap();
+        let solution = solve_milp(source).unwrap();
         assert_precision(solution.value(), 280.0);
-        assert_variables_binary(
+        assert_variables_milp(
             &solution.assignment_values(),
-            &vec![false, false, true, false, true, true, true, true],
+            &vec![
+                MILPValue::Bool(false),
+                MILPValue::Bool(false),
+                MILPValue::Bool(true),
+                MILPValue::Bool(false),
+                MILPValue::Bool(true),
+                MILPValue::Bool(true),
+                MILPValue::Bool(true),
+                MILPValue::Bool(true),
+            ],
             true,
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_apply_unary_minus_to_boolean_variables() {
+        //prefix minus must behave like 0 - x on 0/1 variables
+        let source = "max -x + y\ns.t.\n    x + y >= 1\ndefine\n    x, y as Boolean";
+        let solution = solve_milp(source).unwrap();
+        assert_precision(solution.value(), 1.0);
+        assert_variables_milp(&solution.assignment_values(), &vec![MILPValue::Bool(false), MILPValue::Bool(true)], true);
     }
 
     #[test]
@@ -637,12 +574,12 @@ define
     define
         x_1, x_2 as IntegerRange(0, 10)
     "#;
-        let solution = solve_integer_binary(source).unwrap();
+        let solution = solve_milp(source).unwrap();
         assert_precision(solution.value(), 21.0);
         let assignment = solution.assignment_values();
-        assert_variables_integer(
+        assert_variables_milp(
             &assignment,
-            &[IntOrBoolValue::Int(0), IntOrBoolValue::Int(7)],
+            &[MILPValue::Int(0), MILPValue::Int(7)],
             false,
         );
     }
@@ -662,36 +599,6 @@ define
     "#; //here only Real and NonNegativeReal are allowed
         solve(source).unwrap();
     }
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    #[should_panic]
-    fn should_detect_invalid_domain_2() {
-        let source = r#"
-    max 2x_1 + 3x_2
-    s.t.
-        x_1 + x_2 <= 7
-        2x_1 + 3x_2 <= 21
-    define
-        x_1 as Real
-        x_2 as IntegerRange(0, 10)
-    "#; //here only IntegerRange and boolean are allowed
-        solve_integer_binary(source).unwrap();
-    }
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    #[should_panic]
-    fn should_detect_invalid_domain_3() {
-        let source = r#"
-    max 2x_1 + 3x_2
-    s.t.
-        x_1 + x_2 <= 7
-        2x_1 + 3x_2 <= 21
-    define
-        x_1 as Boolean
-        x_2 as IntegerRange(0, 10)
-    "#; //here only Boolean is allowed
-        solve_binary(source).unwrap();
-    }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
@@ -705,16 +612,16 @@ define
     define
         x_i as IntegerRange(0, arr[i]) for i in 0..len(arr)
     "#; //here only Boolean is allowed
-        let result = solve_integer_binary(source).unwrap();
+        let result = solve_milp(source).unwrap();
         assert_precision(result.value(), 10.0);
         let assignment = result.assignment_values();
-        assert_variables_integer(
+        assert_variables_milp(
             &assignment,
             &[
-                IntOrBoolValue::Int(1),
-                IntOrBoolValue::Int(2),
-                IntOrBoolValue::Int(3),
-                IntOrBoolValue::Int(4),
+                MILPValue::Int(1),
+                MILPValue::Int(2),
+                MILPValue::Int(3),
+                MILPValue::Int(4),
             ],
             false,
         );
@@ -750,5 +657,347 @@ define
             ],
             false,
         )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_abs_in_objective() {
+        //|x - 7| is replaced by $abs_0 with $abs_0 >= x - 7 and $abs_0 >= -(x - 7),
+        //minimizing pushes $abs_0 down onto |x - 7|
+        let source = r#"
+    min abs { x - 7 }
+    s.t.
+        x <= 3
+    define
+        x as NonNegativeReal
+    "#;
+        let solution = solve(source).unwrap();
+        assert_correct_named_real_solution(solution, 4.0, &[("x", 3.0)]);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_abs_in_constraints() {
+        //|e| <= c bounds e within [-c, c], this reformulation is exact
+        let source = r#"
+    max x + y
+    s.t.
+        abs { x - 4 } <= 2
+        abs { y - 1 } <= 3
+    define
+        x, y as NonNegativeReal
+    "#;
+        let solution = solve(source).unwrap();
+        assert_correct_named_real_solution(solution, 10.0, &[("x", 6.0), ("y", 4.0)]);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_multiple_abs_with_coefficients() {
+        let source = r#"
+    min abs { x - 6 } + 2 * abs { y - 3 }
+    s.t.
+        x <= 4
+        y <= 2
+    define
+        x, y as NonNegativeReal
+    "#;
+        let solution = solve(source).unwrap();
+        assert_correct_named_real_solution(solution, 4.0, &[("x", 4.0), ("y", 2.0)]);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_abs_of_multivariable_expression() {
+        let source = r#"
+    min abs { x + y - 10 }
+    s.t.
+        x <= 3
+        y <= 4
+    define
+        x, y as NonNegativeReal
+    "#;
+        let solution = solve(source).unwrap();
+        assert_correct_named_real_solution(solution, 3.0, &[("x", 3.0), ("y", 4.0)]);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_milp_with_abs() {
+        let source = r#"
+    min abs { 2x - 7 }
+    s.t.
+        x <= 3
+    define
+        x as IntegerRange(0, 10)
+    "#;
+        let result = solve_milp(source).unwrap();
+        assert_precision(result.value(), 1.0);
+        let x = result
+            .assignment()
+            .iter()
+            .find(|assignment| assignment.name == "x")
+            .expect("missing x in MILP result");
+        assert!(matches!(x.value, MILPValue::Int(3)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_abs_of_free_variable() {
+        //the inner expression is negative at the optimum
+        let source = r#"
+    min abs { x + 5 }
+    s.t.
+        x <= -8
+    define
+        x as Real
+    "#;
+        let result = solve_milp(source).unwrap();
+        assert_precision(result.value(), 3.0);
+        let x = result
+            .assignment()
+            .iter()
+            .find(|assignment| assignment.name == "x")
+            .expect("missing x in MILP result");
+        match x.value {
+            MILPValue::Real(value) => {
+                assert_precision(value, -8.0);
+            }
+            MILPValue::Bool(_) | MILPValue::Int(_) => {
+                panic!("expected x to be real, got {}", x.value)
+            }
+        }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_apply_objective_offset_in_min() {
+        let source = r#"
+    min x + 10
+    s.t.
+        x >= 2
+    define
+        x as NonNegativeReal
+    "#;
+        let solution = solve(source).unwrap();
+        assert_correct_named_real_solution(solution, 12.0, &[("x", 2.0)]);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_sat_problem_with_logic() {
+        //unique satisfying assignment: a=false, b=true
+        let source = r#"
+    solve
+    s.t.
+        a or b
+        (not a) or (not b)
+        not a
+    define
+        a, b as Boolean
+    "#;
+        let solution = solve_milp(source).unwrap();
+        let assignment = solution.assignment();
+        let a = match assignment.iter().find(|v| v.name == "a").unwrap().value {
+            MILPValue::Bool(b) => b,
+            _ => panic!("expected bool"),
+        };
+        let b = match assignment.iter().find(|v| v.name == "b").unwrap().value {
+            MILPValue::Bool(b) => b,
+            _ => panic!("expected bool"),
+        };
+        assert!(!a && b, "expected a=false b=true, got a={} b={}", a, b);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_max_sat_style_objective() {
+        //(a and b) is forbidden, the best is (not a) plus (b or c) = 2
+        let source = r#"
+    max 2*(a and b) + (not a) + (b or c)
+    s.t.
+        not (a and b)
+    define
+        a, b, c as Boolean
+    "#;
+        let solution = solve_milp(source).unwrap();
+        assert_precision(solution.value(), 2.0);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_implication_chain() {
+        //x_1 is forced and implications propagate to all three variables
+        let source = r#"
+    min x_1 + x_2 + x_3
+    s.t.
+        x_1
+        x_1 implies x_2
+        x_2 implies x_3
+    define
+        x_1, x_2, x_3 as Boolean
+    "#;
+        let solution = solve_milp(source).unwrap();
+        assert_precision(solution.value(), 3.0);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_xor_parity() {
+        //a xor b is false with both true, so c must be true
+        let source = r#"
+    solve
+    s.t.
+        (a xor b) xor c
+        a
+        b
+    define
+        a, b, c as Boolean
+    "#;
+        let solution = solve_milp(source).unwrap();
+        let c_val = solution
+            .assignment()
+            .iter()
+            .find(|v| v.name == "c")
+            .unwrap()
+            .value;
+        let c = match c_val {
+            MILPValue::Bool(b) => b,
+            _ => panic!("expected bool"),
+        };
+        assert!(c, "a xor b is false, so c must be true");
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_iff_constraint() {
+        //y iff x with x forced true means y must be true, minimization checks it
+        let source = r#"
+    min 10y + z
+    s.t.
+        x
+        y iff x
+        z or y
+    define
+        x, y, z as Boolean
+    "#;
+        let solution = solve_milp(source).unwrap();
+        //y forced to 1 by the iff, z free to be 0 since y satisfies the or
+        assert_precision(solution.value(), 10.0);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_mix_logic_and_arithmetic() {
+        //the reified (a and b) is a 0/1 value usable inside arithmetic
+        let source = r#"
+    max 3*(a and b) + y
+    s.t.
+        y <= 1.5
+        a iff b
+    define
+        a, b as Boolean
+        y as NonNegativeReal
+    "#;
+        let result = solve_milp(source).unwrap();
+        assert_precision(result.value(), 4.5);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_bare_logic_between_other_constraints() {
+        //several bare logic constraints interleaved with comparisons,
+        //written without parenthesis
+        let source = r#"
+    min x + y + z
+    s.t.
+        a or b
+        x + y >= 3
+        a implies b and not c
+        z >= 2 * x
+        not a or c
+    define
+        x, y, z as NonNegativeReal
+        a, b, c as Boolean
+    "#;
+        let result = solve_milp(source).unwrap();
+        //the logic part is satisfiable without forcing anything expensive,
+        //the arithmetic part is minimized at x=0, y=3, z=0
+        assert_precision(result.value(), 3.0);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_logic_blocks() {
+        //all forces every x to true, checked by the minimization
+        let source = r#"
+    min sum(i in 0..3) { x_i }
+    s.t.
+        all(i in 0..3) { x_i }
+    define
+        x_i as Boolean for i in 0..3
+    "#;
+        let solution = solve_milp(source).unwrap();
+        assert_precision(solution.value(), 3.0);
+        //any forces at least one x to true
+        let source = r#"
+    min sum(i in 0..3) { x_i }
+    s.t.
+        any(i in 0..3) { x_i }
+    define
+        x_i as Boolean for i in 0..3
+    "#;
+        let solution = solve_milp(source).unwrap();
+        assert_precision(solution.value(), 1.0);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_solve_independent_set_with_logic() {
+        //maximum independent set on a triangle with a pendant vertex,
+        //adjacent vertices cannot both be selected
+        let source = r#"
+    max sum(v in nodes(G)) { x_v }
+    s.t.
+        not x_u or not x_v for (u, v) in edges(G)
+    where
+        let G = Graph {
+            A -> [B, C],
+            B -> [A, C],
+            C -> [A, B, D],
+            D -> [C]
+        }
+    define
+        x_v as Boolean for v in nodes(G)
+    "#;
+        let solution = solve_milp(source).unwrap();
+        //the best independent set picks D plus one vertex of the triangle
+        assert_precision(solution.value(), 2.0);
+        let assignment = solution.assignment();
+        let d_val = assignment.iter().find(|v| v.name == "x_D").unwrap().value;
+        let d = match d_val {
+            MILPValue::Bool(b) => b,
+            _ => panic!("expected bool"),
+        };
+        assert!(
+            d,
+            "the pendant vertex D is in every maximum independent set"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn should_fold_constant_abs() {
+        //an absolute value of constants is folded to a number, no
+        //auxiliary variable is created
+        let source = r#"
+    min x + abs { 2 - 5 }
+    s.t.
+        x >= 2
+    define
+        x as NonNegativeReal
+    "#;
+        let solution = solve(source).unwrap();
+        assert_correct_named_real_solution(solution, 5.0, &[("x", 2.0)]);
     }
 }

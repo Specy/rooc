@@ -21,3 +21,9 @@ p {
   max-width: 75ch;
   font-size: 1.1rem;
 }
+
+code {
+  background: var(--secondary);
+  border-radius: 0.4rem;
+  padding: 0 0.3rem;
+}

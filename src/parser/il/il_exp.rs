@@ -20,11 +20,73 @@ use crate::primitives::{Primitive, PrimitiveKind};
 use crate::runtime_builtin::FunctionCall;
 use crate::traits::{ToLatex, escape_latex};
 use crate::type_checker::type_checker_context::{
-    FunctionContext, TypeCheckable, TypeCheckerContext, WithType,
+    CompoundFamilyKind, FunctionContext, TypeCheckable, TypeCheckerContext, WithType,
 };
 use crate::utils::{InputSpan, Spanned};
 
+/// Resolves the statically known kind of a compound variable from its
+/// declared family, falling back to Number when nothing is known.
+fn statically_flatten_compound_variable(compound: &CompoundVariable) -> Option<String> {
+    let indexes = compound
+        .indexes
+        .iter()
+        .map(|index| match index {
+            PreExp::Primitive(value) => match value.value() {
+                Primitive::Number(value) => Some(value.to_string()),
+                Primitive::Integer(value) => Some(value.to_string()),
+                Primitive::PositiveInteger(value) => Some(value.to_string()),
+                Primitive::Boolean(value) => Some(if *value { "T" } else { "F" }.to_string()),
+                Primitive::String(value) => Some(value.clone()),
+                Primitive::GraphNode(value) => Some(value.name().clone()),
+                Primitive::Iterable(_)
+                | Primitive::Graph(_)
+                | Primitive::GraphEdge(_)
+                | Primitive::Tuple(_)
+                | Primitive::Undefined => None,
+            },
+            PreExp::BlockFunction(_)
+            | PreExp::Variable(_)
+            | PreExp::CompoundVariable(_)
+            | PreExp::ArrayAccess(_)
+            | PreExp::BlockScopedFunction(_)
+            | PreExp::FunctionCall(_, _)
+            | PreExp::BinaryOperation(_, _, _)
+            | PreExp::UnaryOperation(_, _) => None,
+        })
+        .collect::<Option<Vec<_>>>()?;
+    Some(format!("{}_{}", compound.name, indexes.join("_")))
+}
+
+fn compound_variable_kind(
+    context: &TypeCheckerContext,
+    compound: &CompoundVariable,
+) -> PrimitiveKind {
+    match context.static_compound_variable_of(&compound.name, compound.indexes.len()) {
+        Some(CompoundFamilyKind::Uniform(kind)) => kind.clone(),
+        //the family has declarations with different types, the exact type of
+        //a member is only known at runtime
+        Some(CompoundFamilyKind::Mixed) => PrimitiveKind::Any,
+        // No family: a fully literal reference may flatten onto one escaped
+        // declaration, such as x_1 onto \x_1.
+        None => statically_flatten_compound_variable(compound)
+            .and_then(|name| context.static_domain_variable_of(&name))
+            .map(|static_type| static_type.value.static_primitive_kind())
+            .unwrap_or(PrimitiveKind::Number),
+    }
+}
+
+/// Folds a list of expressions into a chain of binary exclusive disjunctions,
+/// which computes the parity (odd number of true values) of the whole list.
+fn fold_xor(exps: Vec<Exp>) -> Exp {
+    let mut iter = exps.into_iter();
+    match iter.next() {
+        None => Exp::Number(0.0),
+        Some(first) => iter.fold(first, |acc, exp| Exp::Xor(acc.to_box(), exp.to_box())),
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "value")]
 /// Represents an expression in the intermediate language before final transformation.
 ///
 /// This enum captures different types of expressions that can appear in the source code,
@@ -32,8 +94,6 @@ use crate::utils::{InputSpan, Spanned};
 pub enum PreExp {
     /// A primitive value like numbers, strings, booleans
     Primitive(Spanned<Primitive>),
-    /// Absolute value expression, e.g. |x|
-    Abs(InputSpan, Box<PreExp>),
     /// A block function like average, min, max, etc.
     BlockFunction(Spanned<BlockFunction>),
     /// A simple variable reference like 'x'
@@ -61,25 +121,16 @@ export type SerializedFunctionCall = {
     name: string,
     span: InputSpan,
 }
-export type SerializedPreExp = {span: InputSpan} & (
-    {type: "Primitive", value: SerializedPrimitive} |
-    {type: "Abs", value: SerializedPreExp} |
-    {type: "BlockFunction", value: SerializedBlockFunction} |
-    {type: "Variable", value: string} |
-    {type: "CompoundVariable", value: SerializedCompoundVariable} |
-    {type: "ArrayAccess", value: SerializedAddressableAccess} |
-    {type: "BlockScopedFunction", value: SerializedBlockScopedFunction} |
-    {type: "FunctionCall", value: SerializedFunctionCall} | 
-    {type: "BinaryOperation", value: {
-        op: BinOp,
-        lhs: SerializedPreExp,
-        rhs: SerializedPreExp,
-    }} |
-    {type: "UnaryOperation", value: {
-        op: UnOp,
-        exp: SerializedPreExp,
-    }}
-)
+export type SerializedPreExp =
+    {type: "Primitive", value: SerializedSpanned<SerializedPrimitive>} |
+    {type: "BlockFunction", value: SerializedSpanned<SerializedBlockFunction>} |
+    {type: "Variable", value: SerializedSpanned<string>} |
+    {type: "CompoundVariable", value: SerializedSpanned<SerializedCompoundVariable>} |
+    {type: "ArrayAccess", value: SerializedSpanned<SerializedAddressableAccess>} |
+    {type: "BlockScopedFunction", value: SerializedSpanned<SerializedBlockScopedFunction>} |
+    {type: "FunctionCall", value: [InputSpan, SerializedFunctionCall]} |
+    {type: "BinaryOperation", value: [SerializedSpanned<SerializedBinOp>, SerializedPreExp, SerializedPreExp]} |
+    {type: "UnaryOperation", value: [SerializedSpanned<SerializedUnOp>, SerializedPreExp]}
 "#;
 
 impl TypeCheckable for PreExp {
@@ -124,19 +175,6 @@ impl TypeCheckable for PreExp {
                 }
             }
             Self::Primitive(_) => Ok(()),
-            Self::Abs(_, exp) => {
-                exp.type_check(context, fn_context)
-                    .map_err(|e| e.add_span(exp.span()))?;
-                let exp_type = exp.get_type(context, fn_context);
-                if !exp_type.is_numeric() {
-                    return Err(TransformError::from_wrong_type(
-                        exp_type,
-                        PrimitiveKind::Number,
-                        exp.span().clone(),
-                    ));
-                }
-                Ok(())
-            }
             Self::Variable(name) => {
                 //check if the variable is declared, if not, check if it will be declared at runtime
                 //this is possible for named variables in the domain
@@ -149,15 +187,52 @@ impl TypeCheckable for PreExp {
                     .map_err(|e| e.add_span(name.span())),
                 }
             }
-            Self::CompoundVariable(c) => context
-                .check_compound_variable(&c.indexes, fn_context)
-                .map_err(|e| e.add_span(c.span())),
+            Self::CompoundVariable(c) => {
+                //a compound variable with no matching family declaration is
+                //a guaranteed error at transform time, report it early, unless
+                //it can flatten onto a literal (escaped) declaration like \x_1
+                if context
+                    .static_compound_variable_of(&c.name, c.indexes.len())
+                    .is_none()
+                    && statically_flatten_compound_variable(c)
+                        .and_then(|name| context.static_domain_variable_of(&name))
+                        .is_none()
+                {
+                    return Err(
+                        TransformError::UndeclaredVariable(c.to_string()).add_span(c.span())
+                    );
+                }
+                context
+                    .check_compound_variable(&c.indexes, fn_context)
+                    .map_err(|e| e.add_span(c.span()))
+            }
             Self::BlockFunction(f) => {
+                if let Some(expected) = f.kind.exact_arity()
+                    && f.exps.len() != expected
+                {
+                    return Err(TransformError::Other(format!(
+                        "The {} block takes exactly {} expression, got {}",
+                        f.kind,
+                        expected,
+                        f.exps.len()
+                    ))
+                    .add_span(f.span()));
+                }
+                let requires_boolean = f.kind.is_logic();
                 for exp in &f.exps {
                     exp.type_check(context, fn_context)
                         .map_err(|e| e.add_span(f.span()))?;
                     let exp_type = exp.get_type(context, fn_context);
-                    if !exp_type.is_numeric() {
+                    if requires_boolean {
+                        if exp_type != PrimitiveKind::Boolean && !exp_type.is_any() {
+                            return Err(TransformError::from_wrong_type(
+                                PrimitiveKind::Boolean,
+                                exp_type,
+                                exp.span().clone(),
+                            )
+                            .add_span(f.span()));
+                        }
+                    } else if !exp_type.is_numeric() {
                         return Err(TransformError::from_wrong_type(
                             PrimitiveKind::Number,
                             exp_type,
@@ -193,7 +268,17 @@ impl TypeCheckable for PreExp {
                 if let Err(e) = res {
                     return Err(e.add_span(f.span()));
                 }
-                if !exp_type.is_numeric() {
+                if f.kind.is_logic() {
+                    if exp_type != PrimitiveKind::Boolean && !exp_type.is_any() {
+                        let err = TransformError::from_wrong_type(
+                            PrimitiveKind::Boolean,
+                            exp_type,
+                            f.exp.span().clone(),
+                        )
+                        .add_span(f.span());
+                        return Err(err);
+                    }
+                } else if !exp_type.is_numeric() {
                     let err = TransformError::from_wrong_type(
                         PrimitiveKind::Number,
                         exp_type,
@@ -204,10 +289,18 @@ impl TypeCheckable for PreExp {
                 }
                 Ok(())
             }
-            Self::ArrayAccess(array_access) => context
-                .get_addressable_value(array_access, fn_context)
-                .map(|_| ())
-                .map_err(|e| e.add_span(array_access.span())),
+            Self::ArrayAccess(array_access) => {
+                // Type-check each index expression too, so ill-typed indices (wrong
+                // arity / non-numeric function calls) are rejected here rather than
+                // slipping through to the transform phase.
+                for access in array_access.accesses.iter() {
+                    access.type_check(context, fn_context)?;
+                }
+                context
+                    .get_addressable_value(array_access, fn_context)
+                    .map(|_| ())
+                    .map_err(|e| e.add_span(array_access.span()))
+            },
         }
     }
     fn populate_token_type_map(
@@ -219,9 +312,6 @@ impl TypeCheckable for PreExp {
             Self::FunctionCall(_span, fun) => {
                 fun.populate_token_type_map(context, fn_context);
             }
-            Self::Abs(_, exp) => {
-                exp.populate_token_type_map(context, fn_context);
-            }
             Self::Primitive(p) => {
                 context.add_token_type_or_undefined(p.value().get_type(), p.span().clone(), None)
             }
@@ -231,26 +321,22 @@ impl TypeCheckable for PreExp {
                     name.span().clone(),
                     Some(name.value().clone()),
                 ),
-                None => {
-                    match context.static_domain_variable_of(name) {
-                        Some(_) => {
-                            context.add_token_type_or_undefined(
-                                PrimitiveKind::Number, //TODO we assume defined variables are numbers, this should be improved to specify this is a runtime variable
-                                name.span().clone(),
-                                Some(name.value().clone()),
-                            )
-                        }
-                        None => context.add_token_type_or_undefined(
-                            PrimitiveKind::Undefined,
-                            name.span().clone(),
-                            Some(name.value().clone()),
-                        ),
-                    }
-                }
+                None => match context.static_domain_variable_of(name) {
+                    Some(v) => context.add_token_type_or_undefined(
+                        v.value.static_primitive_kind(),
+                        name.span().clone(),
+                        Some(name.value().clone()),
+                    ),
+                    None => context.add_token_type_or_undefined(
+                        PrimitiveKind::Undefined,
+                        name.span().clone(),
+                        Some(name.value().clone()),
+                    ),
+                },
             },
             Self::CompoundVariable(c) => {
                 context.add_token_type_or_undefined(
-                    PrimitiveKind::Number, //every compound variable must be a number
+                    compound_variable_kind(context, c),
                     c.span().clone(),
                     None,
                 );
@@ -309,26 +395,88 @@ impl WithType for PreExp {
 
                 f.unwrap().return_type(&fun.args, context, fn_context)
             }
-            Self::Variable(name) => {
-                match context.value_of(name) {
-                    Some(value) => value.clone(),
-                    None => {
-                        match context.static_domain_variable_of(name) {
-                            Some(_) => PrimitiveKind::Number, //TODO we assume defined variables are numbers, this should be improved to specify this is a runtime variable, currently doesn't error out in type checking as function arguments
-                            None => PrimitiveKind::Undefined,
+            Self::Variable(name) => match context.value_of(name) {
+                Some(value) => value.clone(),
+                None => match context.static_domain_variable_of(name) {
+                    Some(v) => v.value.static_primitive_kind(),
+                    None => PrimitiveKind::Undefined,
+                },
+            },
+            Self::BinaryOperation(op, lhs, rhs) => match **op {
+                BinOp::And | BinOp::Or | BinOp::Xor | BinOp::Implies | BinOp::Iff => {
+                    PrimitiveKind::Boolean
+                }
+                BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div => {
+                    let lhs_type = lhs.get_type(context, fn_context);
+                    let rhs_type = rhs.get_type(context, fn_context);
+                    if lhs_type.is_numeric() && rhs_type.is_numeric() {
+                        use PrimitiveKind::*;
+                        // Primitive arithmetic dispatches on the left operand:
+                        // a Boolean lhs is first cast to f64, while a Boolean
+                        // rhs keeps the lhs integer kind except for division.
+                        let is_number_result =
+                            lhs_type == Number || rhs_type == Number || lhs_type == Boolean;
+                        match **op {
+                            BinOp::Add | BinOp::Mul => {
+                                if is_number_result {
+                                    Number
+                                } else if lhs_type == Integer || rhs_type == Integer {
+                                    Integer
+                                } else {
+                                    PositiveInteger
+                                }
+                            }
+                            BinOp::Sub => {
+                                if is_number_result {
+                                    Number
+                                } else {
+                                    Integer
+                                }
+                            }
+                            BinOp::Div => Number,
+                            BinOp::And | BinOp::Or | BinOp::Xor | BinOp::Implies | BinOp::Iff => {
+                                unreachable!("logic operator in arithmetic branch")
+                            }
                         }
+                    } else {
+                        //non numeric operations keep the previous behavior of
+                        //using the left hand side type, like string concatenation
+                        lhs_type
                     }
                 }
-            }
-            Self::BinaryOperation(_, lhs, _) => lhs.get_type(context, fn_context),
-            Self::UnaryOperation(_, exp) => exp.get_type(context, fn_context),
-            Self::Abs(_, exp) => exp.get_type(context, fn_context),
+            },
+            Self::UnaryOperation(op, exp) => match **op {
+                UnOp::Not => PrimitiveKind::Boolean,
+                UnOp::Neg => match exp.get_type(context, fn_context) {
+                    //negating a boolean yields its 0/1 value negated, a number
+                    PrimitiveKind::Boolean => PrimitiveKind::Number,
+                    other => other,
+                },
+            },
             Self::ArrayAccess(a) => context
                 .get_addressable_value(a, fn_context)
                 .unwrap_or(PrimitiveKind::Undefined),
-            Self::BlockFunction(_) => PrimitiveKind::Number, //TODO check if this is true always
-            Self::BlockScopedFunction(_) => PrimitiveKind::Number, //TODO check if this is true always
-            Self::CompoundVariable(_) => PrimitiveKind::Number, //TODO check if this is true always
+            Self::BlockFunction(f) => match f.kind {
+                BlockFunctionKind::All | BlockFunctionKind::Any | BlockFunctionKind::Xor => {
+                    PrimitiveKind::Boolean
+                }
+                BlockFunctionKind::Abs => f
+                    .exps
+                    .first()
+                    .map(|exp| exp.get_type(context, fn_context))
+                    .unwrap_or(PrimitiveKind::Undefined),
+                BlockFunctionKind::Min | BlockFunctionKind::Max | BlockFunctionKind::Avg => {
+                    PrimitiveKind::Number
+                }
+            },
+            Self::BlockScopedFunction(f) => {
+                if f.kind.is_logic() {
+                    PrimitiveKind::Boolean
+                } else {
+                    PrimitiveKind::Number
+                }
+            }
+            Self::CompoundVariable(c) => compound_variable_kind(context, c),
         }
     }
 }
@@ -340,7 +488,6 @@ impl PreExp {
     pub fn span(&self) -> &InputSpan {
         match self {
             Self::Primitive(n) => n.span(),
-            Self::Abs(span, _) => span,
             Self::BlockFunction(f) => f.span(),
             Self::Variable(name) => name.span(),
             Self::CompoundVariable(c) => c.span(),
@@ -364,18 +511,21 @@ impl PreExp {
                 let rhs = rhs
                     .into_exp(context, fn_context)
                     .map_err(|e| e.add_span(self.span()))?;
-                Ok(Exp::BinOp(**op, lhs.to_box(), rhs.to_box()))
+                Ok(match **op {
+                    BinOp::And => Exp::And(vec![lhs, rhs]),
+                    BinOp::Or => Exp::Or(vec![lhs, rhs]),
+                    BinOp::Xor => Exp::Xor(lhs.to_box(), rhs.to_box()),
+                    BinOp::Implies => Exp::Implies(lhs.to_box(), rhs.to_box()),
+                    BinOp::Iff => Exp::Iff(lhs.to_box(), rhs.to_box()),
+                    op @ (BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div) => {
+                        Exp::BinOp(op, lhs.to_box(), rhs.to_box())
+                    }
+                })
             }
             Self::Primitive(n) => match n.as_number_cast() {
                 Ok(n) => Ok(Exp::Number(n)),
                 Err(e) => Err(e.add_span(self.span())),
             },
-            Self::Abs(span, exp) => {
-                let inner = exp
-                    .into_exp(context, fn_context)
-                    .map_err(|e| e.add_span(span))?;
-                Ok(Exp::Abs(inner.to_box()))
-            }
             Self::BlockFunction(f) => {
                 let mut parsed_exp = f
                     .exps
@@ -384,6 +534,22 @@ impl PreExp {
                     .collect::<Result<Vec<Exp>, TransformError>>()
                     .map_err(|e| e.add_span(self.span()))?;
                 match f.kind {
+                    BlockFunctionKind::Abs => {
+                        let inner = parsed_exp.pop().ok_or_else(|| {
+                            TransformError::Other(
+                                "The abs block takes exactly one expression, got 0".to_string(),
+                            )
+                            .add_span(self.span())
+                        })?;
+                        if !parsed_exp.is_empty() {
+                            return Err(TransformError::Other(format!(
+                                "The abs block takes exactly one expression, got {}",
+                                parsed_exp.len() + 1
+                            ))
+                            .add_span(self.span()));
+                        }
+                        Ok(Exp::Abs(inner.to_box()))
+                    }
                     BlockFunctionKind::Min => Ok(Exp::Min(parsed_exp)),
                     BlockFunctionKind::Max => Ok(Exp::Max(parsed_exp)),
                     BlockFunctionKind::Avg => {
@@ -398,6 +564,9 @@ impl PreExp {
                             Exp::Number(len as f64).to_box(),
                         ))
                     }
+                    BlockFunctionKind::All => Ok(Exp::And(parsed_exp)),
+                    BlockFunctionKind::Any => Ok(Exp::Or(parsed_exp)),
+                    BlockFunctionKind::Xor => Ok(fold_xor(parsed_exp)),
                 }
             }
 
@@ -405,7 +574,10 @@ impl PreExp {
                 let inner = exp
                     .into_exp(context, fn_context)
                     .map_err(|e| e.add_span(self.span()))?;
-                Ok(Exp::UnOp(**op, inner.to_box()))
+                Ok(match **op {
+                    UnOp::Not => Exp::Not(inner.to_box()),
+                    UnOp::Neg => Exp::UnOp(UnOp::Neg, inner.to_box()),
+                })
             }
             Self::Variable(name) => {
                 let value = context.value(name).map(|v| match v.as_number_cast() {
@@ -424,10 +596,7 @@ impl PreExp {
             }
             Self::CompoundVariable(c) => {
                 let indexes = &c
-                    .indexes
-                    .iter()
-                    .map(|v| v.as_primitive(context, fn_context))
-                    .collect::<Result<Vec<Primitive>, TransformError>>()
+                    .compute_indexes(context, fn_context)
                     .map_err(|e| e.add_span(self.span()))?;
                 let name = context
                     .flatten_compound_variable(&c.name, indexes)
@@ -480,6 +649,9 @@ impl PreExp {
                     }
                     BlockScopedFunctionKind::Min => Ok(Exp::Min(results)),
                     BlockScopedFunctionKind::Max => Ok(Exp::Max(results)),
+                    BlockScopedFunctionKind::All => Ok(Exp::And(results)),
+                    BlockScopedFunctionKind::Any => Ok(Exp::Or(results)),
+                    BlockScopedFunctionKind::Xor => Ok(fold_xor(results)),
                     BlockScopedFunctionKind::Avg => {
                         let len = results.len();
                         let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
@@ -591,7 +763,7 @@ impl PreExp {
                     )),
                 }
             }
-            PreExp::Abs(_, _) | PreExp::BlockFunction(_) | PreExp::BlockScopedFunction(_) => {
+            PreExp::BlockFunction(_) | PreExp::BlockScopedFunction(_) => {
                 //TODO is this correct?
                 Err(TransformError::WrongArgument {
                     got: PrimitiveKind::Undefined,
@@ -732,8 +904,8 @@ impl PreExp {
                 //TODO add implied multiplication like 2x 2(x + y) etc...
                 /*
                    implicit_mul = {
-                       (number | parenthesis | modulo){2,} ~ variable? |
-                       (number | parenthesis | modulo) ~ variable
+                       (number | parenthesis){2,} ~ variable? |
+                       (number | parenthesis) ~ variable
                    }
                 */
                 let lhs_str = lhs.to_string_with_precedence(op.precedence());
@@ -753,8 +925,8 @@ impl PreExp {
                 //TODO add implied multiplication like 2x 2(x + y) etc...
                 /*
                    implicit_mul = {
-                       (number | parenthesis | modulo){2,} ~ variable? |
-                       (number | parenthesis | modulo) ~ variable
+                       (number | parenthesis){2,} ~ variable? |
+                       (number | parenthesis) ~ variable
                    }
                 */
                 let lhs_str = lhs.to_latex_with_precedence(op.precedence());
@@ -786,7 +958,7 @@ impl ToLatex for PreExp {
                 }
             }
             Self::UnaryOperation(op, exp) => {
-                if self.is_leaf() {
+                if exp.is_leaf() {
                     format!("{}{}", op.to_latex(), exp.to_latex())
                 } else {
                     format!("{}({})", op.to_latex(), exp.to_latex())
@@ -794,7 +966,6 @@ impl ToLatex for PreExp {
             }
             Self::Variable(name) => escape_latex(name.value()),
             Self::Primitive(p) => p.to_latex(),
-            Self::Abs(_, exp) => format!("|{}|", exp.to_latex()),
             Self::CompoundVariable(c) => c.to_latex(),
             Self::FunctionCall(_, f) => f.to_latex(),
         }
@@ -814,10 +985,9 @@ impl fmt::Display for PreExp {
             }
             Self::CompoundVariable(c) => c.to_string(),
             Self::FunctionCall(_, f) => f.to_string(),
-            Self::Abs(_, exp) => format!("|{}|", **exp),
             Self::Primitive(p) => p.to_string(),
             Self::UnaryOperation(op, exp) => {
-                if self.is_leaf() {
+                if exp.is_leaf() {
                     format!("{}{}", **op, **exp)
                 } else {
                     format!("{}({})", **op, **exp)
@@ -839,5 +1009,68 @@ impl fmt::Display for PreExp {
 impl PreExp {
     pub fn get_span_wasm(&self) -> InputSpan {
         self.span().clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PreExp;
+    use crate::math::BinOp;
+    use crate::primitives::{Primitive, PrimitiveKind};
+    use crate::runtime_builtin::RoocFunction;
+    use crate::type_checker::type_checker_context::{
+        FunctionContext, TypeCheckerContext, WithType,
+    };
+    use crate::utils::{InputSpan, Spanned};
+    use indexmap::IndexMap;
+
+    fn primitive(value: Primitive) -> PreExp {
+        PreExp::Primitive(Spanned::new(value, InputSpan::default()))
+    }
+
+    fn binary_type(op: BinOp, lhs: Primitive, rhs: Primitive) -> PrimitiveKind {
+        let exp = PreExp::BinaryOperation(
+            Spanned::new(op, InputSpan::default()),
+            primitive(lhs).to_boxed(),
+            primitive(rhs).to_boxed(),
+        );
+        let functions = IndexMap::<String, Box<dyn RoocFunction>>::new();
+        let builtins = IndexMap::<String, Box<dyn RoocFunction>>::new();
+        exp.get_type(
+            &TypeCheckerContext::default(),
+            &FunctionContext::new(&functions, &builtins),
+        )
+    }
+
+    #[test]
+    fn arithmetic_types_follow_boolean_numeric_runtime_results() {
+        assert_eq!(
+            binary_type(BinOp::Div, Primitive::Integer(7), Primitive::Boolean(true),),
+            PrimitiveKind::Number
+        );
+        assert_eq!(
+            binary_type(
+                BinOp::Sub,
+                Primitive::PositiveInteger(7),
+                Primitive::Boolean(true),
+            ),
+            PrimitiveKind::Integer
+        );
+        assert_eq!(
+            binary_type(
+                BinOp::Mul,
+                Primitive::PositiveInteger(7),
+                Primitive::Boolean(false),
+            ),
+            PrimitiveKind::PositiveInteger
+        );
+        assert_eq!(
+            binary_type(
+                BinOp::Mul,
+                Primitive::Boolean(false),
+                Primitive::PositiveInteger(7),
+            ),
+            PrimitiveKind::Number
+        );
     }
 }

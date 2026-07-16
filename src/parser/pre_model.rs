@@ -131,6 +131,16 @@ impl PreModel {
             })
             .collect::<Vec<_>>()
     }
+    fn static_compound_variables_domain(&self) -> Vec<((String, usize), PreVariableType)> {
+        self.domains
+            .iter()
+            .flat_map(|d| {
+                d.static_compound_variables()
+                    .into_iter()
+                    .map(|family| (family, d.get_type().clone()))
+            })
+            .collect::<Vec<_>>()
+    }
     pub fn create_type_checker(
         &self,
         constants: &Vec<Constant>,
@@ -153,6 +163,7 @@ impl PreModel {
                 .collect::<Vec<_>>(),
         )?;
         context.set_static_domain(domain);
+        context.set_static_compound_domain(self.static_compound_variables_domain());
         for constant in make_std_constants() {
             constant.type_check(&mut context, &fn_context)?
         }
@@ -177,6 +188,7 @@ impl PreModel {
         let std = make_std();
         let fn_context = FunctionContext::new(fns, &std);
         context.set_static_domain(domain);
+        context.set_static_compound_domain(self.static_compound_variables_domain());
         for constant in make_std_constants() {
             constant.populate_token_type_map(&mut context, &fn_context);
         }

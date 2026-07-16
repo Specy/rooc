@@ -224,19 +224,19 @@ define
         s.t.
             10x >= 1
             10(x + y) + 2 >= 1
-            10|x + y| + 2>= 1
+            10 * abs { x + y } + 2>= 1
 
             (x + y)10 + 2 >= 1
             (x + y)(z - 2) + 2 >= 1
-            (x + y)|x + y| + 2 >= 1
+            (x + y) * abs { x + y } + 2 >= 1
             (x + y)z + 2 >= 1
 
-            |x + y|10 + 2 >= 1
-            |x + y|(z - 2) + 2 >= 1
-            |x + y||x + y| + 2 >= 1
-            |x + y|z + 2 >= 1
+            (x + y)10(z - 2) + 2 >= 1
+            abs { x + y } * (z - 2) + 2 >= 1
+            abs { x + y } * abs { x + y } + 2 >= 1
+            abs { x + y } * z + 2 >= 1
 
-            2(x + y)3|x + y|z + 2 >= 1
+            2(x + y)3(z - 2)z + 2 >= 1
         where
         define
             x,y,z as Real
@@ -669,5 +669,370 @@ x_3 as Real
         RoocParser::new(input.to_string())
             .type_check(&vec![], &IndexMap::new())
             .expect("Failed to typecheck");
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_parse_logic_operators() {
+        //a mix of bare and compared constraints, with and without parenthesis
+        let input = "
+        solve
+        s.t.
+            a and b or not c
+            (a && b) or !c >= 1
+            a xor b
+            a implies b and c
+            (a -> b) >= 1
+            a iff b
+            a <-> b >= 1
+            a || b
+            not a or not b
+        define
+            a, b, c as Boolean
+        ";
+        RoocParser::new(input.to_string())
+            .parse()
+            .expect("Failed to parse logic operators");
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_logic_keywords_do_not_break_identifiers() {
+        //variables starting with operator keywords must still parse as variables
+        let input = "
+        min android + orange + nothing + iffy + xorro
+        s.t.
+            android + orange + nothing + iffy + xorro >= 1
+        define
+            android, orange, nothing, iffy, xorro as NonNegativeReal
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform(vec![], &IndexMap::new())
+            .expect("keyword-prefixed identifiers broke");
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_logic_type_checking() {
+        //logic over booleans and arithmetic over booleans both type check
+        let ok = "
+        max (a and b) or not c
+        s.t.
+            a or b iff c
+            2 * a + b <= 2
+        define
+            a, b, c as Boolean
+        ";
+        RoocParser::new(ok.to_string())
+            .type_check(&vec![], &IndexMap::new())
+            .expect("logic over booleans should type check");
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_logic_type_errors() {
+        //logic over a number must fail
+        let bad = "
+        min x
+        s.t.
+            (x or true) >= 1
+        define
+            x as NonNegativeReal
+        ";
+        assert!(
+            RoocParser::new(bad.to_string())
+                .type_check(&vec![], &IndexMap::new())
+                .is_err(),
+            "or over a number must be rejected"
+        );
+        //not over an arithmetic expression must fail
+        let bad2 = "
+        solve
+        s.t.
+            not (a + b) >= 1
+        define
+            a, b as Boolean
+        ";
+        assert!(
+            RoocParser::new(bad2.to_string())
+                .type_check(&vec![], &IndexMap::new())
+                .is_err(),
+            "not over a sum must be rejected"
+        );
+        //comparing a boolean literal with a number must fail
+        let bad3 = "
+        min x
+        s.t.
+            x = true
+        define
+            x as NonNegativeReal
+        ";
+        assert!(
+            RoocParser::new(bad3.to_string())
+                .type_check(&vec![], &IndexMap::new())
+                .is_err(),
+            "number to boolean literal comparison must be rejected"
+        );
+        //booleans take part in numeric comparisons as 0/1 values
+        let ok = "
+        solve
+        s.t.
+            a >= 1
+        define
+            a as Boolean
+        ";
+        RoocParser::new(ok.to_string())
+            .type_check(&vec![], &IndexMap::new())
+            .expect("boolean in numeric comparison should be accepted");
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_compound_families_are_typed_by_name_and_arity() {
+        //x_i (arity 1) is boolean, x_i_j (arity 2) is real: the two families
+        //must be typed independently
+        let input = "
+        solve
+        s.t.
+            not x_1
+            x_1_2 + 1 >= 2
+        define
+            x_i as Boolean for i in 0..3
+            x_i_j as Real for i in 0..3, j in 0..3
+        ";
+        RoocParser::new(input.to_string())
+            .type_check(&vec![], &IndexMap::new())
+            .expect("families with different arity should be typed independently");
+        //not over a member of the real (arity 2) family must fail
+        let bad = "
+        solve
+        s.t.
+            not x_1_2
+        define
+            x_i as Boolean for i in 0..3
+            x_i_j as Real for i in 0..3, j in 0..3
+        ";
+        assert!(
+            RoocParser::new(bad.to_string())
+                .type_check(&vec![], &IndexMap::new())
+                .is_err(),
+            "not over a real family member must be rejected"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_mixed_compound_families_defer_to_runtime() {
+        //two declarations of the same family shape with different types are
+        //legal when their sets are disjoint, the static type becomes Any
+        let input = "
+        solve
+        s.t.
+            not x_5
+            x_1 + 1 >= 2
+        define
+            x_i as Real for i in [1, 2]
+            x_j as Boolean for j in [5, 6]
+        ";
+        RoocParser::new(input.to_string())
+            .type_check(&vec![], &IndexMap::new())
+            .expect("mixed families should defer to runtime checking");
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_undeclared_compound_family_is_rejected() {
+        //y has no domain declaration at all, this is a guaranteed transform
+        //error so the type checker reports it early
+        let input = "
+        min y_1 + 1
+        s.t.
+            y_1 >= 2
+        define
+            x_i as Real for i in 0..3
+        ";
+        assert!(
+            RoocParser::new(input.to_string())
+                .type_check(&vec![], &IndexMap::new())
+                .is_err(),
+            "a compound variable without any matching family must be rejected"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_escaped_literal_declaration_matches_compound_reference() {
+        //\x_1 declares the literal name "x_1"; referencing it as the compound
+        //x_1 flattens to the same name, so the type checker must accept it
+        let input = "
+        min x_1
+        s.t.
+            x_1 >= 1
+        define
+            \\x_1 as NonNegativeReal
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform(vec![], &IndexMap::new())
+            .expect("Failed to parse and transform escaped literal declaration");
+        RoocParser::new(input.to_string())
+            .type_check(&vec![], &IndexMap::new())
+            .expect("Failed to type check escaped literal declaration");
+
+        let wrong_literal = "
+        min x_2
+        s.t.
+            x_2 >= 1
+        define
+            \\x_1 as NonNegativeReal
+        ";
+        assert!(
+            RoocParser::new(wrong_literal.to_string())
+                .type_check(&vec![], &IndexMap::new())
+                .is_err(),
+            "a different escaped literal must not satisfy the compound reference"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_compiled_style_names_reparse() {
+        //compiled output contains names like __t, _c1, $abs_0_positive,
+        //set_A__2 and x_A; feeding that output back into the compiler must
+        //reproduce the same names
+        let input = "
+        min __t + _c1 + x_A + $abs_0_positive + x__2
+        s.t.
+            set_A__2: __t >= 1
+            __helper: _c1 >= 0
+        define
+            __t, _c1, x_A, $abs_0_positive, x__2 as NonNegativeReal
+        ";
+        let model = RoocParser::new(input.to_string())
+            .parse_and_transform(vec![], &IndexMap::new())
+            .expect("Failed to parse and transform compiled style names");
+        RoocParser::new(input.to_string())
+            .type_check(&vec![], &IndexMap::new())
+            .expect("Failed to type check compiled style names");
+        let names = model
+            .constraints()
+            .iter()
+            .map(|constraint| constraint.name().to_string())
+            .collect::<Vec<_>>();
+        assert_eq!(names, vec!["set_A__2".to_string(), "__helper".to_string()]);
+        let shown = model.to_string();
+        for name in ["__t", "_c1", "x_A", "$abs_0_positive", "x__2"] {
+            assert!(shown.contains(name), "missing {name} in:\n{shown}");
+        }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_bound_names_still_substitute_in_compound_indexes() {
+        //a single underscore keeps the template behaviour: bound iteration
+        //names substitute, while double underscores are always literal
+        let input = "
+        min sum(v in nodes(G)) { x_v }
+        s.t.
+            x_v >= 0 for v in nodes(G)
+        where
+            let G = Graph { A -> [ B ], B -> [ A ] }
+        define
+            x_v as Boolean for v in nodes(G)
+        ";
+        let model = RoocParser::new(input.to_string())
+            .parse_and_transform(vec![], &IndexMap::new())
+            .expect("Failed to parse and transform iterated compound");
+        let shown = model.to_string();
+        assert!(shown.contains("x_A"), "expected substitution in:\n{shown}");
+        assert!(shown.contains("x_B"), "expected substitution in:\n{shown}");
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_abs_block_and_symbol_aliases() {
+        let input = "
+        min abs { x - 5 } + y
+        s.t.
+            (a || b) && c >= 1
+            abs { x } <= 10
+        define
+            x, y as Real
+            a, b, c as Boolean
+        ";
+        RoocParser::new(input.to_string())
+            .parse_and_transform(vec![], &IndexMap::new())
+            .expect("Failed to parse and transform abs block");
+        RoocParser::new(input.to_string())
+            .type_check(&vec![], &IndexMap::new())
+            .expect("Failed to type check abs block");
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_removed_modulo_syntax_is_rejected() {
+        //the pipe delimited absolute value was replaced by abs { }
+        let input = "
+        min 1
+        s.t.
+            |x| >= 1
+        define
+            x as Real
+        ";
+        assert!(
+            RoocParser::new(input.to_string()).parse().is_err(),
+            "pipe delimited absolute value must no longer parse"
+        );
+        //a single pipe is not an or alias
+        let input2 = "
+        solve
+        s.t.
+            a | b
+        define
+            a, b as Boolean
+        ";
+        assert!(
+            RoocParser::new(input2.to_string()).parse().is_err(),
+            "single pipe must not parse as or"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_abs_block_requires_one_argument() {
+        let input = "
+        min abs { x, y }
+        s.t.
+            x >= 1
+        define
+            x, y as Real
+        ";
+        assert!(
+            RoocParser::new(input.to_string()).parse().is_err(),
+            "abs with more than one expression must be rejected"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_logic_precedence_shape() {
+        //or is looser than and: a or b and c == a or (b and c)
+        let input = "
+        solve
+        s.t.
+            a or b and c >= 1
+        define
+            a, b, c as Boolean
+        ";
+        let parsed = RoocParser::new(input.to_string())
+            .parse()
+            .expect("failed to parse");
+        let debug = format!("{:?}", parsed);
+        let or_pos = debug.find("Or").expect("missing Or in parsed tree");
+        let and_pos = debug.find("And").expect("missing And in parsed tree");
+        assert!(
+            or_pos < and_pos,
+            "or must be the outer operation: {}",
+            debug
+        );
     }
 }

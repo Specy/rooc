@@ -5,7 +5,6 @@ use crate::parser::pre_model::PreModel;
 use crate::prelude::*;
 use crate::primitives::Constant;
 use crate::runtime_builtin::RoocFunction;
-use crate::solvers::IntOrBoolValue;
 use crate::solvers::{
     CanonicalTransformError, OptimalTableau, OptimalTableauWithSteps, SimplexError, Tableau,
 };
@@ -30,8 +29,6 @@ pub enum PipeableData {
     Tableau(Tableau),
     OptimalTableau(OptimalTableau),
     OptimalTableauWithSteps(OptimalTableauWithSteps),
-    BinarySolution(LpSolution<bool>),
-    IntegerBinarySolution(LpSolution<IntOrBoolValue>),
     RealSolution(LpSolution<f64>),
     MILPSolution(LpSolution<MILPValue>),
 }
@@ -51,8 +48,6 @@ impl PipeableData {
             PipeableData::PreModel(_) => PipeDataType::PreModel,
             PipeableData::OptimalTableau(_) => PipeDataType::OptimalTableau,
             PipeableData::OptimalTableauWithSteps(_) => PipeDataType::OptimalTableauWithSteps,
-            PipeableData::BinarySolution(_) => PipeDataType::BinarySolution,
-            PipeableData::IntegerBinarySolution(_) => PipeDataType::IntegerBinarySolution,
             PipeableData::RealSolution(_) => PipeDataType::RealSolution,
             PipeableData::MILPSolution(_) => PipeDataType::MILPSolution,
         }
@@ -85,9 +80,6 @@ impl PipeableData {
     pub fn to_optimal_tableau_with_steps(self) -> Result<OptimalTableauWithSteps, PipeError> {
         match_pipe_data_to!(self, OptimalTableauWithSteps, OptimalTableauWithSteps)
     }
-    pub fn to_binary_solution(self) -> Result<LpSolution<bool>, PipeError> {
-        match_pipe_data_to!(self, BinarySolution, BinarySolution)
-    }
     pub fn to_real_solution(self) -> Result<LpSolution<f64>, PipeError> {
         match_pipe_data_to!(self, RealSolution, RealSolution)
     }
@@ -95,17 +87,8 @@ impl PipeableData {
         match_pipe_data_to!(self, MILPSolution, MILPSolution)
     }
 
-    pub fn to_integer_binary_solution(self) -> Result<LpSolution<IntOrBoolValue>, PipeError> {
-        match_pipe_data_to!(self, IntegerBinarySolution, IntegerBinarySolution)
-    }
     pub fn as_string_data(&self) -> Result<&String, PipeError> {
         match_pipe_data_to!(self, String, String)
-    }
-    pub fn as_binary_solution(&self) -> Result<&LpSolution<bool>, PipeError> {
-        match_pipe_data_to!(self, BinarySolution, BinarySolution)
-    }
-    pub fn as_integer_binary_solution(&self) -> Result<&LpSolution<IntOrBoolValue>, PipeError> {
-        match_pipe_data_to!(self, IntegerBinarySolution, IntegerBinarySolution)
     }
     pub fn as_real_solution(&self) -> Result<&LpSolution<f64>, PipeError> {
         match_pipe_data_to!(self, RealSolution, RealSolution)
@@ -146,8 +129,6 @@ impl Display for PipeableData {
             PipeableData::Tableau(t) => write!(f, "{}", t),
             PipeableData::OptimalTableau(t) => write!(f, "{}", t),
             PipeableData::OptimalTableauWithSteps(t) => write!(f, "{}", t),
-            PipeableData::BinarySolution(s) => write!(f, "{}", s),
-            PipeableData::IntegerBinarySolution(s) => write!(f, "{}", s),
             PipeableData::RealSolution(s) => write!(f, "{}", s),
             PipeableData::MILPSolution(s) => write!(f, "{}", s),
         }
@@ -167,8 +148,6 @@ pub enum PipeDataType {
     Tableau,
     OptimalTableau,
     OptimalTableauWithSteps,
-    BinarySolution,
-    IntegerBinarySolution,
     RealSolution,
     MILPSolution,
 }
@@ -184,8 +163,6 @@ impl Display for PipeDataType {
             PipeDataType::Tableau => "Tableau".to_string(),
             PipeDataType::OptimalTableau => "OptimalTableau".to_string(),
             PipeDataType::OptimalTableauWithSteps => "OptimalTableauWithSteps".to_string(),
-            PipeDataType::BinarySolution => "BinarySolution".to_string(),
-            PipeDataType::IntegerBinarySolution => "IntegerBinarySolution".to_string(),
             PipeDataType::RealSolution => "RealSolution".to_string(),
             PipeDataType::MILPSolution => "MILPSolution".to_string(),
         };

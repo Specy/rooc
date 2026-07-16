@@ -201,7 +201,9 @@ Le \emph{block scoped function} possiedono uno scope: hanno la forma
 variabili visibili soltanto all'interno del corpo. Il corpo viene valutato una
 volta per ogni combinazione di valori degli iteratori, e i risultati sono
 combinati dall'operatore di aggregazione. Sono disponibili nelle varianti
-\texttt{sum}, \texttt{prod}, \texttt{min}, \texttt{max} e \texttt{avg}.
+\texttt{sum}, \texttt{prod}, \texttt{min}, \texttt{max} e \texttt{avg}; per le
+espressioni logiche (Sezione~\ref{sec:operatori-variabili}) sono inoltre
+disponibili le aggregazioni \texttt{all}, \texttt{any} e \texttt{xor}.
 
 \
 
@@ -211,13 +213,16 @@ sum((value, i) in enumerate(values)) { value * x_i }
 
 Le \emph{block function} prive di scope, invece, operano su un elenco di
 espressioni già note, senza introdurre nuove variabili: hanno la forma
-\texttt{nome\{a, b, c\}} e sono disponibili per \texttt{min}, \texttt{max} e
-\texttt{avg}.
+\texttt{nome\{a, b, c\}} e sono disponibili per \texttt{min}, \texttt{max},
+\texttt{avg} e per le aggregazioni logiche \texttt{all}, \texttt{any} e
+\texttt{xor}. A questa famiglia appartiene anche \texttt{abs}, che calcola il
+valore assoluto e accetta esattamente una espressione, come in
+\texttt{abs \{ x - 5 \}}.
 
 \
 
 \begin{lstlisting}[caption={Block function senza scope: opera su espressioni elencate esplicitamente.}, label={lst:noscope}]
-max{x_1, x_2, x_3}
+max{ x_1, x_2, x_3 }
 \end{lstlisting}
 
 La differenza è dunque sostanziale: nella forma con scope il numero di termini
@@ -237,9 +242,12 @@ distinta del modello: iterando \texttt{x\_i} su \texttt{i in 0..3} si ottengono
 le variabili \texttt{x\_0}, \texttt{x\_1} e \texttt{x\_2}. Gli indici vengono
 valutati nel contesto di iterazione e concatenati a formare il nome finale della
 variabile; questo meccanismo è descritto in dettaglio nel
-Capitolo~\ref{cap:semantica}. La forma \emph{escaped} \texttt{\textbackslash
-x\_y} permette di trattare letteralmente un nome contenente l'underscore,
-disattivando l'espansione automatica.
+Capitolo~\ref{cap:semantica}. Un indice identificatore privo di valore nel
+contesto viene mantenuto letteralmente: \texttt{x\_A} indica la variabile di
+nome \texttt{x\_A} anche fuori da un'iterazione, così i modelli prodotti dal
+compilatore restano a loro volta sorgenti valide. La forma \emph{escaped}
+\texttt{\textbackslash x\_y} permette di trattare letteralmente un nome
+contenente l'underscore, disattivando l'espansione automatica.
 
 \paragraph{Destructuring.}
 Il \emph{destructuring} è la decomposizione di un valore strutturato, come una
@@ -268,9 +276,59 @@ stringhe ne produce la concatenazione. Sono implementate anche funzioni insiemis
 \texttt{union}, \texttt{intersection} e \texttt{difference}
 (Sezione~\ref{sec:funzioni}).
 
-Tra gli sviluppi futuri del linguaggio si prevede l'introduzione di operatori
-\emph{logici}, che permetterebbero di modellare in modo più naturale i problemi
-di ottimizzazione combinatoria in cui i vincoli hanno natura logica.
+\paragraph{Operatori logici.}
+Il linguaggio dispone inoltre di operatori \emph{logici}, pensati per i problemi
+di ottimizzazione combinatoria in cui i vincoli hanno natura logica: la
+congiunzione \texttt{and} (alias \texttt{\&\&}), la disgiunzione \texttt{or}
+(alias \texttt{||}), la negazione \texttt{not} (alias \texttt{!}),
+l'implicazione \texttt{implies} (alias \texttt{->}), la doppia implicazione
+\texttt{iff} (alias \texttt{<->}) e la disgiunzione esclusiva \texttt{xor}. Gli
+operandi devono essere espressioni \emph{booleane}: variabili dichiarate come
+\texttt{Boolean}, i letterali \texttt{true} e \texttt{false} o altre
+espressioni logiche.
+Le aggregazioni \texttt{all}, \texttt{any} e \texttt{xor} viste nella
+Sezione~\ref{sec:iteratori} sono le controparti indicizzate di \texttt{and},
+\texttt{or} e \texttt{xor}, e
+dispongono degli alias estesi \texttt{conjunction}, \texttt{disjunction} ed
+\texttt{exclusive\_disjunction}.
+
+Un'espressione logica può essere usata in due modi. Come \emph{vincolo}: un
+vincolo privo di operatore di confronto è interpretato come l'asserzione che
+l'espressione logica sia vera. Come \emph{valore}: un'espressione logica vale
+$0$ oppure $1$, e può quindi comparire all'interno di espressioni aritmetiche,
+per esempio per contare quante condizioni risultano soddisfatte. Il modo in cui
+questi costrutti vengono ricondotti a vincoli lineari è descritto nel
+Capitolo~\ref{cap:linearizzazione}.
+
+Il Listato~\ref{lst:vertexcover} ne mostra l'uso sul problema del \emph{vertex
+cover}, un problema classico dell'ottimizzazione combinatoria: dato un grafo,
+si cerca il minimo insieme di nodi che tocchi ogni arco. Il vincolo è
+l'asserzione logica \texttt{x\_u or x\_v}, replicata su tutti gli archi: per
+ogni arco almeno uno dei due estremi deve essere selezionato. Nell'istanza del
+listato la copertura minima è $\{A, D\}$, di cardinalità $2$.
+
+\
+
+\begin{lstlisting}[caption={Il problema del vertex cover in ROOC, con un vincolo logico.}, label={lst:vertexcover}]
+min sum(v in nodes(G)) { x_v }
+s.t.
+    x_u or x_v for (u, v) in edges(G)
+where
+    let G = Graph {
+        A -> [B, C],
+        B -> [D],
+        C -> [D],
+        D -> [E],
+        E
+    }
+define
+    x_v as Boolean for v in nodes(G)
+\end{lstlisting}
+
+La stessa espressività si applica agli esempi già visti: il vincolo del
+\emph{dominating set} (Listato~\ref{lst:dominating}) può riscriversi in forma
+logica come \texttt{x\_v or any((\_, u) in neigh\_edges(v)) \{ x\_u \}},
+leggibile come «il nodo è selezionato oppure lo è almeno uno dei suoi vicini».
 
 \paragraph{Dichiarazione delle variabili.}
 Nel blocco \texttt{define} ogni variabile decisionale viene associata a un

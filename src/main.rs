@@ -35,19 +35,18 @@ x_3 as Real
         Box::new(StepByStepSimplexPipe::new()),
     ]);
 
-    let (result) = pipe_runner.run(
+    let result = pipe_runner.run(
         PipeableData::String(source),
         &PipeContext::new(vec![], &IndexMap::new()),
     );
     match result {
         Ok(data) => {
-            let last = data.last().unwrap();
             let str = data
                 .iter()
                 .map(|data| format!("//--------{}--------//\n\n{}", data.get_type(), data))
                 .collect::<Vec<String>>()
                 .join("\n\n");
-            println!("{}", last)
+            println!("{}", str)
         }
         Err((error, context)) => {
             let context = context

@@ -1,6 +1,6 @@
 use crate::{
-    Assignment, IntOrBoolValue, LinearModel, LpSolution, MILPValue, SolverError, VariableType,
-    solve_binary_lp_problem, solve_milp_lp_problem, solve_real_lp_problem_clarabel,
+    Assignment, LinearModel, LpSolution, MILPValue, SolverError, VariableType,
+    solve_milp_lp_problem, solve_real_lp_problem_clarabel,
 };
 use indexmap::IndexMap;
 
@@ -58,45 +58,19 @@ pub fn auto_solver(lp: &LinearModel) -> Result<LpSolution<MILPValue>, SolverErro
     });
     match (has_binary, has_integer, has_real) {
         (true, true, true) => solve_milp_lp_problem(lp),
-        (true, true, false) => solve_milp_lp_problem(lp), //solve_integer_binary_lp_problem(lp).map(int_bool_to_milp),
+        (true, true, false) => solve_milp_lp_problem(lp),
         (true, false, true) => solve_milp_lp_problem(lp),
-        (true, false, false) => solve_binary_lp_problem(lp).map(bool_to_milp),
+        (true, false, false) => solve_milp_lp_problem(lp),
         (false, true, true) => solve_milp_lp_problem(lp),
-        (false, true, false) => solve_milp_lp_problem(lp), //solve_integer_binary_lp_problem(lp).map(int_bool_to_milp),
+        (false, true, false) => solve_milp_lp_problem(lp),
         (false, false, true) => solve_real_lp_problem_clarabel(lp).map(real_to_milp),
-        (false, false, false) => Ok(LpSolution::new(vec![], 0.0, IndexMap::new())),
+        // A variable-free model still carries a constant objective (the offset).
+        (false, false, false) => Ok(LpSolution::new(
+            vec![],
+            lp.objective_offset(),
+            IndexMap::new(),
+        )),
     }
-}
-
-fn bool_to_milp(val: LpSolution<bool>) -> LpSolution<MILPValue> {
-    let values = val
-        .assignment()
-        .iter()
-        .map(|v| Assignment {
-            name: v.name.clone(),
-            value: MILPValue::Bool(v.value),
-        })
-        .collect();
-    LpSolution::new(values, val.value(), val.constraints().clone())
-}
-
-#[allow(unused)]
-fn int_bool_to_milp(val: LpSolution<IntOrBoolValue>) -> LpSolution<MILPValue> {
-    let values = val
-        .assignment()
-        .iter()
-        .map(|v| {
-            let value = match v.value {
-                IntOrBoolValue::Int(v) => MILPValue::Int(v),
-                IntOrBoolValue::Bool(v) => MILPValue::Bool(v),
-            };
-            Assignment {
-                name: v.name.clone(),
-                value,
-            }
-        })
-        .collect();
-    LpSolution::new(values, val.value(), val.constraints().clone())
 }
 
 fn real_to_milp(val: LpSolution<f64>) -> LpSolution<MILPValue> {

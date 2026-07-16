@@ -92,7 +92,7 @@ mod prelude {
 /// # Example
 /// ```rust
 ///    use indexmap::IndexMap;
-///    use rooc::{Linearizer, RoocParser, solve_integer_binary_lp_problem};
+///    use rooc::{Linearizer, RoocParser, solve_milp_lp_problem};
 ///
 ///    let source = "
 ///    max sum((value, i) in enumerate(values)) { value * x_i }
@@ -108,7 +108,7 @@ mod prelude {
 ///    let parsed = rooc.parse().unwrap();
 ///    let model = parsed.transform(vec![], &IndexMap::new()).unwrap();
 ///    let linear = Linearizer::linearize(model).unwrap();
-///    let solution = solve_integer_binary_lp_problem(&linear).unwrap();
+///    let solution = solve_milp_lp_problem(&linear).unwrap();
 ///    println!("{}", solution)
 /// ```
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]

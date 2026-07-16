@@ -34,10 +34,56 @@ e_k)$ si introduce una nuova variabile $t$ e si impone
 t \le e_i \qquad \forall i \in \{1, \dots, k\},
 \end{equation}
 
-sostituendo poi l'occorrenza del minimo con $t$. Dualmente, per $t = \max(e_1,
-\dots, e_k)$ si impone $t \ge e_i$ per ogni $i$. Questa riformulazione è valida
-quando la direzione di ottimizzazione fa sì che la variabile ausiliaria aderisca
-effettivamente al valore del minimo (o del massimo).
+sostituendo l'occorrenza del minimo con $t$. Dualmente, per il massimo si
+impone $t \ge e_i$ per ogni $i$. Questa riformulazione è \emph{unilaterale}:
+vincola $t$ da un solo lato ed è quindi esatta soltanto quando è
+l'ottimizzazione stessa a spingere $t$ contro il valore vero, come accade per
+un massimo che va minimizzato o per un minimo che va massimizzato.
+
+\paragraph{Il metodo Big-M.}
+Negli altri casi occorre imporre anche il vincolo dal lato opposto, che però
+deve valere solo per uno degli argomenti: quello che realizza davvero il
+minimo o il massimo. La tecnica classica per esprimere una scelta di questo
+tipo è il metodo \emph{Big-M}: alla disuguaglianza si somma un termine
+$M(1-\delta)$, dove $\delta$ è una variabile binaria e $M$ una costante
+sufficientemente grande. Quando $\delta = 1$ il termine si annulla e il
+vincolo è attivo; quando $\delta = 0$ la costante $M$ rende la disuguaglianza
+sempre soddisfatta, disattivandola di fatto. Un valore di $M$ più grande del
+necessario peggiora però la qualità numerica del modello, quindi conviene
+ricavare da estremi noti il più piccolo $M$ sufficiente. Con intervalli
+$e_i \in [L_i, U_i]$ e $U_t = \max_i U_i$, il valore $t = \max(e_1, \dots,
+e_k)$ è descritto esattamente da
+
+\begin{equation}
+\label{eq:max-exact}
+\begin{aligned}
+t &\ge e_i && \forall i,\\
+t &\le e_i + (U_t-L_i)(1-\delta_i) && \forall i,\\
+\textstyle\sum_i \delta_i &= 1.
+\end{aligned}
+\end{equation}
+
+La prima riga impone che $t$ non sia inferiore ad alcun argomento; la seconda
+è il vincolo opposto, attivo solo per l'argomento scelto da $\delta_i$, con
+$(U_t-L_i)$ nel ruolo di $M$; la terza richiede che esattamente un argomento
+sia scelto. Il minimo si tratta in modo simmetrico, scambiando i versi delle
+disuguaglianze.
+
+\paragraph{Riformulazione del valore assoluto.}
+Il valore assoluto si riconduce al caso precedente osservando che $|e| =
+\max(e, -e)$: per rappresentare $t = |e|$ si impone
+
+\begin{equation}
+\label{eq:abs-lin}
+t \ge e, \qquad t \ge -e,
+\end{equation}
+
+con la stessa avvertenza sulla direzione di ottimizzazione; poiché $|e| \ge
+0$, la variabile ausiliaria può inoltre essere dichiarata non negativa. Se
+l'intervallo di $e$ attraversa lo zero e serve il valore esatto, un selettore
+binario disattiva uno dei due rami secondo lo schema Big-M appena visto. Se
+invece il segno di $e$ è già noto, il valore assoluto coincide direttamente
+con $e$ o con $-e$, senza variabili ausiliarie.
 
 \paragraph{La forma standard.}
 Il metodo del simplesso richiede che il problema sia espresso in \emph{forma
@@ -61,45 +107,110 @@ minimizzazione osservando che $\max\, c^\top x = -\min\, (-c^\top x)$.
 \section{Applicazione in ROOC: da \texttt{Model} a \texttt{LinearModel}}
 \label{sec:linear-model}
 
-La linearizzazione è realizzata percorrendo ricorsivamente l'albero di ciascuna
-espressione e costruendo, per ognuna, una rappresentazione lineare: una mappa
-che associa a ogni variabile il proprio coefficiente, accompagnata da un termine
-costante. La combinazione di queste rappresentazioni segue le regole di
-linearità.
+La linearizzazione percorre ricorsivamente l'albero di ogni espressione e ne
+costruisce una rappresentazione lineare: una mappa che associa a ogni
+variabile il proprio coefficiente, più un termine costante. Addizione e
+sottrazione combinano le mappe termine a termine, la negazione moltiplica i
+coefficienti per $-1$, mentre moltiplicazione e divisione sono ammesse solo
+quando l'altro operando è costante. Un prodotto tra due espressioni che
+contengono variabili è intrinsecamente non lineare e viene segnalato come
+errore.
 
-\paragraph{Regole di linearizzazione.}
-Le operazioni di addizione e sottrazione combinano le mappe dei coefficienti
-sommando o sottraendo i termini simili. La negazione moltiplica tutti i
-coefficienti per $-1$. La moltiplicazione è ammessa solo se almeno uno dei due
-operandi non contiene variabili: in tal caso l'operando costante moltiplica i
-coefficienti dell'altro. Analogamente, la divisione è ammessa solo per un
-divisore costante. Se invece entrambi gli operandi di un prodotto contengono
-variabili, l'espressione è intrinsecamente non lineare e la linearizzazione
-fallisce con un errore (\texttt{NonLinearExpression}).
+\paragraph{Analisi degli intervalli.}
+Prima di generare i vincoli, il compilatore calcola per ogni variabile un
+intervallo conservativo, partendo dagli estremi dichiarati nel dominio e
+raffinandoli con le informazioni contenute nei vincoli del modello. Questi
+intervalli forniscono i valori $L_i$ e $U_i$ richiesti dalle formulazioni
+esatte della Sezione~\ref{sec:linearizzazione-teoria}, senza ricorrere a
+costanti Big-M arbitrarie.
 
-\paragraph{Trattamento dei vincoli e dell'obiettivo.}
-Sia la funzione obiettivo sia ogni vincolo vengono dapprima semplificati e poi
-linearizzati. Per un vincolo, le due espressioni a confronto vengono portate da
-uno stesso lato (calcolando \texttt{lhs - rhs}), così da ottenere una
-combinazione lineare confrontata con una costante, conservando il tipo di
-relazione. Al termine, vengono mantenute soltanto le variabili effettivamente
-utilizzate, e i coefficienti sono disposti in vettori secondo un ordinamento
-fissato. Il risultato è un \texttt{LinearModel}, in cui ogni vincolo è un
-\texttt{LinearConstraint}.
+\paragraph{Direzione d'uso dei valori.}
+Durante la visita, il compilatore tiene inoltre traccia di come ogni valore
+concorre all'ottimo: se l'ottimizzazione lo spinge verso il basso, verso
+l'alto, oppure se il valore deve essere esatto, come accade in un vincolo di
+uguaglianza. È questa informazione a decidere, per i costrutti non lineari,
+se basta la riformulazione unilaterale o se serve quella esatta. 
+Il risultato è che ogni vincolo viene portato nella forma di una combinazione lineare confrontata
+con una costante e l'obiettivo in un vettore di coefficienti. Il risultato è
+un \texttt{LinearModel}: l'elenco delle variabili effettivamente usate, i loro
+domini, l'obiettivo e i vincoli lineari (\texttt{LinearConstraint}).
 
 
-\section{Linearizzazione di minimo e massimo}
+\section{Linearizzazione di minimo, massimo e valore assoluto}
 \label{sec:linearizzazione-minmax}
 
-Quando durante la linearizzazione si incontra un minimo o un massimo, si applica
-la riformulazione descritta nella Sezione~\ref{sec:linearizzazione-teoria}. Per
-un'espressione $\min(e_1, \dots, e_k)$ viene introdotta una nuova variabile
-ausiliaria (con un nome generato automaticamente, come \texttt{\$min\_0}),
-dichiarata come reale, e per ogni argomento viene aggiunto un vincolo del tipo
-\eqref{eq:min-lin}; l'intera espressione è poi sostituita dalla variabile
-ausiliaria. Il massimo è trattato in modo speculare, con vincoli di tipo $\ge$.
-I vincoli così generati vengono immessi nello stesso processo di linearizzazione
-degli altri, finché non restano che espressioni lineari.
+Per minimo e massimo la formulazione è scelta in base alla direzione d'uso.
+Quando questa rende sufficiente la riformulazione unilaterale, il compilatore
+introduce una sola variabile reale e i vincoli \eqref{eq:min-lin}, o i
+corrispondenti per il massimo: non servono variabili binarie e un problema
+lineare continuo resta tale. Quando invece è richiesto il valore esatto, viene
+applicata la formulazione \eqref{eq:max-exact}, o la sua simmetrica per il
+minimo, con i coefficienti Big-M ricavati dagli intervalli calcolati. Se gli
+estremi finiti necessari non sono disponibili, la compilazione termina con un
+errore esplicito che indica le variabili prive di limiti, anziché introdurre
+una costante arbitraria.
+
+Il valore assoluto segue lo stesso criterio: se il segno dell'argomento è noto
+viene sostituito direttamente da $e$ o da $-e$; altrimenti si usa il solo
+epigrafo \eqref{eq:abs-lin} quando la direzione d'uso lo consente, e il
+selettore binario negli altri casi.
+
+\section{Linearizzazione degli operatori logici}
+\label{sec:linearizzazione-logica}
+
+Gli operatori logici del linguaggio (Capitolo~\ref{cap:linguaggio}) vengono
+anch'essi eliminati in questa fase. Quando un'espressione logica è usata come
+valore numerico, ad esempio nell'obiettivo, viene applicata una
+\emph{reificazione}: la sottoespressione è sostituita da una variabile
+binaria (\texttt{\$and\_0}, \texttt{\$or\_0}, e così via), legata ai propri
+operandi da vincoli lineari. Poiché il sistema dei tipi garantisce valori pari
+a $0$ o $1$, sono applicabili le codifiche classiche della programmazione
+lineare intera. Per la congiunzione $z = e_1 \land \dots \land e_k$ si impone
+
+\begin{equation}
+\label{eq:and-lin}
+z \le e_i \quad \forall i, \qquad z \ge \textstyle\sum_i e_i - (k - 1),
+\end{equation}
+
+mentre per la disgiunzione $z = e_1 \lor \dots \lor e_k$ si impone
+
+\begin{equation}
+\label{eq:or-lin}
+z \ge e_i \quad \forall i, \qquad z \le \textstyle\sum_i e_i.
+\end{equation}
+
+La negazione non richiede alcuna variabile ausiliaria, perché $\lnot e$ è
+l'espressione affine $1 - e$. L'implicazione $z = (a \Rightarrow b)$, essendo
+equivalente a $\lnot a \lor b$, si codifica con $z \ge 1 - a$, $z \ge b$ e $z
+\le 1 - a + b$; la doppia implicazione e la disgiunzione esclusiva sono
+trattate in modo analogo con quattro disuguaglianze ciascuna, mentre lo
+\texttt{xor} su più di due operandi è ridotto a una catena di \texttt{xor}
+binari.
+
+Un vincolo scritto come sola espressione logica è un'asserzione: la formula
+deve risultare vera, ma questo non richiede necessariamente la reificazione
+della radice.
+Se gli operandi sono affini, l'asserzione viene tradotta direttamente: per
+$e_1 \land \dots \land e_k$ vero si impone $\sum_i e_i = k$, per la
+disgiunzione vera si impone $\sum_i e_i \ge 1$, e per $a \Rightarrow b$ si
+impone $a \le b$. Le forme negate sono ottenute in modo analogo.
+
+Le formule annidate vengono invece visitate secondo il valore che devono
+certificare. Una congiunzione richiesta vera genera le condizioni sui singoli
+figli; una disgiunzione richiesta falsa procede nello stesso modo sui valori
+falsi. Nei casi disgiuntivi vengono introdotti soltanto \emph{testimoni}
+binari unidirezionali per i rami che possono certificare l'asserzione. Tali
+testimoni non sono mai usati come valori aritmetici e non devono quindi
+rappresentare l'intera formula in entrambe le direzioni. Per esempio, il
+vincolo di copertura $x_u \lor x_v$ diventa direttamente
+$x_u+x_v \ge 1$, senza una variabile \texttt{\$or\_N}.
+
+La reificazione esatta rimane invece necessaria quando il valore logico entra
+in un'espressione aritmetica: in quel caso la variabile ausiliaria coincide con
+il valore di verità in ogni soluzione ammissibile. In entrambi i casi la
+riformulazione avviene soltanto nel passaggio a \texttt{LinearModel}; il
+\texttt{Model} conserva la struttura logica originale, disponibile per
+eventuali risolutori futuri in grado di trattarla nativamente.
 
 \section{Trasformazione in forma standard}
 \label{sec:forma-standard}

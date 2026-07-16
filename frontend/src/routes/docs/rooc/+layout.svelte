@@ -57,6 +57,11 @@
                     on:click={() => (menuOpen = false)}
             />
             <MenuLink
+                    href="/docs/rooc/logic-models"
+                    title="Logic models"
+                    on:click={() => (menuOpen = false)}
+            />
+            <MenuLink
                     href="/docs/rooc/rooc-runtime"
                     title="Rooc runtime"
                     on:click={() => (menuOpen = false)}

@@ -37,18 +37,6 @@
             solver
             for models that use only Real or NonNegativeReal variables.
         </li>
-        <li><strong>Binary solver</strong>: It uses the <a href="https://github.com/ffminus/copper">Copper</a> solver, a
-            constraint
-            programming solver that can solve problems with binary variables. All coefficients must be integers (they
-            will be
-            rounded otherwise).
-        </li>
-        <li><strong>Integer & binary solver</strong>: It uses the <a href="https://github.com/ffminus/copper">Copper</a>
-            solver,
-            a constraint programming solver that can solve problems with binary and integer variables. All coefficients
-            must be
-            integers (they will be rounded otherwise).
-        </li>
         <li><strong>Simplex solver Step by Step</strong>: It uses the internal rooc solver to show how to solve a linear
             problem by using the simplex method step by step. It might be useful to understand how the simplex method
             works, but is not

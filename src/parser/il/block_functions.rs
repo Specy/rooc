@@ -18,6 +18,18 @@ enum_with_variants_to_string! {
         Min,
         Max,
         Avg,
+        All,
+        Any,
+        Xor,
+    }
+}
+impl BlockScopedFunctionKind {
+    /// Returns true if the function is a logic one, requiring boolean bodies.
+    pub fn is_logic(&self) -> bool {
+        match self {
+            Self::All | Self::Any | Self::Xor => true,
+            Self::Sum | Self::Prod | Self::Min | Self::Max | Self::Avg => false,
+        }
     }
 }
 impl fmt::Display for BlockScopedFunctionKind {
@@ -28,6 +40,9 @@ impl fmt::Display for BlockScopedFunctionKind {
             Self::Min => "min".to_string(),
             Self::Max => "max".to_string(),
             Self::Avg => "avg".to_string(),
+            Self::All => "all".to_string(),
+            Self::Any => "any".to_string(),
+            Self::Xor => "xor".to_string(),
         };
         f.write_str(&s)
     }
@@ -41,6 +56,9 @@ impl ToLatex for BlockScopedFunctionKind {
             Self::Min => "\\min".to_string(),
             Self::Max => "\\max".to_string(),
             Self::Avg => "avg".to_string(),
+            Self::All => "\\bigwedge".to_string(),
+            Self::Any => "\\bigvee".to_string(),
+            Self::Xor => "\\bigoplus".to_string(),
         }
     }
 }
@@ -54,6 +72,9 @@ impl FromStr for BlockScopedFunctionKind {
             "min" => Ok(Self::Min),
             "max" => Ok(Self::Max),
             "avg" => Ok(Self::Avg),
+            "all" | "conjunction" => Ok(Self::All),
+            "any" | "disjunction" => Ok(Self::Any),
+            "xor" | "exclusive_disjunction" => Ok(Self::Xor),
             _ => Err(()),
         }
     }
@@ -64,6 +85,29 @@ enum_with_variants_to_string! {
         Min,
         Max,
         Avg,
+        Abs,
+        All,
+        Any,
+        Xor,
+    }
+}
+
+impl BlockFunctionKind {
+    /// Returns true if the function is a logic one, requiring boolean arguments.
+    pub fn is_logic(&self) -> bool {
+        match self {
+            Self::All | Self::Any | Self::Xor => true,
+            Self::Min | Self::Max | Self::Avg | Self::Abs => false,
+        }
+    }
+
+    /// Returns the exact number of arguments required by this function, when
+    /// the function has a fixed arity.
+    pub fn exact_arity(&self) -> Option<usize> {
+        match self {
+            Self::Abs => Some(1),
+            Self::Min | Self::Max | Self::Avg | Self::All | Self::Any | Self::Xor => None,
+        }
     }
 }
 
@@ -73,6 +117,10 @@ impl ToLatex for BlockFunctionKind {
             Self::Min => "\\min".to_string(),
             Self::Max => "\\max".to_string(),
             Self::Avg => "avg".to_string(),
+            Self::Abs => "\\operatorname{abs}".to_string(),
+            Self::All => "\\bigwedge".to_string(),
+            Self::Any => "\\bigvee".to_string(),
+            Self::Xor => "\\bigoplus".to_string(),
         }
     }
 }
@@ -84,6 +132,10 @@ impl FromStr for BlockFunctionKind {
             "min" => Ok(Self::Min),
             "max" => Ok(Self::Max),
             "avg" => Ok(Self::Avg),
+            "abs" => Ok(Self::Abs),
+            "all" | "conjunction" => Ok(Self::All),
+            "any" | "disjunction" => Ok(Self::Any),
+            "xor" | "exclusive_disjunction" => Ok(Self::Xor),
             _ => Err(()),
         }
     }
@@ -95,6 +147,10 @@ impl fmt::Display for BlockFunctionKind {
             Self::Min => "min".to_string(),
             Self::Max => "max".to_string(),
             Self::Avg => "avg".to_string(),
+            Self::Abs => "abs".to_string(),
+            Self::All => "all".to_string(),
+            Self::Any => "any".to_string(),
+            Self::Xor => "xor".to_string(),
         };
         f.write_str(&s)
     }
@@ -147,8 +203,9 @@ impl ToLatex for BlockScopedFunction {
 #[allow(non_upper_case_globals)]
 #[cfg(target_arch = "wasm32")]
 const IBlockScopedFunction: &'static str = r#"
+export type SerializedBlockScopedFunctionKind = { type: keyof typeof BlockScopedFunctionKind }
 export type SerializedBlockScopedFunction = {
-    kind: BlockScopedFunctionKind,
+    kind: SerializedBlockScopedFunctionKind,
     iters: SerializedIterableSet[],
     exp: SerializedPreExp,
 }
@@ -203,8 +260,9 @@ pub struct BlockFunction {
 #[allow(non_upper_case_globals)]
 #[cfg(target_arch = "wasm32")]
 const IBlockFunction: &'static str = r#"
+export type SerializedBlockFunctionKind = { type: keyof typeof BlockFunctionKind }
 export type SerializedBlockFunction = {
-    kind: BlockFunctionKind,
+    kind: SerializedBlockFunctionKind,
     exps: SerializedPreExp[],
 }
 "#;
@@ -222,16 +280,33 @@ impl BlockFunction {
 
 impl ToLatex for BlockFunction {
     fn to_latex(&self) -> String {
-        let name = self.kind.to_string();
-        format!(
-            "{}\\left\\{{{}\\right\\}}",
-            name,
-            self.exps
-                .iter()
-                .map(|e| e.to_latex())
-                .collect::<Vec<String>>()
-                .join(", ")
-        )
+        match self.kind {
+            BlockFunctionKind::Abs => match self.exps.as_slice() {
+                [exp] => format!("\\left|{}\\right|", exp.to_latex()),
+                _ => format!(
+                    "abs\\left\\{{{}\\right\\}}",
+                    self.exps
+                        .iter()
+                        .map(|e| e.to_latex())
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                ),
+            },
+            BlockFunctionKind::Min
+            | BlockFunctionKind::Max
+            | BlockFunctionKind::Avg
+            | BlockFunctionKind::All
+            | BlockFunctionKind::Any
+            | BlockFunctionKind::Xor => format!(
+                "{}\\left\\{{{}\\right\\}}",
+                self.kind,
+                self.exps
+                    .iter()
+                    .map(|e| e.to_latex())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            ),
+        }
     }
 }
 
@@ -248,5 +323,19 @@ impl fmt::Display for BlockFunction {
                 .collect::<Vec<String>>()
                 .join(", ")
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::BlockFunctionKind;
+
+    #[test]
+    fn absolute_value_is_registered_as_a_block_function() {
+        assert_eq!(
+            "abs".parse::<BlockFunctionKind>().unwrap().to_string(),
+            "abs"
+        );
+        assert!(BlockFunctionKind::kinds_to_string().contains(&"abs".to_string()));
     }
 }

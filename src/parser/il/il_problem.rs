@@ -14,6 +14,7 @@ use crate::{
     Spanned,
     math::{Comparison, OptimizationType},
     primitives::Primitive,
+    primitives::PrimitiveKind,
     type_checker::type_checker_context::{TypeCheckable, TypeCheckerContext, WithType},
     utils::InputSpan,
 };
@@ -116,7 +117,15 @@ impl CompoundVariable {
     ) -> Result<Vec<Primitive>, TransformError> {
         self.indexes
             .iter()
-            .map(|i| i.as_primitive(context, fn_context))
+            .map(|i| match i {
+                //an identifier index with no bound value is a literal name
+                //fragment, so compiled names like x_A or $abs_0_positive can
+                //be referenced back in source form
+                PreExp::Variable(name) if context.value(name.value()).is_none() => {
+                    Ok(Primitive::String(name.value().clone()))
+                }
+                other => other.as_primitive(context, fn_context),
+            })
             .collect::<Result<Vec<Primitive>, TransformError>>()
     }
 }
@@ -155,7 +164,8 @@ impl fmt::Display for CompoundVariable {
                     Primitive::Number(n) => n.to_string(),
                     Primitive::PositiveInteger(n) => n.to_string(),
                     Primitive::Integer(n) => n.to_string(),
-
+                    //literal name fragments such as the _2 in set_A__2
+                    Primitive::String(s) => s.clone(),
                     _ => format!("{{{}}}", i),
                 },
                 PreExp::Variable(name) => name.value().clone(),
@@ -188,7 +198,7 @@ impl ToLatex for PreObjective {
 #[cfg(target_arch = "wasm32")]
 const IPreObjective: &'static str = r#"
 export type SerializedPreObjective = {
-    objective_type: OptimizationType,
+    objective_type: SerializedOptimizationType,
     rhs: SerializedPreExp,
 }
 "#;
@@ -241,6 +251,9 @@ pub struct PreConstraint {
     pub constraint_type: Comparison,
     /// Right-hand side expression
     pub rhs: PreExp,
+    /// Whether the source omitted the comparison and asserted the left-hand
+    /// side directly.
+    pub is_logic_assertion: bool,
     /// Optional iteration sets for quantified constraints
     pub iteration: Vec<IterableSet>,
     /// Source location information
@@ -253,8 +266,9 @@ pub struct PreConstraint {
 const IPreCondition: &'static str = r#"
 export type SerializedPreConstraint = {
     lhs: SerializedPreExp,
-    constraint_type: Comparison,
+    constraint_type: SerializedComparison,
     rhs: SerializedPreExp,
+    is_logic_assertion: boolean,
     iteration: SerializedVariableKind[],
     span: InputSpan,
 }
@@ -283,6 +297,27 @@ impl PreConstraint {
             lhs,
             constraint_type,
             rhs,
+            is_logic_assertion: false,
+            iteration,
+            span,
+        }
+    }
+
+    /// Creates a bare logic assertion. The comparison and right-hand side are
+    /// retained as the canonical `= true` representation, while the flag
+    /// preserves the syntax chosen by the user.
+    pub fn new_logic_assertion(
+        name_exp: Option<Spanned<Variable>>,
+        lhs: PreExp,
+        iteration: Vec<IterableSet>,
+        span: InputSpan,
+    ) -> Self {
+        Self {
+            name_exp,
+            lhs,
+            constraint_type: Comparison::Equal,
+            rhs: PreExp::Primitive(Spanned::new(Primitive::Boolean(true), span.clone())),
+            is_logic_assertion: true,
             iteration,
             span,
         }
@@ -340,6 +375,42 @@ impl TypeCheckable for PreConstraint {
             .add_span(&self.span);
             return Err(err);
         }
+        if self.is_logic_assertion && lhs_type != PrimitiveKind::Boolean && !lhs_type.is_any() {
+            return Err(TransformError::Other(format!(
+                "A constraint without a comparison must be a boolean (logic) expression, got \"{}\"",
+                lhs_type
+            ))
+            .add_span(&self.span));
+        }
+
+        // Boolean literals remain type-safe in explicit comparisons. Boolean
+        // formulas and variables may otherwise be compared numerically because
+        // they intentionally participate in arithmetic as 0/1 values.
+        let lhs_is_bool_literal = matches!(
+            &self.lhs,
+            PreExp::Primitive(p) if matches!(p.value(), Primitive::Boolean(_))
+        );
+        let rhs_is_bool_literal = matches!(
+            &self.rhs,
+            PreExp::Primitive(p) if matches!(p.value(), Primitive::Boolean(_))
+        );
+        let mismatch = (rhs_is_bool_literal
+            && lhs_type != PrimitiveKind::Boolean
+            && !lhs_type.is_any())
+            || (lhs_is_bool_literal && rhs_type != PrimitiveKind::Boolean && !rhs_type.is_any());
+        if mismatch {
+            let got = if rhs_is_bool_literal {
+                lhs_type
+            } else {
+                rhs_type
+            };
+            let err = TransformError::Other(format!(
+                "A boolean value can only be compared with a boolean expression, got \"{}\"",
+                got
+            ))
+            .add_span(&self.span);
+            return Err(err);
+        }
 
         Ok(())
     }
@@ -360,26 +431,37 @@ impl TypeCheckable for PreConstraint {
     }
 }
 
+impl PreConstraint {
+    /// Whether this constraint is a bare logic assertion, written without a
+    /// comparison and desugared into "expression = true". Used to hide the
+    /// "= true" part when stringifying.
+    pub fn is_logic_assertion(&self) -> bool {
+        self.is_logic_assertion
+    }
+}
+
 impl ToLatex for PreConstraint {
     fn to_latex(&self) -> String {
         let lhs = self.lhs.to_latex();
-        let rhs = self.rhs.to_latex();
-        let constraint = self.constraint_type.to_latex();
+        let body = if self.is_logic_assertion() {
+            format!("{} \\ &", lhs)
+        } else {
+            format!(
+                "{} \\ &{} \\ {}",
+                lhs,
+                self.constraint_type.to_latex(),
+                self.rhs.to_latex()
+            )
+        };
         let iterations = self
             .iteration
             .iter()
             .map(|i| format!("\\forall{{{}}}", i.to_latex()))
             .collect::<Vec<String>>();
         if iterations.is_empty() {
-            format!("{} \\ &{} \\ {}", lhs, constraint, rhs)
+            body
         } else {
-            format!(
-                "{} \\ &{} \\ {} \\qquad {}",
-                lhs,
-                constraint,
-                rhs,
-                iterations.join(",\\")
-            )
+            format!("{} \\qquad {}", body, iterations.join(",\\"))
         }
     }
 }
@@ -391,10 +473,14 @@ impl fmt::Display for PreConstraint {
             Some(name) => format!("{}: ", name.value()),
             None => "".to_string(),
         };
-        s.push_str(&format!(
-            "{}{} {} {}",
-            name, self.lhs, self.constraint_type, self.rhs
-        ));
+        if self.is_logic_assertion() {
+            s.push_str(&format!("{}{}", name, self.lhs));
+        } else {
+            s.push_str(&format!(
+                "{}{} {} {}",
+                name, self.lhs, self.constraint_type, self.rhs
+            ));
+        }
         if !self.iteration.is_empty() {
             s.push_str(" for ");
             s.push_str(

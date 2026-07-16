@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 use rooc::{
-    Constant, FunctionContextMap, IterableKind, Primitive, RoocSolver, solve_binary_lp_problem,
+    Constant, FunctionContextMap, IterableKind, Primitive, RoocSolver, solve_milp_lp_problem,
 };
 
 fn main() {
@@ -14,7 +14,7 @@ where
 define
     x_i as Boolean for i in 0..len(weights)";
     let solver = RoocSolver::try_new(source.to_string()).unwrap();
-    let solution = solver.solve_using(solve_binary_lp_problem).unwrap();
+    let solution = solver.solve_using(solve_milp_lp_problem).unwrap();
     println!("{}", solution)
 }
 
@@ -41,7 +41,7 @@ define
     //in case you want to define your own functions that will be used during compilation
     let fns: FunctionContextMap = IndexMap::new();
     let solution = solver
-        .solve_with_data_using(solve_binary_lp_problem, constants, &fns)
+        .solve_with_data_using(solve_milp_lp_problem, constants, &fns)
         .unwrap();
     println!("{}", solution)
 }

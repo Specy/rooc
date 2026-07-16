@@ -223,7 +223,7 @@ export type SerializedLinearModel = {
 }
 
 export type SerializedOptimizationType = {
-    type: "Min" | "Max" | "Solve"
+    type: "Min" | "Max" | "Satisfy"
 }
 "#;
 

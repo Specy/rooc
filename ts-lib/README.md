@@ -68,3 +68,54 @@ The model can then be solved using the `Binary solver` pipeline, which will solv
 ```
 F	F	F	F	T	F	F	F	T	T
 ```
+
+# Logic constraints
+Models can use logic operators over boolean expressions: `and` (alias `&&`), `or` (alias `||`), `not` (alias `!`), `implies` (alias `->`), `iff` (alias `<->`) and `xor`, together with the indexed aggregations `all`, `any` and `xor`. A constraint written without a comparison asserts that the logic expression must hold, and a logic expression can also be used as a 0/1 value inside arithmetic.
+
+Affine assertions compile directly, while complex asserted formulas use directional Boolean witnesses instead of reifying every root. Logic values used in arithmetic are still represented exactly. In the vertex-cover example below, each `x_u or x_v` clause therefore becomes one linear row.
+
+Here is the [Vertex cover](https://en.wikipedia.org/wiki/Vertex_cover) problem, where the only constraint is the logic clause "at least one endpoint of each edge must be selected":
+```lua
+min sum(v in nodes(G)) { x_v }
+s.t.
+    x_u or x_v for (u, v) in edges(G)
+where
+    let G = Graph {
+        A -> [B, C],
+        B -> [D],
+        C -> [D],
+        D -> [E],
+        E
+    }
+define
+    x_v as Boolean for v in nodes(G)
+```
+
+## Context-aware numeric expressions
+
+The absolute value is available as the `abs { }` block (it replaces the older `|x|` syntax, since the pipe now belongs to `||`). The `abs`, `min` and `max` expressions inspect their consuming direction: favorable contexts use compact one-sided LP formulations, while opposite-direction and equality uses are represented exactly with Boolean selectors.
+
+```lua
+max abs { x }
+s.t.
+    -10 <= x
+    x <= 6
+define
+    x as Real
+```
+
+Selector coefficients are derived from declared or inferred finite bounds; no arbitrary Big-M value is used. Bounds are inferred from domains, affine constraints, `abs <=`, `max <=` and `min >=`. Exact lowering reports a deliberate error when the required finite endpoints cannot be established. Sign-known absolute values and dominated extrema are simplified without auxiliary variables.
+
+## Migrating to 2.0
+
+Version 2.0 removes the old `|x|` absolute-value syntax; use `abs { x }` instead. The pipe is now available to the more common `||` alias for `or`, and the logic words `and`, `or`, `not`, `implies`, `iff`, `xor`, `true` and `false` are reserved.
+
+The serialized expression API now consistently returns adjacent-tagged objects with the shape `{ type, value }`. Tuple variants use typed arrays: for example, `Xor`, `Implies` and `Iff` have `[lhs, rhs]`, `BinOp` has `[op, lhs, rhs]`, and `UnOp` has `[op, exp]`. Serialized constraints include `is_logic_assertion`, so bare assertions remain distinguishable from explicitly written comparisons such as `flag = true`.
+
+Use `@specy/rooc/runtime` for runtime metadata and `@specy/rooc/pkg` for the low-level generated WASM API. Internal deep imports such as `@specy/rooc/dist/pkg/rooc` are not part of the 2.0 package contract.
+
+### 2.1
+
+Since 2.1, rows that the compiler generates (unnamed source constraints and lowering helpers) carry an empty `name` in the serialized `LinearModel` instead of synthetic `_c{n}` and `__helper` labels. Only names written in the source appear in the compiled output; duplicated user names are disambiguated with a `__{n}` suffix (`cap`, `cap__2`, ...).
+
+Compiled output is now valid ROOC source, so any intermediate model can be fed back into the compiler. To support this, identifiers may start with underscores (`__t`), `__` inside a name is a literal fragment that is never substituted (`set_A__2`), and an unbound identifier index in a compound name resolves literally (`x_A` refers to the variable `x_A` when no `A` is in scope, for example after a graph expansion).

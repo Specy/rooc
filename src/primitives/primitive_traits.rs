@@ -52,6 +52,13 @@ pub enum OperatorError {
     },
     /// An undefined value was used in an operation
     UndefinedUse,
+    /// A division by zero was attempted
+    DivisionByZero,
+    /// An integer arithmetic operation overflowed its fixed-width type
+    Overflow {
+        operator: BinOp,
+        found: PrimitiveKind,
+    },
 }
 
 impl OperatorError {
@@ -92,6 +99,19 @@ impl OperatorError {
             found,
         }
     }
+
+    /// Creates a new division-by-zero error.
+    pub fn division_by_zero() -> Self {
+        OperatorError::DivisionByZero
+    }
+
+    /// Creates a new arithmetic-overflow error.
+    pub fn overflow(op: BinOp, found: PrimitiveKind) -> Self {
+        OperatorError::Overflow {
+            operator: op,
+            found,
+        }
+    }
 }
 
 impl fmt::Display for OperatorError {
@@ -114,6 +134,11 @@ impl fmt::Display for OperatorError {
                 operator, found
             ),
             OperatorError::UndefinedUse => "Used \"Undefined\" in operation".to_string(),
+            OperatorError::DivisionByZero => "Division by zero".to_string(),
+            OperatorError::Overflow { operator, found } => format!(
+                "Arithmetic overflow in operation \"{}\" for type \"{}\"",
+                operator, found
+            ),
         };
         f.write_str(&s)
     }
