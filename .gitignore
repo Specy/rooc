@@ -13,7 +13,33 @@ Cargo.lock
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 
+# LaTeX build artifacts
+/thesis/**/*.aux
+/thesis/**/*.bbl
+/thesis/**/*.bcf
+/thesis/**/*.blg
+/thesis/**/*.fdb_latexmk
+/thesis/**/*.fls
+/thesis/**/*.log
+/thesis/**/*.out
+/thesis/**/*.run.xml
+/thesis/**/*.synctex.gz
+/thesis/**/*.toc
+/thesis/**/*.lof
+/thesis/**/*.lot
+/thesis/**/*.lol
+/thesis/**/*.nav
+/thesis/**/*.snm
+/thesis/**/*.vrb
+/thesis/**/*.xdv
+/thesis/**/*.dvi
+/thesis/**/*.ps
+
 
 # Added by cargo
 
 /target
+
+# Superpowers plans and specs
+docs/superpowers/plans/
+docs/superpowers/specs/

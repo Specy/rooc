@@ -1,0 +1,187 @@
+%!TEX root = ../main_thesis.tex
+
+\chapter{Analisi sintattica e rappresentazione intermedia}
+\label{cap:parsing}
+
+Questo capitolo apre la parte dedicata al \emph{front-end} del compilatore, che
+comprende le prime fasi della traduzione: il riconoscimento della struttura del
+testo sorgente e la sua codifica in una rappresentazione interna su cui le fasi
+successive potranno lavorare.
+
+\section{Concetti teorici}
+\label{sec:parsing-teoria}
+
+\paragraph{Grammatiche e analisi sintattica.}
+La sintassi di un linguaggio è descritta da una \emph{grammatica}: un insieme di
+regole che stabiliscono quali sequenze di simboli costituiscono frasi valide.
+L'\emph{analisi sintattica} (\emph{parsing}) verifica che il testo sorgente
+rispetti tali regole e ne costruisce una rappresentazione strutturata. La
+formalizzazione più diffusa è quella delle grammatiche \emph{context-free}
+(CFG), spesso scritte in notazione BNF, in cui ogni regola può prevedere più
+alternative. Le CFG possono però essere \emph{ambigue}, cioè ammettere più
+alberi di derivazione per la stessa frase, il che complica la costruzione del
+parser.
+
+\paragraph{Parsing Expression Grammar.}
+Le \emph{Parsing Expression Grammar} (PEG)~\cite{ford2004} offrono una
+formalizzazione alternativa, pensata direttamente in funzione del
+riconoscimento. La differenza fondamentale rispetto alle CFG è la \emph{scelta
+ordinata}: quando una regola prevede più alternative, queste vengono provate
+nell'ordine in cui sono scritte e viene accettata la prima che ha successo.
+Questo rende una PEG intrinsecamente non ambigua. Inoltre una PEG integra
+l'analisi lessicale e quella sintattica in un'unica descrizione
+(\emph{scannerless}), eliminando la necessità di un analizzatore lessicale
+separato: la gestione degli spazi e dei commenti è parte della grammatica
+stessa.
+
+\paragraph{La rappresentazione intermedia.}
+Il risultato del parsing è una rappresentazione ad
+albero del testo sorgente che ne cattura la struttura logica trascurando i dettagli sintattici
+superflui. Questa \emph{rappresentazione intermedia} (IR) è la struttura dati su
+cui operano le fasi successive del compilatore. Una buona IR rispecchia da
+vicino i costrutti del linguaggio, così da rendere naturali le elaborazioni
+successive, e conserva le informazioni necessarie alla diagnostica, in
+particolare la posizione di ciascun elemento nel sorgente.
+
+La scelta di una PEG per ROOC è motivata proprio da queste proprietà: la non
+ambiguità semplifica la definizione della grammatica, e l'approccio
+\emph{scannerless} permette di descrivere in un solo file l'intera sintassi del
+linguaggio, comprese le sue particolarità come la moltiplicazione implicita.
+
+\section{Applicazione in ROOC: la grammatica PEST}
+\label{sec:grammatica-pest}
+
+ROOC definisce la propria sintassi tramite \textbf{PEST}, una libreria Rust che
+implementa le PEG. La grammatica è scritta in un file dedicato\footnote{La
+grammatica completa è disponibile nel repository del progetto:
+\url{https://github.com/Specy/rooc/blob/main/src/parser/grammar.pest}} e viene
+tradotta in un parser a tempo di compilazione.
+
+\paragraph{La regola principale.}
+La regola di partenza, \texttt{problem}, descrive la struttura complessiva di un
+modello: la funzione obiettivo, la sezione dei vincoli e i blocchi opzionali
+\texttt{where} e \texttt{define} (Listato~\ref{lst:grammar-problem}).
+
+\begin{lstlisting}[language=pest, caption={La regola principale della grammatica.}, label={lst:grammar-problem}]
+problem = {
+    SOI ~ nl* ~
+    #objective = objective ~ nl+ ~
+    (^"s.t." | ^"subject to") ~ nl+ ~
+    #constraints = constraint_list ~
+    (nl+ ~ ^"where"  ~ #where  = consts_declaration)? ~
+    (nl+ ~ ^"define" ~ #define = domains_declaration)? ~
+    nl* ~ EOI
+}
+\end{lstlisting}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l p{0.70\textwidth}}
+\hline
+\textbf{Costrutto} & \textbf{Significato} \\
+\hline
+\texttt{\#nome = \ldots} & \emph{Tag}: assegna un nome a una sottoparte della regola, rendendola facilmente recuperabile in fase di costruzione dell'IR. \\
+\texttt{\textasciitilde} & \emph{Sequenza}: gli elementi devono comparire in successione, nell'ordine indicato. \\
+\texttt{\textbar} & \emph{Scelta ordinata}: le alternative sono provate da sinistra a destra e si accetta la prima che ha successo. \\
+\texttt{?}, \texttt{*}, \texttt{+} & \emph{Quantificatori}: l'elemento compare rispettivamente zero o una volta, zero o più volte, una o più volte. \\
+\texttt{nl} & Regola ausiliaria che riconosce un'interruzione di riga (\emph{newline}). \\
+\texttt{\textasciicircum\textquotedbl\ldots\textquotedbl} & Stringa letterale \emph{case-insensitive}: \texttt{\textasciicircum\textquotedbl s.t.\textquotedbl}. \\
+\texttt{@\{\ldots\}} & Regola \emph{atomica}: trattata come un unico token terminale. \\
+\texttt{\_\{\ldots\}} & Regola \emph{silenziosa}: non compare nell'albero risultante perché serve solo a strutturare la grammatica. \\
+\texttt{(\ldots)} & Raggruppamento: applica un operatore (per esempio \texttt{?} o \texttt{*}) a un gruppo di elementi. \\
+\texttt{SOI}, \texttt{EOI} & Inizio (\emph{Start Of Input}) e fine (\emph{End Of Input}) dell'input. \\
+\hline
+\end{tabular}
+\caption{Gli operatori della grammatica PEG/PEST utilizzati in ROOC.}
+\label{tab:pest-operatori}
+\end{table}
+
+La regola \texttt{problem} (Listato~\ref{lst:grammar-problem}) impiega gran parte
+degli operatori delle PEG e delle estensioni introdotte da PEST, il cui
+significato è riassunto nella Tabella~\ref{tab:pest-operatori}.
+
+\paragraph{Regole atomiche, silenziose e scelta ordinata.}
+Il Listato~\ref{lst:grammar-misc} mostra in concreto alcuni di questi operatori:
+la regola \texttt{objective\_type} è \emph{atomica} (\texttt{@}) e impiega la
+scelta ordinata (\texttt{\textbar}) tra due stringhe \emph{case-insensitive},
+mentre \texttt{exp} è \emph{silenziosa} (\texttt{\_}) e combina opzionalità e
+ripetizione.
+
+\
+
+\begin{lstlisting}[language=pest, caption={Esempi di regola atomica, silenziosa e di scelta ordinata.}, label={lst:grammar-misc}]
+objective_type = @{ ^"min" | ^"max" }
+exp = _{ unary_op? ~ exp_leaf ~ (binary_op ~ unary_op? ~ exp_leaf)* }
+\end{lstlisting}
+
+\paragraph{Dall'albero di parsing all'IR.}
+L'albero prodotto da PEST viene poi visitato e trasformato nella rappresentazione intermedia del modello.
+
+\section{Il \texttt{PreModel} e l'Intermediate Language}
+\label{sec:premodel}
+
+La rappresentazione intermedia di ROOC prende il nome di \texttt{PreModel}: è il
+modello così come risulta dalla sola analisi sintattica, prima dell'analisi
+semantica e della trasformazione. Esso raccoglie le quattro componenti di un
+modello, più un riferimento al codice sorgente originale, utile per la
+diagnostica.
+
+La funzione obiettivo è rappresentata da un \texttt{PreObjective}, che ne indica
+il tipo (minimizzazione o massimizzazione) e l'espressione associata. Ogni
+vincolo è un \texttt{PreConstraint}, che contiene le due espressioni messe a
+confronto, il tipo di relazione, l'eventuale nome e le eventuali clausole di
+iterazione (\texttt{for}) che lo replicano. Sia l'obiettivo sia i vincoli
+contengono dunque delle \emph{espressioni}, che costituiscono il cuore dell'IR.
+
+\paragraph{Le espressioni: \texttt{PreExp}.}
+Le espressioni sono rappresentate dal tipo enumerativo \texttt{PreExp}, le cui
+varianti rispecchiano da vicino i costrutti del linguaggio descritti nel
+Capitolo~\ref{cap:linguaggio}: valori primitivi, variabili semplici e composte,
+accessi ad array, chiamate di funzione, \emph{block function} (con e senza
+\emph{scope}) e operazioni binarie e unarie (Listato~\ref{lst:preexp}).
+
+\
+
+\begin{lstlisting}[language=rust, caption={Versione semplificata dell'enumerazione \texttt{PreExp}.}, label={lst:preexp}]
+enum PreExp {
+    Primitive(Spanned<Primitive>),
+    Variable(Spanned<String>),
+    CompoundVariable(Spanned<CompoundVariable>),
+    ArrayAccess(Spanned<AddressableAccess>),
+    FunctionCall(InputSpan, FunctionCall),
+    BlockFunction(Spanned<BlockFunction>),
+    BlockScopedFunction(Spanned<BlockScopedFunction>),
+    BinaryOperation(Spanned<BinOp>, Box<PreExp>, Box<PreExp>),
+    UnaryOperation(Spanned<UnOp>, Box<PreExp>),
+    // ...
+}
+\end{lstlisting}
+
+Essendo un albero, una \texttt{PreExp} può contenere altre \texttt{PreExp}: per
+esempio un'operazione binaria racchiude i due sotto-espressioni operandi. Le
+variabili composte, come \texttt{x\_i}, sono rappresentate da un
+\texttt{CompoundVariable} che ne memorizza il nome e l'elenco delle espressioni
+usate come indice; analogamente, l'accesso a un array è descritto da un
+\texttt{AddressableAccess}.
+
+\section{Gestione e tracciamento degli errori}
+\label{sec:errori-parsing}
+
+Un aspetto trasversale a tutte le fasi del compilatore è la capacità di
+segnalare gli errori indicando con precisione il punto del sorgente a cui si
+riferiscono.
+
+A questo scopo, ogni elemento della rappresentazione intermedia è annotato con
+la propria posizione nel sorgente tramite un contenitore generico,
+\texttt{Spanned}, che incapsula un valore insieme alle informazioni sulla sua
+posizione (riga, colonna e lunghezza del frammento di testo). Come si è visto,
+gran parte delle varianti di \texttt{PreExp} avvolge i propri dati in uno
+\texttt{Spanned}, così che ogni nodo dell'albero conservi il punto del sorgente
+da cui proviene.
+
+Grazie a questa annotazione, gli errori sono \emph{posizionali}: ogni
+segnalazione è collegata al frammento di sorgente che l'ha generata, e può così
+essere presentata indicando dove l'errore ha origine. La stessa infrastruttura
+permette di tracciare non solo gli errori di parsing, ma anche quelli delle fasi
+successive, come gli errori di tipo e di trasformazione descritti nel
+Capitolo~\ref{cap:semantica}.

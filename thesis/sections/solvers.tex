@@ -1,0 +1,113 @@
+%!TEX root = ../main_thesis.tex
+
+\chapter{Risoluzione dei modelli}
+\label{cap:solver}
+
+Giunti in fondo alla pipeline di compilazione, il modello è pronto per essere
+risolto. Questo capitolo descrive le tecniche di risoluzione adottate da ROOC:
+il simplesso a due fasi, implementato direttamente nel progetto a fini
+didattici; il solver \texttt{microlp}, contributo originale di questo lavoro, che
+estende il simplesso al caso intero; e i backend esterni, selezionati
+automaticamente in base alla natura del modello.
+
+\section{Concetti teorici}
+\label{sec:solver-teoria}
+
+\paragraph{Il metodo del simplesso.}
+Come accennato nel Capitolo~\ref{cap:background}, la soluzione ottima di un
+problema di programmazione lineare, se esiste, si trova in un vertice della
+regione ammissibile. Il \emph{metodo del simplesso} sfrutta questa proprietà
+spostandosi di vertice in vertice lungo gli spigoli del poliedro, scegliendo a
+ogni passo una direzione che migliora il valore della funzione obiettivo. Su un
+modello in forma standard, l'algoritmo lavora su un \emph{tableau} e procede per
+\emph{pivot}: a ogni iterazione seleziona una variabile entrante (quella che
+promette il miglioramento maggiore, individuata dai \emph{costi ridotti}) e una
+variabile uscente (determinata dal \emph{test del rapporto minimo}, che preserva
+l'ammissibilità), fino a quando non è più possibile migliorare e si è raggiunto
+l'ottimo.
+
+\paragraph{Il metodo a due fasi.}
+Il simplesso richiede una base ammissibile di partenza, che non sempre è
+immediatamente disponibile. Il \emph{metodo a due fasi} risolve questo problema
+introducendo, in una prima fase, delle \emph{variabili artificiali} e
+minimizzando la loro somma: se il minimo raggiunto è zero, si è ottenuta una
+base ammissibile per il problema originale; la seconda fase ottimizza quindi la
+funzione obiettivo vera e propria a partire da tale base.
+
+\section{Applicazione in ROOC: il simplesso a due fasi}
+\label{sec:simplex}
+
+ROOC include un'implementazione propria del metodo del simplesso, costruita sopra
+la forma standard prodotta nel Capitolo~\ref{cap:linearizzazione}. La struttura
+centrale è il \texttt{Tableau}, che mantiene i coefficienti dell'obiettivo, la
+matrice e il vettore dei termini noti dei vincoli, l'insieme delle variabili in
+base e il valore corrente. A partire dalla forma standard il solver costruisce il
+tableau, cercando una base ammissibile immediata e, quando questa non esiste,
+ricorrendo al metodo a due fasi descritto in precedenza; esegue quindi i vari
+passaggi del simplesso, iterando i pivot, fino a raggiungere l'ottimo, rilevare
+l'illimitatezza del problema o toccare un limite massimo di iterazioni.
+
+\paragraph{Risoluzione passo-passo.}
+Oltre alla risoluzione diretta, il tableau offre una modalità \emph{passo-passo}
+che, a ogni iterazione, ne registra lo stato prima del pivot insieme alle
+variabili entrante e uscente: è questa la funzionalità che alimenta la
+visualizzazione didattica della piattaforma (Capitolo~\ref{cap:piattaforma}).
+Trattandosi di un'implementazione orientata alla chiarezza più che alle
+prestazioni, questo simplesso è impiegato soprattutto a scopo illustrativo, mentre
+la risoluzione efficiente è affidata ai solver descritti nelle sezioni seguenti.
+
+\section{\texttt{microlp}: fork ed estensione a MILP}
+\label{sec:microlp}
+
+\texttt{microlp} è un solver pubblicato come \emph{crate} Rust indipendente. Nasce
+come \emph{fork} di \texttt{minilp}, un crate ormai archiviato che implementava il
+solo metodo del simplesso, limitato a variabili continue. Nell'ambito di questo
+lavoro il crate è stato ripreso e mantenuto, ed esteso con il supporto a variabili
+\emph{intere} e \emph{binarie}: da risolutore di sola programmazione lineare è
+diventato così un risolutore di programmazione lineare intera mista (MILP). Questa
+estensione costituisce uno dei contributi originali della tesi. Il crate ha
+peraltro una diffusione che va oltre questo progetto e sta raccogliendo
+l'interesse della comunità. È sviluppato come progetto \emph{open source} su
+GitHub\footnote{\url{https://github.com/Specy/microlp}} ed è pubblicato su
+\emph{crates.io},\footnote{\url{https://crates.io/crates/microlp}} dove, al
+momento della scrittura, ha superato il milione di download; è inoltre utilizzato
+da \texttt{good\_lp}, tra le più note librerie di programmazione lineare per Rust.
+Attorno al progetto si è formata una comunità che contribuisce attivamente,
+segnalando problemi e proponendo miglioramenti tramite \emph{issue} e
+\emph{pull request}.
+
+\paragraph{Estensione al caso intero: branch-and-bound.}
+Il simplesso risolve problemi a variabili continue, ma non garantisce soluzioni
+intere. La tecnica con cui \texttt{microlp} affronta l'integralità è il
+\emph{branch-and-bound}: si risolve dapprima il \emph{rilassamento continuo} del
+problema, ignorando i vincoli di integralità; se una variabile che dovrebbe essere
+intera assume un valore frazionario, si \emph{ramifica} il problema in due
+sottoproblemi, imponendo nell'uno che la variabile sia minore o uguale alla parte
+intera inferiore del valore e nell'altro che sia maggiore o uguale a quella
+superiore. Il valore del rilassamento fornisce inoltre una \emph{limitazione}
+(\emph{bound}) che consente di potare i rami che non possono contenere soluzioni
+migliori di quella già trovata.
+
+All'interno di ROOC, \texttt{microlp} svolge un duplice ruolo: risolve i modelli
+puramente continui, come alternativa al backend esterno descritto più avanti, e
+soprattutto è il motore impiegato per tutti i modelli che contengono variabili
+intere o miste. La risoluzione avviene costruendo un problema nel formato del
+solver: a ogni variabile del modello viene associata una variabile del solver,
+con il proprio dominio (reale, intero o binario) e i propri estremi; vengono
+quindi aggiunti i vincoli, tradotti nei rispettivi operatori di confronto, e
+infine si richiede la soluzione, da cui si estraggono i valori delle variabili e
+il valore ottimo.
+
+\section{Backend esterni e \emph{auto-solver}}
+\label{sec:backend-esterni}
+
+Oltre al solver proprio, ROOC integra alcuni backend esterni, ciascuno
+specializzato per una particolare classe di problemi. Per i modelli a sole
+variabili continue è disponibile il solver \emph{Clarabel}, utilizzato tramite la
+libreria \texttt{good\_lp}. I modelli con variabili intere o binarie vengono invece
+risolti tramite il solver integrato \texttt{microlp}.
+
+\paragraph{Selezione automatica del solver.}
+La presenza di più solver, ciascuno adatto a un diverso tipo di modello, è
+gestita in modo trasparente da un \emph{auto-solver}, che ispeziona il dominio
+delle variabili e instrada il problema verso il risolutore appropriato.
