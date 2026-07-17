@@ -8,7 +8,7 @@ const defaultPipe = {
         1,
         2,
         3,
-        11
+        9
     ]
 } satisfies PipePreset
 

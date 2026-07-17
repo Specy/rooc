@@ -1,6 +1,6 @@
 {
     "$schema": "https://typedoc.org/schema.json",
-    "out": "../frontend/static/docs/lib",
+    "out": "../client/static/docs/lib",
     "name": "ROOC",
     "readme": "./README.md",
     "entryPoints": [

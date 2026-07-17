@@ -206,4 +206,4 @@ Compiled output is itself valid ROOC source: identifiers may start with undersco
 # License
 
 - The rooc library is released with the **MPL-2.0** license, as in, the folders `src` and `ts-lib`
-- The frontend platform which uses the rooc library is released with the **AGPL-3.0** license, as in, the folder `frontend`
+- The frontend platform which uses the rooc library is released with the **AGPL-3.0** license, as in, the folder `packages/client`
