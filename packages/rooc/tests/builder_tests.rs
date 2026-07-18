@@ -7,8 +7,7 @@ use indexmap::IndexMap;
 use rooc::builder::{any, sum};
 use rooc::{
     Assignment, Auto, Clarabel, DualValues, LinearModel, LpSolution, MILPValue, Microlp,
-    ModelBuilder, Reoptimize, SolutionStatus, Solution, Solver, SolverError, VariableType,
-    constraint, vars,
+    ModelBuilder, Solution, SolutionStatus, Solver, SolverError, VariableType, constraint, vars,
 };
 
 fn bool_of(v: MILPValue) -> bool {
@@ -312,27 +311,6 @@ fn constraint_value_reads_a_named_constraint_activity() {
 
     assert_eq!(solution.constraint_value("cap"), Some(6.0));
     assert_eq!(solution.constraint_value("missing"), None);
-}
-
-// --- Continue solving ------------------------------------------------------
-
-#[test]
-fn a_solution_can_add_constraints_and_resolve() {
-    let mut model = ModelBuilder::new();
-    vars! { model => x: int(0, 10); };
-
-    let solution = model
-        .maximize(x)
-        .solve_with(Microlp::new())
-        .expect("model should solve");
-    assert_eq!(int_of(solution.var_value(x).unwrap()), 10);
-
-    // Add a constraint and re-solve from the solution.
-    let tighter = solution
-        .with(constraint!(x <= 4.0))
-        .resolve()
-        .expect("re-solve should succeed");
-    assert_eq!(int_of(tighter.var_value(x).unwrap()), 4);
 }
 
 // --- MILP solver options ---------------------------------------------------

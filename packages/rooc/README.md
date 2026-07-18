@@ -22,7 +22,6 @@ ROOC lets you build optimization models through a **fluent Rust API** or with th
   - [Built-in solvers](#built-in-solvers)
   - [Reading the solution](#reading-the-solution)
   - [Writing your own solver](#writing-your-own-solver)
-  - [Continue solving](#continue-solving)
   - [Lower-level access](#lower-level-access)
 - [Exporting to LP format](#exporting-to-lp-format)
 - [Alternative: the ROOC modeling language](#alternative-the-rooc-modeling-language)
@@ -269,24 +268,6 @@ impl DualValues for MySolution {
 ```
 
 Now `shadow_price` is available on solutions from that solver, and only from it.
-
-### Continue solving
-
-A solver that implements the `Reoptimizable` marker lets you edit a solved model and solve again. Import `Reoptimize`, add constraints to the solution, and `resolve`:
-
-```ignore
-use rooc::Reoptimize;
-
-let solution = model
-    .maximize(x)
-    .solve_with(Microlp::new())?;
-
-let tighter = solution
-    .with(constraint!(x <= 4.0))
-    .resolve()?;
-```
-
-`Microlp`, `Clarabel` and `Auto` support this, re-solving the edited model.
 
 ### Lower-level access
 

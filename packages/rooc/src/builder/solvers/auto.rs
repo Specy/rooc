@@ -1,6 +1,6 @@
 //! The safe general-purpose MILP solver selection.
 
-use super::traits::{Reoptimizable, Solver};
+use super::traits::Solver;
 use crate::solvers::{LpSolution, MILPValue, SolverError, auto_solver};
 use crate::transformers::linear_model::LinearModel;
 
@@ -16,5 +16,3 @@ impl Solver for Auto {
         auto_solver(model)
     }
 }
-
-impl Reoptimizable for Auto {}

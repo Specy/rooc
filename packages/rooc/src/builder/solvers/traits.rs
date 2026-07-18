@@ -1,6 +1,5 @@
 //! Solver and solution traits shared across the builder.
 
-use crate::builder::{BuilderConstraint, BuilderError};
 use crate::solvers::{LpSolution, SolutionStatus, SolverError};
 use crate::transformers::linear_model::LinearModel;
 
@@ -47,23 +46,6 @@ pub trait DualValues {
 /// Optional capability: reduced costs, keyed by variable name.
 pub trait ReducedCosts {
     fn reduced_cost(&self, variable: &str) -> Option<f64>;
-}
-
-/// Marks a solver as able to re-solve a model after it has been edited, which
-/// enables [`Reoptimize`] on its solutions.
-pub trait Reoptimizable: Solver {}
-
-/// Editing a solved model and solving again. Available on the solutions of
-/// solvers that opt in via [`Reoptimizable`].
-pub trait Reoptimize: Sized {
-    /// Adds a constraint for the next solve.
-    fn with(self, constraint: BuilderConstraint) -> Self;
-
-    /// Adds several constraints for the next solve.
-    fn with_all(self, constraints: impl IntoIterator<Item = BuilderConstraint>) -> Self;
-
-    /// Re-solves the edited model.
-    fn resolve(self) -> Result<Self, BuilderError>;
 }
 
 // The built-in solvers use `LpSolution` as their solution type. It provides the

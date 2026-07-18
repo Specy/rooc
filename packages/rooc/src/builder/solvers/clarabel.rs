@@ -1,6 +1,6 @@
 //! The Clarabel continuous-LP solver.
 
-use super::traits::{Reoptimizable, Solver};
+use super::traits::Solver;
 use crate::solvers::{LpSolution, SolverError, solve_real_lp_problem_clarabel};
 use crate::transformers::linear_model::LinearModel;
 
@@ -15,5 +15,3 @@ impl Solver for Clarabel {
         solve_real_lp_problem_clarabel(model)
     }
 }
-
-impl Reoptimizable for Clarabel {}

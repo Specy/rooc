@@ -1,6 +1,6 @@
 //! The MicroLP mixed-integer solver.
 
-use super::traits::{Reoptimizable, Solver};
+use super::traits::Solver;
 use crate::solvers::{LpSolution, MILPValue, MilpOptions, SolverError, solve_milp_lp_problem_with};
 use crate::transformers::linear_model::LinearModel;
 use std::time::Duration;
@@ -42,5 +42,3 @@ impl Solver for Microlp {
         solve_milp_lp_problem_with(model, &options)
     }
 }
-
-impl Reoptimizable for Microlp {}

@@ -23,7 +23,6 @@
   - [Constraints and objective](#constraints-and-objective)
   - [Solving and reading the solution](#solving-and-reading-the-solution)
   - [Bring your own solver](#bring-your-own-solver)
-  - [Continue solving](#continue-solving)
   - [Exporting to LP format](#exporting-to-lp-format)
 - [Alternative: the ROOC modeling language](#alternative-the-rooc-modeling-language)
 - [Modeling examples](#modeling-examples)
@@ -191,18 +190,6 @@ impl Solver for MySolver {
 let solution = model
     .minimize(x)
     .solve_with(MySolver)?;
-```
-
-### Continue solving
-
-Solvers that implement the `Reoptimizable` marker (all three built-ins do) let you edit a solved model and solve again:
-
-```rust
-use rooc::Reoptimize;
-
-let tighter = solution
-    .with(constraint!(x <= 4.0))
-    .resolve()?;
 ```
 
 ### Exporting to LP format

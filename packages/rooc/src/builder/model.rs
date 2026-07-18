@@ -197,12 +197,9 @@ impl ModelBuilder {
     /// solvers, so new back-ends need no changes to the builder.
     pub fn solve_with<S: Solver>(self, solver: S) -> Result<BuilderSolution<S>, BuilderError> {
         let variable_names = self.variable_names.clone();
-        // Keep a copy of the model so the solution can be edited and re-solved
-        // by solvers that opt into `Reoptimizable`.
-        let model = self.clone();
         let linearized = self.linearize()?;
         let solution = solver.solve(&linearized)?;
-        Ok(BuilderSolution::new(solution, variable_names, model, solver))
+        Ok(BuilderSolution::new(solution, variable_names))
     }
 }
 
@@ -237,4 +234,3 @@ impl From<SolverError> for BuilderError {
         BuilderError::Solver(e)
     }
 }
-

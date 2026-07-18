@@ -1,39 +1,26 @@
 //! The builder's solution wrapper and capability forwarding.
 
 use super::expr::{Expr, Var, eval_expr};
-use super::model::{BuilderConstraint, BuilderError, ModelBuilder};
-use super::solvers::{
-    ConstraintValues, DualValues, ReducedCosts, Reoptimizable, Reoptimize, SolveStatus, Solution,
-    Solver,
-};
+use super::solvers::{ConstraintValues, DualValues, ReducedCosts, Solution, SolveStatus, Solver};
 use crate::solvers::SolutionStatus;
 
 /// A solution produced by [`ModelBuilder::solve_with`].
 ///
 /// Wraps the solver's own [`Solution`] and lets you read values back through the
-/// [`Var`] handles from [`ModelBuilder::add_var`]. Optional capabilities
+/// [`Var`] handles minted by the builder. Optional capabilities
 /// (`status`, `constraint_value`, `shadow_price`, `reduced_cost`) are available
-/// only when the solver's solution implements the matching trait; editing and
-/// re-solving ([`Reoptimize`]) is available when the solver is [`Reoptimizable`].
+/// only when the solver's solution implements the matching trait. A solved
+/// builder model is immutable; add every constraint before solving it.
 pub struct BuilderSolution<S: Solver> {
     solution: S::Solution,
     variable_names: Vec<String>,
-    model: ModelBuilder,
-    solver: S,
 }
 
 impl<S: Solver> BuilderSolution<S> {
-    pub(crate) fn new(
-        solution: S::Solution,
-        variable_names: Vec<String>,
-        model: ModelBuilder,
-        solver: S,
-    ) -> Self {
+    pub(crate) fn new(solution: S::Solution, variable_names: Vec<String>) -> Self {
         Self {
             solution,
             variable_names,
-            model,
-            solver,
         }
     }
 
@@ -109,21 +96,5 @@ where
     /// Returns the reduced cost of a variable by name.
     pub fn reduced_cost(&self, variable: &str) -> Option<f64> {
         self.solution.reduced_cost(variable)
-    }
-}
-
-impl<S: Solver + Reoptimizable> Reoptimize for BuilderSolution<S> {
-    fn with(mut self, constraint: BuilderConstraint) -> Self {
-        self.model = self.model.with(constraint);
-        self
-    }
-
-    fn with_all(mut self, constraints: impl IntoIterator<Item = BuilderConstraint>) -> Self {
-        self.model = self.model.with_all(constraints);
-        self
-    }
-
-    fn resolve(self) -> Result<Self, BuilderError> {
-        self.model.solve_with(self.solver)
     }
 }

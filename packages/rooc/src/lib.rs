@@ -31,8 +31,7 @@ mod utils;
 use crate::model_transformer::TransformError;
 pub use builder::{
     Auto, BuilderConstraint, BuilderError, BuilderSolution, Clarabel, ConstraintValues, DualValues,
-    Expr, Microlp, ModelBuilder, ReducedCosts, Reoptimizable, Reoptimize, SolveStatus, Solution,
-    Solver, Var,
+    Expr, Microlp, ModelBuilder, ReducedCosts, Solution, SolveStatus, Solver, Var,
 };
 pub use math::*;
 pub use parser::*;
