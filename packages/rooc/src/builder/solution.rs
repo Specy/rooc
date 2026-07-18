@@ -4,7 +4,7 @@ use super::expr::{Expr, Var, eval_expr};
 use super::solvers::{ConstraintValues, DualValues, ReducedCosts, Solution, SolveStatus, Solver};
 use crate::solvers::SolutionStatus;
 
-/// A solution produced by [`ModelBuilder::solve_with`].
+/// A solution produced by [`crate::ModelBuilder::solve_with`].
 ///
 /// Wraps the solver's own [`Solution`] and lets you read values back through the
 /// [`Var`] handles minted by the builder. Optional capabilities
