@@ -47,7 +47,7 @@
 		"dexie": "^4.4.4",
 		"fraction.js": "^5.3.4",
 		"highlight.js": "^11.11.1",
-		"highs": "^1.14.2",
+		"highs": "^1.15.1",
 		"katex": "^0.17.0",
 		"lz-string": "^1.5.0",
 		"monaco-editor": "^0.55.1",
