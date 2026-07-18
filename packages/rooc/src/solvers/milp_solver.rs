@@ -1,11 +1,12 @@
-use crate::solvers::common::{LpSolution, SolverError};
+use crate::solvers::common::{DisplayValue, LpSolution, SolverError, format_float};
 use crate::transformers::LinearModel;
 use crate::{
     Assignment, Comparison, OptimizationType, VariableType, make_constraints_map_from_assignment,
 };
-use microlp::{ComparisonOp, Error, OptimizationDirection, Problem};
+use microlp::{ComparisonOp, Error, OptimizationDirection, Problem, SolveOptions};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use std::time::Duration;
 
 /// Represents a variable value that can be either boolean or integer.
 #[derive(Debug, Clone, Serialize, Deserialize, Copy)]
@@ -23,9 +24,44 @@ impl Display for MILPValue {
         match self {
             MILPValue::Bool(b) => write!(f, "{}", if *b { "true" } else { "false" }),
             MILPValue::Int(i) => write!(f, "{}", i),
-            MILPValue::Real(r) => write!(f, "{}", r),
+            MILPValue::Real(r) => write!(f, "{}", format_float(*r)),
         }
     }
+}
+
+impl DisplayValue for MILPValue {
+    fn display_value(&self) -> String {
+        self.to_string()
+    }
+}
+
+impl From<MILPValue> for f64 {
+    fn from(value: MILPValue) -> f64 {
+        match value {
+            MILPValue::Bool(b) => {
+                if b {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
+            MILPValue::Int(i) => i as f64,
+            MILPValue::Real(r) => r,
+        }
+    }
+}
+
+/// Tunable parameters for the MicroLP mixed-integer solver.
+///
+/// The default is an empty configuration, which reproduces the behaviour of
+/// [`solve_milp_lp_problem`].
+#[derive(Debug, Clone, Default)]
+pub struct MilpOptions {
+    /// Relative MIP gap at which the branch-and-bound search may stop early.
+    /// Must be a non-negative, finite number when set.
+    pub mip_gap: Option<f64>,
+    /// Wall-clock limit for the search.
+    pub time_limit: Option<Duration>,
 }
 /// Solves a mixed-integer linear programming problem using the MicroLP solver.
 ///
@@ -66,6 +102,15 @@ impl Display for MILPValue {
 /// let solution = solve_milp_lp_problem(&model).unwrap();
 /// ```
 pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, SolverError> {
+    solve_milp_lp_problem_with(lp, &MilpOptions::default())
+}
+
+/// Like [`solve_milp_lp_problem`], but with explicit control over the solver
+/// through [`MilpOptions`] (MIP gap, time limit).
+pub fn solve_milp_lp_problem_with(
+    lp: &LinearModel,
+    options: &MilpOptions,
+) -> Result<LpSolution<MILPValue>, SolverError> {
     let variables = lp.variables();
     let domain = lp.domain();
     let objective = lp.objective();
@@ -121,7 +166,18 @@ pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, 
             .collect::<Vec<_>>();
         problem.add_constraint(microlp_coeffs, microlp_comparison_type, rhs);
     }
-    match problem.solve() {
+
+    let mut solve_options = SolveOptions::default();
+    if let Some(gap) = options.mip_gap {
+        // MicroLP validates the gap (finite and non-negative) and returns a
+        // clear error, so it is forwarded directly rather than re-checked here.
+        solve_options.mip_gap = gap;
+    }
+    if let Some(limit) = options.time_limit {
+        solve_options.time_limit = Some(limit);
+    }
+
+    match problem.solve_with(solve_options) {
         Ok(s) => {
             let assignment = microlp_vars
                 .iter()
@@ -155,7 +211,7 @@ pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, 
             Error::Unbounded => SolverError::Unbounded,
             Error::InvalidOptions(s) => SolverError::Other(s),
             Error::InvalidOperation(s) => SolverError::Other(s),
-            Error::Infeasible => SolverError::Infisible,
+            Error::Infeasible => SolverError::Infeasible,
         }),
     }
 }

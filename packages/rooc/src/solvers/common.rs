@@ -29,7 +29,7 @@ pub enum SolverError {
     Unbounded,
 
     /// The problem has no feasible solution.
-    Infisible,
+    Infeasible,
 
     /// A general error with a custom message.
     Other(String),
@@ -104,7 +104,7 @@ impl std::fmt::Display for SolverError {
                     "The problem was unable to be solved, it might be infeasible"
                 )
             }
-            SolverError::Infisible => {
+            SolverError::Infeasible => {
                 write!(f, "The problem is infeasible")
             }
             SolverError::UnimplementedOptimizationType { expected, got } => {
@@ -118,6 +118,42 @@ impl std::fmt::Display for SolverError {
     }
 }
 
+impl std::error::Error for SolverError {}
+
+/// Rounds an `f64` to 6 decimal places and trims trailing zeros so solver
+/// output stays readable: `1.9999999999` prints as `2`, `0.00000000015` as `0`.
+/// Non-finite values (`inf`, `NaN`) are passed through unchanged.
+pub(crate) fn format_float(value: f64) -> String {
+    if !value.is_finite() {
+        return value.to_string();
+    }
+    let rounded = (value * 1_000_000.0).round() / 1_000_000.0;
+    let rounded = if rounded == 0.0 { 0.0 } else { rounded }; // normalise -0.0
+    let mut s = format!("{:.6}", rounded);
+    if s.contains('.') {
+        while s.ends_with('0') {
+            s.pop();
+        }
+        if s.ends_with('.') {
+            s.pop();
+        }
+    }
+    s
+}
+
+/// How a solution value is rendered by a solution's `Display`. Implemented for
+/// the value types solutions use (`f64` and `MILPValue`) so numeric output is
+/// rounded consistently to 6 decimal places.
+pub(crate) trait DisplayValue {
+    fn display_value(&self) -> String;
+}
+
+impl DisplayValue for f64 {
+    fn display_value(&self) -> String {
+        format_float(*self)
+    }
+}
+
 /// Represents a variable assignment in a solution.
 /// - `T`: The type of the variable's value
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -126,10 +162,25 @@ pub struct Assignment<T> {
     pub value: T,
 }
 
-impl<T: Clone + Serialize + Copy + DeserializeOwned + Display> Display for Assignment<T> {
+impl<T: Clone + Serialize + Copy + DeserializeOwned + DisplayValue> Display for Assignment<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} = {}", self.name, self.value)
+        write!(f, "{} = {}", self.name, self.value.display_value())
     }
+}
+
+/// The status of a solve, reported independently of the underlying solver.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SolutionStatus {
+    /// A proven optimal solution.
+    #[default]
+    Optimal,
+    /// A feasible solution whose optimality was not proven (for example, a time
+    /// limit was reached before the search completed).
+    Feasible,
+    /// The problem was proven infeasible.
+    Infeasible,
+    /// The problem is unbounded.
+    Unbounded,
 }
 
 /// Represents a solution to a linear programming problem.
@@ -139,11 +190,15 @@ pub struct LpSolution<T> {
     assignment: Vec<Assignment<T>>,
     constraints: IndexMap<String, f64>,
     value: f64,
+    /// Solve status. Not serialized: it is solver metadata, not part of the
+    /// portable solution shape.
+    #[serde(skip)]
+    status: SolutionStatus,
 }
 
-impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> Display for LpSolution<T> {
+impl<T: Clone + Serialize + DeserializeOwned + Copy + DisplayValue> Display for LpSolution<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Optimal value: {}\n\n", self.value)?;
+        write!(f, "Optimal value: {}\n\n", format_float(self.value))?;
         write!(
             f,
             "Variables:\n{}",
@@ -156,7 +211,7 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> Display for LpSol
         let constraints = self
             .constraints
             .iter()
-            .map(|(name, value)| format!("{} = {}", name, value))
+            .map(|(name, value)| format!("{} = {}", name, format_float(*value)))
             .collect::<Vec<_>>()
             .join("\n");
         write!(f, "\n\nConstraints:\n{}", constraints)
@@ -179,7 +234,19 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> LpSolution<T> {
             assignment,
             value,
             constraints,
+            status: SolutionStatus::Optimal,
         }
+    }
+
+    /// Returns the solve status.
+    pub fn status(&self) -> SolutionStatus {
+        self.status
+    }
+
+    /// Sets the solve status, returning the solution for chaining.
+    pub fn with_status(mut self, status: SolutionStatus) -> Self {
+        self.status = status;
+        self
     }
 
     /// Returns a reference to the vector of variable assignments.
@@ -200,6 +267,11 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> LpSolution<T> {
     /// Returns the constraint values of this solution.
     pub fn constraints(&self) -> &IndexMap<String, f64> {
         &self.constraints
+    }
+
+    /// Returns the solved value of a variable by its name.
+    pub fn value_of(&self, name: &str) -> Option<T> {
+        self.assignment.iter().find(|a| a.name == name).map(|a| a.value)
     }
 }
 

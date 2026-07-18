@@ -122,7 +122,7 @@ mod linearization_semantics_tests {
         );
         match solve_milp_lp_problem(&fixed) {
             Ok(_) => true,
-            Err(SolverError::Infisible) => false,
+            Err(SolverError::Infeasible) => false,
             Err(error) => panic!("unexpected solver error: {error}"),
         }
     }
@@ -455,7 +455,7 @@ mod linearization_semantics_tests {
             .unwrap_or_else(|error| panic!("unexpected linearization error: {error:?}"));
         assert!(matches!(
             solve_milp_lp_problem(&linear),
-            Err(SolverError::Infisible)
+            Err(SolverError::Infeasible)
         ));
 
         // same through integer rounding: no integer exists in [0.4, 0.6]
@@ -465,7 +465,7 @@ mod linearization_semantics_tests {
         .unwrap_or_else(|error| panic!("unexpected linearization error: {error:?}"));
         assert!(matches!(
             solve_milp_lp_problem(&linear),
-            Err(SolverError::Infisible)
+            Err(SolverError::Infeasible)
         ));
     }
 
@@ -793,7 +793,7 @@ define
         assert_eq!(linear.constraints()[0].rhs(), 1.0);
         assert!(matches!(
             solve_milp_lp_problem(&linear),
-            Err(SolverError::Infisible)
+            Err(SolverError::Infeasible)
         ));
     }
 

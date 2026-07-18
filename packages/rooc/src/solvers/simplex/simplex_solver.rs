@@ -169,7 +169,7 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
         Ok(optimal_solution) => {
             match optimal_solution.objective() {
                 f if f.is_infinite() => return Err(SolverError::Unbounded),
-                f if f.is_nan() => return Err(SolverError::Infisible),
+                f if f.is_nan() => return Err(SolverError::Infeasible),
                 _ => {}
             }
             let obj = optimal_solution.objective() + lp.objective_offset();
@@ -187,7 +187,7 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
         }
         Err(e) => match e {
             microlp::Error::Unbounded => Err(SolverError::Unbounded),
-            microlp::Error::Infeasible => Err(SolverError::Infisible),
+            microlp::Error::Infeasible => Err(SolverError::Infeasible),
             microlp::Error::InvalidOptions(s) => Err(SolverError::Other(s)),
             microlp::Error::InvalidOperation(s) => Err(SolverError::Other(s)),
             microlp::Error::InternalError(s) => Err(SolverError::Other(s)),

@@ -1,13 +1,15 @@
-use crate::{
-    Assignment, LinearModel, LpSolution, MILPValue, SolverError, VariableType,
-    solve_milp_lp_problem, solve_real_lp_problem_clarabel,
-};
+use crate::{LinearModel, LpSolution, MILPValue, SolverError, solve_milp_lp_problem};
 use indexmap::IndexMap;
 
-/// Solves a any kind of linear programming problem by picking the right solver for the model.
+/// Solves any kind of linear programming problem with the built-in MILP solver.
 ///
-/// Takes a linear model containing real, non-negative real, boolean, and integer variables and returns
-/// an optimal solution or an error if the problem cannot be solved.
+/// The MILP solver (microlp) handles every supported variable type (boolean,
+/// integer, real, non-negative real) and reports infeasible and unbounded models
+/// correctly, so it is the safe default for `Auto`. The continuous Clarabel solver
+/// is only used when it is selected explicitly ([`solve_real_lp_problem_clarabel`]
+/// or the `Clarabel` builder solver).
+///
+/// [`solve_real_lp_problem_clarabel`]: crate::solve_real_lp_problem_clarabel
 ///
 /// # Arguments
 /// * `lp` - Any kind of linear programming model to solve
@@ -43,44 +45,13 @@ use indexmap::IndexMap;
 /// let solution = auto_solver(&model).unwrap();
 /// ```
 pub fn auto_solver(lp: &LinearModel) -> Result<LpSolution<MILPValue>, SolverError> {
-    let domain = lp.domain();
-    let has_binary = domain
-        .values()
-        .any(|v| *v.get_type() == VariableType::Boolean);
-    let has_integer = domain
-        .values()
-        .any(|v| matches!(v.get_type(), VariableType::IntegerRange(_, _)));
-    let has_real = domain.values().any(|v| {
-        matches!(
-            v.get_type(),
-            VariableType::NonNegativeReal(_, _) | VariableType::Real(_, _)
-        )
-    });
-    match (has_binary, has_integer, has_real) {
-        (true, true, true) => solve_milp_lp_problem(lp),
-        (true, true, false) => solve_milp_lp_problem(lp),
-        (true, false, true) => solve_milp_lp_problem(lp),
-        (true, false, false) => solve_milp_lp_problem(lp),
-        (false, true, true) => solve_milp_lp_problem(lp),
-        (false, true, false) => solve_milp_lp_problem(lp),
-        (false, false, true) => solve_real_lp_problem_clarabel(lp).map(real_to_milp),
+    if lp.domain().is_empty() {
         // A variable-free model still carries a constant objective (the offset).
-        (false, false, false) => Ok(LpSolution::new(
+        return Ok(LpSolution::new(
             vec![],
             lp.objective_offset(),
             IndexMap::new(),
-        )),
+        ));
     }
-}
-
-fn real_to_milp(val: LpSolution<f64>) -> LpSolution<MILPValue> {
-    let values = val
-        .assignment()
-        .iter()
-        .map(|v| Assignment {
-            value: MILPValue::Real(v.value),
-            name: v.name.clone(),
-        })
-        .collect();
-    LpSolution::new(values, val.value(), val.constraints().clone())
+    solve_milp_lp_problem(lp)
 }

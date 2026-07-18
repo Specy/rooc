@@ -100,7 +100,7 @@ pub enum PreExp {
     Variable(Spanned<String>),
     /// A compound variable like 'x_y'
     CompoundVariable(Spanned<CompoundVariable>),
-    /// Array access expression like 'arr[i]'
+    /// Array access expression like `arr[i]`
     ArrayAccess(Spanned<AddressableAccess>),
     /// A block function with a scope, like a summation or a product
     BlockScopedFunction(Spanned<BlockScopedFunction>),

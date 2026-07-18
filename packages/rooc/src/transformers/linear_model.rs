@@ -482,6 +482,140 @@ impl LinearModel {
             })
             .collect()
     }
+
+    /// Renders the model in CPLEX LP format.
+    ///
+    /// This is an explicit export, called deliberately; it is not the type's
+    /// `Display`. Boolean variables are written in a `Binary` section, integers
+    /// in `General`, and any non-default continuous bounds in `Bounds`.
+    pub fn to_lp_format(&self) -> String {
+        let vars = &self.variables;
+        let mut out = String::new();
+
+        let direction = match self.optimization_type {
+            OptimizationType::Max => "Maximize",
+            OptimizationType::Min | OptimizationType::Satisfy => "Minimize",
+        };
+        out.push_str(direction);
+        out.push('\n');
+        let mut objective = lp_terms(&self.objective, vars);
+        if !self.objective_offset.is_zero() {
+            let sign = if self.objective_offset < 0.0 { "-" } else { "+" };
+            objective.push_str(&format!(" {} {}", sign, lp_num(self.objective_offset.abs())));
+        }
+        out.push_str(&format!(" obj: {}\n", objective));
+
+        out.push_str("Subject To\n");
+        for (i, c) in self.constraints.iter().enumerate() {
+            let name = if c.name().is_empty() {
+                format!("c{}", i + 1)
+            } else {
+                c.name()
+            };
+            let op = match c.constraint_type() {
+                Comparison::LessOrEqual | Comparison::Less => "<=",
+                Comparison::GreaterOrEqual | Comparison::Greater => ">=",
+                Comparison::Equal => "=",
+            };
+            out.push_str(&format!(
+                " {}: {} {} {}\n",
+                name,
+                lp_terms(c.coefficients(), vars),
+                op,
+                lp_num(c.rhs())
+            ));
+        }
+
+        let mut bounds: Vec<String> = Vec::new();
+        let mut binaries: Vec<String> = Vec::new();
+        let mut generals: Vec<String> = Vec::new();
+        for (name, dv) in self.domain.iter() {
+            match dv.get_type() {
+                VariableType::Boolean => binaries.push(name.clone()),
+                VariableType::IntegerRange(min, max) => {
+                    generals.push(name.clone());
+                    bounds.push(format!(" {} <= {} <= {}", min, name, max));
+                }
+                VariableType::NonNegativeReal(min, max) => {
+                    if !(*min == 0.0 && *max == f64::INFINITY) {
+                        bounds.push(format!(" {} <= {} <= {}", lp_bound(*min), name, lp_bound(*max)));
+                    }
+                }
+                VariableType::Real(min, max) => {
+                    if *min == f64::NEG_INFINITY && *max == f64::INFINITY {
+                        bounds.push(format!(" {} free", name));
+                    } else {
+                        bounds.push(format!(" {} <= {} <= {}", lp_bound(*min), name, lp_bound(*max)));
+                    }
+                }
+            }
+        }
+        if !bounds.is_empty() {
+            out.push_str("Bounds\n");
+            for b in &bounds {
+                out.push_str(b);
+                out.push('\n');
+            }
+        }
+        if !binaries.is_empty() {
+            out.push_str("Binary\n");
+            out.push_str(&format!(" {}\n", binaries.join(" ")));
+        }
+        if !generals.is_empty() {
+            out.push_str("General\n");
+            out.push_str(&format!(" {}\n", generals.join(" ")));
+        }
+        out.push_str("End\n");
+        out
+    }
+}
+
+/// Formats a number for LP output. `Display` already renders `2.0` as `2` and
+/// `2.5` as `2.5`.
+fn lp_num(n: f64) -> String {
+    format!("{}", n)
+}
+
+/// Formats a bound, mapping infinities to LP's `infinity` keyword.
+fn lp_bound(n: f64) -> String {
+    if n == f64::INFINITY {
+        "+infinity".to_string()
+    } else if n == f64::NEG_INFINITY {
+        "-infinity".to_string()
+    } else {
+        lp_num(n)
+    }
+}
+
+/// Formats a linear combination `sum(coeff_i * var_i)`, omitting zero terms and
+/// unit coefficients (so `1 x` renders as `x`).
+fn lp_terms(coeffs: &[f64], vars: &[String]) -> String {
+    let mut s = String::new();
+    for (c, v) in coeffs.iter().zip(vars) {
+        if c.is_zero() {
+            continue;
+        }
+        let magnitude = c.abs();
+        let coeff = if magnitude == 1.0 {
+            String::new()
+        } else {
+            format!("{} ", lp_num(magnitude))
+        };
+        if s.is_empty() {
+            if *c < 0.0 {
+                s.push_str(&format!("- {}{}", coeff, v));
+            } else {
+                s.push_str(&format!("{}{}", coeff, v));
+            }
+        } else {
+            let sign = if *c < 0.0 { "-" } else { "+" };
+            s.push_str(&format!(" {} {}{}", sign, coeff, v));
+        }
+    }
+    if s.is_empty() {
+        s.push('0');
+    }
+    s
 }
 
 impl Display for LinearModel {

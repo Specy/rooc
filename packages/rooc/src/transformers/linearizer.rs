@@ -1724,6 +1724,8 @@ impl Display for LinearizationError {
     }
 }
 
+impl std::error::Error for LinearizationError {}
+
 /// Represents the intermediate state during expression linearization.
 /// Contains a map of variables to their coefficients and a constant term (RHS).
 struct LinearizationContext {

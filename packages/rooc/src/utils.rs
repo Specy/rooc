@@ -244,6 +244,14 @@ impl std::fmt::Debug for CompilationError {
     }
 }
 
+impl std::fmt::Display for CompilationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.to_error_string())
+    }
+}
+
+impl std::error::Error for CompilationError {}
+
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[cfg(target_arch = "wasm32")]
 impl CompilationError {

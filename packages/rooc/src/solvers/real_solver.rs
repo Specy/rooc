@@ -2,6 +2,7 @@ use crate::make_constraints_map_from_assignment;
 use crate::math::{Comparison, OptimizationType, VariableType};
 use crate::solvers::{Assignment, LpSolution, SolverError, find_invalid_variables};
 use crate::transformers::LinearModel;
+use ::clarabel::solver::SolverStatus;
 use good_lp::clarabel;
 use good_lp::solvers::ObjectiveDirection;
 use good_lp::{
@@ -124,6 +125,16 @@ pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64
     let solution = model.solve();
     match solution {
         Ok(sol) => {
+            // good_lp maps clarabel's (Almost)DualInfeasible status to `Ok`, but for
+            // an LP a dual-infeasible problem is a certificate that the primal is
+            // unbounded. Inspect the underlying clarabel status and report it, rather
+            // than returning the meaningless point clarabel hands back.
+            if matches!(
+                sol.inner().status,
+                SolverStatus::DualInfeasible | SolverStatus::AlmostDualInfeasible
+            ) {
+                return Err(SolverError::Unbounded);
+            }
             let vars = vars
                 .iter()
                 .map(|name| {
@@ -148,7 +159,7 @@ pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64
         }
         Err(e) => match e {
             ResolutionError::Unbounded => Err(SolverError::Unbounded),
-            ResolutionError::Infeasible => Err(SolverError::Infisible),
+            ResolutionError::Infeasible => Err(SolverError::Infeasible),
             ResolutionError::Other(s) => Err(SolverError::Other(s.to_string())),
             ResolutionError::Str(s) => Err(SolverError::Other(s)),
         },

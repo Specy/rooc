@@ -1,44 +1,4 @@
-//! # ROOC
-//! ROOC is a modeling language for defining and solving optimization problems.
-//!
-//! Write everything as a single source file:
-//! ```rust
-//!use indexmap::IndexMap;
-//!use rooc::pipe::{AutoSolverPipe, LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData, PreModelPipe};
-//!let source = "
-//!max sum((value, i) in enumerate(values)) { value * x_i }
-//!s.t.
-//!    sum((weight, i) in enumerate(weights)) { weight * x_i } <= capacity
-//!where
-//!    let weights = [10, 60, 30, 40, 30, 20, 20, 2]
-//!    let values = [1, 10, 15, 40, 60, 90, 100, 15]
-//!    let capacity = 102
-//!define
-//!    x_i as Boolean for i in 0..len(weights)";
-//!//use pipes to solve the problem
-//!let pipe_runner = PipeRunner::new(vec![
-//!    Box::new(rooc::pipe::CompilerPipe::new()),
-//!    Box::new(PreModelPipe::new()),
-//!    Box::new(ModelPipe::new()),
-//!    Box::new(LinearModelPipe::new()),
-//!    Box::new(AutoSolverPipe::new()),
-//!]);
-//!let result = pipe_runner
-//!    .run(
-//!        PipeableData::String(source.to_string()),
-//!        &PipeContext::new(vec![], &IndexMap::new()),
-//!    )
-//!    .unwrap();
-//!let last = result
-//!    .into_iter()
-//!    .last()
-//!    .unwrap()
-//!    .to_milp_solution()
-//!        .unwrap();
-//!
-//!println!("{}", last)
-//! ```
-//! Or extend the language with your own functionality and data
+#![doc = include_str!("../README.md")]
 
 extern crate core;
 extern crate pest;
@@ -58,6 +18,7 @@ use crate::parser::model_transformer::{Model, transform_parsed_problem};
 mod macros;
 mod math;
 mod parser;
+pub mod builder;
 pub mod pipe;
 mod primitives;
 mod runtime_builtin;
@@ -68,6 +29,11 @@ pub mod type_checker;
 mod utils;
 
 use crate::model_transformer::TransformError;
+pub use builder::{
+    Auto, BuilderConstraint, BuilderError, BuilderSolution, Clarabel, ConstraintValues, DualValues,
+    Expr, Microlp, ModelBuilder, ReducedCosts, Reoptimizable, Reoptimize, SolveStatus, Solution,
+    Solver, Var,
+};
 pub use math::*;
 pub use parser::*;
 pub use primitives::*;
@@ -201,6 +167,10 @@ pub struct RoocSolver {
     model: PreModel,
 }
 
+/// Errors produced while transforming, linearizing, or solving a ROOC model.
+///
+/// When the underlying solver error `T` implements [`std::error::Error`], this
+/// type does too, so callers can propagate it with `?`.
 #[derive(Debug)]
 pub enum RoocSolverError<T> {
     Transform(TransformError),
@@ -216,6 +186,9 @@ impl<T: Display> Display for RoocSolverError<T> {
         }
     }
 }
+
+impl<T: std::error::Error + 'static> std::error::Error for RoocSolverError<T> {}
+
 impl RoocSolver {
     pub fn try_new(source: String) -> Result<Self, CompilationError> {
         let parser = RoocParser::new(source.clone());

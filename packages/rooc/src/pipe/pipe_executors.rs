@@ -294,7 +294,7 @@ impl Pipeable for MILPSolverPipe {
 }
 
 //-------------------- Auto solver --------------------
-/// Pipe that solves linear models by automatically picking the right solver
+/// Pipe that applies ROOC's safe general-purpose MILP solver (`auto_solver`).
 pub struct AutoSolverPipe {}
 impl Default for AutoSolverPipe {
     fn default() -> Self {
