@@ -3,16 +3,12 @@
     "target": "ES2020",
     "module": "esnext",
     "moduleResolution": "node",
-    "lib": [
-      "es2018",
-      "dom"
-    ],
+    "lib": ["ES2020", "ESNext.Disposable"],
     "declaration": true,
     "esModuleInterop": true,
     "outDir": "dist",
-    "rootDir": "./src",
+    "rootDir": "./src"
   },
-    "include": [
-        "src/**/*.ts"
-    ]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/pkg/rooc_bg.wasm.d.ts"]
 }
