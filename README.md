@@ -14,6 +14,7 @@ ROOC is a library and modeling language for linear and mixed-integer optimizatio
 ## Choose an interface
 
 - Use the [fluent Rust API](./packages/rooc/README.md) when your application constructs models in code.
+- Use the [fluent TypeScript API](./packages/ts-lib/README.md) for typed browser and JavaScript models backed by the WebAssembly solvers.
 - Use the ROOC language when a formal, data-driven model is easier to read and maintain.
 - Use the [web platform](https://rooc.specy.app/) to write and run ROOC models in the browser.
 
@@ -77,7 +78,30 @@ The language supports arithmetic, boolean logic, indexed constraints, collection
 
 ## TypeScript and web
 
-`@specy/rooc` provides the WebAssembly package for TypeScript applications. The [TypeScript README](./packages/ts-lib/README.md) shows how to compile and solve a ROOC model in JavaScript or TypeScript.
+`@specy/rooc` provides a type-safe fluent builder over the existing WebAssembly
+compiler, linearizer, and solvers:
+
+```ts
+import { ModelBuilder, sum } from "@specy/rooc";
+
+const model = new ModelBuilder();
+const { selected, capacity } = model.vars({
+    selected: model.bool().array(4),
+    capacity: model.int(0, 4),
+});
+
+const solution = model
+    .maximize(sum(selected))
+    .with(sum(selected).le(capacity))
+    .solve();
+
+console.log(solution.valuesOf({ selected, capacity }));
+```
+
+The source compiler and pipe-by-pipe APIs remain available for formal ROOC
+programs and intermediate pipeline inspection. See the
+[TypeScript README](./packages/ts-lib/README.md) for variables, expressions,
+solver selection, typed readback, generated source, and compatibility imports.
 
 ## License
 

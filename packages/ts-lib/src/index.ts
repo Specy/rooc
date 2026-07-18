@@ -33,6 +33,14 @@ import {
 import {Err, Ok, Result} from 'ts-results-es'
 import type {ExtractArgTypes, ExtractReturnArgs} from "./runtime.js";
 
+type RuntimeConsole = {
+    error(...values: unknown[]): void
+}
+
+const runtimeConsole = (
+    globalThis as typeof globalThis & {console?: RuntimeConsole}
+).console
+
 export type ConstantEntry = [name: string, value: SerializedPrimitive]
 
 export type ReturnCallback<T extends [string, SerializedPrimitiveKind][]> = ((args: ExtractReturnArgs<T>, staticArgs: ExtractArgTypes<T>) => SerializedPrimitiveKind)
@@ -81,7 +89,7 @@ export function makeRoocFunction<const T extends [string, SerializedPrimitiveKin
                     // @ts-ignore
                     return returns(...args)
                 } catch (e) {
-                    console.error(e)
+                    runtimeConsole?.error(e)
                     throw String(e)
                 }
             } : returns,
@@ -838,14 +846,14 @@ export class TransformError {
                 try {
                     return this.instance.error_from_source(this.source);
                 } catch (e) {
-                    console.error(`Error while getting error from source`, e, this.source, this.getOriginSpan())
+                    runtimeConsole?.error(`Error while getting error from source`, e, this.source, this.getOriginSpan())
                     return this.instance.traced_error()
                 }
             } else {
                 return this.instance.traced_error();
             }
         } catch (e) {
-            console.error(e)
+            runtimeConsole?.error(e)
         }
         try {
             const span = this.getOriginSpan()
@@ -853,7 +861,7 @@ export class TransformError {
                 return `Error at line ${span.start_line}:${span.start_column}`
             }
         } catch (e) {
-            console.error(e)
+            runtimeConsole?.error(e)
         }
         return `Unknown error`
     }
@@ -917,6 +925,7 @@ export type LpSolution<T> = {
 
 
 export * from './runtime.js'
+export * from './fluent/index.js'
 
 
 export type {

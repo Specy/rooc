@@ -40,6 +40,8 @@ Cargo.lock
 
 /target
 
-# Superpowers plans and specs
-docs/superpowers/plans/
-docs/superpowers/specs/
+# Local Superpowers artifacts
+/docs/superpowers/
+
+# Local isolated development worktrees
+/.worktrees/
