@@ -6,8 +6,8 @@ pub mod solver_tests {
     use indexmap::IndexMap;
     use rooc::common::LpSolution;
     use rooc::pipe::{
-        CompilerPipe, LinearModelPipe, MILPSolverPipe,
-        ModelPipe, PreModelPipe, RealSolver, StandardLinearModelPipe, TableauPipe,
+        CompilerPipe, LinearModelPipe, MILPSolverPipe, ModelPipe, PreModelPipe, RealSolver,
+        StandardLinearModelPipe, TableauPipe,
     };
     use rooc::pipe::{PipeContext, PipeRunner};
     use rooc::pipe::{PipeDataType, PipeError, PipeableData, StepByStepSimplexPipe};
@@ -118,8 +118,6 @@ pub mod solver_tests {
         }
     }
 
-
-
     #[allow(unused)]
     #[allow(clippy::result_large_err)]
     fn solve_milp(source: &str) -> Result<LpSolution<MILPValue>, PipeError> {
@@ -179,7 +177,6 @@ pub mod solver_tests {
             possible_solutions, variables
         );
     }
-
 
     #[allow(unused)]
     fn assert_variables_milp(variables: &[MILPValue], expected: &[MILPValue], lax_var_num: bool) {
@@ -539,7 +536,7 @@ define
         assert_precision(solution.value(), 280.0);
         assert_variables_milp(
             &solution.assignment_values(),
-            &vec![
+            &[
                 MILPValue::Bool(false),
                 MILPValue::Bool(false),
                 MILPValue::Bool(true),
@@ -560,7 +557,11 @@ define
         let source = "max -x + y\ns.t.\n    x + y >= 1\ndefine\n    x, y as Boolean";
         let solution = solve_milp(source).unwrap();
         assert_precision(solution.value(), 1.0);
-        assert_variables_milp(&solution.assignment_values(), &vec![MILPValue::Bool(false), MILPValue::Bool(true)], true);
+        assert_variables_milp(
+            &solution.assignment_values(),
+            &[MILPValue::Bool(false), MILPValue::Bool(true)],
+            true,
+        );
     }
 
     #[test]
@@ -577,11 +578,7 @@ define
         let solution = solve_milp(source).unwrap();
         assert_precision(solution.value(), 21.0);
         let assignment = solution.assignment_values();
-        assert_variables_milp(
-            &assignment,
-            &[MILPValue::Int(0), MILPValue::Int(7)],
-            false,
-        );
+        assert_variables_milp(&assignment, &[MILPValue::Int(0), MILPValue::Int(7)], false);
     }
 
     #[test]

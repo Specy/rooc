@@ -1007,7 +1007,8 @@ pub fn transform_model(
     let objective = transform_objective(problem.objective(), &mut context, fn_context)?;
     let mut constraints: Vec<Constraint> = Vec::new();
     for constraint in problem.constraints().iter() {
-        let transformed = transform_constraint_with_iteration(constraint, &mut context, fn_context)?;
+        let transformed =
+            transform_constraint_with_iteration(constraint, &mut context, fn_context)?;
         for transformed_constraint in transformed {
             constraints.push(transformed_constraint);
         }

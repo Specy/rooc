@@ -47,7 +47,12 @@ impl BuilderConstraint {
         if self.is_logic_assertion {
             Constraint::new_logic_assertion(to_exp(&self.lhs, names), self.name.clone())
         } else {
-            Constraint::new(to_exp(&self.lhs, names), self.constraint_type, to_exp(&self.rhs, names), self.name.clone())
+            Constraint::new(
+                to_exp(&self.lhs, names),
+                self.constraint_type,
+                to_exp(&self.rhs, names),
+                self.name.clone(),
+            )
         }
     }
 }
@@ -98,8 +103,10 @@ impl ModelBuilder {
         }
         let idx = self.variable_names.len();
         self.variable_names.push(name_str.clone());
-        self.domain
-            .insert(name_str, DomainVariable::new(var_type, InputSpan::default()));
+        self.domain.insert(
+            name_str,
+            DomainVariable::new(var_type, InputSpan::default()),
+        );
         Var { index: idx }
     }
 
@@ -127,10 +134,7 @@ impl ModelBuilder {
 
     /// Adds every constraint yielded by an iterator, returning the builder for
     /// chaining.
-    pub fn with_all(
-        mut self,
-        constraints: impl IntoIterator<Item = BuilderConstraint>,
-    ) -> Self {
+    pub fn with_all(mut self, constraints: impl IntoIterator<Item = BuilderConstraint>) -> Self {
         self.constraints.extend(constraints);
         self
     }

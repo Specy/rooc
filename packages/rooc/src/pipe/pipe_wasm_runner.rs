@@ -18,9 +18,8 @@ use {
     crate::pipe::PipeContext,
     crate::pipe::pipe_definitions::{PipeDataType, PipeError, Pipeable, PipeableData},
     crate::pipe::pipe_executors::{
-        AutoSolverPipe, CompilerPipe, LinearModelPipe,
-        MILPSolverPipe, ModelPipe, Pipes, PreModelPipe, RealSolver, StandardLinearModelPipe,
-        StepByStepSimplexPipe, TableauPipe,
+        AutoSolverPipe, CompilerPipe, LinearModelPipe, MILPSolverPipe, ModelPipe, Pipes,
+        PreModelPipe, RealSolver, StandardLinearModelPipe, StepByStepSimplexPipe, TableauPipe,
     },
     crate::solvers::{OptimalTableau, OptimalTableauWithSteps, Tableau},
     crate::transformers::StandardLinearModel,
@@ -68,7 +67,10 @@ impl Pipeable for JsPipable {
             PipeableData::LinearModel(lm) => JsPipableData::LinearModel(lm.clone()),
             PipeableData::RealSolution(sol) => JsPipableData::RealSolution(sol.clone()),
             PipeableData::MILPSolution(sol) => JsPipableData::MILPSolution(sol.clone()),
-            _ => return Err(PipeError::Other("JsPipable data must be one of: String, LinearModel, RealSolution, MILPSolution".to_string()))
+            _ => return Err(PipeError::Other(
+                "JsPipable data must be one of: String, LinearModel, RealSolution, MILPSolution"
+                    .to_string(),
+            )),
         };
         let js_pipable =
             serialize_json_compatible(&js_pipable).map_err(|e| PipeError::Other(e.to_string()))?;

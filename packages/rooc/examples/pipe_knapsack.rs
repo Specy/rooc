@@ -1,7 +1,6 @@
 use indexmap::IndexMap;
 use rooc::pipe::{
-    MILPSolverPipe, LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData,
-    PreModelPipe,
+    LinearModelPipe, MILPSolverPipe, ModelPipe, PipeContext, PipeRunner, PipeableData, PreModelPipe,
 };
 
 fn main() {

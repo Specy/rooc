@@ -357,7 +357,7 @@ impl RoocFunction for ArrayUnion {
         let second = args[1].as_iterator(context, fn_context)?.to_primitives();
         // Set union: concatenate then drop duplicates (by numeric value where applicable).
         let mut result: Vec<Primitive> = Vec::new();
-        for p in first.into_iter().chain(second.into_iter()) {
+        for p in first.into_iter().chain(second) {
             if !contains_value(&result, &p) {
                 result.push(p);
             }

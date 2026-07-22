@@ -847,9 +847,8 @@ define
             "min max { x, y }\ns.t.\n    lower: x + y >= 4\ndefine\n    x, y as NonNegativeReal(0, 9)",
             "max x_A + x_B + x_C\ns.t.\n    !x_u or !x_v for (u, v) in edges(G)\nwhere\n    let G = Graph { A -> [ B ], B -> [ A, C ], C -> [ B ] }\ndefine\n    x_v as Boolean for v in nodes(G)",
         ] {
-            let first = compile(source).unwrap_or_else(|error| {
-                panic!("failed to compile source: {error:?}\n{source}")
-            });
+            let first = compile(source)
+                .unwrap_or_else(|error| panic!("failed to compile source: {error:?}\n{source}"));
             let expected = solve_milp_lp_problem(&first)
                 .unwrap_or_else(|error| panic!("first solve failed: {error:?}"))
                 .value();

@@ -15,6 +15,18 @@ edition = "2024"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+default = ["microlp", "clarabel"]
+microlp = ["dep:microlp"]
+clarabel = ["dep:good_lp", "dep:clarabel", "good_lp/clarabel"]
+coin_cbc = ["dep:good_lp", "good_lp/coin_cbc"]
+highs = ["dep:good_lp", "good_lp/highs"]
+lpsolve = ["dep:good_lp", "good_lp/lpsolve"]
+scip = ["dep:good_lp", "good_lp/scip"]
+scip_bundled = ["scip", "good_lp/scip_bundled"]
+lp-solvers = ["dep:good_lp", "good_lp/lp-solvers"]
+cplex-rs = ["dep:good_lp", "good_lp/cplex-rs"]
+
 [dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
 num-rational = "0.4.2"
@@ -23,9 +35,9 @@ pest = { version = "2.8.6" }
 pest_derive = { version = "2.8.6", features = ["grammar-extras"] }
 lazy_static = "1.5.0"
 indexmap = { version = "2.13.0", features = ["serde"] }
-good_lp = { version = "1.15.0", features = ["clarabel"], default-features = false }
-clarabel = "0.11.0"
-microlp = "0.5.0"
+good_lp = { version = "1.15.2", default-features = false, optional = true }
+clarabel = { version = "0.11.0", optional = true }
+microlp = { version = "0.5.0", optional = true }
 log = "0.4.29"
 utf8_slice = "1.0.0"
 

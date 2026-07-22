@@ -77,9 +77,8 @@ impl InputSpan {
                 text.len()
             ));
         }
-        text.get(start..end).ok_or_else(|| {
-            format!("Span {start}..{end} does not fall on character boundaries")
-        })
+        text.get(start..end)
+            .ok_or_else(|| format!("Span {start}..{end} does not fall on character boundaries"))
     }
 }
 

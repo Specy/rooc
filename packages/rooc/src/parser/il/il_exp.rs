@@ -300,7 +300,7 @@ impl TypeCheckable for PreExp {
                     .get_addressable_value(array_access, fn_context)
                     .map(|_| ())
                     .map_err(|e| e.add_span(array_access.span()))
-            },
+            }
         }
     }
     fn populate_token_type_map(

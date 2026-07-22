@@ -1,12 +1,21 @@
+#![cfg_attr(
+    not(all(feature = "microlp", feature = "clarabel")),
+    allow(dead_code, unused_imports)
+)]
+
+#[cfg(all(feature = "microlp", feature = "clarabel"))]
 use indexmap::IndexMap;
+#[cfg(all(feature = "microlp", feature = "clarabel"))]
 #[allow(unused)]
 use rooc::pipe::{
     CompilerPipe, LinearModelPipe, ModelPipe, PipeContext, PipeRunner, PipeableData, PreModelPipe,
     RealSolver, StandardLinearModelPipe,
 };
+#[cfg(all(feature = "microlp", feature = "clarabel"))]
 use rooc::pipe::{StepByStepSimplexPipe, TableauPipe};
 
 #[allow(unused)]
+#[cfg(all(feature = "microlp", feature = "clarabel"))]
 fn main() {
     let source = r#"
 
@@ -58,3 +67,6 @@ x_3 as Real
         }
     }
 }
+
+#[cfg(not(all(feature = "microlp", feature = "clarabel")))]
+fn main() {}
