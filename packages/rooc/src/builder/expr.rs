@@ -81,9 +81,15 @@ pub(crate) fn to_exp(expr: &Expr, names: &[String]) -> Exp {
         Expr::Or(inners) => Exp::Or(inners.iter().map(|e| to_exp(e, names)).collect()),
         Expr::Not(inner) => Exp::Not(Box::new(to_exp(inner, names))),
         Expr::Xor(lhs, rhs) => Exp::Xor(Box::new(to_exp(lhs, names)), Box::new(to_exp(rhs, names))),
-        Expr::Implies(lhs, rhs) => Exp::Implies(Box::new(to_exp(lhs, names)), Box::new(to_exp(rhs, names))),
+        Expr::Implies(lhs, rhs) => {
+            Exp::Implies(Box::new(to_exp(lhs, names)), Box::new(to_exp(rhs, names)))
+        }
         Expr::Iff(lhs, rhs) => Exp::Iff(Box::new(to_exp(lhs, names)), Box::new(to_exp(rhs, names))),
-        Expr::BinOp(op, lhs, rhs) => Exp::BinOp(*op, Box::new(to_exp(lhs, names)), Box::new(to_exp(rhs, names))),
+        Expr::BinOp(op, lhs, rhs) => Exp::BinOp(
+            *op,
+            Box::new(to_exp(lhs, names)),
+            Box::new(to_exp(rhs, names)),
+        ),
         Expr::UnOp(op, inner) => Exp::UnOp(*op, Box::new(to_exp(inner, names))),
     }
 }
@@ -215,14 +221,22 @@ macro_rules! impl_binary_op {
         impl std::ops::$trait<i32> for Var {
             type Output = Expr;
             fn $method(self, rhs: i32) -> Self::Output {
-                Expr::BinOp($op, Box::new(self.into()), Box::new(Expr::Number(rhs as f64)))
+                Expr::BinOp(
+                    $op,
+                    Box::new(self.into()),
+                    Box::new(Expr::Number(rhs as f64)),
+                )
             }
         }
         // i32 OP Var
         impl std::ops::$trait<Var> for i32 {
             type Output = Expr;
             fn $method(self, rhs: Var) -> Self::Output {
-                Expr::BinOp($op, Box::new(Expr::Number(self as f64)), Box::new(rhs.into()))
+                Expr::BinOp(
+                    $op,
+                    Box::new(Expr::Number(self as f64)),
+                    Box::new(rhs.into()),
+                )
             }
         }
         // Expr OP i32

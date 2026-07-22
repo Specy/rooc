@@ -1,5 +1,21 @@
 #![doc = include_str!("../README.md")]
 
+#[cfg(all(
+    target_arch = "wasm32",
+    any(
+        feature = "coin_cbc",
+        feature = "highs",
+        feature = "lpsolve",
+        feature = "scip",
+        feature = "scip_bundled",
+        feature = "lp-solvers",
+        feature = "cplex-rs"
+    )
+))]
+compile_error!(
+    "ROOC's coin_cbc, highs, lpsolve, scip, scip_bundled, lp-solvers, and cplex-rs features are native-only and cannot be compiled for wasm32"
+);
+
 extern crate core;
 extern crate pest;
 #[macro_use]
@@ -16,9 +32,10 @@ use crate::parser::model_transformer::{Model, transform_parsed_problem};
 
 #[macro_use]
 mod macros;
+pub mod builder;
 mod math;
 mod parser;
-pub mod builder;
+#[cfg(all(feature = "microlp", feature = "clarabel"))]
 pub mod pipe;
 mod primitives;
 mod runtime_builtin;
@@ -29,9 +46,25 @@ pub mod type_checker;
 mod utils;
 
 use crate::model_transformer::TransformError;
+#[cfg(feature = "clarabel")]
+pub use builder::Clarabel;
+#[cfg(feature = "coin_cbc")]
+pub use builder::CoinCbc;
+#[cfg(feature = "cplex-rs")]
+pub use builder::Cplex;
+#[cfg(feature = "highs")]
+pub use builder::Highs;
+#[cfg(feature = "lpsolve")]
+pub use builder::LpSolve;
+#[cfg(feature = "lp-solvers")]
+pub use builder::LpSolvers;
+#[cfg(any(feature = "scip", feature = "scip_bundled"))]
+pub use builder::Scip;
+#[cfg(feature = "microlp")]
+pub use builder::{Auto, Microlp};
 pub use builder::{
-    Auto, BuilderConstraint, BuilderError, BuilderSolution, Clarabel, ConstraintValues, DualValues,
-    Expr, Microlp, ModelBuilder, ReducedCosts, Solution, SolveStatus, Solver, Var,
+    BuilderConstraint, BuilderError, BuilderSolution, ConstraintValues, DualValues, Expr,
+    ModelBuilder, ReducedCosts, Solution, SolveStatus, Solver, Var,
 };
 pub use math::*;
 pub use parser::*;

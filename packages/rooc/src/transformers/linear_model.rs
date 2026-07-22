@@ -500,8 +500,16 @@ impl LinearModel {
         out.push('\n');
         let mut objective = lp_terms(&self.objective, vars);
         if !self.objective_offset.is_zero() {
-            let sign = if self.objective_offset < 0.0 { "-" } else { "+" };
-            objective.push_str(&format!(" {} {}", sign, lp_num(self.objective_offset.abs())));
+            let sign = if self.objective_offset < 0.0 {
+                "-"
+            } else {
+                "+"
+            };
+            objective.push_str(&format!(
+                " {} {}",
+                sign,
+                lp_num(self.objective_offset.abs())
+            ));
         }
         out.push_str(&format!(" obj: {}\n", objective));
 
@@ -538,14 +546,24 @@ impl LinearModel {
                 }
                 VariableType::NonNegativeReal(min, max) => {
                     if !(*min == 0.0 && *max == f64::INFINITY) {
-                        bounds.push(format!(" {} <= {} <= {}", lp_bound(*min), name, lp_bound(*max)));
+                        bounds.push(format!(
+                            " {} <= {} <= {}",
+                            lp_bound(*min),
+                            name,
+                            lp_bound(*max)
+                        ));
                     }
                 }
                 VariableType::Real(min, max) => {
                     if *min == f64::NEG_INFINITY && *max == f64::INFINITY {
                         bounds.push(format!(" {} free", name));
                     } else {
-                        bounds.push(format!(" {} <= {} <= {}", lp_bound(*min), name, lp_bound(*max)));
+                        bounds.push(format!(
+                            " {} <= {} <= {}",
+                            lp_bound(*min),
+                            name,
+                            lp_bound(*max)
+                        ));
                     }
                 }
             }

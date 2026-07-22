@@ -1,0 +1,240 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - v*
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/rooc -> target
+
+      - name: Lint GitHub Actions workflow
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          "$(go env GOPATH)/bin/actionlint" -version
+          "$(go env GOPATH)/bin/actionlint" .github/workflows/ci.yml
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path packages/rooc/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path packages/rooc/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run default tests and doctests
+        run: cargo test --manifest-path packages/rooc/Cargo.toml
+
+  solver-feature:
+    name: Solver feature (${{ matrix.feature }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - feature: microlp
+            apt_packages: ""
+          - feature: clarabel
+            apt_packages: ""
+          - feature: coin_cbc
+            apt_packages: coinor-libcbc-dev pkg-config
+          - feature: highs
+            apt_packages: build-essential cmake clang libclang-dev ninja-build
+          - feature: lpsolve
+            apt_packages: build-essential
+          - feature: scip_bundled
+            apt_packages: ""
+          - feature: lp-solvers
+            apt_packages: coinor-cbc
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/rooc -> target
+          shared-key: solver-${{ matrix.feature }}
+
+      - name: Install native solver prerequisites
+        env:
+          APT_PACKAGES: ${{ matrix.apt_packages }}
+        run: |
+          if [[ -n "$APT_PACKAGES" ]]; then
+            read -r -a packages <<< "$APT_PACKAGES"
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends "${packages[@]}"
+          fi
+
+      - name: Run solver conformance, capability, and backend tests
+        run: >-
+          cargo test --manifest-path packages/rooc/Cargo.toml
+          --no-default-features --features "${{ matrix.feature }}"
+          --test solver_feature_conformance_tests
+          --test good_lp_capability_tests
+          --test good_lp_solver_tests
+
+  max-compatible-open-source:
+    name: Maximum compatible open-source features
+    runs-on: ubuntu-24.04
+    env:
+      APT_PACKAGES: >-
+        build-essential cmake clang libclang-dev ninja-build
+        coinor-libcbc-dev pkg-config coinor-cbc
+      ROOC_FEATURES: microlp,clarabel,coin_cbc,highs,lpsolve,scip_bundled,lp-solvers
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/rooc -> target
+          shared-key: max-open-source
+
+      - name: Install native solver prerequisites
+        run: |
+          read -r -a packages <<< "$APT_PACKAGES"
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends "${packages[@]}"
+
+      - name: Run strict Clippy with maximum compatible features
+        run: >-
+          cargo clippy --manifest-path packages/rooc/Cargo.toml --all-targets
+          --no-default-features --features "$ROOC_FEATURES" -- -D warnings
+
+      - name: Run full tests with maximum compatible features
+        run: >-
+          cargo test --manifest-path packages/rooc/Cargo.toml
+          --no-default-features --features "$ROOC_FEATURES"
+
+  max-compatible-cplex-check:
+    name: Maximum CPLEX-compatible compile check
+    runs-on: ubuntu-24.04
+    env:
+      APT_PACKAGES: >-
+        build-essential cmake clang libclang-dev ninja-build
+        coinor-libcbc-dev pkg-config coinor-cbc
+      DOCS_RS: "1"
+      ROOC_FEATURES: microlp,clarabel,coin_cbc,highs,scip_bundled,lp-solvers,cplex-rs
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/rooc -> target
+          shared-key: max-cplex-compatible
+
+      - name: Install native solver prerequisites
+        run: |
+          read -r -a packages <<< "$APT_PACKAGES"
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends "${packages[@]}"
+
+      - name: Check CPLEX-compatible test targets
+        run: >-
+          cargo check --manifest-path packages/rooc/Cargo.toml --tests
+          --no-default-features --features "$ROOC_FEATURES"
+
+  wasm-and-typescript:
+    name: WASM and TypeScript
+    runs-on: ubuntu-24.04
+    env:
+      ROOC_WASM_FEATURES: microlp,clarabel
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: packages/ts-lib/package-lock.json
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/rooc -> target
+          shared-key: wasm
+
+      - name: Install wasm-pack 0.15.0
+        run: cargo install wasm-pack --version 0.15.0 --locked
+
+      - name: Check explicit WASM solver features
+        run: >-
+          cargo check --manifest-path packages/rooc/Cargo.toml
+          --target wasm32-unknown-unknown --no-default-features
+          --features "$ROOC_WASM_FEATURES"
+
+      - name: Run Node WASM tests
+        run: >-
+          wasm-pack test --node packages/rooc
+          --no-default-features --features "$ROOC_WASM_FEATURES"
+
+      - name: Build release web package
+        env:
+          WASM_WEB_OUT_DIR: ${{ runner.temp }}/rooc-wasm-web
+        run: >-
+          wasm-pack build packages/rooc --release --target web
+          --out-dir "$WASM_WEB_OUT_DIR" --out-name rooc --
+          --no-default-features --features "$ROOC_WASM_FEATURES"
+
+      - name: Install TypeScript dependencies
+        working-directory: packages/ts-lib
+        run: npm ci
+
+      - name: Run TypeScript tests
+        working-directory: packages/ts-lib
+        run: npm test
+
+      - name: Build TypeScript library
+        working-directory: packages/ts-lib
+        run: npm run build-lib

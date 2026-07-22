@@ -424,13 +424,28 @@ fn lp_export_produces_cplex_lp_format() {
 
     let text = lp.to_lp_format();
 
-    assert!(text.contains("Maximize"), "missing objective direction:\n{text}");
-    assert!(text.contains("Subject To"), "missing constraints section:\n{text}");
-    assert!(text.contains("cap:"), "named constraint not emitted:\n{text}");
+    assert!(
+        text.contains("Maximize"),
+        "missing objective direction:\n{text}"
+    );
+    assert!(
+        text.contains("Subject To"),
+        "missing constraints section:\n{text}"
+    );
+    assert!(
+        text.contains("cap:"),
+        "named constraint not emitted:\n{text}"
+    );
     assert!(text.contains("<= 8"), "constraint rhs not emitted:\n{text}");
     assert!(text.contains("Binary"), "binary section missing:\n{text}");
-    assert!(text.contains("General"), "general (integer) section missing:\n{text}");
-    assert!(text.trim_end().ends_with("End"), "missing End marker:\n{text}");
+    assert!(
+        text.contains("General"),
+        "general (integer) section missing:\n{text}"
+    );
+    assert!(
+        text.trim_end().ends_with("End"),
+        "missing End marker:\n{text}"
+    );
 }
 
 #[test]
@@ -449,8 +464,14 @@ fn vars_macro_declares_handles_with_correct_domains() {
         .solve_with(Microlp::new())
         .expect("model should solve");
 
-    assert!(matches!(solution.var_value(pick).unwrap(), MILPValue::Bool(_)));
-    assert!(matches!(solution.var_value(count).unwrap(), MILPValue::Int(_)));
+    assert!(matches!(
+        solution.var_value(pick).unwrap(),
+        MILPValue::Bool(_)
+    ));
+    assert!(matches!(
+        solution.var_value(count).unwrap(),
+        MILPValue::Int(_)
+    ));
     assert!(matches!(
         solution.var_value(amount).unwrap(),
         MILPValue::Real(_)

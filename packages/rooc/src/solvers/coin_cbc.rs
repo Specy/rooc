@@ -1,0 +1,24 @@
+//! Coin CBC backend provided by `good_lp`.
+
+use super::good_lp::{GoodLpOptions, apply_mip_options, solve_with_good_lp};
+use super::{LpSolution, SolverError};
+use crate::transformers::LinearModel;
+use indexmap::IndexMap;
+
+/// Solves a mixed-integer linear model with Coin CBC.
+pub fn solve_lp_problem_coin_cbc(lp: &LinearModel) -> Result<LpSolution<f64>, SolverError> {
+    solve_lp_problem_coin_cbc_with_options(lp, &GoodLpOptions::default())
+}
+
+pub(crate) fn solve_lp_problem_coin_cbc_with_options(
+    lp: &LinearModel,
+    options: &GoodLpOptions,
+) -> Result<LpSolution<f64>, SolverError> {
+    solve_with_good_lp(
+        lp,
+        ::good_lp::coin_cbc,
+        |model, variables| apply_mip_options(model, options, variables),
+        |_| Ok(()),
+        |_, _| IndexMap::new(),
+    )
+}

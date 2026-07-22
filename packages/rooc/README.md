@@ -134,6 +134,50 @@ Pass a solver to `solve_with`:
 | `Microlp::new()` | Mixed-integer models and configurable MIP options |
 | `Clarabel` | Continuous models |
 
+The Rust crate enables `microlp` and `clarabel` by default. Every other solver
+feature is opt-in. Only the default solvers are implemented entirely in Rust
+and supported in WebAssembly builds.
+
+| Cargo feature | Rust-only | WASM | Optional capabilities | Scope | Prerequisite |
+| --- | --- | --- | --- | --- | --- |
+| `microlp` | Yes | Yes | MIP gap, time limit | LP + MILP | None |
+| `clarabel` | Yes | Yes | Shadow prices | Continuous LP | None |
+| `coin_cbc` | No | No | Initial solution, MIP gap, time limit | LP + MILP | Native CBC toolchain |
+| `highs` | No | No | Initial solution, MIP gap, time limit, shadow prices | LP + MILP | Native HiGHS toolchain |
+| `lpsolve` | No | No | Time limit | LP + MILP | Native C build |
+| `scip` | No | No | Initial solution, MIP gap, time limit | LP + MILP | SCIP installation |
+| `scip_bundled` | No | No | Initial solution, MIP gap, time limit | LP + MILP | Bundled native SCIP build |
+| `lp-solvers` | No | No | None through `AllSolvers` | LP + MILP | Solver executable on `PATH` |
+| `cplex-rs` | No | No | Time limit | LP + MILP | IBM CPLEX installation |
+
+Select an opt-in solver explicitly:
+
+```toml
+[dependencies]
+rooc = { version = "0.2.4", default-features = false, features = ["highs"] }
+```
+
+For a native application that also needs the default solvers, combine the
+features, for example `features = ["microlp", "clarabel", "scip_bundled"]`.
+`Scip` is the builder type for either `scip` or `scip_bundled`. The `lpsolve`
+and `cplex-rs` features cannot be enabled together. Native-only features are
+rejected for `wasm32` and cannot be used by the browser/WebAssembly package.
+
+Configured solvers expose only their implemented capabilities:
+
+```rust,ignore
+use rooc::Highs;
+use std::time::Duration;
+
+let solver = Highs::new()
+    .with_time_limit(Duration::from_secs(30))
+    .with_mip_gap(0.01)
+    .with_initial_solution([("x", 1.0)]);
+```
+
+Clarabel and HiGHS provide named shadow prices through the existing
+`DualValues` solution capability. Reduced costs are not exposed.
+
 ```rust,ignore
 use rooc::Auto;
 

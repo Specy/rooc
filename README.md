@@ -54,6 +54,50 @@ The [crate README](./packages/rooc/README.md) covers variables, expressions, con
 
 Use `Auto` for ROOC's safe general-purpose MILP default. It uses Microlp for every supported model. Use `Microlp::new()` when you need MIP options such as a time limit or mip gap. Select `Clarabel` explicitly for a continuous model.
 
+The Rust crate enables `microlp` and `clarabel` by default. Every other solver
+feature is opt-in. Only the default solvers are implemented entirely in Rust
+and supported in WebAssembly builds.
+
+| Cargo feature | Rust-only | WASM | Optional capabilities | Scope | Prerequisite |
+| --- | --- | --- | --- | --- | --- |
+| `microlp` | Yes | Yes | MIP gap, time limit | LP + MILP | None |
+| `clarabel` | Yes | Yes | Shadow prices | Continuous LP | None |
+| `coin_cbc` | No | No | Initial solution, MIP gap, time limit | LP + MILP | Native CBC toolchain |
+| `highs` | No | No | Initial solution, MIP gap, time limit, shadow prices | LP + MILP | Native HiGHS toolchain |
+| `lpsolve` | No | No | Time limit | LP + MILP | Native C build |
+| `scip` | No | No | Initial solution, MIP gap, time limit | LP + MILP | SCIP installation |
+| `scip_bundled` | No | No | Initial solution, MIP gap, time limit | LP + MILP | Bundled native SCIP build |
+| `lp-solvers` | No | No | None through `AllSolvers` | LP + MILP | Solver executable on `PATH` |
+| `cplex-rs` | No | No | Time limit | LP + MILP | IBM CPLEX installation |
+
+Configured solvers expose only their implemented capabilities:
+
+```rust,ignore
+use rooc::Highs;
+use std::time::Duration;
+
+let solver = Highs::new()
+    .with_time_limit(Duration::from_secs(30))
+    .with_mip_gap(0.01)
+    .with_initial_solution([("x", 1.0)]);
+```
+
+Clarabel and HiGHS provide named shadow prices through the existing
+`DualValues` solution capability. Reduced costs are not exposed.
+
+Enable an opt-in solver explicitly in `Cargo.toml`:
+
+```toml
+[dependencies]
+rooc = { version = "0.2.4", default-features = false, features = ["highs"] }
+```
+
+Use `features = ["microlp", "clarabel", "highs"]` when an application needs
+both default solvers and an additional native solver. Native-only features are
+rejected for `wasm32`; browser and WebAssembly builds should keep the default
+`microlp` and `clarabel` feature set. The `lpsolve` and `cplex-rs` features
+cannot be enabled together.
+
 ## ROOC language
 
 ROOC source is useful for models built from data, sets, graphs, and iteration:

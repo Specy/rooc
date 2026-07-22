@@ -18,7 +18,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Maximize the value of the products made, minus the material cost.
         .maximize(6.0 * make_a + 5.0 * make_b + 4.0 * make_c - material)
         // Each product consumes material, so we must buy enough to cover them.
-        .with(constraint!(2.0 * make_a + 3.0 * make_b + make_c <= material))
+        .with(constraint!(
+            2.0 * make_a + 3.0 * make_b + make_c <= material
+        ))
         // Making A requires also making B.
         .with(constraint!(make_a -> make_b))
         // At least one of A or C must be made.

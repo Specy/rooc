@@ -188,12 +188,27 @@ pub enum SolutionStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LpSolution<T> {
     assignment: Vec<Assignment<T>>,
+    assignment_by_name: IndexMap<String, T>,
     constraints: IndexMap<String, f64>,
     value: f64,
     /// Solve status. Not serialized: it is solver metadata, not part of the
     /// portable solution shape.
     #[serde(skip)]
     status: SolutionStatus,
+    /// Optional solver-provided dual values. Not serialized: they are backend
+    /// metadata, not part of the portable solution shape.
+    #[serde(skip)]
+    shadow_prices: IndexMap<String, f64>,
+}
+
+fn build_assignment_map<T: Copy>(assignment: &[Assignment<T>]) -> IndexMap<String, T> {
+    let mut assignment_by_name = IndexMap::with_capacity(assignment.len());
+    for item in assignment {
+        assignment_by_name
+            .entry(item.name.clone())
+            .or_insert(item.value);
+    }
+    assignment_by_name
 }
 
 impl<T: Clone + Serialize + DeserializeOwned + Copy + DisplayValue> Display for LpSolution<T> {
@@ -231,10 +246,12 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> LpSolution<T> {
         constraints: IndexMap<String, f64>,
     ) -> Self {
         Self {
+            assignment_by_name: build_assignment_map(&assignment),
             assignment,
             value,
             constraints,
             status: SolutionStatus::Optimal,
+            shadow_prices: IndexMap::new(),
         }
     }
 
@@ -246,6 +263,13 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> LpSolution<T> {
     /// Sets the solve status, returning the solution for chaining.
     pub fn with_status(mut self, status: SolutionStatus) -> Self {
         self.status = status;
+        self
+    }
+
+    /// Sets optional solver-provided shadow prices, returning the solution for
+    /// chaining.
+    pub fn with_shadow_prices(mut self, shadow_prices: IndexMap<String, f64>) -> Self {
+        self.shadow_prices = shadow_prices;
         self
     }
 
@@ -269,9 +293,14 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> LpSolution<T> {
         &self.constraints
     }
 
+    /// Returns the solver-provided shadow prices, if any.
+    pub fn shadow_prices(&self) -> &IndexMap<String, f64> {
+        &self.shadow_prices
+    }
+
     /// Returns the solved value of a variable by its name.
     pub fn value_of(&self, name: &str) -> Option<T> {
-        self.assignment.iter().find(|a| a.name == name).map(|a| a.value)
+        self.assignment_by_name.get(name).copied()
     }
 }
 
@@ -302,5 +331,3 @@ where
         })
         .collect::<Vec<_>>()
 }
-
-

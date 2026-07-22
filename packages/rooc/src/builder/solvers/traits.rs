@@ -49,9 +49,9 @@ pub trait ReducedCosts {
 }
 
 // The built-in solvers use `LpSolution` as their solution type. It provides the
-// core `Solution` plus `SolveStatus` and `ConstraintValues`, but deliberately
-// not `DualValues`/`ReducedCosts`, so those methods do not appear on built-in
-// solutions.
+// core `Solution`, `SolveStatus`, and `ConstraintValues`. Backends that expose
+// duals populate its optional shadow-price map; other backends return `None`
+// through `DualValues`. No good_lp backend currently provides reduced costs.
 impl<
     T: Clone + serde::Serialize + serde::de::DeserializeOwned + Copy + std::fmt::Display + Into<f64>,
 > Solution for LpSolution<T>
@@ -67,8 +67,8 @@ impl<
     }
 }
 
-impl<T: Clone + serde::Serialize + serde::de::DeserializeOwned + Copy + std::fmt::Display> SolveStatus
-    for LpSolution<T>
+impl<T: Clone + serde::Serialize + serde::de::DeserializeOwned + Copy + std::fmt::Display>
+    SolveStatus for LpSolution<T>
 {
     fn status(&self) -> SolutionStatus {
         // Explicit path resolves to the inherent accessor, not this trait method.
@@ -81,5 +81,13 @@ impl<T: Clone + serde::Serialize + serde::de::DeserializeOwned + Copy + std::fmt
 {
     fn constraint_value(&self, constraint: &str) -> Option<f64> {
         self.constraints().get(constraint).copied()
+    }
+}
+
+impl<T: Clone + serde::Serialize + serde::de::DeserializeOwned + Copy + std::fmt::Display>
+    DualValues for LpSolution<T>
+{
+    fn shadow_price(&self, constraint: &str) -> Option<f64> {
+        self.shadow_prices().get(constraint).copied()
     }
 }

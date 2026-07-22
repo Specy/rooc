@@ -266,8 +266,6 @@ impl Pipeable for DualPipe {
 
 //-------------------- Binary solver --------------------
 
-
-
 //-------------------- MILP solver --------------------
 /// Pipe that solves linear models using a MILP solver
 pub struct MILPSolverPipe {}

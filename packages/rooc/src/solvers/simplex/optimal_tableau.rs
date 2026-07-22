@@ -42,31 +42,28 @@ impl OptimalTableau {
         // Map standard-form variables back to the original model's variables:
         // recombine a free variable's split `x = $px - $mx`, and drop the internal
         // slack/surplus/artificial variables the standardizer/two-phase added.
-        let map: IndexMap<String, f64> = names
-            .iter()
-            .cloned()
-            .zip(values.iter().cloned())
-            .collect();
+        let map: IndexMap<String, f64> =
+            names.iter().cloned().zip(values.iter().cloned()).collect();
         let mut assignment = Vec::new();
         for (name, val) in names.iter().zip(values.iter()) {
             if name.starts_with("$su_") || name.starts_with("$sl_") || name.starts_with("$a_") {
                 continue; // internal slack/surplus/artificial variable
             }
             // Negative half of a free-variable split: already accounted for by the positive half.
-            if let Some(rest) = name.strip_prefix("$m") {
-                if map.contains_key(&format!("$p{}", rest)) {
-                    continue;
-                }
+            if let Some(rest) = name.strip_prefix("$m")
+                && map.contains_key(&format!("$p{}", rest))
+            {
+                continue;
             }
             // Positive half of a free-variable split: reconstruct the original variable.
-            if let Some(rest) = name.strip_prefix("$p") {
-                if let Some(minus) = map.get(&format!("$m{}", rest)) {
-                    assignment.push(crate::solvers::Assignment {
-                        name: rest.to_string(),
-                        value: *val - *minus,
-                    });
-                    continue;
-                }
+            if let Some(rest) = name.strip_prefix("$p")
+                && let Some(minus) = map.get(&format!("$m{}", rest))
+            {
+                assignment.push(crate::solvers::Assignment {
+                    name: rest.to_string(),
+                    value: *val - *minus,
+                });
+                continue;
             }
             assignment.push(crate::solvers::Assignment {
                 name: name.clone(),

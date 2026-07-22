@@ -183,21 +183,27 @@ impl StandardLinearModel {
                     match pivot_col {
                         Some(col) => {
                             let pivot = a[row][col];
-                            let width = a[row].len();
-                            for j in 0..width {
-                                a[row][j] /= pivot;
+                            for value in &mut a[row] {
+                                *value /= pivot;
                             }
                             b[row] /= pivot;
                             for r in 0..a.len() {
                                 if r == row {
                                     continue;
                                 }
-                                let factor = a[r][col];
+                                let (target_row, pivot_row) = if r < row {
+                                    let (before, after) = a.split_at_mut(row);
+                                    (&mut before[r], &after[0])
+                                } else {
+                                    let (before, after) = a.split_at_mut(r);
+                                    (&mut after[0], &before[row])
+                                };
+                                let factor = target_row[col];
                                 if factor == 0.0 {
                                     continue;
                                 }
-                                for j in 0..width {
-                                    a[r][j] -= factor * a[row][j];
+                                for (target, pivot) in target_row.iter_mut().zip(pivot_row.iter()) {
+                                    *target -= factor * pivot;
                                 }
                                 b[r] -= factor * b[row];
                             }
