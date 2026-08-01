@@ -14,7 +14,11 @@ where
 define
     x_i as Boolean for i in 0..len(weights)";
     let solver = RoocSolver::try_new(source.to_string()).unwrap();
-    let solution = solver.solve_using(solve_milp_lp_problem).unwrap();
+    let solution = solver
+        .solve_using(solve_milp_lp_problem)
+        .unwrap()
+        .into_solution()
+        .unwrap();
     println!("{}", solution)
 }
 
@@ -42,6 +46,8 @@ define
     let fns: FunctionContextMap = IndexMap::new();
     let solution = solver
         .solve_with_data_using(solve_milp_lp_problem, constants, &fns)
+        .unwrap()
+        .into_solution()
         .unwrap();
     println!("{}", solution)
 }

@@ -1,15 +1,19 @@
 //! The MicroLP mixed-integer solver.
 
 use super::traits::Solver;
-use crate::solvers::{LpSolution, MILPValue, MilpOptions, SolverError, solve_milp_lp_problem_with};
+use crate::solvers::{
+    LpSolution, MILPValue, MilpOptions, SolveOutcome, SolverError, solve_milp_lp_problem_with,
+};
 use crate::transformers::linear_model::LinearModel;
 use std::time::Duration;
 
-/// The MicroLP mixed-integer solver, with optional MIP gap and time limit.
+/// The MicroLP mixed-integer solver, with optional MIP gap, time limit, and
+/// node limit.
 #[derive(Debug, Clone, Default)]
 pub struct Microlp {
     mip_gap: Option<f64>,
     time_limit: Option<Duration>,
+    node_limit: Option<u64>,
 }
 
 impl Microlp {
@@ -29,15 +33,26 @@ impl Microlp {
         self.time_limit = Some(limit);
         self
     }
+
+    /// Sets the maximum number of branch-and-bound nodes to explore.
+    ///
+    /// A deterministic alternative to [`Microlp::with_time_limit`]. It has no
+    /// effect on a model without integer or boolean variables, which is solved
+    /// without branching.
+    pub fn with_node_limit(mut self, limit: u64) -> Self {
+        self.node_limit = Some(limit);
+        self
+    }
 }
 
 impl Solver for Microlp {
     type Solution = LpSolution<MILPValue>;
 
-    fn solve(&self, model: &LinearModel) -> Result<Self::Solution, SolverError> {
+    fn solve(&self, model: &LinearModel) -> Result<SolveOutcome<Self::Solution>, SolverError> {
         let options = MilpOptions {
             mip_gap: self.mip_gap,
             time_limit: self.time_limit,
+            node_limit: self.node_limit,
         };
         solve_milp_lp_problem_with(model, &options)
     }

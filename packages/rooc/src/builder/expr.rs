@@ -429,16 +429,26 @@ pub fn max(exprs: impl IntoIterator<Item = impl Into<Expr>>) -> Expr {
 }
 
 pub fn sum(exprs: impl IntoIterator<Item = impl Into<Expr>>) -> Expr {
-    let mut iter = exprs.into_iter();
-    if let Some(first) = iter.next() {
-        let mut res = first.into();
-        for item in iter {
-            res = Expr::BinOp(BinOp::Add, Box::new(res), Box::new(item.into()));
-        }
-        res
-    } else {
-        Expr::Number(0.0)
+    let mut level = exprs.into_iter().map(Into::into).collect::<Vec<Expr>>();
+    if level.is_empty() {
+        return Expr::Number(0.0);
     }
+
+    while level.len() > 1 {
+        let mut next = Vec::with_capacity(level.len().div_ceil(2));
+        let mut iter = level.into_iter();
+        while let Some(lhs) = iter.next() {
+            match iter.next() {
+                Some(rhs) => {
+                    next.push(Expr::BinOp(BinOp::Add, Box::new(lhs), Box::new(rhs)));
+                }
+                None => next.push(lhs),
+            }
+        }
+        level = next;
+    }
+
+    level.pop().expect("non-empty sum level")
 }
 
 pub fn all(exprs: impl IntoIterator<Item = impl Into<Expr>>) -> Expr {

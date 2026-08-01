@@ -7,7 +7,8 @@ use indexmap::IndexMap;
 use rooc::builder::{any, sum};
 use rooc::{
     Assignment, Auto, Clarabel, DualValues, LinearModel, LpSolution, MILPValue, Microlp,
-    ModelBuilder, Solution, SolutionStatus, Solver, SolverError, VariableType, constraint, vars,
+    ModelBuilder, Solution, SolutionStatus, SolveOutcome, Solver, SolverError, TerminationReason,
+    VariableType, constraint, vars,
 };
 
 fn bool_of(v: MILPValue) -> bool {
@@ -22,6 +23,31 @@ fn int_of(v: MILPValue) -> i32 {
         MILPValue::Int(i) => i,
         other => panic!("expected an integer value, got {other:?}"),
     }
+}
+
+fn expression_depth(root: &rooc::builder::Expr) -> usize {
+    let mut max_depth = 0;
+    let mut stack = vec![(root, 1usize)];
+    while let Some((expr, depth)) = stack.pop() {
+        max_depth = max_depth.max(depth);
+        if let rooc::builder::Expr::BinOp(_, lhs, rhs) = expr {
+            stack.push((lhs.as_ref(), depth + 1));
+            stack.push((rhs.as_ref(), depth + 1));
+        }
+    }
+    max_depth
+}
+
+#[test]
+fn sum_builds_a_logarithmic_depth_tree() {
+    let empty = sum(Vec::<rooc::builder::Var>::new());
+    assert!(matches!(empty, rooc::builder::Expr::Number(0.0)));
+
+    let single = sum([rooc::builder::Var { index: 7 }]);
+    assert!(matches!(single, rooc::builder::Expr::Variable(7)));
+
+    let expression = sum((0..4096).map(|index| rooc::builder::Var { index }));
+    assert!(expression_depth(&expression) <= 13);
 }
 
 /// The knapsack-with-logic model has a single optimum: x0 = x1 = true,
@@ -43,7 +69,9 @@ fn builder_solves_knapsack_with_logic_and_resolves_handles() {
         .with(constraint!(x2 <-> !x0))
         .with(constraint!(any(vec![x0, x2])))
         .solve_with(Microlp::new())
-        .expect("model should solve");
+        .expect("model should solve")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert_eq!(solution.value(), 13.0);
     assert!(bool_of(solution.var_value(x0).unwrap()));
@@ -66,7 +94,9 @@ fn var_value_resolves_each_handle_independently() {
             constraint!(c <= 9.0),
         ])
         .solve_with(Microlp::new())
-        .expect("model should solve");
+        .expect("model should solve")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert_eq!(int_of(solution.var_value(a).unwrap()), 2);
     assert_eq!(int_of(solution.var_value(b).unwrap()), 5);
@@ -86,7 +116,9 @@ fn constraints_can_surround_the_objective() {
         .maximize(x + y)
         .with(constraint!(y <= 5.0))
         .solve_with(Microlp::new())
-        .expect("model should solve");
+        .expect("model should solve")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert_eq!(int_of(solution.var_value(x).unwrap()), 3);
     assert_eq!(int_of(solution.var_value(y).unwrap()), 5);
@@ -101,7 +133,9 @@ fn a_model_without_an_objective_defaults_to_satisfy() {
         .with(constraint!(x >= 4.0))
         .with(constraint!(x <= 7.0))
         .solve_with(Microlp::new())
-        .expect("a feasible point should be found");
+        .expect("a feasible point should be found")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     let x_val = int_of(solution.var_value(x).unwrap());
     assert!((4..=7).contains(&x_val), "x = {x_val} is out of [4, 7]");
@@ -127,7 +161,9 @@ fn builder_solves_real_lp_with_clarabel() {
         .maximize(x + 2.0 * y)
         .with(constraint!(x + y <= 10.0))
         .solve_with(Clarabel)
-        .expect("model should solve");
+        .expect("model should solve")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert!((solution.value() - 20.0).abs() < 1e-6);
     assert!((solution.var_value(y).unwrap() - 10.0).abs() < 1e-6);
@@ -146,7 +182,9 @@ fn builder_auto_selects_a_solver() {
         .maximize(x + y)
         .with(constraint!(x + y <= 3.0))
         .solve_with(Auto)
-        .expect("model should solve");
+        .expect("model should solve")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert!((solution.value() - 3.0).abs() < 1e-6);
 }
@@ -160,7 +198,7 @@ struct ZeroSolver;
 impl Solver for ZeroSolver {
     type Solution = LpSolution<f64>;
 
-    fn solve(&self, model: &LinearModel) -> Result<Self::Solution, SolverError> {
+    fn solve(&self, model: &LinearModel) -> Result<SolveOutcome<Self::Solution>, SolverError> {
         let assignment = model
             .variables()
             .iter()
@@ -169,11 +207,11 @@ impl Solver for ZeroSolver {
                 value: 0.0,
             })
             .collect();
-        Ok(LpSolution::new(
+        Ok(SolveOutcome::Solution(LpSolution::new(
             assignment,
             model.objective_offset(),
             Default::default(),
-        ))
+        )))
     }
 }
 
@@ -188,7 +226,9 @@ fn a_custom_solver_can_be_plugged_into_solve_with() {
     let solution = model
         .minimize(x + y)
         .solve_with(ZeroSolver)
-        .expect("custom solver should produce a solution");
+        .expect("custom solver should produce a solution")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert_eq!(solution.var_value(x), Some(0.0));
     assert_eq!(solution.var_value(y), Some(0.0));
@@ -222,7 +262,7 @@ struct DualSolver;
 impl Solver for DualSolver {
     type Solution = DualSolution;
 
-    fn solve(&self, model: &LinearModel) -> Result<Self::Solution, SolverError> {
+    fn solve(&self, model: &LinearModel) -> Result<SolveOutcome<Self::Solution>, SolverError> {
         let assignment = model
             .variables()
             .iter()
@@ -237,10 +277,10 @@ impl Solver for DualSolver {
                 duals.insert(c.name(), 1.5);
             }
         }
-        Ok(DualSolution {
+        Ok(SolveOutcome::Solution(DualSolution {
             inner: LpSolution::new(assignment, model.objective_offset(), Default::default()),
             duals,
-        })
+        }))
     }
 }
 
@@ -253,7 +293,9 @@ fn a_solver_that_implements_dual_values_exposes_shadow_prices() {
         .minimize(x)
         .with(constraint!(cap: x >= 2.0))
         .solve_with(DualSolver)
-        .expect("model should solve");
+        .expect("model should solve")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert_eq!(solution.shadow_price("cap"), Some(1.5));
     assert_eq!(solution.shadow_price("missing"), None);
@@ -274,7 +316,9 @@ fn eval_computes_expression_values_at_the_solution() {
         .with(constraint!(x <= 3.0))
         .with(constraint!(y <= 4.0))
         .solve_with(Microlp::new())
-        .expect("model should solve");
+        .expect("model should solve")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert_eq!(solution.numeric_value(x), Some(3.0));
     assert_eq!(solution.eval(&(x + y)), 7.0);
@@ -290,7 +334,9 @@ fn a_solved_model_reports_optimal_status() {
         .maximize(x)
         .with(constraint!(x <= 1.0))
         .solve_with(Microlp::new())
-        .expect("model should solve");
+        .expect("model should solve")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert_eq!(solution.status(), SolutionStatus::Optimal);
 }
@@ -307,7 +353,9 @@ fn constraint_value_reads_a_named_constraint_activity() {
         .maximize(x + y)
         .with(constraint!(cap: x + y <= 6.0))
         .solve_with(Microlp::new())
-        .expect("model should solve");
+        .expect("model should solve")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert_eq!(solution.constraint_value("cap"), Some(6.0));
     assert_eq!(solution.constraint_value("missing"), None);
@@ -333,11 +381,106 @@ fn microlp_options_still_return_the_optimum() {
                 .with_mip_gap(0.0)
                 .with_time_limit(Duration::from_secs(5)),
         )
-        .expect("model should solve");
+        .expect("model should solve")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert_eq!(solution.value(), 3.0);
     assert!(bool_of(solution.var_value(x0).unwrap()));
     assert!(!bool_of(solution.var_value(x1).unwrap()));
+}
+
+#[test]
+fn microlp_reports_a_positive_gap_as_feasible() {
+    let mut model = ModelBuilder::new();
+    vars! { model =>
+        x: bool;
+        y: bool;
+        z: bool;
+        w: bool;
+    };
+
+    let solution = model
+        .maximize(8.0 * x + 11.0 * y + 6.0 * z + 4.0 * w)
+        .with(constraint!(5.0 * x + 7.0 * y + 4.0 * z + 3.0 * w <= 14.0))
+        .solve_with(Microlp::new().with_mip_gap(0.5))
+        .expect("the configured gap should return a usable incumbent")
+        .into_solution()
+        .expect("stopping at the gap still yields an incumbent");
+
+    assert_eq!(solution.status(), SolutionStatus::Feasible);
+    // The status says the answer is unproven; the reason says why we stopped.
+    assert_eq!(solution.termination_reason(), TerminationReason::MipGap);
+}
+
+#[test]
+fn microlp_time_limit_without_an_incumbent_is_an_outcome_not_an_error() {
+    use std::time::Duration;
+
+    let mut model = ModelBuilder::new();
+    vars! { model =>
+        x: bool;
+        y: bool;
+    };
+
+    let outcome = model
+        .maximize(3.0 * x + 2.0 * y)
+        .with(constraint!(x + y <= 1.0))
+        .solve_with(Microlp::new().with_time_limit(Duration::ZERO))
+        .expect("running out of time is not a solver failure");
+
+    // Nothing was found, but the model is perfectly solvable given a budget, so
+    // this is reported as an interruption rather than an error.
+    let interrupted = match outcome {
+        SolveOutcome::Interrupted(interrupted) => interrupted,
+        SolveOutcome::Solution(_) => panic!("a zero time budget cannot find an incumbent"),
+    };
+    assert_eq!(
+        interrupted.termination_reason(),
+        TerminationReason::TimeLimit
+    );
+}
+
+#[test]
+fn microlp_node_limit_is_reported_as_its_own_termination_reason() {
+    let mut model = ModelBuilder::new();
+    vars! { model =>
+        x: bool;
+        y: bool;
+        z: bool;
+        w: bool;
+    };
+
+    // A zero node budget stops the search after the root relaxation, which does
+    // not count as a node, so no incumbent can be registered.
+    let outcome = model
+        .maximize(8.0 * x + 11.0 * y + 6.0 * z + 4.0 * w)
+        .with(constraint!(5.0 * x + 7.0 * y + 4.0 * z + 3.0 * w <= 14.0))
+        .solve_with(Microlp::new().with_node_limit(0))
+        .expect("running out of nodes is not a solver failure");
+
+    // Whether the root happened to leave a usable incumbent is a heuristic
+    // detail; what must hold is that the node budget is named as the cause,
+    // distinctly from a time limit.
+    let reason = match &outcome {
+        SolveOutcome::Solution(solution) => solution.termination_reason(),
+        SolveOutcome::Interrupted(interrupted) => interrupted.termination_reason(),
+    };
+    assert_eq!(reason, TerminationReason::NodeLimit);
+}
+
+#[test]
+fn large_balanced_sum_linearizes() {
+    let mut model = ModelBuilder::new();
+    let variables = model.add_vars("x", 1024, VariableType::bool());
+    let expression = sum(variables.iter().copied());
+
+    let linear = model
+        .maximize(expression.clone())
+        .with(constraint!(expression <= 512.0))
+        .linearize();
+
+    assert!(linear.is_ok());
 }
 
 // --- vars! macro -----------------------------------------------------------
@@ -354,7 +497,9 @@ fn indexed_vars_macro_binds_a_vec_and_indexes_in_constraints() {
         .maximize(sum(x.iter().copied()))
         .with(constraint!(x[0] + x[1] + x[2] <= 2.0))
         .solve_with(Microlp::new())
-        .expect("model should solve");
+        .expect("model should solve")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert_eq!(solution.value(), 2.0);
     let chosen = x
@@ -374,7 +519,9 @@ fn add_vars_creates_an_indexed_family() {
         .maximize(sum(y.iter().copied()))
         .with_all(y.iter().map(|&v| constraint!(v <= 2.0)))
         .solve_with(Microlp::new())
-        .expect("model should solve");
+        .expect("model should solve")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert_eq!(solution.value(), 8.0);
 }
@@ -462,7 +609,9 @@ fn vars_macro_declares_handles_with_correct_domains() {
         .with(constraint!(count <= 4.0))
         .with(constraint!(amount <= 2.5))
         .solve_with(Microlp::new())
-        .expect("model should solve");
+        .expect("model should solve")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert!(matches!(
         solution.var_value(pick).unwrap(),

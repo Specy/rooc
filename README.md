@@ -39,7 +39,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(constraint!(2.0 * make_a + 3.0 * make_b + make_c <= material))
         .with(constraint!(make_a -> make_b))
         .with(constraint!(any(vec![make_a, make_c])))
-        .solve_with(Microlp::new())?;
+        .solve_with(Microlp::new())?
+        .into_solution()?;
 
     println!("objective = {}", solution.value());
     println!("make_a = {:?}", solution.var_value(make_a));
@@ -58,7 +59,7 @@ The Rust crate enables `microlp` and `clarabel` by default. Every other solver
 feature is opt-in. Only the default solvers are implemented entirely in Rust
 and supported in WebAssembly builds.
 
-| Cargo feature | Rust-only | WASM | Optional capabilities | Scope | Prerequisite |
+| Cargo feature | Pure Rust | WASM | Optional capabilities | Scope | Prerequisite |
 | --- | --- | --- | --- | --- | --- |
 | `microlp` | Yes | Yes | MIP gap, time limit | LP + MILP | None |
 | `clarabel` | Yes | Yes | Shadow prices | Continuous LP | None |
@@ -89,7 +90,7 @@ Enable an opt-in solver explicitly in `Cargo.toml`:
 
 ```toml
 [dependencies]
-rooc = { version = "0.2.4", default-features = false, features = ["highs"] }
+rooc = { version = "0.2.5", default-features = false, features = ["highs"] }
 ```
 
 Use `features = ["microlp", "clarabel", "highs"]` when an application needs

@@ -5,7 +5,7 @@ use std::time::Duration;
 use super::traits::Solver;
 use crate::solvers::good_lp::GoodLpOptions;
 use crate::solvers::highs::{solve_lp_problem_highs, solve_lp_problem_highs_with_options};
-use crate::solvers::{LpSolution, SolverError};
+use crate::solvers::{LpSolution, SolveOutcome, SolverError};
 use crate::transformers::linear_model::LinearModel;
 
 /// The HiGHS mixed-integer solver.
@@ -54,7 +54,7 @@ impl HighsOptions {
 impl Solver for Highs {
     type Solution = LpSolution<f64>;
 
-    fn solve(&self, model: &LinearModel) -> Result<Self::Solution, SolverError> {
+    fn solve(&self, model: &LinearModel) -> Result<SolveOutcome<Self::Solution>, SolverError> {
         solve_lp_problem_highs(model)
     }
 }
@@ -62,7 +62,7 @@ impl Solver for Highs {
 impl Solver for HighsOptions {
     type Solution = LpSolution<f64>;
 
-    fn solve(&self, model: &LinearModel) -> Result<Self::Solution, SolverError> {
+    fn solve(&self, model: &LinearModel) -> Result<SolveOutcome<Self::Solution>, SolverError> {
         solve_lp_problem_highs_with_options(model, &self.options)
     }
 }

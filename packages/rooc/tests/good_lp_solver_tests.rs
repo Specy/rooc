@@ -48,13 +48,17 @@ fn assert_mixed_domain_solution(solution: &LpSolution<f64>) {
 #[test]
 fn coin_cbc_solves_mixed_domain_model() {
     let model = mixed_domain_model();
-    let solution =
-        rooc::solve_lp_problem_coin_cbc(&model).expect("Coin CBC should solve the model");
+    let solution = rooc::solve_lp_problem_coin_cbc(&model)
+        .expect("Coin CBC should solve the model")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
     assert_mixed_domain_solution(&solution);
 
     let builder_solution = rooc::CoinCbc
         .solve(&model)
-        .expect("builder solver should solve the model");
+        .expect("builder solver should solve the model")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
     assert_mixed_domain_solution(&builder_solution);
 }
 
@@ -62,12 +66,17 @@ fn coin_cbc_solves_mixed_domain_model() {
 #[test]
 fn highs_solves_mixed_domain_model() {
     let model = mixed_domain_model();
-    let solution = rooc::solve_lp_problem_highs(&model).expect("HiGHS should solve the model");
+    let solution = rooc::solve_lp_problem_highs(&model)
+        .expect("HiGHS should solve the model")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
     assert_mixed_domain_solution(&solution);
 
     let builder_solution = rooc::Highs
         .solve(&model)
-        .expect("builder solver should solve the model");
+        .expect("builder solver should solve the model")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
     assert_mixed_domain_solution(&builder_solution);
 }
 
@@ -102,7 +111,10 @@ fn highs_preserves_objective_offset_and_comparison_activities() {
         domain,
     );
 
-    let solution = rooc::solve_lp_problem_highs(&model).expect("HiGHS should solve the model");
+    let solution = rooc::solve_lp_problem_highs(&model)
+        .expect("HiGHS should solve the model")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert_eq!(solution.status(), SolutionStatus::Optimal);
     assert!((solution.value() - 9.0).abs() < 1e-7);

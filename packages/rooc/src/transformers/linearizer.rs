@@ -1447,10 +1447,9 @@ impl Linearizer {
     /// * `domain` - Variable domain information
     pub fn new_from(
         constraints: Vec<Constraint>,
-        mut domain: IndexMap<String, DomainVariable>,
+        domain: IndexMap<String, DomainVariable>,
     ) -> Self {
         let bounds = BoundsAnalyzer::analyze(&domain, &constraints);
-        bounds.apply_to_domain(&mut domain);
         Self::new_from_with_bounds(constraints, domain, bounds)
     }
 
@@ -1546,9 +1545,8 @@ impl Linearizer {
     /// * `Ok(LinearModel)` - The linearized model
     /// * `Err(LinearizationError)` - If linearization fails
     pub fn linearize(model: Model) -> Result<LinearModel, LinearizationError> {
-        let (objective, constraints, mut domain) = model.into_components();
+        let (objective, constraints, domain) = model.into_components();
         let bounds = BoundsAnalyzer::analyze(&domain, &constraints);
-        bounds.apply_to_domain(&mut domain);
         let mut context = Linearizer::new_from_with_bounds(constraints, domain, bounds);
         let objective_type = objective.objective_type.clone();
         let objective_exp = objective.rhs.flatten().simplify();

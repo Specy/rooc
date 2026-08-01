@@ -13,6 +13,9 @@ fn main() {
     // Set objective: maximize x1 + 2*x2
     model.set_objective(vec![1.0, 2.0], OptimizationType::Max);
 
-    let solution = solve_real_lp_problem_clarabel(&model).unwrap();
+    let solution = solve_real_lp_problem_clarabel(&model)
+        .unwrap()
+        .into_solution()
+        .unwrap();
     println!("{}", solution);
 }

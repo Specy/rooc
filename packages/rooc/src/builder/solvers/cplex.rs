@@ -5,7 +5,7 @@ use std::time::Duration;
 use super::traits::Solver;
 use crate::solvers::cplex::{solve_lp_problem_cplex, solve_lp_problem_cplex_with_options};
 use crate::solvers::good_lp::GoodLpOptions;
-use crate::solvers::{LpSolution, SolverError};
+use crate::solvers::{LpSolution, SolveOutcome, SolverError};
 use crate::transformers::linear_model::LinearModel;
 
 /// The IBM CPLEX mixed-integer solver.
@@ -37,7 +37,7 @@ impl CplexOptions {
 impl Solver for Cplex {
     type Solution = LpSolution<f64>;
 
-    fn solve(&self, model: &LinearModel) -> Result<Self::Solution, SolverError> {
+    fn solve(&self, model: &LinearModel) -> Result<SolveOutcome<Self::Solution>, SolverError> {
         solve_lp_problem_cplex(model)
     }
 }
@@ -45,7 +45,7 @@ impl Solver for Cplex {
 impl Solver for CplexOptions {
     type Solution = LpSolution<f64>;
 
-    fn solve(&self, model: &LinearModel) -> Result<Self::Solution, SolverError> {
+    fn solve(&self, model: &LinearModel) -> Result<SolveOutcome<Self::Solution>, SolverError> {
         solve_lp_problem_cplex_with_options(model, &self.options)
     }
 }

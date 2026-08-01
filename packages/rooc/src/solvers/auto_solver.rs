@@ -1,4 +1,4 @@
-use crate::{LinearModel, LpSolution, MILPValue, SolverError, solve_milp_lp_problem};
+use crate::{LinearModel, LpSolution, MILPValue, SolveOutcome, SolverError, solve_milp_lp_problem};
 use indexmap::IndexMap;
 
 /// Solves any kind of linear programming problem with the built-in MILP solver.
@@ -15,7 +15,8 @@ use indexmap::IndexMap;
 /// * `lp` - Any kind of linear programming model to solve
 ///
 /// # Returns
-/// * `Ok(LpSolution<MILPValue>)` - The optimal solution if found
+/// * `Ok(SolveOutcome<LpSolution<MILPValue>>)` - The outcome; call `into_solution()`
+///   for the assignment, which is present unless a limit stopped the search first
 /// * `Err(SolverError)` - Various error conditions that prevented finding a solution
 ///
 /// # Example
@@ -42,16 +43,17 @@ use indexmap::IndexMap;
 /// // Set objective: maximize 50x + 40y + 45z
 /// model.set_objective(vec![50.0, 40.0, 45.0], OptimizationType::Max);
 ///
-/// let solution = auto_solver(&model).unwrap();
+/// let solution = auto_solver(&model).unwrap().into_solution().unwrap();
 /// ```
-pub fn auto_solver(lp: &LinearModel) -> Result<LpSolution<MILPValue>, SolverError> {
+pub fn auto_solver(lp: &LinearModel) -> Result<SolveOutcome<LpSolution<MILPValue>>, SolverError> {
     if lp.domain().is_empty() {
         // A variable-free model still carries a constant objective (the offset).
-        return Ok(LpSolution::new(
+        // There is nothing to search, so this is trivially optimal.
+        return Ok(SolveOutcome::Solution(LpSolution::new(
             vec![],
             lp.objective_offset(),
             IndexMap::new(),
-        ));
+        )));
     }
     solve_milp_lp_problem(lp)
 }

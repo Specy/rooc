@@ -57,7 +57,9 @@ fn good_lp_backends_use_explicit_modules_without_builder_macros() {
 #[cfg(feature = "clarabel")]
 #[test]
 fn clarabel_keeps_the_public_real_solver_module_path() {
-    let solve: fn(&rooc::LinearModel) -> Result<rooc::LpSolution<f64>, rooc::SolverError> =
+    let solve: fn(
+        &rooc::LinearModel,
+    ) -> Result<rooc::SolveOutcome<rooc::LpSolution<f64>>, rooc::SolverError> =
         rooc::real_solver::solve_real_lp_problem_clarabel;
     let _ = solve;
 }

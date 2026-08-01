@@ -7,7 +7,7 @@ use crate::InputSpan;
 use crate::math::{Comparison, OptimizationType, VariableType};
 use crate::parser::model_transformer::transformer_context::DomainVariable;
 use crate::parser::model_transformer::{Constraint, Model, Objective};
-use crate::solvers::SolverError;
+use crate::solvers::{SolveOutcome, SolverError};
 use crate::transformers::linear_model::LinearModel;
 use crate::transformers::linearizer::{LinearizationError, Linearizer};
 use indexmap::IndexMap;
@@ -194,16 +194,24 @@ impl ModelBuilder {
         Linearizer::linearize(self.into_model())
     }
 
-    /// Solves the model with the given [`Solver`], returning a solution whose
-    /// values can be read back through the [`Var`] handles minted by the builder.
+    /// Solves the model with the given [`Solver`], returning an outcome whose
+    /// solution's values can be read back through the [`Var`] handles minted by
+    /// the builder.
     ///
     /// Any type implementing [`Solver`] can be passed, including user-defined
     /// solvers, so new back-ends need no changes to the builder.
-    pub fn solve_with<S: Solver>(self, solver: S) -> Result<BuilderSolution<S>, BuilderError> {
+    ///
+    /// A solver that stops at a limit without finding an assignment yields
+    /// [`SolveOutcome::Interrupted`] rather than an error; use
+    /// [`SolveOutcome::into_solution`] when a solution is required.
+    pub fn solve_with<S: Solver>(
+        self,
+        solver: S,
+    ) -> Result<SolveOutcome<BuilderSolution<S>>, BuilderError> {
         let variable_names = self.variable_names.clone();
         let linearized = self.linearize()?;
-        let solution = solver.solve(&linearized)?;
-        Ok(BuilderSolution::new(solution, variable_names))
+        let outcome = solver.solve(&linearized)?;
+        Ok(outcome.map(|solution| BuilderSolution::new(solution, variable_names)))
     }
 }
 

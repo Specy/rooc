@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use rooc::{Assignment, DualValues, LpSolution};
+use rooc::{Assignment, DualValues, LpSolution, SolutionStatus};
 
 #[test]
 fn lp_solution_exposes_optional_named_shadow_prices() {
@@ -20,6 +20,24 @@ fn lp_solution_exposes_optional_named_shadow_prices() {
 
     let serialized = serde_json::to_value(&solution).unwrap();
     assert!(serialized.get("shadow_prices").is_none());
+}
+
+#[test]
+fn feasible_solution_display_does_not_claim_optimality() {
+    let solution = LpSolution::new(
+        vec![Assignment {
+            name: "x".to_string(),
+            value: 1.0,
+        }],
+        1.0,
+        IndexMap::new(),
+    )
+    .with_status(SolutionStatus::Feasible);
+
+    let rendered = solution.to_string();
+
+    assert!(rendered.starts_with("Status: Feasible\nObjective value: 1"));
+    assert!(!rendered.contains("Optimal value"));
 }
 
 #[test]

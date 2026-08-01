@@ -10,7 +10,8 @@ define
     x as Boolean";
 
     let solver = RoocSolver::try_new(source.to_owned())?;
-    let solution = solver.solve_using(solve_milp_lp_problem)?;
+    // `InterruptedSolve` is an `Error`, so the outcome propagates with `?` too.
+    let solution = solver.solve_using(solve_milp_lp_problem)?.into_solution()?;
 
     assert_eq!(solution.value(), 1.0);
     Ok(())

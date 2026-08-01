@@ -35,7 +35,10 @@ define
 
     let model = parsed.transform(constants, &fns).unwrap();
     let linear = Linearizer::linearize(model).unwrap();
-    let solution = solve_milp_lp_problem(&linear).unwrap();
+    let solution = solve_milp_lp_problem(&linear)
+        .unwrap()
+        .into_solution()
+        .unwrap();
     println!("{}", solution)
 }
 

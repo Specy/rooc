@@ -1,6 +1,6 @@
 use rooc::{
     Comparison, ConstraintValues, LinearModel, OptimizationType, Solution, SolutionStatus,
-    SolveStatus, Solver, VariableType,
+    SolveStatus, Solver, TerminationReason, VariableType,
 };
 
 fn conformance_model() -> LinearModel {
@@ -16,8 +16,18 @@ where
     S: Solver,
     S::Solution: Solution + SolveStatus + ConstraintValues,
 {
-    let solution = solver.solve(&conformance_model()).unwrap();
+    // No limit is configured, so every conforming backend must run to proven
+    // optimality and hand back a solution rather than an interruption.
+    let solution = solver
+        .solve(&conformance_model())
+        .unwrap()
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
     assert_eq!(SolveStatus::status(&solution), SolutionStatus::Optimal);
+    assert_eq!(
+        SolveStatus::termination_reason(&solution),
+        TerminationReason::ProvenOptimal
+    );
     assert!((solution.objective_value() - 2.0).abs() < 1e-7);
     let x: f64 = solution.var_value("x").unwrap().into();
     assert!((x - 2.0).abs() < 1e-7);

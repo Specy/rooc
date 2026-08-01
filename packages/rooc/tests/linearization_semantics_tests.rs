@@ -121,7 +121,7 @@ mod linearization_semantics_tests {
             OptimizationType::Satisfy,
         );
         match solve_milp_lp_problem(&fixed) {
-            Ok(_) => true,
+            Ok(outcome) => outcome.has_solution(),
             Err(SolverError::Infeasible) => false,
             Err(error) => panic!("unexpected solver error: {error}"),
         }
@@ -136,7 +136,12 @@ mod linearization_semantics_tests {
         fix_assignment(&mut fixed, assignment);
         let objective = fixed.objective().clone();
         fixed.set_objective(objective, direction);
-        solve_milp_lp_problem(&fixed).map(|solution| solution.value())
+        solve_milp_lp_problem(&fixed).map(|outcome| {
+            outcome
+                .into_solution()
+                .expect("no limit is configured, so a solution is guaranteed")
+                .value()
+        })
     }
 
     fn boolean_assignment(entries: &[(&str, bool)]) -> IndexMap<String, f64> {
@@ -432,18 +437,18 @@ mod linearization_semantics_tests {
     }
 
     #[test]
-    fn inferred_bounds_are_copied_to_the_linear_model_domain() {
+    fn inferred_bounds_remain_analysis_only_in_the_linear_model() {
         let linear = compile(
             "min x\ns.t.\n    y = x + 2\n    y <= 5\n    x >= -10\ndefine\n    x, y as Real",
         )
         .unwrap();
         assert_eq!(
             linear.domain()["x"].get_type(),
-            &VariableType::Real(-10.0, 3.0)
+            &VariableType::Real(f64::NEG_INFINITY, f64::INFINITY)
         );
         assert_eq!(
             linear.domain()["y"].get_type(),
-            &VariableType::Real(-8.0, 5.0)
+            &VariableType::Real(f64::NEG_INFINITY, f64::INFINITY)
         );
     }
 
@@ -479,7 +484,14 @@ mod linearization_semantics_tests {
                 .iter()
                 .any(|name| name.starts_with("$abs_") && name.ends_with("_positive"))
         );
-        assert_close(auto_solver(&maximize).unwrap().value(), 3.0);
+        assert_close(
+            auto_solver(&maximize)
+                .unwrap()
+                .into_solution()
+                .unwrap()
+                .value(),
+            3.0,
+        );
 
         let minimize_negative =
             compile("min -abs { x }\ns.t.\n    x >= -3\n    x <= 2\ndefine\n    x as Real")
@@ -490,7 +502,14 @@ mod linearization_semantics_tests {
                 .iter()
                 .any(|name| name.starts_with("$abs_") && name.ends_with("_positive"))
         );
-        assert_close(auto_solver(&minimize_negative).unwrap().value(), -3.0);
+        assert_close(
+            auto_solver(&minimize_negative)
+                .unwrap()
+                .into_solution()
+                .unwrap()
+                .value(),
+            -3.0,
+        );
 
         let maximize_negative =
             compile("max -abs { x }\ns.t.\n    x >= -3\n    x <= 2\ndefine\n    x as Real")
@@ -501,7 +520,14 @@ mod linearization_semantics_tests {
                 .iter()
                 .all(|name| !(name.starts_with("$abs_") && name.ends_with("_positive")))
         );
-        assert_close(auto_solver(&maximize_negative).unwrap().value(), 0.0);
+        assert_close(
+            auto_solver(&maximize_negative)
+                .unwrap()
+                .into_solution()
+                .unwrap()
+                .value(),
+            0.0,
+        );
     }
 
     #[test]
@@ -555,7 +581,14 @@ mod linearization_semantics_tests {
                 .iter()
                 .all(|name| !name.starts_with("$abs_"))
         );
-        assert_close(auto_solver(&linear).unwrap().value(), 3.0);
+        assert_close(
+            auto_solver(&linear)
+                .unwrap()
+                .into_solution()
+                .unwrap()
+                .value(),
+            3.0,
+        );
 
         let negative =
             compile("max abs { x }\ns.t.\n    x >= -3\n    x <= -1\ndefine\n    x as Real")
@@ -566,7 +599,14 @@ mod linearization_semantics_tests {
                 .iter()
                 .all(|name| !name.starts_with("$abs_"))
         );
-        assert_close(auto_solver(&negative).unwrap().value(), 3.0);
+        assert_close(
+            auto_solver(&negative)
+                .unwrap()
+                .into_solution()
+                .unwrap()
+                .value(),
+            3.0,
+        );
     }
 
     #[test]
@@ -596,7 +636,14 @@ mod linearization_semantics_tests {
 
         for (source, expected, has_selector) in sources {
             let linear = compile(source).unwrap();
-            assert_close(auto_solver(&linear).unwrap().value(), expected);
+            assert_close(
+                auto_solver(&linear)
+                    .unwrap()
+                    .into_solution()
+                    .unwrap()
+                    .value(),
+                expected,
+            );
             assert_eq!(
                 linear
                     .variables()
@@ -654,7 +701,14 @@ mod linearization_semantics_tests {
                 .iter()
                 .all(|name| !name.starts_with("$max_"))
         );
-        assert_close(auto_solver(&max_model).unwrap().value(), 10.0);
+        assert_close(
+            auto_solver(&max_model)
+                .unwrap()
+                .into_solution()
+                .unwrap()
+                .value(),
+            10.0,
+        );
 
         let min_model =
             compile("min min { x, -1 }\ns.t.\n    x = 0\ndefine\n    x as Real(0, 5)").unwrap();
@@ -664,7 +718,14 @@ mod linearization_semantics_tests {
                 .iter()
                 .all(|name| !name.starts_with("$min_"))
         );
-        assert_close(auto_solver(&min_model).unwrap().value(), -1.0);
+        assert_close(
+            auto_solver(&min_model)
+                .unwrap()
+                .into_solution()
+                .unwrap()
+                .value(),
+            -1.0,
+        );
 
         let equal_fixed =
             compile("max max { x, y }\ns.t.\n    x = 1\n    y = 1\ndefine\n    x, y as Real")
@@ -675,7 +736,14 @@ mod linearization_semantics_tests {
                 .iter()
                 .all(|name| !name.starts_with("$max_"))
         );
-        assert_close(auto_solver(&equal_fixed).unwrap().value(), 1.0);
+        assert_close(
+            auto_solver(&equal_fixed)
+                .unwrap()
+                .into_solution()
+                .unwrap()
+                .value(),
+            1.0,
+        );
     }
 
     #[test]
@@ -752,7 +820,10 @@ define
                 .count();
             assert_eq!(nonzero, 2, "each edge row involves exactly its endpoints");
         }
-        let solution = solve_milp_lp_problem(&linear).unwrap();
+        let solution = solve_milp_lp_problem(&linear)
+            .unwrap()
+            .into_solution()
+            .unwrap();
         assert_close(solution.value(), 2.0);
     }
 
@@ -851,6 +922,8 @@ define
                 .unwrap_or_else(|error| panic!("failed to compile source: {error:?}\n{source}"));
             let expected = solve_milp_lp_problem(&first)
                 .unwrap_or_else(|error| panic!("first solve failed: {error:?}"))
+                .into_solution()
+                .expect("no limit is configured, so a solution is guaranteed")
                 .value();
             let refed_source = first.to_string();
             let refed = RoocParser::new(refed_source.clone())
@@ -870,6 +943,8 @@ define
                 .unwrap_or_else(|error| {
                     panic!("round trip solve failed:\n{refed_source}\n{error:?}")
                 })
+                .into_solution()
+                .expect("no limit is configured, so a solution is guaranteed")
                 .value();
             assert_close(round, expected);
         }
@@ -1452,7 +1527,10 @@ define
             &linear,
             &IndexMap::from([("x".to_string(), 1.0)])
         ));
-        let solution = solve_milp_lp_problem(&linear).unwrap();
+        let solution = solve_milp_lp_problem(&linear)
+            .unwrap()
+            .into_solution()
+            .unwrap();
         assert_close(solution.value(), 1.0);
     }
 
@@ -1466,7 +1544,9 @@ define
         ] {
             let linear = compile(source).unwrap();
             let solution = solve_milp_lp_problem(&linear)
-                .unwrap_or_else(|error| panic!("{source}\nunexpected error: {error:?}"));
+                .unwrap_or_else(|error| panic!("{source}\nunexpected error: {error:?}"))
+                .into_solution()
+                .expect("no limit is configured, so a solution is guaranteed");
             assert_close(solution.value(), 1.0);
         }
     }
@@ -1475,7 +1555,10 @@ define
     fn division_by_small_nonzero_constant_is_allowed() {
         let linear = compile("min x / 0.000001\ns.t.\n    x >= 1\ndefine\n    x as Real(1, 2)")
             .unwrap_or_else(|error| panic!("unexpected error: {error:?}"));
-        let solution = solve_milp_lp_problem(&linear).unwrap();
+        let solution = solve_milp_lp_problem(&linear)
+            .unwrap()
+            .into_solution()
+            .unwrap();
         assert_close(solution.value(), 1_000_000.0);
     }
 }

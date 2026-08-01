@@ -5,7 +5,7 @@ use std::time::Duration;
 use super::traits::Solver;
 use crate::solvers::coin_cbc::{solve_lp_problem_coin_cbc, solve_lp_problem_coin_cbc_with_options};
 use crate::solvers::good_lp::GoodLpOptions;
-use crate::solvers::{LpSolution, SolverError};
+use crate::solvers::{LpSolution, SolveOutcome, SolverError};
 use crate::transformers::linear_model::LinearModel;
 
 /// The Coin CBC mixed-integer solver.
@@ -54,7 +54,7 @@ impl CoinCbcOptions {
 impl Solver for CoinCbc {
     type Solution = LpSolution<f64>;
 
-    fn solve(&self, model: &LinearModel) -> Result<Self::Solution, SolverError> {
+    fn solve(&self, model: &LinearModel) -> Result<SolveOutcome<Self::Solution>, SolverError> {
         solve_lp_problem_coin_cbc(model)
     }
 }
@@ -62,7 +62,7 @@ impl Solver for CoinCbc {
 impl Solver for CoinCbcOptions {
     type Solution = LpSolution<f64>;
 
-    fn solve(&self, model: &LinearModel) -> Result<Self::Solution, SolverError> {
+    fn solve(&self, model: &LinearModel) -> Result<SolveOutcome<Self::Solution>, SolverError> {
         solve_lp_problem_coin_cbc_with_options(model, &self.options)
     }
 }

@@ -12,7 +12,9 @@ use std::time::Duration;
 
 use crate::make_constraints_map_from_assignment;
 use crate::math::{Comparison, OptimizationType, VariableType};
-use crate::solvers::{Assignment, LpSolution, SolutionStatus, SolverError};
+use crate::solvers::{
+    Assignment, LpSolution, SolutionStatus, SolveOutcome, SolverError, TerminationReason,
+};
 use crate::transformers::LinearModel;
 #[cfg(any(feature = "clarabel", feature = "highs"))]
 use ::good_lp::DualValues as GoodLpDualValues;
@@ -94,7 +96,7 @@ pub(crate) fn solve_with_good_lp<S, M, R, C, V, D>(
     configure_model: C,
     validate_solution: V,
     extract_duals: D,
-) -> Result<LpSolution<f64>, SolverError>
+) -> Result<SolveOutcome<LpSolution<f64>>, SolverError>
 where
     S: GoodLpSolver<Model = M>,
     M: GoodLpSolverModel<Solution = R, Error = ResolutionError>,
@@ -193,18 +195,27 @@ where
         .iter()
         .map(|assignment| assignment.value)
         .collect();
-    let status = match solution.status() {
-        GoodLpSolutionStatus::Optimal => SolutionStatus::Optimal,
-        GoodLpSolutionStatus::TimeLimit | GoodLpSolutionStatus::GapLimit => {
-            SolutionStatus::Feasible
+    // good_lp folds the stopping condition into its status, so status and
+    // reason are derived from the same value. A `good_lp` backend only returns
+    // at all once it holds an assignment, so there is no interrupted case here:
+    // an infeasible or unbounded model arrives as a `ResolutionError` instead.
+    let (status, reason) = match solution.status() {
+        GoodLpSolutionStatus::Optimal => {
+            (SolutionStatus::Optimal, TerminationReason::ProvenOptimal)
         }
+        GoodLpSolutionStatus::TimeLimit => (SolutionStatus::Feasible, TerminationReason::TimeLimit),
+        GoodLpSolutionStatus::GapLimit => (SolutionStatus::Feasible, TerminationReason::MipGap),
     };
     let value = lp.calc_objective(&values);
     let constraints = make_constraints_map_from_assignment(lp, &values);
 
-    Ok(LpSolution::new(assignment, value, constraints)
-        .with_status(status)
-        .with_shadow_prices(shadow_prices))
+    // No good_lp backend exposes a dual bound or gap, so both stay `None`.
+    Ok(SolveOutcome::Solution(
+        LpSolution::new(assignment, value, constraints)
+            .with_status(status)
+            .with_termination_reason(reason)
+            .with_shadow_prices(shadow_prices),
+    ))
 }
 
 #[cfg(any(
