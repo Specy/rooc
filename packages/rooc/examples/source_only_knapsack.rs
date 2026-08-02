@@ -19,6 +19,9 @@ define
     let parsed = rooc.parse().unwrap();
     let model = parsed.transform(vec![], &IndexMap::new()).unwrap();
     let linear = Linearizer::linearize(model).unwrap();
-    let solution = solve_milp_lp_problem(&linear).unwrap();
+    let solution = solve_milp_lp_problem(&linear)
+        .unwrap()
+        .into_solution()
+        .unwrap();
     println!("{}", solution)
 }

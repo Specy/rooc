@@ -31,7 +31,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(constraint!(2.0 * make_a + 3.0 * make_b + make_c <= material))
         .with(constraint!(make_a -> make_b))
         .with(constraint!(any(vec![make_a, make_c])))
-        .solve_with(Microlp::new())?;
+        .solve_with(Microlp::new())?
+        .into_solution()?;
 
     println!("objective = {}", solution.value());
     println!("make_a = {:?}", solution.var_value(make_a));
@@ -138,11 +139,11 @@ The Rust crate enables `microlp` and `clarabel` by default. Every other solver
 feature is opt-in. Only the default solvers are implemented entirely in Rust
 and supported in WebAssembly builds.
 
-| Cargo feature | Rust-only | WASM | Optional capabilities | Scope | Prerequisite |
+| Cargo feature | Pure Rust | WASM | Optional capabilities | Scope | Prerequisite |
 | --- | --- | --- | --- | --- | --- |
-| `microlp` | Yes | Yes | MIP gap, time limit | LP + MILP | None |
+| `microlp` | Yes | Yes | MIP gap, time limit, best bound | LP + MILP | None |
 | `clarabel` | Yes | Yes | Shadow prices | Continuous LP | None |
-| `coin_cbc` | No | No | Initial solution, MIP gap, time limit | LP + MILP | Native CBC toolchain |
+| `coin_cbc` | No | No | Initial solution, MIP gap, time limit, best bound | LP + MILP | Native CBC toolchain |
 | `highs` | No | No | Initial solution, MIP gap, time limit, shadow prices | LP + MILP | Native HiGHS toolchain |
 | `lpsolve` | No | No | Time limit | LP + MILP | Native C build |
 | `scip` | No | No | Initial solution, MIP gap, time limit | LP + MILP | SCIP installation |
@@ -154,7 +155,7 @@ Select an opt-in solver explicitly:
 
 ```toml
 [dependencies]
-rooc = { version = "0.2.4", default-features = false, features = ["highs"] }
+rooc = { version = "0.3.0", default-features = false, features = ["highs"] }
 ```
 
 For a native application that also needs the default solvers, combine the
@@ -194,8 +195,37 @@ use std::time::Duration;
 
 let solver = Microlp::new()
     .with_mip_gap(0.0)
-    .with_time_limit(Duration::from_secs(5));
+    .with_time_limit(Duration::from_secs(5))
+    .with_node_limit(100_000);
 ```
+
+Solving returns a `SolveOutcome`. If the solver reaches a MIP gap, time limit, or node limit
+and the current assignment satisfies the bounds, it comes back as a
+solution whose status is `Feasible`, while a search that did not yet fit into the bounds
+yields `Interrupted`. The solver returns an `Err` for internal solver errors or when a 
+model is infeasible or unbounded.
+
+```rust,ignore
+use rooc::{SolveOutcome, SolutionStatus};
+
+match model.maximize(objective).solve_with(solver)? {
+    SolveOutcome::Solution(solution) => match solution.status() {
+        SolutionStatus::Optimal => println!("proven optimal: {}", solution.value()),
+        SolutionStatus::Feasible => println!(
+            "best found {} (stopped because {}, bound {:?})",
+            solution.value(),
+            solution.termination_reason(),
+            solution.best_bound(),
+        ),
+    },
+    SolveOutcome::Interrupted(interrupted) => {
+        println!("nothing found yet: {}", interrupted.termination_reason());
+    }
+}
+```
+
+You can use `into_solution()` to convert the `SolveOutcome` into a `Solution`,
+if it is available.
 
 ### Read the solution
 
@@ -239,7 +269,7 @@ define
     x_i as Boolean for i in 0..len(weights)";
 
     let solver = RoocSolver::try_new(source.to_string())?;
-    let solution = solver.solve_using(solve_milp_lp_problem)?;
+    let solution = solver.solve_using(solve_milp_lp_problem)?.into_solution()?;
     println!("{}", solution);
     Ok(())
 }
@@ -273,7 +303,12 @@ model.add_variable("x2", VariableType::real());
 model.add_constraint(vec![1.0, 1.0], Comparison::LessOrEqual, 5.0);
 model.set_objective(vec![1.0, 2.0], OptimizationType::Max);
 
-let solution = solve_real_lp_problem_clarabel(&model).unwrap();
+// No limit is configured, so the search runs to proven optimality and the
+// outcome is guaranteed to hold a solution.
+let solution = solve_real_lp_problem_clarabel(&model)
+    .unwrap()
+    .into_solution()
+    .unwrap();
 println!("{}", solution);
 ```
 

@@ -1,7 +1,7 @@
 //! Clarabel backend provided by `good_lp`.
 
 use super::good_lp::{collect_good_lp_duals, solve_with_good_lp};
-use super::{LpSolution, SolverError, find_invalid_variables};
+use super::{LpSolution, SolveOutcome, SolverError, find_invalid_variables};
 use crate::math::VariableType;
 use crate::transformers::LinearModel;
 use ::clarabel::solver::SolverStatus;
@@ -16,7 +16,8 @@ use ::good_lp::SolutionWithDual;
 /// * `lp` - The linear programming model to solve, must contain only real or non-negative real variables
 ///
 /// # Returns
-/// * `Ok(LpSolution<f64>)` - The optimal solution if found
+/// * `Ok(SolveOutcome<LpSolution<f64>>)` - The outcome; call `into_solution()`
+///   for the assignment, which is present unless a limit stopped the search first
 /// * `Err(SolverError)` - Various error conditions that prevented finding a solution
 ///
 /// # Example
@@ -33,9 +34,11 @@ use ::good_lp::SolutionWithDual;
 /// // Set objective: maximize x1 + 2*x2
 /// model.set_objective(vec![1.0, 2.0], OptimizationType::Max);
 ///
-/// let solution = solve_real_lp_problem_clarabel(&model).unwrap();
+/// let solution = solve_real_lp_problem_clarabel(&model).unwrap().into_solution().unwrap();
 /// ```
-pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64>, SolverError> {
+pub fn solve_real_lp_problem_clarabel(
+    lp: &LinearModel,
+) -> Result<SolveOutcome<LpSolution<f64>>, SolverError> {
     let domain = lp.domain();
     let invalid_variables = find_invalid_variables(domain, |var| {
         matches!(
@@ -73,5 +76,8 @@ pub fn solve_real_lp_problem_clarabel(lp: &LinearModel) -> Result<LpSolution<f64
             let dual = solution.compute_dual();
             collect_good_lp_duals(dual, references)
         },
+        // Clarabel solves continuous models, where there is no branch-and-bound
+        // bound distinct from the objective value itself.
+        |_| None,
     )
 }

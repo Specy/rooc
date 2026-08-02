@@ -382,6 +382,7 @@ impl BoundsAnalyzer {
             .insert(name, Bounds::from_variable_type(variable_type));
     }
 
+    #[cfg(test)]
     pub(crate) fn apply_to_domain(&self, domain: &mut IndexMap<String, DomainVariable>) {
         for (name, variable) in domain {
             let Some(bounds) = self.variable_bounds.get(name).copied() else {

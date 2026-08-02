@@ -7,14 +7,20 @@ on:
       - main
       - master
     tags:
-      - v*
+      # Release tags. `rooc-v<version>` publishes the Rust crate, `ts-v<version>`
+      # publishes the npm package. The two artifacts version independently, so
+      # each has its own tag prefix and its own publish job below.
+      - rooc-v*
+      - ts-v*
 
 permissions:
   contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a run that may publish: tag refs are unique, so only pull
+  # request pushes are worth superseding.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   quality:
@@ -238,3 +244,106 @@ jobs:
       - name: Build TypeScript library
         working-directory: packages/ts-lib
         run: npm run build-lib
+
+  publish-crate:
+    name: Publish crate to crates.io
+    if: startsWith(github.ref, 'refs/tags/rooc-v')
+    needs:
+      - quality
+      - solver-feature
+      - max-compatible-open-source
+      - max-compatible-cplex-check
+      - wasm-and-typescript
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify tag matches crate version
+        run: |
+          tagged="${GITHUB_REF_NAME#rooc-v}"
+          manifest="$(cargo metadata --manifest-path packages/rooc/Cargo.toml \
+            --format-version 1 --no-deps \
+            | jq -r '.packages[] | select(.name == "rooc") | .version')"
+          if [[ "$tagged" != "$manifest" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match Cargo.toml version $manifest" >&2
+            exit 1
+          fi
+          echo "Publishing rooc $manifest"
+
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --manifest-path packages/rooc/Cargo.toml --locked
+
+  publish-npm:
+    name: Publish package to npm
+    if: startsWith(github.ref, 'refs/tags/ts-v')
+    needs:
+      - quality
+      - solver-feature
+      - max-compatible-open-source
+      - max-compatible-cplex-check
+      - wasm-and-typescript
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # Required for npm to attach a build provenance attestation.
+      id-token: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+          cache-dependency-path: packages/ts-lib/package-lock.json
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/rooc -> target
+          shared-key: wasm
+
+      - name: Install wasm-pack 0.15.0
+        run: cargo install wasm-pack --version 0.15.0 --locked
+
+      - name: Verify tag matches package version
+        working-directory: packages/ts-lib
+        run: |
+          tagged="${GITHUB_REF_NAME#ts-v}"
+          manifest="$(node -p "require('./package.json').version")"
+          if [[ "$tagged" != "$manifest" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json version $manifest" >&2
+            exit 1
+          fi
+          echo "Publishing @specy/rooc $manifest"
+
+      - name: Install TypeScript dependencies
+        working-directory: packages/ts-lib
+        run: npm ci
+
+      # Rebuilds the WASM bindings from source and compiles the TypeScript
+      # wrapper, so `dist/` in the published tarball always matches the tag.
+      - name: Build WASM bindings and TypeScript library
+        working-directory: packages/ts-lib
+        run: npm run build-all
+
+      - name: Publish to npm
+        working-directory: packages/ts-lib
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance

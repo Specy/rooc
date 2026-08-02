@@ -34,9 +34,6 @@ pub enum SolverError {
     /// A general error with a custom message.
     Other(String),
 
-    /// The solver reached its iteration limit before finding a solution.
-    LimitReached,
-
     /// The optimization type is not supported by the solver.
     /// - `expected`: List of supported optimization types
     /// - `got`: The unsupported optimization type that was used
@@ -79,9 +76,6 @@ impl std::fmt::Display for SolverError {
             }
             SolverError::Other(s) => {
                 write!(f, "{}", s)
-            }
-            SolverError::LimitReached => {
-                write!(f, "The iteration limit was reached")
             }
             SolverError::UnavailableComparison { got, expected } => {
                 write!(
@@ -169,6 +163,9 @@ impl<T: Clone + Serialize + Copy + DeserializeOwned + DisplayValue> Display for 
 }
 
 /// The status of a solve, reported independently of the underlying solver.
+///
+/// An infeasible or unbounded model is reported through
+/// [`SolverError::Infeasible`] and [`SolverError::Unbounded`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SolutionStatus {
     /// A proven optimal solution.
@@ -177,10 +174,149 @@ pub enum SolutionStatus {
     /// A feasible solution whose optimality was not proven (for example, a time
     /// limit was reached before the search completed).
     Feasible,
-    /// The problem was proven infeasible.
-    Infeasible,
-    /// The problem is unbounded.
-    Unbounded,
+}
+
+/// Why a solve stopped, it explains what ended the search,
+/// while the status says whether the resulting assignment is proven optimal.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TerminationReason {
+    /// The search completed the optimality proof.
+    #[default]
+    ProvenOptimal,
+    /// The configured relative MIP gap was reached before the exact proof.
+    MipGap,
+    /// The wall-clock budget was exhausted.
+    TimeLimit,
+    /// The branch-and-bound node budget was exhausted.
+    NodeLimit,
+    /// The iteration budget of an iterative method was exhausted.
+    IterationLimit,
+}
+
+impl Display for TerminationReason {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let text = match self {
+            TerminationReason::ProvenOptimal => "optimality was proven",
+            TerminationReason::MipGap => "the MIP gap was reached",
+            TerminationReason::TimeLimit => "the time limit was reached",
+            TerminationReason::NodeLimit => "the node limit was reached",
+            TerminationReason::IterationLimit => "the iteration limit was reached",
+        };
+        write!(f, "{}", text)
+    }
+}
+
+/// A solve that stopped at a limit before any usable assignment was found.
+///
+/// It provides no variable values as there is
+/// no validated assignment to read. You can still see progress by reading
+/// [`InterruptedSolve::best_bound`] and [`InterruptedSolve::gap`] if the
+/// backend tracks them.
+#[derive(Debug, Clone)]
+pub struct InterruptedSolve {
+    reason: TerminationReason,
+    best_bound: Option<f64>,
+    gap: Option<f64>,
+}
+
+impl InterruptedSolve {
+    /// Creates an interrupted solve that reports no bound information.
+    pub fn new(reason: TerminationReason) -> Self {
+        Self {
+            reason,
+            best_bound: None,
+            gap: None,
+        }
+    }
+
+    /// Sets the best objective bound proven before stopping, returning the value
+    /// for chaining.
+    pub fn with_best_bound(mut self, best_bound: Option<f64>) -> Self {
+        self.best_bound = best_bound;
+        self
+    }
+
+    /// Sets the relative gap reached before stopping, returning the value for
+    /// chaining.
+    pub fn with_gap(mut self, gap: Option<f64>) -> Self {
+        self.gap = gap;
+        self
+    }
+
+    /// Returns why the search stopped.
+    pub fn termination_reason(&self) -> TerminationReason {
+        self.reason
+    }
+
+    /// Returns the best objective bound proven before stopping, when the backend
+    /// reports one. It is expressed on the same scale as
+    /// [`LpSolution::value`], including the model's objective offset.
+    pub fn best_bound(&self) -> Option<f64> {
+        self.best_bound
+    }
+
+    /// Returns the relative gap reached before stopping, when the backend
+    /// reports one. See [`LpSolution::gap`] for how it is measured.
+    pub fn gap(&self) -> Option<f64> {
+        self.gap
+    }
+}
+
+impl Display for InterruptedSolve {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "No solution was found ({})", self.reason)
+    }
+}
+
+impl std::error::Error for InterruptedSolve {}
+
+/// The result of a solve.
+///
+/// A solve that ran to completion produces a [`SolveOutcome::Solution`].
+/// If an assignment was already found it is returned as
+/// a solution whose [`SolutionStatus`] is [`SolutionStatus::Feasible`], and only
+/// when no assignment exists yet does the outcome become
+/// [`SolveOutcome::Interrupted`].
+///
+/// The type parameter is the backend's own solution type, so custom solvers
+/// plugged into the builder keep their solution shape.
+#[derive(Debug, Clone)]
+pub enum SolveOutcome<S> {
+    /// A usable assignment, optimal or feasible.
+    Solution(S),
+    /// A limit stopped the search before any usable assignment was found.
+    Interrupted(InterruptedSolve),
+}
+
+impl<S> SolveOutcome<S> {
+    /// Borrows the solution, or `None` when the solve was interrupted.
+    pub fn solution(&self) -> Option<&S> {
+        match self {
+            SolveOutcome::Solution(solution) => Some(solution),
+            SolveOutcome::Interrupted(_) => None,
+        }
+    }
+
+    /// Consumes the outcome and returns its solution.
+    pub fn into_solution(self) -> Result<S, InterruptedSolve> {
+        match self {
+            SolveOutcome::Solution(solution) => Ok(solution),
+            SolveOutcome::Interrupted(interrupted) => Err(interrupted),
+        }
+    }
+
+    /// Returns whether a usable assignment is available.
+    pub fn has_solution(&self) -> bool {
+        matches!(self, SolveOutcome::Solution(_))
+    }
+
+    /// Applies `f` to the contained solution, preserving an interruption.
+    pub fn map<U, F: FnOnce(S) -> U>(self, f: F) -> SolveOutcome<U> {
+        match self {
+            SolveOutcome::Solution(solution) => SolveOutcome::Solution(f(solution)),
+            SolveOutcome::Interrupted(interrupted) => SolveOutcome::Interrupted(interrupted),
+        }
+    }
 }
 
 /// Represents a solution to a linear programming problem.
@@ -191,12 +327,19 @@ pub struct LpSolution<T> {
     assignment_by_name: IndexMap<String, T>,
     constraints: IndexMap<String, f64>,
     value: f64,
-    /// Solve status. Not serialized: it is solver metadata, not part of the
-    /// portable solution shape.
     #[serde(skip)]
     status: SolutionStatus,
-    /// Optional solver-provided dual values. Not serialized: they are backend
-    /// metadata, not part of the portable solution shape.
+    /// Why the search that produced this solution stopped.
+    #[serde(skip)]
+    termination_reason: TerminationReason,
+    /// Best objective bound proven by the search, when the backend reports one.
+    #[serde(skip)]
+    best_bound: Option<f64>,
+    /// Relative gap between this solution and the best bound, when the backend
+    /// reports one.
+    #[serde(skip)]
+    gap: Option<f64>,
+    /// Optional solver-provided dual values.
     #[serde(skip)]
     shadow_prices: IndexMap<String, f64>,
 }
@@ -213,7 +356,11 @@ fn build_assignment_map<T: Copy>(assignment: &[Assignment<T>]) -> IndexMap<Strin
 
 impl<T: Clone + Serialize + DeserializeOwned + Copy + DisplayValue> Display for LpSolution<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Optimal value: {}\n\n", format_float(self.value))?;
+        write!(f, "Status: {:?}", self.status)?;
+        if self.termination_reason != TerminationReason::ProvenOptimal {
+            write!(f, " ({})", self.termination_reason)?;
+        }
+        write!(f, "\nObjective value: {}\n\n", format_float(self.value))?;
         write!(
             f,
             "Variables:\n{}",
@@ -251,6 +398,9 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> LpSolution<T> {
             value,
             constraints,
             status: SolutionStatus::Optimal,
+            termination_reason: TerminationReason::ProvenOptimal,
+            best_bound: None,
+            gap: None,
             shadow_prices: IndexMap::new(),
         }
     }
@@ -263,6 +413,49 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> LpSolution<T> {
     /// Sets the solve status, returning the solution for chaining.
     pub fn with_status(mut self, status: SolutionStatus) -> Self {
         self.status = status;
+        self
+    }
+
+    /// Returns why the search that produced this solution stopped.
+    ///
+    /// A [`SolutionStatus::Optimal`] solution always reports
+    /// [`TerminationReason::ProvenOptimal`]; a [`SolutionStatus::Feasible`] one
+    /// reports the limit that ended the search.
+    pub fn termination_reason(&self) -> TerminationReason {
+        self.termination_reason
+    }
+
+    /// Sets the termination reason, returning the solution for chaining.
+    pub fn with_termination_reason(mut self, reason: TerminationReason) -> Self {
+        self.termination_reason = reason;
+        self
+    }
+
+    /// Returns the best objective bound proven by the search, when the backend
+    /// reports one. Backends that expose no bound information return `None`.
+    pub fn best_bound(&self) -> Option<f64> {
+        self.best_bound
+    }
+
+    /// Sets the best objective bound, returning the solution for chaining.
+    pub fn with_best_bound(mut self, best_bound: Option<f64>) -> Self {
+        self.best_bound = best_bound;
+        self
+    }
+
+    /// Returns the relative gap between this solution and the best bound, when
+    /// the backend reports one.
+    ///
+    /// This is the quantity a configured MIP gap is checked against. It is
+    /// measured on the solver's own objective and therefore excludes the model's
+    /// constant objective offset.
+    pub fn gap(&self) -> Option<f64> {
+        self.gap
+    }
+
+    /// Sets the relative gap, returning the solution for chaining.
+    pub fn with_gap(mut self, gap: Option<f64>) -> Self {
+        self.gap = gap;
         self
     }
 
@@ -301,6 +494,46 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> LpSolution<T> {
     /// Returns the solved value of a variable by its name.
     pub fn value_of(&self, name: &str) -> Option<T> {
         self.assignment_by_name.get(name).copied()
+    }
+}
+
+/// Accessors available when the outcome carries the crate's own solution type.
+/// They read through to the solution or to the interruption, whichever is
+/// present, so callers can report progress without matching first.
+impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> SolveOutcome<LpSolution<T>> {
+    /// Returns why the search stopped, whether or not a solution was found.
+    pub fn termination_reason(&self) -> TerminationReason {
+        match self {
+            SolveOutcome::Solution(solution) => solution.termination_reason(),
+            SolveOutcome::Interrupted(interrupted) => interrupted.termination_reason(),
+        }
+    }
+
+    /// Returns the status of the contained solution, or `None` when the solve
+    /// was interrupted before finding one.
+    pub fn status(&self) -> Option<SolutionStatus> {
+        self.solution().map(LpSolution::status)
+    }
+
+    /// Returns whether this outcome holds a solution with proven optimality.
+    pub fn is_optimal(&self) -> bool {
+        matches!(self.status(), Some(SolutionStatus::Optimal))
+    }
+
+    /// Returns the best objective bound, from the solution or the interruption.
+    pub fn best_bound(&self) -> Option<f64> {
+        match self {
+            SolveOutcome::Solution(solution) => solution.best_bound(),
+            SolveOutcome::Interrupted(interrupted) => interrupted.best_bound(),
+        }
+    }
+
+    /// Returns the relative gap, from the solution or the interruption.
+    pub fn gap(&self) -> Option<f64> {
+        match self {
+            SolveOutcome::Solution(solution) => solution.gap(),
+            SolveOutcome::Interrupted(interrupted) => interrupted.gap(),
+        }
     }
 }
 

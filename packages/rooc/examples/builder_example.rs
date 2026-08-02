@@ -26,7 +26,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // At least one of A or C must be made.
         .with(constraint!(any(vec![make_a, make_c])))
         // Solve with the built-in MILP solver.
-        .solve_with(Microlp::new())?;
+        .solve_with(Microlp::new())?
+        .into_solution()?;
 
     // Read results back with the variable handles.
     println!("objective = {}", solution.value());

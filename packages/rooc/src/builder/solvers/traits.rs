@@ -1,6 +1,6 @@
 //! Solver and solution traits shared across the builder.
 
-use crate::solvers::{LpSolution, SolutionStatus, SolverError};
+use crate::solvers::{LpSolution, SolutionStatus, SolveOutcome, SolverError, TerminationReason};
 use crate::transformers::linear_model::LinearModel;
 
 /// A solver applied to a linearized model produced by the builder.
@@ -13,7 +13,7 @@ pub trait Solver {
     type Solution: Solution;
 
     /// Solves the given linearized model.
-    fn solve(&self, model: &LinearModel) -> Result<Self::Solution, SolverError>;
+    fn solve(&self, model: &LinearModel) -> Result<SolveOutcome<Self::Solution>, SolverError>;
 }
 
 /// The core of every solution: the objective value and per-variable values.
@@ -21,7 +21,7 @@ pub trait Solution {
     /// The value type of a variable (e.g. `MILPValue` or `f64`).
     type Value: Copy + Into<f64>;
 
-    /// The optimal objective value.
+    /// The objective value reported for this solution.
     fn objective_value(&self) -> f64;
 
     /// The value of a variable by its (linear-model) name.
@@ -31,6 +31,21 @@ pub trait Solution {
 /// Optional capability: the reported solve status.
 pub trait SolveStatus {
     fn status(&self) -> SolutionStatus;
+
+    /// Why the search that produced this solution stopped.
+    fn termination_reason(&self) -> TerminationReason;
+
+    /// The best objective bound proven by the search, when the backend reports
+    /// one. Defaults to `None` for backends that track no bound.
+    fn best_bound(&self) -> Option<f64> {
+        None
+    }
+
+    /// The relative gap between this solution and the best bound, when the
+    /// backend reports one.
+    fn gap(&self) -> Option<f64> {
+        None
+    }
 }
 
 /// Optional capability: the activity (row value) of a constraint at the solution.
@@ -51,7 +66,7 @@ pub trait ReducedCosts {
 // The built-in solvers use `LpSolution` as their solution type. It provides the
 // core `Solution`, `SolveStatus`, and `ConstraintValues`. Backends that expose
 // duals populate its optional shadow-price map; other backends return `None`
-// through `DualValues`. No good_lp backend currently provides reduced costs.
+// through `DualValues`. No backend populates reduced costs yet.
 impl<
     T: Clone + serde::Serialize + serde::de::DeserializeOwned + Copy + std::fmt::Display + Into<f64>,
 > Solution for LpSolution<T>
@@ -73,6 +88,18 @@ impl<T: Clone + serde::Serialize + serde::de::DeserializeOwned + Copy + std::fmt
     fn status(&self) -> SolutionStatus {
         // Explicit path resolves to the inherent accessor, not this trait method.
         LpSolution::status(self)
+    }
+
+    fn termination_reason(&self) -> TerminationReason {
+        LpSolution::termination_reason(self)
+    }
+
+    fn best_bound(&self) -> Option<f64> {
+        LpSolution::best_bound(self)
+    }
+
+    fn gap(&self) -> Option<f64> {
+        LpSolution::gap(self)
     }
 }
 

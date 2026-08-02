@@ -1,9 +1,15 @@
-use crate::solvers::common::{DisplayValue, LpSolution, SolverError, format_float};
+use crate::solvers::common::{
+    DisplayValue, InterruptedSolve, LpSolution, SolutionStatus, SolveOutcome, SolverError,
+    TerminationReason, format_float,
+};
 use crate::transformers::LinearModel;
 use crate::{
     Assignment, Comparison, OptimizationType, VariableType, make_constraints_map_from_assignment,
 };
-use microlp::{ComparisonOp, Error, OptimizationDirection, Problem, SolveOptions};
+use microlp::{
+    ComparisonOp, Error, OptimizationDirection, Problem, SolutionStatus as MicrolpSolutionStatus,
+    SolveOptions, SolveOutcome as MicrolpSolveOutcome, TerminationReason as MicrolpTermination,
+};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::time::Duration;
@@ -62,6 +68,26 @@ pub struct MilpOptions {
     pub mip_gap: Option<f64>,
     /// Wall-clock limit for the search.
     pub time_limit: Option<Duration>,
+    /// Maximum number of branch-and-bound nodes to explore. Only used in
+    /// MILP problems.
+    pub node_limit: Option<u64>,
+}
+
+/// Translates a MicroLP termination reason into the crate's own.
+///
+/// MicroLP's variants map one-to-one; `IterationLimit` is never produced here
+/// because MicroLP counts nodes rather than pivots.
+fn map_termination(reason: MicrolpTermination) -> TerminationReason {
+    match reason {
+        MicrolpTermination::ProvenOptimal => TerminationReason::ProvenOptimal,
+        MicrolpTermination::MipGap => TerminationReason::MipGap,
+        MicrolpTermination::TimeLimit => TerminationReason::TimeLimit,
+        MicrolpTermination::NodeLimit => TerminationReason::NodeLimit,
+        // `TerminationReason` is `#[non_exhaustive]` upstream, so an unknown
+        // future variant degrades to the closest safe meaning: the search
+        // stopped without a completed proof.
+        _ => TerminationReason::TimeLimit,
+    }
 }
 /// Solves a mixed-integer linear programming problem using the MicroLP solver.
 ///
@@ -72,8 +98,12 @@ pub struct MilpOptions {
 /// * `lp` - The mixed-integer linear programming model to solve
 ///
 /// # Returns
-/// * `Ok(LpSolution<MILPValue>)` - The optimal solution if found
-/// * `Err(SolverError)` - Various error conditions that prevented finding a solution
+/// * `Ok(SolveOutcome::Solution)` - A usable assignment, optimal or feasible
+/// * `Ok(SolveOutcome::Interrupted)` - A limit stopped the search before any
+///   assignment was found. The model may still be solvable given a larger
+///   budget
+/// * `Err(SolverError)` - Conditions that prevent a solution existing at all,
+///   such as an infeasible or unbounded model
 ///
 /// # Example
 /// ```rust
@@ -99,18 +129,22 @@ pub struct MilpOptions {
 /// // Set objective: maximize 50x + 40y + 45z
 /// model.set_objective(vec![50.0, 40.0, 45.0], OptimizationType::Max);
 ///
-/// let solution = solve_milp_lp_problem(&model).unwrap();
+/// // With no limits configured the search always runs to proven optimality,
+/// // so the outcome is guaranteed to hold a solution.
+/// let solution = solve_milp_lp_problem(&model).unwrap().into_solution().unwrap();
 /// ```
-pub fn solve_milp_lp_problem(lp: &LinearModel) -> Result<LpSolution<MILPValue>, SolverError> {
+pub fn solve_milp_lp_problem(
+    lp: &LinearModel,
+) -> Result<SolveOutcome<LpSolution<MILPValue>>, SolverError> {
     solve_milp_lp_problem_with(lp, &MilpOptions::default())
 }
 
 /// Like [`solve_milp_lp_problem`], but with explicit control over the solver
-/// through [`MilpOptions`] (MIP gap, time limit).
+/// through [`MilpOptions`] (MIP gap, time limit, node limit).
 pub fn solve_milp_lp_problem_with(
     lp: &LinearModel,
     options: &MilpOptions,
-) -> Result<LpSolution<MILPValue>, SolverError> {
+) -> Result<SolveOutcome<LpSolution<MILPValue>>, SolverError> {
     let variables = lp.variables();
     let domain = lp.domain();
     let objective = lp.objective();
@@ -176,14 +210,29 @@ pub fn solve_milp_lp_problem_with(
     if let Some(limit) = options.time_limit {
         solve_options.time_limit = Some(limit);
     }
+    if let Some(limit) = options.node_limit {
+        solve_options.node_limit = Some(limit);
+    }
 
     match problem.solve_with(solve_options) {
-        Ok(s) => {
+        Ok(MicrolpSolveOutcome::Solution(solution)) => {
+            let status = match solution.status() {
+                MicrolpSolutionStatus::Optimal => SolutionStatus::Optimal,
+                MicrolpSolutionStatus::Feasible => SolutionStatus::Feasible,
+            };
+            let reason = map_termination(solution.termination_reason());
+            let stats = solution.stats();
+            // MicroLP reports the bound on its own objective, so the model's
+            // constant offset is added to keep it comparable with `value()`.
+            // The gap is relative and measured on that same un-offset
+            // objective, so it is passed through untouched.
+            let best_bound = stats.best_bound.map(|bound| bound + lp.objective_offset());
+            let gap = stats.gap;
             let assignment = microlp_vars
                 .iter()
                 .zip(variables)
                 .map(|(v, name)| {
-                    let value = s.var_value(*v);
+                    let value = solution.var_value(*v);
                     let var_domain = domain.get(name).unwrap();
                     let value = match var_domain.get_type() {
                         VariableType::Real(_, _) | VariableType::NonNegativeReal(_, _) => {
@@ -198,12 +247,31 @@ pub fn solve_milp_lp_problem_with(
                     }
                 })
                 .collect();
-            let coeffs = microlp_vars.iter().map(|v| s.var_value(*v)).collect();
+            let coeffs = microlp_vars
+                .iter()
+                .map(|v| solution.var_value(*v))
+                .collect();
             let constraints = make_constraints_map_from_assignment(lp, &coeffs);
-            Ok(LpSolution::new(
-                assignment,
-                s.objective() + lp.objective_offset(),
-                constraints,
+            Ok(SolveOutcome::Solution(
+                LpSolution::new(
+                    assignment,
+                    solution.objective() + lp.objective_offset(),
+                    constraints,
+                )
+                .with_status(status)
+                .with_termination_reason(reason)
+                .with_best_bound(best_bound)
+                .with_gap(gap),
+            ))
+        }
+        Ok(MicrolpSolveOutcome::Interrupted(interrupted)) => {
+            // A limit fired before any assignment was found. The
+            // model may still be solvable with a larger budget.
+            let stats = interrupted.stats();
+            Ok(SolveOutcome::Interrupted(
+                InterruptedSolve::new(map_termination(interrupted.termination_reason()))
+                    .with_best_bound(stats.best_bound.map(|bound| bound + lp.objective_offset()))
+                    .with_gap(stats.gap),
             ))
         }
         Err(e) => Err(match e {

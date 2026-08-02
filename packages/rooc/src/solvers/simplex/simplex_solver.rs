@@ -1,8 +1,14 @@
 use crate::make_constraints_map_from_assignment;
 use crate::math::{Comparison, OptimizationType, VariableType};
-use crate::solvers::{Assignment, LpSolution, SimplexError, SolverError, find_invalid_variables};
+use crate::solvers::{
+    Assignment, InterruptedSolve, LpSolution, SimplexError, SolutionStatus, SolveOutcome,
+    SolverError, TerminationReason, find_invalid_variables,
+};
 use crate::transformers::LinearModel;
-use microlp::{OptimizationDirection, Problem};
+use microlp::{
+    OptimizationDirection, Problem, SolutionStatus as MicrolpSolutionStatus,
+    SolveOutcome as MicrolpSolveOutcome, TerminationReason as MicrolpTermination,
+};
 
 /// Solves a linear programming problem with real variables using a basic simplex algorithm.
 ///
@@ -14,7 +20,8 @@ use microlp::{OptimizationDirection, Problem};
 /// * `limit` - Maximum number of iterations before giving up
 ///
 /// # Returns
-/// * `Ok(LpSolution<f64>)` - The optimal solution if found
+/// * `Ok(SolveOutcome<LpSolution<f64>>)` - The outcome; call `into_solution()`
+///   for the assignment, which is present unless a limit stopped the search first
 /// * `Err(SolverError)` - Various error conditions that prevented finding a solution
 ///
 /// # Example
@@ -31,13 +38,13 @@ use microlp::{OptimizationDirection, Problem};
 /// // Set objective: maximize x1 + 2*x2
 /// model.set_objective(vec![1.0, 2.0], OptimizationType::Min);
 ///
-/// let solution = solve_real_lp_problem_slow_simplex(&model, 1000).unwrap();
+/// let solution = solve_real_lp_problem_slow_simplex(&model, 1000).unwrap().into_solution().unwrap();
 /// ```
 #[allow(unused)]
 pub fn solve_real_lp_problem_slow_simplex(
     lp: &LinearModel,
     limit: i64,
-) -> Result<LpSolution<f64>, SolverError> {
+) -> Result<SolveOutcome<LpSolution<f64>>, SolverError> {
     let standard = lp.clone().into_standard_form()?;
     let mut canonical_form = standard
         .into_tableau()
@@ -45,9 +52,13 @@ pub fn solve_real_lp_problem_slow_simplex(
 
     let solution = canonical_form.solve(limit);
     match solution {
-        Ok(optimal_tableau) => Ok(optimal_tableau.as_lp_solution()),
+        Ok(optimal_tableau) => Ok(SolveOutcome::Solution(optimal_tableau.as_lp_solution())),
         Err(e) => match e {
-            SimplexError::IterationLimitReached => Err(SolverError::LimitReached),
+            // The tableau keeps no incumbent, so exhausting the pivot budget
+            // leaves nothing to return. That is an interruption, not a failure.
+            SimplexError::IterationLimitReached => Ok(SolveOutcome::Interrupted(
+                InterruptedSolve::new(TerminationReason::IterationLimit),
+            )),
             SimplexError::Unbounded => Err(SolverError::Unbounded),
             SimplexError::Other => Err(SolverError::Other("An error occoured".to_string())),
         },
@@ -63,7 +74,8 @@ pub fn solve_real_lp_problem_slow_simplex(
 /// * `lp` - The linear programming model to solve, must contain only real or non-negative real variables
 ///
 /// # Returns
-/// * `Ok(LpSolution<f64>)` - The optimal solution if found
+/// * `Ok(SolveOutcome<LpSolution<f64>>)` - The outcome; call `into_solution()`
+///   for the assignment, which is present unless a limit stopped the search first
 /// * `Err(SolverError)` - Various error conditions that prevented finding a solution
 ///
 /// # Example
@@ -80,9 +92,13 @@ pub fn solve_real_lp_problem_slow_simplex(
 /// // Set objective: maximize x1 + 2*x2
 /// model.set_objective(vec![1.0, 2.0], OptimizationType::Max);
 ///
-/// let solution = solve_real_lp_problem_micro_lp(&model).unwrap();
+/// // No time limit is configured, so a continuous model always solves to
+/// // proven optimality and the outcome holds a solution.
+/// let solution = solve_real_lp_problem_micro_lp(&model).unwrap().into_solution().unwrap();
 /// ```
-pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64>, SolverError> {
+pub fn solve_real_lp_problem_micro_lp(
+    lp: &LinearModel,
+) -> Result<SolveOutcome<LpSolution<f64>>, SolverError> {
     let domain = lp.domain();
     let invalid_variables = find_invalid_variables(domain, |var| {
         matches!(
@@ -166,7 +182,7 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
     }
     let solution = problem.solve();
     match solution {
-        Ok(optimal_solution) => {
+        Ok(MicrolpSolveOutcome::Solution(optimal_solution)) => {
             match optimal_solution.objective() {
                 f if f.is_infinite() => return Err(SolverError::Unbounded),
                 f if f.is_nan() => return Err(SolverError::Infeasible),
@@ -183,8 +199,33 @@ pub fn solve_real_lp_problem_micro_lp(lp: &LinearModel) -> Result<LpSolution<f64
                 .collect::<Vec<_>>();
             let coeffs = assignment.iter().map(|v| v.value).collect();
             let constraints = make_constraints_map_from_assignment(lp, &coeffs);
-            Ok(LpSolution::new(assignment, obj, constraints))
+            // This model is continuous, so MicroLP solves it without branching
+            // and can only report `Optimal`. The `Feasible` arm is kept so the
+            // mapping stays total if that ever changes.
+            let status = match optimal_solution.status() {
+                MicrolpSolutionStatus::Optimal => SolutionStatus::Optimal,
+                MicrolpSolutionStatus::Feasible => SolutionStatus::Feasible,
+            };
+            let reason = match optimal_solution.termination_reason() {
+                MicrolpTermination::ProvenOptimal => TerminationReason::ProvenOptimal,
+                MicrolpTermination::MipGap => TerminationReason::MipGap,
+                MicrolpTermination::NodeLimit => TerminationReason::NodeLimit,
+                _ => TerminationReason::TimeLimit,
+            };
+            Ok(SolveOutcome::Solution(
+                LpSolution::new(assignment, obj, constraints)
+                    .with_status(status)
+                    .with_termination_reason(reason),
+            ))
         }
+        Ok(MicrolpSolveOutcome::Interrupted(interrupted)) => Ok(SolveOutcome::Interrupted(
+            // Reachable only through `Problem::set_time_limit`, which this
+            // entry point does not set, so in practice this does not fire.
+            InterruptedSolve::new(match interrupted.termination_reason() {
+                MicrolpTermination::NodeLimit => TerminationReason::NodeLimit,
+                _ => TerminationReason::TimeLimit,
+            }),
+        )),
         Err(e) => match e {
             microlp::Error::Unbounded => Err(SolverError::Unbounded),
             microlp::Error::Infeasible => Err(SolverError::Infeasible),

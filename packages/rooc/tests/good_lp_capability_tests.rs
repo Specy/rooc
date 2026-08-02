@@ -1,5 +1,8 @@
 #[cfg(any(feature = "clarabel", feature = "highs"))]
-use rooc::{Comparison, DualValues, LinearModel, OptimizationType, VariableType};
+use rooc::{
+    Comparison, DualValues, LinearModel, ModelBuilder, OptimizationType, VariableType, constraint,
+    vars,
+};
 #[cfg(feature = "highs")]
 use rooc::{Solver, SolverError};
 #[cfg(any(
@@ -21,18 +24,65 @@ fn lower_bound_model() -> LinearModel {
     model
 }
 
+#[cfg(any(feature = "clarabel", feature = "highs"))]
+fn named_cap_builder_model() -> LinearModel {
+    let mut model = ModelBuilder::new();
+    vars! { model =>
+        x: nonneg;
+        y: nonneg;
+    };
+
+    model
+        .maximize(3.0 * x + 2.0 * y)
+        .with(constraint!(capacity: x + y <= 4.0))
+        .with(constraint!(x_cap: x <= 2.0))
+        .with(constraint!(y_cap: y <= 3.0))
+        .linearize()
+        .unwrap()
+}
+
 #[cfg(feature = "highs")]
 #[test]
 fn highs_maps_named_constraint_duals() {
-    let solution = rooc::solve_lp_problem_highs(&lower_bound_model()).unwrap();
+    let solution = rooc::solve_lp_problem_highs(&lower_bound_model())
+        .unwrap()
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
     assert!((solution.shadow_price("lower").unwrap() + 1.0).abs() < 1e-7);
 }
 
 #[cfg(feature = "clarabel")]
 #[test]
 fn clarabel_maps_named_constraint_duals() {
-    let solution = rooc::solve_real_lp_problem_clarabel(&lower_bound_model()).unwrap();
+    let solution = rooc::solve_real_lp_problem_clarabel(&lower_bound_model())
+        .unwrap()
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
     assert!((solution.shadow_price("lower").unwrap() - 1.0).abs() < 1e-7);
+}
+
+#[cfg(feature = "highs")]
+#[test]
+fn highs_builder_named_caps_have_complete_shadow_prices() {
+    let solution = rooc::solve_lp_problem_highs(&named_cap_builder_model())
+        .unwrap()
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
+    assert!((solution.shadow_price("capacity").unwrap().abs() - 2.0).abs() < 1e-6);
+    assert!((solution.shadow_price("x_cap").unwrap().abs() - 1.0).abs() < 1e-6);
+    assert!(solution.shadow_price("y_cap").unwrap().abs() < 1e-6);
+}
+
+#[cfg(feature = "clarabel")]
+#[test]
+fn clarabel_builder_named_caps_have_complete_shadow_prices() {
+    let solution = rooc::solve_real_lp_problem_clarabel(&named_cap_builder_model())
+        .unwrap()
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
+    assert!((solution.shadow_price("capacity").unwrap().abs() - 2.0).abs() < 1e-6);
+    assert!((solution.shadow_price("x_cap").unwrap().abs() - 1.0).abs() < 1e-6);
+    assert!(solution.shadow_price("y_cap").unwrap().abs() < 1e-6);
 }
 
 #[cfg(feature = "highs")]
@@ -67,7 +117,9 @@ fn highs_applies_time_limit_mip_gap_and_initial_solution_options() {
         .with_mip_gap(0.0)
         .with_initial_solution([("x", 2.0)])
         .solve(&lower_bound_model())
-        .unwrap();
+        .unwrap()
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
 
     assert!((solution.value() - 2.0).abs() < 1e-7);
 }

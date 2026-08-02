@@ -2,7 +2,7 @@
 
 use super::expr::{Expr, Var, eval_expr};
 use super::solvers::{ConstraintValues, DualValues, ReducedCosts, Solution, SolveStatus, Solver};
-use crate::solvers::SolutionStatus;
+use crate::solvers::{SolutionStatus, TerminationReason};
 
 /// A solution produced by [`crate::ModelBuilder::solve_with`].
 ///
@@ -66,6 +66,23 @@ where
     /// Returns the solve status reported by the solver.
     pub fn status(&self) -> SolutionStatus {
         self.solution.status()
+    }
+
+    /// Returns why the search that produced this solution stopped.
+    pub fn termination_reason(&self) -> TerminationReason {
+        self.solution.termination_reason()
+    }
+
+    /// Returns the best objective bound proven by the search, when the solver
+    /// reports one.
+    pub fn best_bound(&self) -> Option<f64> {
+        self.solution.best_bound()
+    }
+
+    /// Returns the relative gap between this solution and the best bound, when
+    /// the solver reports one.
+    pub fn gap(&self) -> Option<f64> {
+        self.solution.gap()
     }
 }
 

@@ -174,6 +174,7 @@ impl DomainVariable {
     }
 
     /// Replaces the variable type after a semantics-preserving domain tightening.
+    #[cfg(test)]
     pub(crate) fn set_type(&mut self, as_type: VariableType) {
         self.as_type = as_type;
     }

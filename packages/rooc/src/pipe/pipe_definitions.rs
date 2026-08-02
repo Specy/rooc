@@ -8,7 +8,7 @@ use crate::runtime_builtin::RoocFunction;
 use crate::solvers::{
     CanonicalTransformError, OptimalTableau, OptimalTableauWithSteps, SimplexError, Tableau,
 };
-use crate::solvers::{LpSolution, SolverError};
+use crate::solvers::{InterruptedSolve, LpSolution, SolverError};
 use crate::transformers::LinearModel;
 use crate::transformers::LinearizationError;
 use crate::transformers::StandardLinearModel;
@@ -191,6 +191,9 @@ pub enum PipeError {
     CanonicalizationError(CanonicalTransformError),
     StepByStepSimplexError(SimplexError, Tableau),
     SolverError(SolverError),
+    /// A solver stopped at a limit without producing an assignment. The model
+    /// may still be solvable; the pipeline simply has no solution to pass on.
+    SolverInterrupted(InterruptedSolve),
     Other(String),
 }
 impl Display for PipeError {
@@ -217,6 +220,7 @@ impl Display for PipeError {
             PipeError::CanonicalizationError(e) => write!(f, "{}", e),
             PipeError::StepByStepSimplexError(e, _) => write!(f, "{}", e),
             PipeError::SolverError(e) => write!(f, "{}", e),
+            PipeError::SolverInterrupted(e) => write!(f, "{}", e),
         }
     }
 }

@@ -1,7 +1,7 @@
 //! The safe general-purpose MILP solver selection.
 
 use super::traits::Solver;
-use crate::solvers::{LpSolution, MILPValue, SolverError, auto_solver};
+use crate::solvers::{LpSolution, MILPValue, SolveOutcome, SolverError, auto_solver};
 use crate::transformers::linear_model::LinearModel;
 
 /// Uses the [`Microlp`](super::Microlp) MILP backend for every supported model.
@@ -12,7 +12,7 @@ pub struct Auto;
 impl Solver for Auto {
     type Solution = LpSolution<MILPValue>;
 
-    fn solve(&self, model: &LinearModel) -> Result<Self::Solution, SolverError> {
+    fn solve(&self, model: &LinearModel) -> Result<SolveOutcome<Self::Solution>, SolverError> {
         auto_solver(model)
     }
 }

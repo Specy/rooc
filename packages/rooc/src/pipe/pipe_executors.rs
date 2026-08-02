@@ -205,7 +205,12 @@ impl Pipeable for RealSolver {
         //solve_real_lp_problem
         let assignment = solve_real_lp_problem_clarabel(&model);
         match assignment {
-            Ok(optimal) => Ok(PipeableData::RealSolution(optimal)),
+            // A pipeline stage must hand a solution downstream, so an
+            // interrupted search stops the pipe even though it is not an error.
+            Ok(outcome) => outcome
+                .into_solution()
+                .map(PipeableData::RealSolution)
+                .map_err(PipeError::SolverInterrupted),
             Err(e) => Err(PipeError::SolverError(e)),
         }
     }
@@ -285,7 +290,10 @@ impl Pipeable for MILPSolverPipe {
         let linear_model = data.as_linear_model()?;
         let integer_binary_solution = solve_milp_lp_problem(linear_model);
         match integer_binary_solution {
-            Ok(solution) => Ok(PipeableData::MILPSolution(solution)),
+            Ok(outcome) => outcome
+                .into_solution()
+                .map(PipeableData::MILPSolution)
+                .map_err(PipeError::SolverInterrupted),
             Err(e) => Err(PipeError::SolverError(e)),
         }
     }
@@ -310,7 +318,10 @@ impl Pipeable for AutoSolverPipe {
         let linear_model = data.as_linear_model()?;
         let solution = auto_solver(linear_model);
         match solution {
-            Ok(solution) => Ok(PipeableData::MILPSolution(solution)),
+            Ok(outcome) => outcome
+                .into_solution()
+                .map(PipeableData::MILPSolution)
+                .map_err(PipeError::SolverInterrupted),
             Err(e) => Err(PipeError::SolverError(e)),
         }
     }
