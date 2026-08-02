@@ -267,7 +267,8 @@ jobs:
         run: |
           tagged="${GITHUB_REF_NAME#rooc-v}"
           manifest="$(cargo metadata --manifest-path packages/rooc/Cargo.toml \
-            --format-version 1 --no-deps | jq -r '.packages[0].version')"
+            --format-version 1 --no-deps \
+            | jq -r '.packages[] | select(.name == "rooc") | .version')"
           if [[ "$tagged" != "$manifest" ]]; then
             echo "Tag $GITHUB_REF_NAME does not match Cargo.toml version $manifest" >&2
             exit 1
