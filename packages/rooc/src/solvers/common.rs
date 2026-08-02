@@ -164,10 +164,8 @@ impl<T: Clone + Serialize + Copy + DeserializeOwned + DisplayValue> Display for 
 
 /// The status of a solve, reported independently of the underlying solver.
 ///
-/// Only states in which a usable assignment exists are representable. As in
-/// `good_lp`, an infeasible or unbounded model is reported through
-/// [`SolverError::Infeasible`] and [`SolverError::Unbounded`] instead of a
-/// status, because neither case yields values to read.
+/// An infeasible or unbounded model is reported through
+/// [`SolverError::Infeasible`] and [`SolverError::Unbounded`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SolutionStatus {
     /// A proven optimal solution.
@@ -178,9 +176,7 @@ pub enum SolutionStatus {
     Feasible,
 }
 
-/// Why a solve stopped.
-///
-/// This is orthogonal to [`SolutionStatus`]: it explains what ended the search,
+/// Why a solve stopped, it explains what ended the search,
 /// while the status says whether the resulting assignment is proven optimal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TerminationReason {
@@ -193,8 +189,7 @@ pub enum TerminationReason {
     TimeLimit,
     /// The branch-and-bound node budget was exhausted.
     NodeLimit,
-    /// The iteration budget of an iterative method was exhausted. Reported by
-    /// the tableau simplex, which counts pivots rather than nodes.
+    /// The iteration budget of an iterative method was exhausted.
     IterationLimit,
 }
 
@@ -213,9 +208,10 @@ impl Display for TerminationReason {
 
 /// A solve that stopped at a limit before any usable assignment was found.
 ///
-/// It deliberately carries no variable values: unlike a [`LpSolution`], there is
-/// no validated assignment to read. The bound and gap are reported when the
-/// backend tracks them, so callers can still show search progress.
+/// It provides no variable values as there is
+/// no validated assignment to read. You can still see progress by reading
+/// [`InterruptedSolve::best_bound`] and [`InterruptedSolve::gap`] if the
+/// backend tracks them.
 #[derive(Debug, Clone)]
 pub struct InterruptedSolve {
     reason: TerminationReason,
@@ -274,10 +270,10 @@ impl Display for InterruptedSolve {
 
 impl std::error::Error for InterruptedSolve {}
 
-/// The result of a solve that did not fail.
+/// The result of a solve.
 ///
-/// A solve that ran to completion produces a [`SolveOutcome::Solution`]. Hitting
-/// a limit is not an error: if an assignment was already found it is returned as
+/// A solve that ran to completion produces a [`SolveOutcome::Solution`].
+/// If an assignment was already found it is returned as
 /// a solution whose [`SolutionStatus`] is [`SolutionStatus::Feasible`], and only
 /// when no assignment exists yet does the outcome become
 /// [`SolveOutcome::Interrupted`].
@@ -302,9 +298,6 @@ impl<S> SolveOutcome<S> {
     }
 
     /// Consumes the outcome and returns its solution.
-    ///
-    /// The [`InterruptedSolve`] is returned as the error so it can still be
-    /// inspected; it implements [`std::error::Error`], so `?` composes.
     pub fn into_solution(self) -> Result<S, InterruptedSolve> {
         match self {
             SolveOutcome::Solution(solution) => Ok(solution),
@@ -334,12 +327,9 @@ pub struct LpSolution<T> {
     assignment_by_name: IndexMap<String, T>,
     constraints: IndexMap<String, f64>,
     value: f64,
-    /// Solve status. Not serialized: it is solver metadata, not part of the
-    /// portable solution shape.
     #[serde(skip)]
     status: SolutionStatus,
-    /// Why the search that produced this solution stopped. Not serialized, for
-    /// the same reason as `status`.
+    /// Why the search that produced this solution stopped.
     #[serde(skip)]
     termination_reason: TerminationReason,
     /// Best objective bound proven by the search, when the backend reports one.
@@ -349,8 +339,7 @@ pub struct LpSolution<T> {
     /// reports one.
     #[serde(skip)]
     gap: Option<f64>,
-    /// Optional solver-provided dual values. Not serialized: they are backend
-    /// metadata, not part of the portable solution shape.
+    /// Optional solver-provided dual values.
     #[serde(skip)]
     shadow_prices: IndexMap<String, f64>,
 }
@@ -367,10 +356,6 @@ fn build_assignment_map<T: Copy>(assignment: &[Assignment<T>]) -> IndexMap<Strin
 
 impl<T: Clone + Serialize + DeserializeOwned + Copy + DisplayValue> Display for LpSolution<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // A solution that stopped at a limit names that limit. Gating on the
-        // reason rather than the status keeps "proven optimal" from being
-        // restated as a parenthetical, which would read as nonsense next to a
-        // `Feasible` status.
         write!(f, "Status: {:?}", self.status)?;
         if self.termination_reason != TerminationReason::ProvenOptimal {
             write!(f, " ({})", self.termination_reason)?;
@@ -447,11 +432,7 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> LpSolution<T> {
     }
 
     /// Returns the best objective bound proven by the search, when the backend
-    /// reports one. Backends that expose no bound information (every `good_lp`
-    /// backend) return `None`.
-    ///
-    /// It is on the same scale as [`LpSolution::value`], including the model's
-    /// objective offset, so the two are directly comparable.
+    /// reports one. Backends that expose no bound information return `None`.
     pub fn best_bound(&self) -> Option<f64> {
         self.best_bound
     }
@@ -467,8 +448,7 @@ impl<T: Clone + Serialize + DeserializeOwned + Copy + Display> LpSolution<T> {
     ///
     /// This is the quantity a configured MIP gap is checked against. It is
     /// measured on the solver's own objective and therefore excludes the model's
-    /// constant objective offset, so it is not simply
-    /// `(value - best_bound) / value` when the offset is non-zero.
+    /// constant objective offset.
     pub fn gap(&self) -> Option<f64> {
         self.gap
     }

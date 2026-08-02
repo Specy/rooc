@@ -90,7 +90,7 @@ Enable an opt-in solver explicitly in `Cargo.toml`:
 
 ```toml
 [dependencies]
-rooc = { version = "0.2.5", default-features = false, features = ["highs"] }
+rooc = { version = "0.3.0", default-features = false, features = ["highs"] }
 ```
 
 Use `features = ["microlp", "clarabel", "highs"]` when an application needs

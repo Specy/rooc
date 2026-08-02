@@ -155,7 +155,7 @@ Select an opt-in solver explicitly:
 
 ```toml
 [dependencies]
-rooc = { version = "0.2.5", default-features = false, features = ["highs"] }
+rooc = { version = "0.3.0", default-features = false, features = ["highs"] }
 ```
 
 For a native application that also needs the default solvers, combine the
@@ -199,13 +199,11 @@ let solver = Microlp::new()
     .with_node_limit(100_000);
 ```
 
-### Limits are outcomes, not errors
-
-Solving returns a `SolveOutcome`. Reaching a MIP gap, time limit, or node limit
-is not a failure: if the search already found an assignment it comes back as a
-solution whose status is `Feasible`, and only a search that found nothing at all
-yields `Interrupted`. `Err` is reserved for models with no solution, such as an
-infeasible or unbounded one.
+Solving returns a `SolveOutcome`. If the solver reaches a MIP gap, time limit, or node limit
+and the current assignment satisfies the bounds, it comes back as a
+solution whose status is `Feasible`, while a search that did not yet fit into the bounds
+yields `Interrupted`. The solver returns an `Err` for internal solver errors or when a 
+model is infeasible or unbounded.
 
 ```rust,ignore
 use rooc::{SolveOutcome, SolutionStatus};
@@ -226,9 +224,8 @@ match model.maximize(objective).solve_with(solver)? {
 }
 ```
 
-Use `into_solution()` when a solution is required; it returns the
-`InterruptedSolve` as an error, which implements `std::error::Error` so `?`
-composes.
+You can use `into_solution()` to convert the `SolveOutcome` into a `Solution`,
+if it is available.
 
 ### Read the solution
 

@@ -202,7 +202,7 @@ impl ModelBuilder {
     /// solvers, so new back-ends need no changes to the builder.
     ///
     /// A solver that stops at a limit without finding an assignment yields
-    /// [`SolveOutcome::Interrupted`] rather than an error; use
+    /// [`SolveOutcome::Interrupted`]. Use
     /// [`SolveOutcome::into_solution`] when a solution is required.
     pub fn solve_with<S: Solver>(
         self,

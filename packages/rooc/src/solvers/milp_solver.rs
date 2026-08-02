@@ -68,10 +68,8 @@ pub struct MilpOptions {
     pub mip_gap: Option<f64>,
     /// Wall-clock limit for the search.
     pub time_limit: Option<Duration>,
-    /// Maximum number of branch-and-bound nodes to explore. A deterministic
-    /// alternative to `time_limit`; the root relaxation does not count as a
-    /// node. It has no effect on a model with no integer or boolean variables,
-    /// because such a model is solved without branching.
+    /// Maximum number of branch-and-bound nodes to explore. Only used in
+    /// MILP problems.
     pub node_limit: Option<u64>,
 }
 
@@ -102,8 +100,8 @@ fn map_termination(reason: MicrolpTermination) -> TerminationReason {
 /// # Returns
 /// * `Ok(SolveOutcome::Solution)` - A usable assignment, optimal or feasible
 /// * `Ok(SolveOutcome::Interrupted)` - A limit stopped the search before any
-///   assignment was found. This is not a failure: the model may still be
-///   solvable given a larger budget
+///   assignment was found. The model may still be solvable given a larger
+///   budget
 /// * `Err(SolverError)` - Conditions that prevent a solution existing at all,
 ///   such as an infeasible or unbounded model
 ///
@@ -267,7 +265,7 @@ pub fn solve_milp_lp_problem_with(
             ))
         }
         Ok(MicrolpSolveOutcome::Interrupted(interrupted)) => {
-            // A limit fired before any assignment was found. Not an error: the
+            // A limit fired before any assignment was found. The
             // model may still be solvable with a larger budget.
             let stats = interrupted.stats();
             Ok(SolveOutcome::Interrupted(

@@ -13,12 +13,6 @@ pub trait Solver {
     type Solution: Solution;
 
     /// Solves the given linearized model.
-    ///
-    /// Reaching a configured limit is reported through the returned
-    /// [`SolveOutcome`], not as an error: an assignment found before the limit
-    /// comes back as [`SolveOutcome::Solution`], and only a search that found
-    /// nothing yields [`SolveOutcome::Interrupted`]. Reserve `Err` for models
-    /// that admit no solution at all.
     fn solve(&self, model: &LinearModel) -> Result<SolveOutcome<Self::Solution>, SolverError>;
 }
 
