@@ -76,5 +76,8 @@ pub fn solve_real_lp_problem_clarabel(
             let dual = solution.compute_dual();
             collect_good_lp_duals(dual, references)
         },
+        // Clarabel solves continuous models, where there is no branch-and-bound
+        // bound distinct from the objective value itself.
+        |_| None,
     )
 }

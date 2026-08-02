@@ -90,12 +90,17 @@ impl GoodLpOptions {
 }
 
 /// Solves a ROOC linear model through any compatible `good_lp` backend.
-pub(crate) fn solve_with_good_lp<S, M, R, C, V, D>(
+///
+/// `extract_best_bound` reports the best objective bound the backend proved, in
+/// the same space as the returned objective value. Every backend but CBC hides
+/// that bound behind a private field and so returns `None`.
+pub(crate) fn solve_with_good_lp<S, M, R, C, V, D, B>(
     lp: &LinearModel,
     solver: S,
     configure_model: C,
     validate_solution: V,
     extract_duals: D,
+    extract_best_bound: B,
 ) -> Result<SolveOutcome<LpSolution<f64>>, SolverError>
 where
     S: GoodLpSolver<Model = M>,
@@ -104,6 +109,7 @@ where
     C: FnOnce(M, &[(String, Variable)]) -> Result<M, SolverError>,
     V: FnOnce(&R) -> Result<(), SolverError>,
     D: FnOnce(&mut R, &[(String, ConstraintReference)]) -> IndexMap<String, f64>,
+    B: FnOnce(&R) -> Option<f64>,
 {
     let variables = lp.variables();
     if lp.objective().len() != variables.len() {
@@ -182,6 +188,7 @@ where
     let model = configure_model(model, &created_variables)?;
     let mut solution = model.solve().map_err(map_resolution_error)?;
     validate_solution(&solution)?;
+    let best_bound = extract_best_bound(&solution);
     let shadow_prices = extract_duals(&mut solution, &constraint_references);
 
     let assignment = created_variables
@@ -209,14 +216,27 @@ where
     let value = lp.calc_objective(&values);
     let constraints = make_constraints_map_from_assignment(lp, &values);
 
-    // No good_lp backend exposes a dual bound or gap, so both stay `None`.
+    // The gap is relative to the solver's own objective, which excludes the
+    // model's constant offset. The offset cancels in the difference, so only the
+    // denominator drops it. A backend that proves no bound leaves both `None`.
+    let gap = best_bound.map(|bound| {
+        let solver_objective = value - lp.objective_offset();
+        (value - bound).abs() / solver_objective.abs().max(GAP_DENOM_GUARD)
+    });
+
     Ok(SolveOutcome::Solution(
         LpSolution::new(assignment, value, constraints)
             .with_status(status)
             .with_termination_reason(reason)
-            .with_shadow_prices(shadow_prices),
+            .with_shadow_prices(shadow_prices)
+            .with_best_bound(best_bound)
+            .with_gap(gap),
     ))
 }
+
+/// Floor on the relative-gap denominator, mirroring MicroLP's `GAP_DENOM_GUARD`
+/// so a gap means the same thing whichever backend produced it.
+const GAP_DENOM_GUARD: f64 = 1e-10;
 
 #[cfg(any(
     feature = "coin_cbc",

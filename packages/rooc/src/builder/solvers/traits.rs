@@ -66,7 +66,7 @@ pub trait ReducedCosts {
 // The built-in solvers use `LpSolution` as their solution type. It provides the
 // core `Solution`, `SolveStatus`, and `ConstraintValues`. Backends that expose
 // duals populate its optional shadow-price map; other backends return `None`
-// through `DualValues`. No good_lp backend currently provides reduced costs.
+// through `DualValues`. No backend populates reduced costs yet.
 impl<
     T: Clone + serde::Serialize + serde::de::DeserializeOwned + Copy + std::fmt::Display + Into<f64>,
 > Solution for LpSolution<T>

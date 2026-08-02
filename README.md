@@ -61,9 +61,9 @@ and supported in WebAssembly builds.
 
 | Cargo feature | Pure Rust | WASM | Optional capabilities | Scope | Prerequisite |
 | --- | --- | --- | --- | --- | --- |
-| `microlp` | Yes | Yes | MIP gap, time limit | LP + MILP | None |
+| `microlp` | Yes | Yes | MIP gap, time limit, best bound | LP + MILP | None |
 | `clarabel` | Yes | Yes | Shadow prices | Continuous LP | None |
-| `coin_cbc` | No | No | Initial solution, MIP gap, time limit | LP + MILP | Native CBC toolchain |
+| `coin_cbc` | No | No | Initial solution, MIP gap, time limit, best bound | LP + MILP | Native CBC toolchain |
 | `highs` | No | No | Initial solution, MIP gap, time limit, shadow prices | LP + MILP | Native HiGHS toolchain |
 | `lpsolve` | No | No | Time limit | LP + MILP | Native C build |
 | `scip` | No | No | Initial solution, MIP gap, time limit | LP + MILP | SCIP installation |

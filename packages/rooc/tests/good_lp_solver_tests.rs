@@ -1,10 +1,12 @@
 #![cfg(any(feature = "coin_cbc", feature = "highs"))]
 
 use indexmap::IndexMap;
+#[cfg(feature = "highs")]
+use rooc::SolverError;
 use rooc::model_transformer::DomainVariable;
 use rooc::{
     Comparison, InputSpan, LinearConstraint, LinearModel, LpSolution, OptimizationType,
-    SolutionStatus, Solver, SolverError, VariableType,
+    SolutionStatus, Solver, VariableType,
 };
 
 fn mixed_domain_model() -> LinearModel {
@@ -78,6 +80,66 @@ fn highs_solves_mixed_domain_model() {
         .into_solution()
         .expect("an unlimited solve must produce a solution");
     assert_mixed_domain_solution(&builder_solution);
+}
+
+#[cfg(feature = "coin_cbc")]
+#[test]
+fn coin_cbc_reports_a_best_bound_on_the_same_scale_as_the_objective() {
+    let mut domain = IndexMap::new();
+    domain.insert(
+        "x".to_string(),
+        DomainVariable::new(VariableType::IntegerRange(0, 4), InputSpan::default()),
+    );
+    // Minimise x + 7, subject to x >= 2. The optimum is x = 2, so the reported
+    // objective is 9.0 while CBC works on the un-offset objective, where the
+    // optimum is 2.0. A bound that skipped the offset would come back as 2.0.
+    let model = LinearModel::new_from_parts(
+        vec![1.0],
+        OptimizationType::Min,
+        7.0,
+        vec![LinearConstraint::new_with_name(
+            vec![1.0],
+            Comparison::GreaterOrEqual,
+            2.0,
+            "lower".to_string(),
+        )],
+        vec!["x".to_string()],
+        domain,
+    );
+
+    let solution = rooc::solve_lp_problem_coin_cbc(&model)
+        .expect("Coin CBC should solve the model")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
+
+    assert_eq!(solution.status(), SolutionStatus::Optimal);
+    assert!((solution.value() - 9.0).abs() < 1e-7);
+
+    let best_bound = solution
+        .best_bound()
+        .expect("CBC proves a bound on a model with an integer variable");
+    assert!((best_bound - 9.0).abs() < 1e-6, "got bound {best_bound}");
+
+    // The search closed, so the incumbent and the bound meet.
+    let gap = solution.gap().expect("a bound implies a gap");
+    assert!(gap.abs() < 1e-6, "got gap {gap}");
+}
+
+#[cfg(feature = "coin_cbc")]
+#[test]
+fn coin_cbc_reports_no_best_bound_for_a_continuous_model() {
+    let mut model = LinearModel::new();
+    model.add_variable("x", VariableType::non_negative_real());
+    model.add_constraint(vec![1.0], Comparison::GreaterOrEqual, 2.0);
+    model.set_objective(vec![1.0], OptimizationType::Min);
+
+    let solution = rooc::solve_lp_problem_coin_cbc(&model)
+        .expect("Coin CBC should solve the model")
+        .into_solution()
+        .expect("an unlimited solve must produce a solution");
+
+    assert!(solution.best_bound().is_none());
+    assert!(solution.gap().is_none());
 }
 
 #[cfg(feature = "highs")]

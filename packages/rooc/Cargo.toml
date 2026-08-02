@@ -19,7 +19,12 @@ crate-type = ["cdylib", "rlib"]
 default = ["microlp", "clarabel"]
 microlp = ["dep:microlp"]
 clarabel = ["dep:good_lp", "dep:clarabel", "good_lp/clarabel"]
-coin_cbc = ["dep:good_lp", "good_lp/coin_cbc"]
+# `singlethread-cbc` is a global lock around CBC solves. The `coin_cbc` crate
+# enables it by default, but `good_lp` pulls that crate with default features off
+# and re-exposes the lock as its own feature, so it has to be asked for by name.
+# Stock libcbc is not thread safe: without the lock, concurrent solves return
+# wrong answers and risk memory corruption.
+coin_cbc = ["dep:good_lp", "good_lp/coin_cbc", "good_lp/singlethread-cbc"]
 highs = ["dep:good_lp", "good_lp/highs"]
 lpsolve = ["dep:good_lp", "good_lp/lpsolve"]
 scip = ["dep:good_lp", "good_lp/scip"]

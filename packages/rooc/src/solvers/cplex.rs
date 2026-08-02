@@ -22,5 +22,6 @@ pub(crate) fn solve_lp_problem_cplex_with_options(
         |model, _| Ok(apply_time_limit(model, options)),
         |_| Ok(()),
         |_, _| IndexMap::new(),
+        |_| None,
     )
 }

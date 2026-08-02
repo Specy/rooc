@@ -22,5 +22,6 @@ pub(crate) fn solve_lp_problem_scip_with_options(
         |model, variables| apply_mip_options(model, options, variables),
         |_| Ok(()),
         |_, _| IndexMap::new(),
+        |_| None,
     )
 }

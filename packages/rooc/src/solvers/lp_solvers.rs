@@ -19,5 +19,6 @@ pub fn solve_lp_problem_lp_solvers(
         |model, _| Ok(model),
         |_| Ok(()),
         |_, _| IndexMap::new(),
+        |_| None,
     )
 }

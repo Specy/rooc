@@ -25,5 +25,9 @@ pub(crate) fn solve_lp_problem_highs_with_options(
             let dual = solution.compute_dual();
             collect_good_lp_duals(dual, references)
         },
+        // HiGHS computes an achieved MIP gap, and `good_lp` reads it to tell
+        // `Optimal` from `GapLimit`, but it then drops the solved model and keeps
+        // only the primal solution, so neither the gap nor a bound survives.
+        |_| None,
     )
 }
