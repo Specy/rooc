@@ -37,7 +37,7 @@
         spending a lot more than $50? Trying every possible combination of fruits, vegetables, and dairy could take a
         long time.
     </p>
-    <h1>The Components of an Optimization Problem</h1>
+    <h2>The Components of an Optimization Problem</h2>
 
     <p>
         Our grocery shopping scenario, though simple, contains all the essential elements of an optimization problem,
@@ -122,9 +122,9 @@ define
         exactly $50 <br/>
         The food we picked are: <em>apples = 10</em>, <em>carrots = 2</em>, <em>cheese = 1</em>
     </p>
-    <h1>
+    <h2>
         Why is optimization useful?
-    </h1>
+    </h2>
 
     <p>
         Optimization helps us make better

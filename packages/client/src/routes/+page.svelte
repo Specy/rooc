@@ -22,11 +22,15 @@
         projectStore.init()
     })
     let hasProjects = $derived(projectStore.projects.length || !projectStore.initialized)
+	import { serializeJsonLd, softwareApplicationLd } from '$lib/seo';
 </script>
 
 <svelte:head>
-    <title>Rooc</title>
-    <meta name="description" content="A language and platform for easy optimization models."/>
+    <title>ROOC — write and solve optimization models in your browser</title>
+    <meta name="description" content="A modeling language and web platform for mixed integer linear optimization. Write models in the editor, solve them in-browser with HiGHS or microlp, and step through the pipeline."/>
+    <meta property="og:title" content="ROOC — write and solve optimization models in your browser"/>
+    <meta property="og:description" content="A modeling language and web platform for mixed integer linear optimization. Write models in the editor, solve them in-browser with HiGHS or microlp, and step through the pipeline."/>
+    {@html `<script type="application/ld+json">${serializeJsonLd(softwareApplicationLd())}</script>`}
 </svelte:head>
 
 <Nav/>

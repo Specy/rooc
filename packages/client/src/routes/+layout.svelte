@@ -10,17 +10,28 @@
 	import PromptProvider from '$cmp/PromptProvider.svelte';
 	import { registerServiceWorker } from '$src/lib/register-sw';
 	import {preloadHighs} from "$lib/appPipes/AppPipes";
+	import { toAbsoluteUrl } from '$lib/seo';
 	interface Props {
 		children?: import('svelte').Snippet;
 	}
 
 	let { children }: Props = $props();
+
+	// Emitted once here rather than per page: both values derive from the URL.
+	let canonicalUrl = $derived(toAbsoluteUrl($page.url.pathname));
 	onMount(() => {
 		registerServiceWorker();
 		preloadHighs()
 		themeStorage.load();
 	});
 </script>
+
+<svelte:head>
+	<link rel="canonical" href={canonicalUrl} />
+	<meta property="og:url" content={canonicalUrl} />
+	<meta property="og:site_name" content="ROOC" />
+	<meta name="twitter:card" content="summary_large_image" />
+</svelte:head>
 
 <ThemeProvider
 	theme={currentTheme}

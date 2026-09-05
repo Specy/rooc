@@ -12,6 +12,9 @@
 </svelte:head>
 
 <Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">
+    <h1>
+        ROOC syntax
+    </h1>
     <RoocSyntaxDocs/>
 
 </Page>
