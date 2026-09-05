@@ -41,6 +41,20 @@ fn named_cap_builder_model() -> LinearModel {
         .unwrap()
 }
 
+/// `lower_bound_model` is `min x` subject to `x >= 2`, so raising that constraint's
+/// right-hand side by one raises the objective by one: its shadow price is `+1`, and
+/// every backend must agree on that. This asserted `-1` until good_lp 1.15.3.
+///
+/// good_lp normalizes every inequality to a `<=` row internally. Up to 1.15.2 the HiGHS
+/// backend handed that normalized row straight to HiGHS, so `x >= 2` arrived as
+/// `-x <= -2` and HiGHS returned the dual of the negated row - the correct value for the
+/// row it was given, and the negation of the one the caller asked about. 1.15.3 added
+/// `Constraint::is_greater_or_equal` specifically so backends can rebuild the original
+/// row, and HiGHS now returns `+1` like Clarabel always did.
+///
+/// The floor on good_lp in Cargo.toml is 1.15.3 for this reason: on 1.15.2 this assertion
+/// is off by a sign, and so is every shadow price a caller reads back from the HiGHS
+/// solver.
 #[cfg(feature = "highs")]
 #[test]
 fn highs_maps_named_constraint_duals() {
@@ -48,9 +62,10 @@ fn highs_maps_named_constraint_duals() {
         .unwrap()
         .into_solution()
         .expect("an unlimited solve must produce a solution");
-    assert!((solution.shadow_price("lower").unwrap() + 1.0).abs() < 1e-7);
+    assert!((solution.shadow_price("lower").unwrap() - 1.0).abs() < 1e-7);
 }
 
+/// The same `+1` the HiGHS test above asserts. Clarabel has always reported it.
 #[cfg(feature = "clarabel")]
 #[test]
 fn clarabel_maps_named_constraint_duals() {
