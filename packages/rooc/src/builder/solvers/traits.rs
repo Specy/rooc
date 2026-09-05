@@ -54,6 +54,12 @@ pub trait ConstraintValues {
 }
 
 /// Optional capability: dual values (shadow prices), keyed by constraint name.
+///
+/// Implementors must report the rate of change of the objective with respect to the
+/// constraint's right-hand side: raising the RHS of a binding `x >= 2` in a `min x`
+/// model by one raises the objective by one, so its shadow price is `+1`. Backends
+/// whose solver normalizes the row (negating a `>=` into a `<=`, say) have to undo
+/// that before reporting, or callers get a sign that depends on the solver.
 pub trait DualValues {
     fn shadow_price(&self, constraint: &str) -> Option<f64>;
 }

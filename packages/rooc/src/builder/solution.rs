@@ -101,6 +101,12 @@ where
     S::Solution: DualValues,
 {
     /// Returns the shadow price (dual value) of a named constraint.
+    ///
+    /// The value is the rate of change of the objective with respect to the
+    /// constraint's right-hand side: raising the RHS of a binding `x >= 2` in a
+    /// `min x` model by one raises the objective by one, so its shadow price is `+1`.
+    /// Every backend reports it under that one convention - a sign that depended on
+    /// which solver you picked would be unusable for sensitivity analysis.
     pub fn shadow_price(&self, constraint: &str) -> Option<f64> {
         self.solution.shadow_price(constraint)
     }
