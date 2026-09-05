@@ -23,9 +23,9 @@ define
 </script>
 
 <Column gap="0.8rem">
-    <h1>
+    <h2>
         Table of contents
-    </h1>
+    </h2>
     <ul class="toc">
         <li><a href="#rooc_objective_function">Objective function</a></li>
         <li><a href="#rooc_constraints">Constraints</a></li>
@@ -43,9 +43,9 @@ define
         <li><a href="#rooc_others">Other things</a></li>
     </ul>
     <Separator/>
-    <h1 id="rooc_objective_function">
+    <h2 id="rooc_objective_function">
         Objective function
-    </h1>
+    </h2>
     <p>
 
         The objective function can be one of either "min" or "max", after the keyword, you can define whichever
@@ -66,9 +66,9 @@ define
         <SyntaxHighlighter language="rooc" source={`min x + y / 2`} />
     </Card>
     <Separator/>
-    <h1 id="rooc_constraints">
+    <h2 id="rooc_constraints">
         Constraints
-    </h1>
+    </h2>
     <p>
         The formal model can follow a list of constraints, you can use one of {`<=, >=, =, <, >`} comparisons.
         Some solvers like the simplex, do not allow for strict inequalities {`<, >`}.
@@ -84,9 +84,9 @@ define
         <SyntaxHighlighter language="rooc" source={`something: y >= x + 2\nconst_i: x * i <= i for i in 0..5`}/>
     </Card>
     <Separator/>
-    <h1 id="rooc_variable">
+    <h2 id="rooc_variable">
         Variables and compound variables
-    </h1>
+    </h2>
     <p>The language employs two execution environments: a formal model and a compiled model. Within the formal model,
         you can define three types of variables:</p>
 
@@ -132,9 +132,9 @@ define
         <SyntaxHighlighter language="rooc" source={`min 1\ns.t.\n    x_3 + x_hello <= 1\n    x_4_3 <= 2`} />
     </Card>
     <Separator/>
-    <h1 id="rooc_data">
+    <h2 id="rooc_data">
         Data
-    </h1>
+    </h2>
     <p>Following the constraint definitions, you can define data within the <code>where</code> section. This data is
         then available for use throughout your model.</p>
 
@@ -150,9 +150,9 @@ define
                            source={`let A = [1, 2, 3]\nlet B = [\n    [1, 2, 3],\n    [4, 5, 6]\n]\nlet G = Graph {\n    A -> [ C, B:2 ],\n    B -> [ A, C:-3 ],\n    C\n}\nlet lengthOfA = len(A)\nlet someString = "hello"\nlet someBool = true`}/>
     </Card>
     <Separator/>
-    <h1 id="rooc_expansion_blocks">
+    <h2 id="rooc_expansion_blocks">
         Expansion blocks
-    </h1>
+    </h2>
     <p>
         Expansion blocks are a special type of expression macro, used to preprocess other expressions. A common example
         is the
@@ -177,9 +177,9 @@ define
     </p>
 
     <Separator/>
-    <h1 id="rooc_scoped_blocks">
+    <h2 id="rooc_scoped_blocks">
         Scoped expansion blocks
-    </h1>
+    </h2>
     <p>
         There are also special kinds of expansion blocks, which have a <em>scope</em> attached to it.
         <br/>
@@ -210,9 +210,9 @@ define
     </p>
 
     <Separator/>
-    <h1 id="rooc_domains">
+    <h2 id="rooc_domains">
         Domains
-    </h1>
+    </h2>
     <p>
         After the data you can define in which domain each variable will be part of, those variables are the ones that
         will remain after the compilation is finished. The domain knowledge will then be used by solvers.
@@ -231,9 +231,9 @@ define
     <Card padding="0.8rem 1rem" style="overflow-x: auto;">
         <SyntaxHighlighter language="rooc" source={`y, x_u as IntegerRange(0,20) for u in 0..5`}/>
     </Card>
-    <h1 id="rooc_functions_and_tuples">
+    <h2 id="rooc_functions_and_tuples">
         Functions and tuples
-    </h1>
+    </h2>
     <p>
 
         The ROOC langage has a set of builtin functions that can be used to manipulate data.
@@ -256,9 +256,9 @@ define
         <SyntaxHighlighter language="rooc" source={`x_0 * 10 + x_1 * 20 + x_2 * 30`} />
     </Card>
     <Separator/>
-    <h1 id="rooc_others">
+    <h2 id="rooc_others">
         Other things
-    </h1>
+    </h2>
     <p>
 
         You can write comments in the model by using the "//" or "/* */" syntax, a model is structured (in this order)

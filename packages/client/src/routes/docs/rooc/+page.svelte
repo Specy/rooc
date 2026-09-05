@@ -24,9 +24,9 @@
         ROOC is a language designed to help you formalize problems and solve them through optimization algorithms.
         Your goal is to write the problem as a optimization model, and ROOC will automatically find the best solution for it.
     </p>
-    <h1>
+    <h2>
         Getting started
-    </h1>
+    </h2>
     <p>
         If you are looking for the typescript library documentation, look <a href={link}
                                                                              target="_blank"
@@ -60,7 +60,7 @@
         </li>
     </ul>
 
-    <h1>Why Would You Use ROOC?</h1>
+    <h2>Why Would You Use ROOC?</h2>
     <p>
     Picture any scenario where you're faced with making the best of limited resources.
     There any are number of domains where we often face these kind of decisions, but we'll start with a trip for groceries.
@@ -106,18 +106,18 @@
         Your goal is to select items that meet the requirements and spend at least the full coupon, but you want to minimize spending more than the coupon value.
         <br/> With ROOC you can formalize and solve this problem. Look how to do it <a href="/docs/rooc/what-are-optimization-models">here</a>.
     </p>
-    <h1>
+    <h2>
         Contributing
-    </h1>
+    </h2>
     <p>
         If you want to contribute to the project, you can find the source code on <a
             href="https://github.com/Specy/rooc" style="color: var(--accent-10); text-decoration: underline">Github</a>.
         <br/>
     </p>
 
-    <h1>
+    <h2>
         Limitations
-    </h1>
+    </h2>
     <p>
         The maximum length of an expression is about 6000 elements, so extremely big models might give errors when compiling
         if they are too big.

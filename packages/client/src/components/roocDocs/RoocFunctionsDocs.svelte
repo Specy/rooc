@@ -90,9 +90,9 @@
         </Card>
     {/each}
 </Column>
-<h1>
+<h2>
     Execution pipes
-</h1>
+</h2>
 <Column gap="0.5rem">
     <Column gap="0.4rem" style="margin-bottom: 1rem;">
         Other than the model, you can define an execution pipeline that you can customise to do what you need.
