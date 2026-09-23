@@ -164,8 +164,31 @@ costanti proprie quando i costrutti predefiniti non bastano; e, soprattutto, un
 orientamento all'\emph{apprendimento} della modellazione e della risoluzione di
 problemi tramite la programmazione lineare. ROOC non compete dunque
 con gli strumenti citati sul terreno della generalità o delle prestazioni, ma
-occupa lo spazio, meno presidiato, di uno strumento pensato prima di tutto per
-imparare.
+occupa lo spazio, meno presidiato, di uno strumento pensato per imparare.
+
+Esiste poi un secondo spazio poco presidiato, quello dell'ecosistema di Rust, in
+cui il panorama è più ristretto. La libreria di modellazione più diffusa è
+\textbf{good\_lp},\footnote{\url{https://crates.io/crates/good_lp}} che offre
+un'interfaccia comoda verso numerosi solver ma rappresenta ogni espressione come
+combinazione affine delle variabili, non ammette operatori logici né funzioni
+come minimo, massimo o valore assoluto, che l'utente deve quindi linearizzare a
+mano. ROOC non si pone in alternativa a \texttt{good\_lp}, che anzi impiega per
+accedere ai solver nativi, ma si colloca a un livello di astrazione superiore.
+La più recente \textbf{oximo}\footnote{\url{https://oximo.dev}} ammette anche
+espressioni non lineari, la cui disponibilità dipende dal solver scelto, ma non
+prevede riformulazioni automatiche né operatori logici.
+\textbf{pldag},\footnote{\url{https://crates.io/crates/pldag}}
+infine, traduce formule logiche su variabili discrete in un sistema di
+disuguaglianze lineari da affidare a un solver esterno, ma è pensata per
+rappresentare vincoli più che per ottimizzare: non prevede variabili continue né
+riformula minimo, massimo o valore assoluto. Al momento della scrittura, dunque,
+nessuno strumento di modellazione dell'ecosistema Rust combina vincoli logici su
+modelli misti con la linearizzazione automatica di operatori logici, minimo,
+massimo e valore assoluto. Gli strumenti descritti in precedenza, d'altra parte,
+non possono colmare questa lacuna dato che richiedono un runtime esterno, come
+l'interprete Python o l'eseguibile di AMPL, oppure librerie native precompilate,
+e non possono quindi essere incorporati in un'applicazione Rust e compilati
+insieme a essa per qualunque target, WebAssembly compreso.
 
 \section{Cenni di teoria dei linguaggi e dei compilatori}
 \label{sec:teoria-compilatori}
@@ -215,6 +238,10 @@ alto livello, indipendente dal solver, con alcune scelte progettuali distintive:
   \item un'architettura a compilatore con pipeline esplicita e
         \emph{solver-indipendente}, sulla scia dell'approccio di MiniZinc, ma
         orientata alla programmazione lineare intera;
+  \item un motore \emph{pure Rust}, solver predefiniti compresi, utilizzabile
+        come libreria sia attraverso il linguaggio sia attraverso una
+        \emph{fluent API}, che porta nell'ecosistema Rust i vincoli logici nei
+        modelli misti e la loro linearizzazione automatica;
   \item l'esecuzione interamente lato client tramite la compilazione in
         WebAssembly~\cite{webassembly}, che elimina la necessità di
         un'infrastruttura server e rende lo strumento immediatamente

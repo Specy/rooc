@@ -22,8 +22,11 @@ forma standard, e la cui architettura a \emph{pipe}
 (Capitolo~\ref{cap:architettura}) rende ogni fase componibile e ispezionabile. È
 stato esteso il solver \texttt{microlp}, a partire da un crate esistente
 limitato al simplesso, fino a coprire la programmazione lineare intera mista
-(Capitolo~\ref{cap:solver}). Infine, il motore è stato reso disponibile come
-libreria riutilizzabile e come piattaforma web didattica
+(Capitolo~\ref{cap:solver}). Infine, il motore, pure Rust insieme ai suoi
+solver predefiniti, è stato reso disponibile come libreria riutilizzabile, anche
+attraverso una \emph{fluent API} che porta nell'ecosistema Rust i vincoli logici
+nei modelli misti e la loro linearizzazione automatica, e come piattaforma web
+didattica
 (Capitolo~\ref{cap:piattaforma}).
 
 \section{Limitazioni}

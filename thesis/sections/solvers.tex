@@ -65,7 +65,11 @@ solo metodo del simplesso, limitato a variabili continue. Nell'ambito di questo
 lavoro il crate è stato ripreso e mantenuto, ed esteso con il supporto a variabili
 \emph{intere} e \emph{binarie}: da risolutore di sola programmazione lineare è
 diventato così un risolutore di programmazione lineare intera mista (MILP). Questa
-estensione costituisce uno dei contributi originali della tesi. Il crate ha
+estensione costituisce uno dei contributi originali della tesi. La scelta di
+estendere un solver \emph{pure Rust}, anziché affidarsi a risolutori nativi,
+risponde alla stessa motivazione di ROOC (Sezione~\ref{sec:contesto}) dato che
+\texttt{microlp} si compila insieme al resto del motore per qualunque target, ed
+è ciò che permette di risolvere modelli interi anche nel browser. Il crate ha
 peraltro una diffusione che va oltre questo progetto e sta raccogliendo
 l'interesse della comunità. È sviluppato come progetto \emph{open source} su
 GitHub\footnote{\url{https://github.com/Specy/microlp}} ed è pubblicato su

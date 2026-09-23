@@ -29,8 +29,8 @@
 \definecolor{linkyellow}{rgb}{0.8, 0.55, 0.0}
 
 \hypersetup{
-% 			hyperfootnotes=true,			
-% 			bookmarks=true,			
+% 			hyperfootnotes=true,
+% 			bookmarks=true,
 			colorlinks=true,
 			linkcolor=linkyellow,
                         linktoc=page,
@@ -39,7 +39,7 @@
 			urlcolor=blue,
 			pdftitle={ROOC: linguaggio ed ambiente integrato per la modellazione e soluzione di problemi di ottimizzazione lineare},
 			pdfauthor={Enrico Menichelli},
-			pdfkeywords={ottimizzazione, linguaggio di modellazione, compilatori, programmazione lineare, MILP, simplesso, WebAssembly, Rust}
+			pdfkeywords={ottimizzazione, linguaggio di modellazione, compilatori, programmazione lineare, MILP, simplesso, WebAssembly, Rust, fluent API}
  }
 
 % \usepackage[utf8]{inputenc}
@@ -61,7 +61,7 @@
 % show code
 \usepackage{inconsolata}
 \usepackage{listings}
-% 
+%
 
 \graphicspath{{./images/}{./imgs/}}
 \pgfplotsset{compat=1.14}
@@ -177,7 +177,7 @@
 \coadvisor{Prof. Stefano Smriglio}
 \authoremail{specy.dev@gmail.com}
 % \examdate{22 September 2015}
-% \examiner{Prof. ...} \examiner{Prof. ...} \examiner{Prof. ...}  \examiner{Prof. ...}  \examiner{Prof. ...} \examiner{Prof. ...}  \examiner{Prof. ...} 
+% \examiner{Prof. ...} \examiner{Prof. ...} \examiner{Prof. ...}  \examiner{Prof. ...}  \examiner{Prof. ...} \examiner{Prof. ...}  \examiner{Prof. ...}
 
 \begin{document}
 
@@ -191,7 +191,10 @@ in ambito industriale, logistico ed economico, ma tra la formulazione di un
 problema e la sua risoluzione si colloca la \emph{modellazione}: la traduzione del
 problema in un modello matematico trattabile da un risolutore. Gli strumenti
 esistenti per questa attività sono spesso commerciali, legati a un linguaggio di
-programmazione ospite o poco orientati all'apprendimento.
+programmazione ospite o poco orientati all'apprendimento. Nell'ecosistema del
+linguaggio Rust, inoltre, nessuno di essi consente di esprimere vincoli logici
+in modelli di programmazione lineare intera mista, linearizzandoli
+automaticamente.
 
 Questa tesi presenta ROOC, un linguaggio dichiarativo per la modellazione di
 problemi di ottimizzazione lineare e l'ambiente che lo accompagna. ROOC adotta una

@@ -5,8 +5,112 @@
 
 I capitoli precedenti hanno descritto il motore di ROOC: il linguaggio, il
 compilatore e i solver. Questo capitolo mostra come tale motore, scritto in Rust,
-venga reso disponibile come libreria riutilizzabile e, soprattutto, come
-piattaforma web interattiva con finalità didattiche. 
+venga reso disponibile come libreria riutilizzabile, in Rust e in TypeScript, e
+come piattaforma web interattiva con finalità didattiche.
+
+\section{La libreria Rust e la fluent API}
+\label{sec:fluent-api}
+
+Il motore di ROOC è pubblicato come \emph{crate} Rust e può essere incorporato in
+un'applicazione come semplice dipendenza. Con i solver predefiniti,
+\texttt{microlp} e Clarabel, è interamente \emph{pure Rust}: non richiede
+librerie native né runtime esterni, e si compila quindi insieme all'applicazione
+per qualunque target supportato dal compilatore Rust. Tramite
+\texttt{good\_lp} sono inoltre disponibili, come funzionalità opzionali, solver
+nativi quali HiGHS, CBC e SCIP, che però non sono pure Rust e non possono essere
+compilati in WebAssembly.
+
+Un modello può essere fornito alla libreria in due modi. Il primo è il
+linguaggio testuale descritto nei capitoli precedenti, compilato attraverso la
+pipeline di \emph{pipe} (Capitolo~\ref{cap:architettura}). Il secondo è una
+\emph{fluent API}~\cite{fowler2005}, cioè un'interfaccia in cui il modello si
+costruisce concatenando chiamate di metodo, in una forma che si legge quasi come
+la sua formulazione matematica. È pensata per i casi in cui il modello nasce
+all'interno di un programma Rust, a partire da dati che il programma stesso
+produce o legge.
+
+Il punto di partenza è il \texttt{ModelBuilder}. Le variabili si dichiarano con
+la macro \texttt{vars!}, oppure con il metodo \texttt{add\_var} quando il nome o
+il dominio vanno calcolati, e ciascuna dichiarazione restituisce un riferimento
+di tipo \texttt{Var}. Sui riferimenti sono sovraccaricati gli operatori
+aritmetici e quelli logici (\texttt{\&}, \texttt{|}, \texttt{\^{}} e
+\texttt{!}), e la libreria offre funzioni analoghe alle \emph{block function}
+del linguaggio: \texttt{sum}, \texttt{min}, \texttt{max}, \texttt{abs},
+\texttt{all} e \texttt{any}. I vincoli si scrivono con la macro \texttt{constraint!}, che
+consente la notazione \texttt{a + b <= c} e le implicazioni \texttt{a -> b}: in
+Rust gli operatori di confronto restituiscono un valore booleano e l'operatore
+\texttt{->} non esiste, per cui senza la macro un vincolo non potrebbe essere
+scritto in questa forma. Infine, i metodi \texttt{with} e \texttt{with\_all}
+aggiungono i vincoli, \texttt{maximize} e \texttt{minimize} fissano l'obiettivo e
+\texttt{solve\_with} risolve il modello con il solver indicato.
+
+Il Listato~\ref{lst:produzione-fluent} mostra un modello che combina vincoli
+aritmetici e logici. Uno stabilimento deve decidere quali di quattro prodotti
+avviare, con le variabili binarie \texttt{y}, e in quale quantità produrli, con
+le variabili continue \texttt{x}, massimizzando il ricavo al netto dei costi di
+attrezzaggio. La materia prima disponibile è limitata, e ogni prodotto avviato va
+realizzato in un lotto compreso tra un minimo e un massimo, mentre un prodotto
+non avviato non può essere prodotto. A questi vincoli aritmetici se ne
+aggiungono tre logici: il prodotto $0$ può essere avviato soltanto insieme al
+prodotto $2$, i prodotti $1$ e $3$ non possono essere avviati insieme, e avviare
+insieme i prodotti $0$ e $1$ fa risparmiare uno sconto \texttt{b}
+sull'attrezzaggio.
+
+I dati dell'istanza sono normali variabili Rust, e le famiglie di vincoli, che
+nel linguaggio si scriverebbero con la clausola \texttt{for}, diventano iteratori
+passati a \texttt{with\_all}. I vincoli logici si scrivono invece direttamente,
+con gli operatori \texttt{->}, \texttt{!} e \texttt{\&}; lo sconto
+nell'obiettivo, \texttt{b * (y[0] \& y[1])}, usa una congiunzione come valore
+numerico, che la linearizzazione rappresenta con una variabile ausiliaria
+(Sezione~\ref{sec:linearizzazione-logica}).
+
+\begin{lstlisting}[language=rust, caption={Un modello di produzione con vincoli aritmetici e logici, costruito con la fluent API.}, label={lst:produzione-fluent}]
+use rooc::builder::sum;
+use rooc::{constraint, vars, Microlp, ModelBuilder, Var, VariableType};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // dati dell'istanza
+    let r = [7.0, 5.0, 3.0, 6.0];     // ricavo per pezzo
+    let m = [2.0, 1.0, 2.0, 3.0];     // materia prima per pezzo
+    let k = [10.0, 6.0, 5.0, 5.0];    // costo di attrezzaggio
+    let qmin = [2.0, 2.0, 2.0, 2.0];  // lotto minimo
+    let qmax = [6.0, 5.0, 4.0, 5.0];  // lotto massimo
+    let (mmax, b, n) = (13.0, 4.0, r.len());
+
+    let mut model = ModelBuilder::new();
+    let x: Vec<Var> = (0..n)
+        .map(|i| model.add_var(format!("x_{i}"),
+            VariableType::NonNegativeReal(0.0, qmax[i])))
+        .collect();
+    vars! { model => y[n]: bool; };
+
+    let solution = model
+        .maximize(sum((0..n).map(|i| r[i] * x[i] - k[i] * y[i]))
+            + b * (y[0] & y[1]))
+        .with(constraint!(materiale:
+            sum((0..n).map(|i| m[i] * x[i])) <= mmax))
+        .with_all((0..n).map(|i| constraint!(x[i] <= qmax[i] * y[i])))
+        .with_all((0..n).map(|i| constraint!(x[i] >= qmin[i] * y[i])))
+        .with(constraint!(accessorio: y[0] -> y[2]))
+        .with(constraint!(stampo: !(y[1] & y[3])))
+        .solve_with(Microlp::new())?
+        .into_solution()?;
+
+    println!("ottimo = {}", solution.value());
+    Ok(())
+}
+\end{lstlisting}
+
+Il \texttt{ModelBuilder} non ha una pipeline propria: al momento della
+risoluzione produce un \texttt{Model}, la stessa rappresentazione che il
+linguaggio testuale ottiene dopo l'analisi semantica, e da lì segue il percorso
+consueto della linearizzazione e del solver. Per questo tutte le riformulazioni
+del Capitolo~\ref{cap:linearizzazione}, dai vincoli logici a minimo, massimo e
+valore assoluto, sono disponibili anche a chi costruisce il modello nel codice.
+Nell'istanza del Listato~\ref{lst:produzione-fluent} l'ottimo vale $28$ e si
+ottiene avviando i prodotti $0$, $1$ e $2$, con quantità $2$, $5$ e $2$: il
+prodotto $2$ viene avviato al solo lotto minimo perché lo richiede il prodotto
+$0$, e la materia prima è utilizzata per intero.
 
 \section{Compilazione in WebAssembly e la libreria TypeScript}
 \label{sec:wasm}
@@ -20,7 +124,10 @@ server.
 
 Sopra il modulo WebAssembly è costruita la libreria TypeScript
 \texttt{@specy/rooc}, che ne espone le funzionalità con un'interfaccia tipizzata.
-Attraverso di essa è possibile analizzare e compilare un modello, ottenerne la
+La libreria distribuisce ROOC in forma precompilata, così che possa essere usato
+direttamente da TypeScript e JavaScript senza la toolchain di Rust, e mette a
+disposizione anche una propria fluent API, analoga a quella della
+Sezione~\ref{sec:fluent-api}. Attraverso la libreria è possibile analizzare e compilare un modello, ottenerne la
 versione lineare o la resa in LaTeX, comporre ed eseguire le pipe
 (Capitolo~\ref{cap:architettura}) e registrare funzioni definite dall'utente. Il
 Listato~\ref{lst:tslib} mostra un esempio completo: si registra una funzione

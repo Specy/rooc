@@ -21,11 +21,27 @@ di trattare. Questa traduzione richiede competenze specialistiche e strumenti
 adeguati, e gli ambienti esistenti, pur potenti, sono spesso commerciali, legati
 a un linguaggio di programmazione ospite o poco orientati all'apprendimento.
 
+A queste considerazioni se ne aggiunge una legata all'ecosistema di
+\emph{Rust}~\cite{rust2019}, un linguaggio in crescita, da diversi anni il più
+apprezzato dagli sviluppatori secondo il sondaggio annuale di Stack
+Overflow~\cite{sosurvey2025}. Uno dei suoi punti di forza è la portabilità, dato che
+lo stesso sorgente può essere compilato per molte piattaforme diverse, compreso il
+browser tramite WebAssembly. Perché un'applicazione ne benefici, però, ogni sua
+dipendenza deve essere \emph{pure Rust}, cioè scritta interamente in Rust e
+priva di dipendenze native. Gli strumenti di modellazione più diffusi non
+soddisfano questo requisito, perché richiedono un runtime esterno, come
+l'interprete Python per Pyomo o l'eseguibile di AMPL, oppure librerie native
+precompilate, come nel caso di Gurobi. D'altra parte, al momento della
+scrittura nessuno degli strumenti di modellazione nati nell'ecosistema Rust
+offre vincoli logici su modelli misti né la loro linearizzazione automatica
+(Sezione~\ref{sec:stato-arte}).
+
 \section{Il problema e l'idea di ROOC}
 \label{sec:idea}
 
-ROOC nasce per rendere più accessibile questa attività di
-modellazione.\footnote{Il codice sorgente del progetto è disponibile
+ROOC nasce per rendere più accessibile l'attività di
+modellazione e colmare questa lacuna dell'ecosistema
+Rust.\footnote{Il codice sorgente del progetto è disponibile
 pubblicamente all'indirizzo \url{https://github.com/Specy/rooc}.} È un
 linguaggio dichiarativo, con una notazione vicina a quella matematica, che
 consente di descrivere un modello di ottimizzazione separandone la struttura dai
@@ -39,6 +55,13 @@ dell'ottimizzazione, ottenendo uno strumento che non solo risolve i modelli, ma
 ne rende ispezionabile ogni fase intermedia. Questa trasparenza, unita
 all'esecuzione interamente nel browser, conferisce a ROOC anche una valenza
 didattica.
+
+Il motore è inoltre pensato per essere incorporato in altre applicazioni. È
+\emph{pure Rust}, solver predefiniti compresi, e oltre al linguaggio testuale
+offre una \emph{fluent API}, con cui un modello si costruisce direttamente nel
+codice Rust. Può quindi essere compilato per qualunque target supportato dal
+compilatore Rust, e la piattaforma web, eseguita interamente nel browser, ne è
+una dimostrazione.
 
 \section{Obiettivi e contributi}
 \label{sec:contributi}
@@ -60,6 +83,9 @@ sono:
         crate archiviato \texttt{minilp} e ampliato dal solo simplesso al
         supporto delle variabili intere e binarie, fino a coprire la
         programmazione lineare intera mista (Capitolo~\ref{cap:solver});
-  \item la distribuzione del motore come libreria riutilizzabile e come
+  \item la distribuzione del motore, pure Rust insieme ai suoi solver
+        predefiniti, come libreria Rust, che accanto al
+        linguaggio offre una \emph{fluent API} per costruire i modelli
+        direttamente nel codice, come pacchetto TypeScript precompilato e come
         piattaforma web a fini didattici (Capitolo~\ref{cap:piattaforma}).
 \end{itemize}
