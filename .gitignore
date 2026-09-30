@@ -45,3 +45,8 @@ Cargo.lock
 
 # Local isolated development worktrees
 /.worktrees/
+/thesis/*-frn.*
+/thesis/**/*.acn
+/thesis/**/*.ist
+/thesis/**/*.nlo
+/thesis/**/*-eps-converted-to.pdf

@@ -225,7 +225,7 @@ valore assoluto e accetta esattamente una espressione, come in
 max{ x_1, x_2, x_3 }
 \end{lstlisting}
 
-La differenza è dunque sostanziale: nella forma con scope il numero di termini
+Nella forma con scope il numero di termini
 aggregati dipende dalla cardinalità degli iteratori e non è noto staticamente,
 mentre nella forma senza scope i termini sono quelli esplicitamente elencati.
 Per questo motivo le aggregazioni \texttt{sum} e \texttt{prod}, che hanno senso
@@ -244,10 +244,7 @@ valutati nel contesto di iterazione e concatenati a formare il nome finale della
 variabile; questo meccanismo è descritto in dettaglio nel
 Capitolo~\ref{cap:semantica}. Un indice identificatore privo di valore nel
 contesto viene mantenuto letteralmente: \texttt{x\_A} indica la variabile di
-nome \texttt{x\_A} anche fuori da un'iterazione, così i modelli prodotti dal
-compilatore restano a loro volta sorgenti valide. La forma \emph{escaped}
-\texttt{\textbackslash x\_y} permette di trattare letteralmente un nome
-contenente l'underscore, disattivando l'espansione automatica.
+nome \texttt{x\_A} anche fuori da un'iterazione.
 
 \paragraph{Destructuring.}
 Il \emph{destructuring} è la decomposizione di un valore strutturato, come una
@@ -345,8 +342,7 @@ dominio tramite la parola chiave \texttt{as}. I domini disponibili sono:
         estremi, che in questo caso sono obbligatori.
 \end{itemize}
 
-Gli estremi possono essere espressioni, anche dipendenti da costanti o da indici
-di iterazione. Una dichiarazione come \texttt{x\_i as
+Gli estremi possono essere espressioni, una dichiarazione come \texttt{x\_i as
 NonNegativeReal(Fmin[i], Fmax[i]) for i in 0..n} associa così a ciascuna
 variabile \texttt{x\_i} i propri estremi, letti dagli array \texttt{Fmin} e
 \texttt{Fmax}.
@@ -371,8 +367,7 @@ notazione a quella usuale della teoria dei grafi.
 \paragraph{Funzioni definite dall'utente.}
 Oltre alla libreria standard, l'utente può estendere il linguaggio con proprie
 funzioni e costanti. Questa possibilità è offerta soprattutto in ambiente web
-(Capitolo~\ref{cap:piattaforma}), dove le funzioni si dichiarano in TypeScript
-tramite l'API \texttt{makeRoocFunction}, specificandone il nome, i tipi dei
+(Capitolo~\ref{cap:piattaforma}), dove le funzioni si dichiarano in TypeScript, specificandone il nome, i tipi dei
 parametri, il tipo restituito e l'implementazione. Le funzioni così registrate
 diventano disponibili nelle espressioni del modello allo stesso modo di quelle
 predefinite, e partecipano alla verifica statica dei tipi. Il meccanismo che

@@ -6,9 +6,8 @@
 Giunti in fondo alla pipeline di compilazione, il modello è pronto per essere
 risolto. Questo capitolo descrive le tecniche di risoluzione adottate da ROOC:
 il simplesso a due fasi, implementato direttamente nel progetto a fini
-didattici; il solver \texttt{microlp}, contributo originale di questo lavoro, che
-estende il simplesso al caso intero; e i backend esterni, selezionati
-automaticamente in base alla natura del modello.
+didattici; il solver \texttt{microlp}, contributo originale di questo lavoro e
+motore predefinito; infine i backend esterni che possono essergli affiancati.
 
 \section{Concetti teorici}
 \label{sec:solver-teoria}
@@ -92,26 +91,26 @@ superiore. Il valore del rilassamento fornisce inoltre una \emph{limitazione}
 (\emph{bound}) che consente di potare i rami che non possono contenere soluzioni
 migliori di quella già trovata.
 
-All'interno di ROOC, \texttt{microlp} svolge un duplice ruolo: risolve i modelli
-puramente continui, come alternativa al backend esterno descritto più avanti, e
-soprattutto è il motore impiegato per tutti i modelli che contengono variabili
-intere o miste. La risoluzione avviene costruendo un problema nel formato del
+All'interno di ROOC, \texttt{microlp} è il solver predefinito: tratta tutti i
+domini previsti dal linguaggio, dai modelli puramente continui a quelli con
+variabili intere o miste, ed è quindi quello impiegato quando l'utente non ne
+indica uno esplicitamente. La risoluzione avviene costruendo un problema nel formato del
 solver: a ogni variabile del modello viene associata una variabile del solver,
 con il proprio dominio (reale, intero o binario) e i propri estremi; vengono
 quindi aggiunti i vincoli, tradotti nei rispettivi operatori di confronto, e
 infine si richiede la soluzione, da cui si estraggono i valori delle variabili e
 il valore ottimo.
 
-\section{Backend esterni e \emph{auto-solver}}
+\section{Backend esterni}
 \label{sec:backend-esterni}
 
-Oltre al solver proprio, ROOC integra alcuni backend esterni, ciascuno
-specializzato per una particolare classe di problemi. Per i modelli a sole
-variabili continue è disponibile il solver \emph{Clarabel}, utilizzato tramite la
-libreria \texttt{good\_lp}. I modelli con variabili intere o binarie vengono invece
-risolti tramite il solver integrato \texttt{microlp}.
-
-\paragraph{Selezione automatica del solver.}
-La presenza di più solver, ciascuno adatto a un diverso tipo di modello, è
-gestita in modo trasparente da un \emph{auto-solver}, che ispeziona il dominio
-delle variabili e instrada il problema verso il risolutore appropriato.
+Oltre a \texttt{microlp}, ROOC può affidare la risoluzione a numerosi solver
+esterni, integrati attraverso la libreria \texttt{good\_lp}. Tutti ricevono lo
+stesso \texttt{LinearModel} e restituiscono la soluzione nello stesso formato,
+per cui il modello non dipende dal solver con cui viene risolto. Solo due sono
+abilitati per impostazione predefinita, perché scritti interamente in Rust e
+quindi compilabili anche in WebAssembly: \texttt{microlp} e \emph{Clarabel}.
+Gli altri sono funzionalità opzionali del crate, che richiedono librerie native o programmi
+installati sul sistema: HiGHS, CBC, SCIP, lp\_solve e CPLEX. 
+Questi trattano sia problemi continui sia interi misti. La piattaforma web offre inoltre HiGHS
+tramite una sua compilazione in WebAssembly indipendente dal motore.

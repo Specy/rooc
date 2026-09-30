@@ -1,0 +1,115 @@
+\usepackage[T1]{fontenc}		% Codifica dei font; T1 codifica di output dell'italiano e di lingue occidentali
+\usepackage[utf8]{inputenc}		% Codifica degli input; abilita l'utilizzo di caratteri accentati
+\usepackage[italian]{babel}		% Set the languages; the last one is the main language
+\usepackage{geometry}			% Allow to change the margin
+\usepackage{setspace}			% Allow to change the interline with \begin{onehalfspaceng} ecc.
+\usepackage{fancyhdr}			% Fancy style for page layout
+\usepackage{afterpage} 			% Allow to load blank pages with the command '\afterpage{\null\thispagestyle{empty}\clearpage}' 
+\usepackage{hyperref}			% Crea collegamenti ipertestuali rendendo cliccabili i riferimenti
+\usepackage{url}
+\usepackage{color}			% Allow to use colors
+\usepackage{xcolor}			% manage colors
+\usepackage{enumerate}			% Numbered lists
+\usepackage{enumitem}			% Allow to manage the style of the list
+\usepackage{graphicx}			% Images
+\usepackage{epstopdf}			% allows to convert eps images to pdf for use with pdflatex
+\usepackage{pstool}			% Allows to use psfrag with pdflatex (no latex compiler needed)
+\usepackage{psfrag}
+%\usepackage[normal]{subfigure}		% manage subfigures
+\usepackage{subfig}		% manage subfigures
+\usepackage{array}			% Tables
+\usepackage{tabularx}			% allow to set the width of the whole table
+\usepackage[bottom]{footmisc}		% To attach footnote at the end of the page
+\usepackage{booktabs}			% is a must for professional-looking layout
+\usepackage{longtable}			% is very popular for multi-page tables
+\usepackage{caption}			% Captions
+\usepackage{float}			% Manage float objects (image, table, ecc.)
+\usepackage{rotating}			% permette di ruotare immagini, tabelle, ecc. di 90° o di 270°
+\usepackage{rotfloat}			% costruisce un ponte tra i pacchetti float e rotating
+\usepackage{amsmath} 			% Equations
+\usepackage{amssymb}			% Mathematical Symbols
+\usepackage{cancel}                     % Simplification Cancellation
+\usepackage{mleftright}
+\usepackage{listings}                   % Codes
+\definecolor{lstgreen}{rgb}{0,0.6,0}
+\definecolor{lstgray}{rgb}{0.5,0.5,0.5}
+\definecolor{lstmauve}{rgb}{0.58,0,0.82}
+\lstset{ %
+  backgroundcolor=\color{white},   % choose the background color
+  basicstyle=\footnotesize,        % size of fonts used for the code
+  breaklines=true,                 % automatic line breaking only at whitespace
+  captionpos=b,                    % sets the caption-position to bottom
+  commentstyle=\color{lstgreen},    % comment style
+  escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
+  keywordstyle=\color{blue},       % keyword style
+  stringstyle=\color{lstmauve},     % string literal style
+}
+%\usepackage{vector}  			% Allows "\bvec{}" and "\buvec{}" for "blackboard" style bold vectors in maths
+\usepackage[swapnames,norules,nouppercase]{frontespizio}
+%\usepackage[intoc]{nomencl}	% disabled: loads KOMA tocbasic, which errors with caption on TeX Live 2025
+\usepackage[acronym,toc,nomain,nopostdot,nonumberlist]{glossaries}
+\usepackage[square, numbers, comma, sort&compress]{natbib}
+\usepackage{verbatim}                   % Needed for the "comment" environment to make LaTeX comments
+\usepackage{wrapfig}                 % Per inserire le figure contornate da testo
+\usepackage{blindtext}
+\geometry{a4paper,top=2.5cm,bottom=2.5cm,left=2cm,right=2cm,heightrounded,bindingoffset=5mm,headheight=13.6pt}
+% -------------------------------------- Line-spacing --------------------------------------- %
+\linespread{1.2} 
+%\linespread{1.5} 
+%\linespread{2} 
+%\raggedbottom % disattiva lo 'stiracchiamento' del testo; va a favore di spazio bianco a fondo pagina
+% ---------------------------------------- Numeration --------------------------------------- %
+%\setcounter{secnumdepth}{3} % set the enumeration of the sections
+%\setcounter{tocdepth}{3}    % set the enumeration of the sections in the table of contents
+%--------------------------------------- Page layout -----------------------------------------%
+%\pagestyle{fancy}                       % definisce lo stile di pagina aprendo la strada al pacchetto fancyhdr
+%\renewcommand{\chaptermark}[1]{\markright{\chaptername\ \thechapter.\ #1}{}}    % ridefinisce la macro \rightmark per i capitoli
+%\renewcommand{\sectionmark}[1]{\markright{\sectionname\ \thesection.\ #1}}      % ridefinisce la macro \rightmark per le sezioni
+%\renewcommand{\sectionmark}[1]{\markright{\thesection.\ #1}}
+%\lhead{Giacomo Della Posta}             % in alto a sinistra
+%\chead{}                                % in alto al centro
+%\rhead{\slshape \rightmark}             % in alto a destra (\rightmark contiene ...)
+%\lfoot{Giacomo Della Posta}             % in basso a sinistra
+%\cfoot{\thepage}                        % in basso al centro (\thepage per mettere il numero di pagina)
+%\rfoot{}                                % in basso a destra
+%\renewcommand{\headrulewidth}{0.4pt}    % spessore della linea di separazione in alto (0 per eliminare la linea)
+%\renewcommand{\footrulewidth}{0.4pt}    % spessore della linea di separazione in basso (0 per eliminare la linea)
+\fancypagestyle{plain}{%                                        % modifica dello stile predefinito plain
+                        \fancyhf{}                              % cancella tutti i campi di  intestazione e pie di pagina
+                        \fancyfoot[R]{\thepage}                 % mette al centro il numero di pagina
+                        \renewcommand{\headrulewidth}{0pt}      % spessore della linea di separazione in alto (0 per eliminare la linea)
+                        \renewcommand{\footrulewidth}{0.4pt}    % spessore della linea di separazione in basso (0 per eliminare la linea)
+                        }                                       % modifica dello stile predefinito plain
+\captionsetup{font=small,labelfont=bf,textfont=normalfont,tableposition=bottom,figureposition=bottom}
+%\captionsetup{font=small,labelfont=bf,textfont=bf,tableposition=bottom,figureposition=bottom}
+% ---------------------------------------- Itemize ------------------------------------------ %
+%\setlist[itemize]{noitemsep, topsep=0pt} %Se non vuoi i pallini degli elenchi vuoti, allora commenta queste linee      
+%\renewcommand{\labelitemi}{$\circ$}	% items i with empty bullets
+%\renewcommand{\labelitemii}{$\bullet$}	% items ii with black bullets
+\hypersetup{colorlinks=true, linkcolor=black, citecolor=black, filecolor=black, urlcolor=black}
+\definecolor{red-univaq}{RGB}{130,36,51} % example \definecolor{name}{model}{color-spec}
+\definecolor{univaq}{RGB}{242,195,80} % example \definecolor{name}{model}{color-spec}
+%\makenomenclature % Generate the nomenclature (nomencl disabled above)
+\makeglossaries % Generate the glossary
+%\lstset{language=[90]Fortran,
+%        inputpath=/home/luca/PhD/Thesis/Code,
+%        basicstyle=\small\ttfamily, 
+%        xleftmargin=0cm,
+%        fontadjust=true,
+%        keepspaces=true,
+%        basewidth=0.5em,
+%        breakatwhitespace=false,           % sets if automatic breaks should only happen at whitespace
+%        breaklines=false,                  % sets automatic line breaking
+%        captionpos=b,                     % b=bottom
+%        backgroundcolor=\color{white},
+%        identifierstyle=\color{black},
+\bibliographystyle{abbrv} % abbrv --> [1], [2], ecc.
+%\bibliographystyle{unsrtnat} 
+% ---------------------------------------- Dedication ------------------------------------------ %
+\newenvironment{dedication}
+{
+  \phantom{.}
+  \vspace{13cm}
+  \begin{quote} \begin{flushright}}
+{\end{flushright} \end{quote}}
+\usepackage{calligra}

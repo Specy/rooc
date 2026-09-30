@@ -187,23 +187,63 @@ trattate in modo analogo con quattro disuguaglianze ciascuna, mentre lo
 \texttt{xor} su più di due operandi è ridotto a una catena di \texttt{xor}
 binari.
 
-Un vincolo scritto come sola espressione logica è un'asserzione: la formula
-deve risultare vera, ma questo non richiede necessariamente la reificazione
-della radice.
-Se gli operandi sono affini, l'asserzione viene tradotta direttamente: per
-$e_1 \land \dots \land e_k$ vero si impone $\sum_i e_i = k$, per la
-disgiunzione vera si impone $\sum_i e_i \ge 1$, e per $a \Rightarrow b$ si
-impone $a \le b$. Le forme negate sono ottenute in modo analogo.
+\paragraph{Asserzioni logiche.}
+Il caso più frequente, tuttavia, non è quello di un valore logico usato in
+un'espressione aritmetica, ma quello di un vincolo formato dalla sola formula,
+come \texttt{x\_u or x\_v}. Un vincolo di questo tipo è un'\emph{asserzione}: non
+chiede di calcolare il valore di verità della formula, ma soltanto di escludere
+le soluzioni che la rendono falsa. Reificare la radice, cioè introdurre una
+variabile pari al valore della formula e fissarla a $1$, sarebbe corretto ma
+inutilmente costoso: basta un insieme di vincoli le cui soluzioni ammissibili
+siano esattamente quelle che rendono vera la formula.
 
-Le formule annidate vengono invece visitate secondo il valore che devono
-certificare. Una congiunzione richiesta vera genera le condizioni sui singoli
-figli; una disgiunzione richiesta falsa procede nello stesso modo sui valori
-falsi. Nei casi disgiuntivi vengono introdotti soltanto \emph{testimoni}
-binari unidirezionali per i rami che possono certificare l'asserzione. Tali
-testimoni non sono mai usati come valori aritmetici e non devono quindi
-rappresentare l'intera formula in entrambe le direzioni. Per esempio, il
-vincolo di copertura $x_u \lor x_v$ diventa direttamente
-$x_u+x_v \ge 1$, senza una variabile \texttt{\$or\_N}.
+Il compilatore visita quindi la formula tenendo traccia del valore, vero o
+falso, che ciascuna sottoformula deve assumere. La negazione non genera vincoli:
+si limita a invertire il valore richiesto al proprio operando. Quando gli
+operandi sono variabili binarie o loro negazioni, l'asserzione si traduce in un
+unico vincolo lineare:
+
+\begin{itemize}
+  \item $e_1 \land \dots \land e_k$ vera: $\sum_i e_i = k$; falsa:
+        $\sum_i e_i \le k - 1$;
+  \item $e_1 \lor \dots \lor e_k$ vera: $\sum_i e_i \ge 1$; falsa:
+        $\sum_i e_i = 0$;
+  \item $a \Rightarrow b$ vera: $a \le b$; falsa: $a - b = 1$.
+\end{itemize}
+
+\noindent La doppia implicazione e la disgiunzione esclusiva si riducono
+analogamente a un'uguaglianza, $a = b$ oppure $a + b = 1$.
+
+Quando invece gli operandi sono a loro volta formule, si distinguono due casi.
+Nei casi \emph{congiuntivi} (congiunzione vera, disgiunzione falsa, implicazione
+falsa) l'asserzione equivale a più asserzioni indipendenti sui figli: ad esempio
+$(e_1 \lor e_2) \land e_3$ è vera se e solo se sono veri sia $e_1 \lor e_2$ sia
+$e_3$, e il compilatore prosegue ricorsivamente su ciascuno. Nei casi
+\emph{disgiuntivi} (disgiunzione vera, congiunzione falsa, implicazione vera)
+basta invece che \emph{almeno uno} dei figli assuma il valore richiesto, e
+l'asserzione non può essere spezzata. Per ogni figlio si introduce allora un
+\emph{testimone} $w_i$, una variabile binaria vincolata in un solo verso:
+$w_i = 1$ implica che il figlio assuma il valore richiesto, mentre $w_i = 0$ non
+impone nulla. L'asserzione diventa $\sum_i w_i \ge 1$. Se il figlio è una
+semplice variabile $e$, il testimone è $e$ stesso (o $1 - e$, se deve essere
+falsa) e non serve alcuna variabile nuova.
+
+Per esempio, l'asserzione $(x \land y) \lor z$ introduce un solo testimone $w$
+per la congiunzione e genera i vincoli
+\begin{equation}
+\label{eq:witness}
+w \le x, \qquad w \le y, \qquad w + z \ge 1.
+\end{equation}
+Se $z = 0$, l'ultimo vincolo impone $w = 1$ e quindi $x = y = 1$; se $z = 1$, $w$
+è libero e la congiunzione non è vincolata. Il verso opposto,
+$w \ge x + y - 1$, non serve: il testimone non compare mai nell'obiettivo né in
+un'espressione aritmetica, quindi il solver può sceglierne liberamente il valore,
+e basta che $w = 1$ sia possibile solo quando il ramo è davvero vero. La
+reificazione esatta della stessa formula richiederebbe invece due variabili
+ausiliarie, una per la congiunzione e una per la disgiunzione, e sette vincoli.
+Nel caso più comune, come il vincolo di copertura $x_u \lor x_v$, non serve
+alcun testimone: il vincolo diventa direttamente $x_u + x_v \ge 1$, senza una
+variabile \texttt{\$or\_N}.
 
 La reificazione esatta rimane invece necessaria quando il valore logico entra
 in un'espressione aritmetica: in quel caso la variabile ausiliaria coincide con

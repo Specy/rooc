@@ -11,7 +11,7 @@ un'astrazione componibile, la \emph{pipe}.
 \section{La pipeline multi-fase}
 \label{sec:pipeline}
 
-La compilazione di un modello ROOC non avviene in un unico passo, ma attraverso
+La compilazione di un modello ROOC avviene attraverso
 una successione di \emph{rappresentazioni intermedie}, ognuna delle quali
 raffina la precedente avvicinandola a una forma risolvibile. Ogni
 rappresentazione è un tipo di dato a sé stante: il codice sorgente
@@ -88,8 +88,7 @@ intermedie della Figura~\ref{fig:pipeline} (\texttt{String}, \texttt{Parser},
 \texttt{PreModel}, \texttt{Model}, \texttt{LinearModel},
 \texttt{StandardLinearModel}, \texttt{Tableau} e le varie soluzioni). A ciascuna
 variante è associato un identificatore di tipo (\texttt{PipeDataType}), che
-permette di sapere quale dato una pipe abbia ricevuto o prodotto senza ispezionarne
-il contenuto.
+permette di sapere quale dato una pipe abbia ricevuto.
 
 \paragraph{Il contesto di esecuzione.}
 Ogni pipe riceve, oltre al dato, un \texttt{PipeContext} condiviso, che mette a
@@ -129,8 +128,7 @@ producono direttamente una soluzione delegando a un solver
 \end{table}
 
 \paragraph{Esecuzione di una sequenza di pipe.}
-Una sequenza di pipe viene eseguita da un \texttt{PipeRunner}, che ne contiene un
-elenco e le applica in ordine. Il dato iniziale viene passato alla prima pipe, il
+Una sequenza di pipe viene eseguita da un \texttt{PipeRunner}, che le esegue sequenzialmente. Il dato iniziale viene passato alla prima pipe, il
 cui risultato è passato alla seconda, e così via. Un aspetto cruciale è che il
 \texttt{PipeRunner} non restituisce soltanto il risultato finale, ma
 l'\emph{intera successione} dei risultati intermedi: ogni rappresentazione
