@@ -3,10 +3,121 @@
 {\fontfamily{calligra}\selectfont
 {\Huge
 
-Some quote...
+A tutti gli studenti, con l'augurio che possano costruire strumenti migliori di quelli che hanno trovato.
 
 }
 }
 \end{dedication}
+
+% Easter egg: una tazza di te' in porcellana, per Tea.
+% Sfumature per ombre, riflessi e vapore (nero = trasparente, bianco = opaco).
+\pgfdeclarefading{teasoft}{\tikz{%
+  \fill[transparent] (0,0) rectangle (100bp,100bp);
+  \shade[inner color=transparent!0, outer color=transparent] (25bp,25bp) rectangle (75bp,75bp);}}
+\pgfdeclarefading{teasteam}{\tikz{%
+  \fill[transparent] (0,0) rectangle (100bp,100bp);
+  \shade[bottom color=transparent, top color=transparent!25] (0,25bp) rectangle (100bp,40bp);
+  \shade[bottom color=transparent!25, top color=transparent] (0,40bp) rectangle (100bp,75bp);}}
+\begin{tikzpicture}[remember picture, overlay,
+    glaze/.style={shade, left color=teaGlaze, right color=teaShade, middle color=white,
+      draw=teaEdge, line width=0.4pt}]
+  \definecolor{teaCobalt}{RGB}{28,60,140}
+  \definecolor{teaGlaze}{RGB}{218,225,235}
+  \definecolor{teaShade}{RGB}{172,186,206}
+  \definecolor{teaEdge}{RGB}{122,136,160}
+  \definecolor{teaAmberLight}{RGB}{226,160,82}
+  \definecolor{teaAmberDark}{RGB}{140,70,18}
+  \definecolor{teaSteam}{RGB}{170,176,188}
+  \def\teaBody{(-2.0,3.61) .. controls (-1.98,2.6) and (-1.85,1.95) .. (-1.55,1.55)
+    .. controls (-1.2,1.08) and (-0.6,0.91) .. (0,0.91)
+    .. controls (0.6,0.91) and (1.2,1.08) .. (1.55,1.55)
+    .. controls (1.85,1.95) and (1.98,2.6) .. (2.0,3.61)
+    arc[start angle=0, end angle=-180, x radius=2.0, y radius=0.54] -- cycle}
+  \def\teaHeart{(0,0) .. controls (-0.18,0.75) and (-1.5,1.0) .. (-1.5,2)
+    arc[start angle=180, end angle=0, radius=0.75]
+    arc[start angle=180, end angle=0, radius=0.75]
+    .. controls (1.5,1.0) and (0.18,0.75) .. (0,0) -- cycle}
+  \def\teaLeaf{(0,0) .. controls (0.07,0.06) and (0.17,0.05) .. (0.24,0)
+    .. controls (0.17,-0.05) and (0.07,-0.06) .. (0,0)}
+  \begin{scope}[shift={(current page.south)}, yshift=1.5cm, scale=0.85]
+    % ombra sotto il piattino
+    \fill[teaEdge, opacity=0.55, path fading=teasoft] (0.15,0.32) ellipse (3.6 and 0.42);
+    % piattino: piede, bordo, superficie e fasce dipinte
+    \path[shade, left color=teaGlaze, right color=teaShade, draw=teaEdge, line width=0.4pt]
+      (-1.45,0.54) -- (-1.45,0.46) arc[start angle=180, end angle=360, x radius=1.45, y radius=0.39]
+      -- (1.45,0.54) arc[start angle=0, end angle=180, x radius=1.45, y radius=0.39] -- cycle;
+    \path[glaze]
+      (-3.1,1.25) -- (-3.1,1.15) arc[start angle=180, end angle=360, x radius=3.1, y radius=1.0]
+      -- (3.1,1.25) arc[start angle=0, end angle=-180, x radius=3.1, y radius=0.84] -- cycle;
+    \path[shade, inner color=white, outer color=teaGlaze] (0,1.25) ellipse (3.1 and 0.84);
+    \draw[teaCobalt, line width=0.5pt] (0,1.22) ellipse (2.72 and 0.734);
+    \draw[teaShade!70, line width=0.4pt] (0,1.0) ellipse (1.3 and 0.351);
+    \draw[teaCobalt, line width=1.1pt] (0,1.25) ellipse (3.1 and 0.84);
+    \fill[teaEdge, opacity=0.45, path fading=teasoft] (0.4,1.02) ellipse (1.55 and 0.36);
+    % manico
+    \path[shade, top color=white, bottom color=teaShade, draw=teaEdge, line width=0.4pt, even odd rule]
+      (1.9,3.3) .. controls (2.5,3.45) and (2.95,3.25) .. (2.93,2.7)
+      .. controls (2.9,2.15) and (2.35,1.82) .. (1.65,1.68) -- (1.5,1.7) -- (1.5,3.3) -- cycle
+      (1.95,3.02) .. controls (2.4,3.12) and (2.65,2.98) .. (2.64,2.66)
+      .. controls (2.62,2.3) and (2.3,2.06) .. (1.8,1.98) -- (1.6,1.98) -- (1.6,3.02) -- cycle;
+    \draw[teaCobalt, line width=0.7pt]
+      (1.92,3.16) .. controls (2.45,3.29) and (2.8,3.12) .. (2.785,2.68)
+      .. controls (2.76,2.22) and (2.33,1.94) .. (1.72,1.83);
+    % piede e corpo della tazza
+    \path[glaze]
+      (-0.97,1.18) -- (-0.92,1.0) arc[start angle=180, end angle=360, x radius=0.92, y radius=0.25]
+      -- (0.97,1.18) arc[start angle=0, end angle=180, x radius=0.97, y radius=0.26] -- cycle;
+    \draw[teaCobalt, line width=0.8pt]
+      (-0.92,1.0) arc[start angle=180, end angle=360, x radius=0.92, y radius=0.25];
+    \path[glaze] \teaBody;
+    \begin{scope}
+      \clip \teaBody;
+      % fasce dipinte
+      \fill[teaCobalt]
+        (-2.0,3.43) arc[start angle=180, end angle=360, x radius=2.0, y radius=0.54]
+        -- (2.0,3.31) arc[start angle=0, end angle=-180, x radius=2.0, y radius=0.54] -- cycle;
+      \fill[teaCobalt]
+        (-1.75,1.85) arc[start angle=180, end angle=360, x radius=1.75, y radius=0.4725]
+        -- (1.75,1.80) arc[start angle=0, end angle=-180, x radius=1.75, y radius=0.4725] -- cycle;
+      % motivo dipinto: un cuore al centro, tralci con foglie e cuoricini
+      \begin{scope}[shift={(0,2.1)}, scale=1.15]
+        \foreach \s in {1,-1} {
+          \begin{scope}[xscale=\s]
+            \draw[teaCobalt, line width=0.5pt]
+              (-0.1,-0.06) .. controls (-0.45,-0.24) and (-0.8,-0.19) .. (-0.9,-0.02);
+            \fill[teaCobalt, shift={(-0.42,-0.17)}, rotate=205] \teaLeaf;
+            \fill[teaCobalt, shift={(-0.66,-0.16)}, rotate=140] \teaLeaf;
+            \fill[teaCobalt, shift={(-0.88,-0.055)}, rotate=30, scale=0.04] \teaHeart;
+            \foreach \x/\y in {-1.0/0.12, -1.02/-0.1}
+              \fill[teaCobalt, shift={(\x,\y)}, rotate=25, scale=0.022, shift={(0,-1.375)}] \teaHeart;
+          \end{scope}
+        }
+        \fill[teaCobalt, shift={(0,-0.22)}, scale=0.154] \teaHeart;
+      \end{scope}
+      % riflesso sulla porcellana
+      \fill[white, opacity=0.85, path fading=teasoft, rotate around={14:(-1.5,2.35)}]
+        (-1.5,2.35) ellipse (0.13 and 0.78);
+    \end{scope}
+    % interno, te' e orlo
+    \path[shade, left color=teaShade, right color=white] (0,3.61) ellipse (2.0 and 0.54);
+    \draw[teaCobalt, line width=0.5pt]
+      (-1.97,3.55) arc[start angle=180, end angle=0, x radius=1.97, y radius=0.532];
+    \begin{scope}
+      \clip (0,3.61) ellipse (2.0 and 0.54);
+      \path[shade, top color=teaAmberLight, bottom color=teaAmberDark] (0,3.39) ellipse (1.94 and 0.524);
+      \draw[teaAmberDark, opacity=0.6, line width=0.4pt]
+        (-1.94,3.39) arc[start angle=180, end angle=0, x radius=1.94, y radius=0.524];
+      \fill[white, opacity=0.7, path fading=teasoft, rotate around={-4:(-0.6,3.62)}]
+        (-0.6,3.62) ellipse (0.62 and 0.075);
+    \end{scope}
+    \draw[teaCobalt, line width=1.1pt] (0,3.61) ellipse (2.0 and 0.54);
+    % vapore: due fili sottili che si assottigliano e svaniscono verso l'alto
+    \foreach \x/\h/\p/\d in {-0.35/1.9/10/-0.12, 0.4/1.6/190/0.1}
+      \fill[teaSteam, path fading=teasteam]
+        plot[domain=0:1, samples=40, variable=\t] ({\x+0.15*sin(300*\t+\p)+\d*\t-0.034*(1-\t)}, {3.95+\h*\t})
+        -- plot[domain=1:0, samples=40, variable=\t] ({\x+0.15*sin(300*\t+\p)+\d*\t+0.034*(1-\t)}, {3.95+\h*\t})
+        -- cycle;
+  \end{scope}
+\end{tikzpicture}
 
 
