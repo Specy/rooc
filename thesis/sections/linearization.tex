@@ -99,9 +99,15 @@ quelli di tipo $\ge$,
 \textstyle\sum_i a_i x_i \le b \;\Longrightarrow\; \sum_i a_i x_i + s = b, \quad s \ge 0.
 \end{equation}
 
-Una variabile \emph{libera} $x$, che può assumere valori negativi, viene
+Una variabile \emph{libera} (priva di vincoli di segno e di estremi) viene
 sostituita dalla differenza di due variabili non negative, $x = x' - x''$ con
-$x', x'' \ge 0$. Infine un problema di massimizzazione viene ricondotto a uno di
+$x', x'' \ge 0$. Più in generale, qualunque variabile che possa assumere valori
+negativi non può comparire tal quale nella forma standard: se limitata inferiormente
+da una costante finita negativa ($x \ge l$ con $l < 0$), può essere ricondotta alla
+non negatività tramite una traslazione ($x' = x - l \ge 0$) oppure, in modo
+equivalente ed uniforme, trattata imponendo i limiti come vincoli espliciti e
+sostituendo la variabile con la differenza di due variabili non negative.
+Infine, un problema di massimizzazione viene ricondotto a uno di
 minimizzazione osservando che $\max\, c^\top x = -\min\, (-c^\top x)$.
 
 \section{Applicazione in ROOC: da \texttt{Model} a \texttt{LinearModel}}
@@ -270,13 +276,17 @@ diverso, descritto nel Capitolo~\ref{cap:solver}.
 La riduzione procede in quattro fasi. Anzitutto, per ogni variabile dotata di
 estremi finiti vengono aggiunti i vincoli espliciti che li impongono (un vincolo
 $\ge$ per il limite inferiore e un vincolo $\le$ per quello superiore). In
-secondo luogo, ogni variabile libera viene sostituita dalla differenza di due
-variabili non negative, riportando i relativi coefficienti nei vincoli e
-nell'obiettivo. In terzo luogo, ogni vincolo viene normalizzato a un'uguaglianza
-secondo la~\eqref{eq:slack}, aggiungendo una variabile di slack o di surplus a
-seconda del verso della disuguaglianza. Infine, se il problema è di
-massimizzazione, i coefficienti dell'obiettivo vengono negati e viene registrato
-un apposito segnale, così da ricondurlo a una minimizzazione.
+secondo luogo, ogni variabile non vincolata alla non negatività (ossia ogni
+variabile di tipo \texttt{Real}, sia essa illimitata o limitata da estremi che
+ammettono valori negativi) viene sostituita dalla differenza di due variabili
+non negative ($x = x' - x''$ con $x', x'' \ge 0$), riportando i relativi
+coefficienti sia nei vincoli del problema (inclusi i vincoli di delimitazione
+appena introdotti) sia nell'obiettivo. In terzo luogo, ogni vincolo viene
+normalizzato a un'uguaglianza secondo la~\eqref{eq:slack}, aggiungendo una
+variabile di slack o di surplus a seconda del verso della disuguaglianza.
+Infine, se il problema è di massimizzazione, i coefficienti dell'obiettivo
+vengono negati e viene registrato un apposito segnale, così da ricondurlo a una
+minimizzazione.
 
 \paragraph{Il modello in forma standard.}
 Il risultato è uno \texttt{StandardLinearModel},

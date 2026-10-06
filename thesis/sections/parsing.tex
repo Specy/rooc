@@ -157,8 +157,8 @@ enum PreExp {
 }
 \end{lstlisting}
 
-Essendo un albero, una \texttt{PreExp} può contenere altre \texttt{PreExp}: per
-esempio un'operazione binaria racchiude i due sotto-espressioni operandi. Le
+Essendo un albero, una \texttt{PreExp} può contenere altre \texttt{PreExp}. 
+Per esempio un'operazione binaria racchiude le due sotto-espressioni degli operandi. Le
 variabili composte, come \texttt{x\_i}, sono rappresentate da un
 \texttt{CompoundVariable} che ne memorizza il nome e l'elenco delle espressioni
 usate come indice; analogamente, l'accesso a un array è descritto da un
