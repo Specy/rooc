@@ -1,4 +1,5 @@
 <script lang="ts">
+    import PageSeo from '$cmp/seo/PageSeo.svelte';
     import Page from '$cmp/layout/Page.svelte';
     import SyntaxHighlighter from '$cmp/SyntaxHighlighter.svelte';
     import Card from '$cmp/layout/Card.svelte';
@@ -55,13 +56,11 @@ define
 `.trim();
 </script>
 
-<svelte:head>
-    <title>
-        Rooc docs - Logic models
-    </title>
-    <meta name="description"
-          content="Write boolean logic directly in ROOC models: logic operators, logic constraints, logic blocks, and how to mix logic with linear constraints."/>
-</svelte:head>
+<PageSeo
+    title={"ROOC logic models: boolean operators and constraints"}
+    headline={"Logic models"}
+    description={"Write boolean logic directly in ROOC models: logic operators, logic constraints, logic blocks, and how to mix logic with linear constraints."}
+/>
 
 <Page cropped padding="1rem" mobilePadding="1rem" gap="1rem">
     <Column gap="0.8rem">

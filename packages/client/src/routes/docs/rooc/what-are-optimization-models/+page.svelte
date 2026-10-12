@@ -1,15 +1,15 @@
 <script lang="ts">
+    import PageSeo from '$cmp/seo/PageSeo.svelte';
     import Page from '$cmp/layout/Page.svelte';
     import SyntaxHighlighter from "$cmp/SyntaxHighlighter.svelte";
     import Card from "$cmp/layout/Card.svelte";
 </script>
 
-<svelte:head>
-    <title>
-        Rooc docs - What are optimization models
-    </title>
-    <meta name="description" content="Discover the basics of optimization models. Learn what decision variables, objective functions, and constraints, demonstrating can be used to formulate and solve optimization problems using the ROOC syntax."/>
-</svelte:head>
+<PageSeo
+    title={"What are optimization models? An introduction to ROOC"}
+    headline={"What are optimization models?"}
+    description={"Discover the basics of optimization models. Learn what decision variables, objective functions, and constraints, demonstrating can be used to formulate and solve optimization problems using the ROOC syntax."}
+/>
 
 <Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">
     <h1>

@@ -41,3 +41,59 @@ export function softwareApplicationLd() {
 		sameAs: ['https://github.com/Specy/rooc', 'https://crates.io/crates/rooc']
 	};
 }
+
+export const DEFAULT_OG_IMAGE = toAbsoluteUrl('/images/rooc-editor-wide.webp');
+export const DOCS_ROOT = '/docs/rooc';
+
+const PUBLISHER = {
+	'@type': 'Organization',
+	name: 'ROOC',
+	url: SITE_URL
+} as const;
+
+export function techArticleLd({
+	headline,
+	description,
+	url
+}: {
+	headline: string;
+	description: string;
+	url: string;
+}) {
+	return {
+		'@context': 'https://schema.org',
+		'@type': 'TechArticle',
+		headline,
+		description,
+		url,
+		mainEntityOfPage: url,
+		inLanguage: 'en',
+		author: AUTHOR,
+		publisher: PUBLISHER
+	};
+}
+
+export function breadcrumbLd(items: { name: string; path: string }[]) {
+	return {
+		'@context': 'https://schema.org',
+		'@type': 'BreadcrumbList',
+		itemListElement: items.map((item, index) => ({
+			'@type': 'ListItem',
+			position: index + 1,
+			name: item.name,
+			item: toAbsoluteUrl(item.path)
+		}))
+	};
+}
+
+/** Home > Docs > current page. The docs index is the second crumb, so it is not repeated. */
+export function docsBreadcrumbs(pathname: string, headline: string) {
+	const items = [
+		{ name: 'ROOC', path: '/' },
+		{ name: 'ROOC documentation', path: DOCS_ROOT }
+	];
+	if (pathname.replace(/\/$/, '') !== DOCS_ROOT) {
+		items.push({ name: headline, path: pathname });
+	}
+	return items;
+}

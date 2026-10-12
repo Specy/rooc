@@ -1,20 +1,15 @@
 <script lang="ts">
     import Page from '$cmp/layout/Page.svelte';
-    import {onMount} from "svelte";
-
-    let link = $state(null)
-    onMount(() => {
-        //hack to disable prerendering error
-        link = "/docs/lib"
-    })
+    import PageSeo from '$cmp/seo/PageSeo.svelte';
 </script>
 
-<svelte:head>
-    <title>
-        Rooc documentation
-    </title>
-    <meta name="description" content="Learn ROOC, a language for modeling and solving optimization problems, with comprehensive documentation covering syntax, runtime functions, examples and solvers."/>
-</svelte:head>
+<PageSeo
+    title={"ROOC documentation: optimization modeling language and linear programming"}
+    headline={"ROOC documentation"}
+    description={"Learn ROOC, a language for modeling and solving optimization problems, with comprehensive documentation covering syntax, runtime functions, examples and solvers."}
+/>
+
+
 
 <Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">
     <h1>
@@ -28,13 +23,12 @@
         Getting started
     </h2>
     <p>
-        If you are looking for the typescript library documentation, look <a href={link}
-                                                                             target="_blank"
-                                                                             style="color: var(--accent-10); text-decoration: underline">Here</a>
+        If you are looking for the TypeScript library documentation, see the
+        <a href="/docs/lib/" rel="external" target="_blank" style="color: var(--accent-10); text-decoration: underline">TypeScript library API reference</a>.
     </p>
     <p>
-        If you are looking for the rust library documentation, look <a href="https://docs.rs/rooc/latest/rooc/" target="_blank"
-                                                                       style="color: var(--accent-10); text-decoration: underline">Here</a>
+        If you are looking for the Rust library documentation, see the
+        <a href="https://docs.rs/rooc/latest/rooc/" target="_blank" style="color: var(--accent-10); text-decoration: underline">Rust library API reference on docs.rs</a>.
     </p>
     <p>
         These documentation pages are structured to help learn how ROOC works, guiding you through the syntax and how to create your own models.
