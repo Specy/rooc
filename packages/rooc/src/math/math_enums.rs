@@ -11,7 +11,6 @@ use crate::type_checker::type_checker_context::{
     FunctionContext, TypeCheckable, TypeCheckerContext, WithType,
 };
 use crate::{InputSpan, Spanned, enum_with_variants_to_string};
-use core::f64;
 use core::fmt;
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
