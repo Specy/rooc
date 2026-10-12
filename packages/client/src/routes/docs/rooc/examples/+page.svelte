@@ -1,4 +1,5 @@
 <script lang="ts">
+    import PageSeo from '$cmp/seo/PageSeo.svelte';
     import Page from '$cmp/layout/Page.svelte';
     import {roocExamples} from "$cmp/roocDocs/examples";
     import SyntaxHighlighter from "$cmp/SyntaxHighlighter.svelte";
@@ -6,12 +7,11 @@
     import Column from "$cmp/layout/Column.svelte";
 </script>
 
-<svelte:head>
-    <title>
-        Rooc docs - Examples
-    </title>
-    <meta name="description" content="The documentation of ROOC, with syntax, function definitions and examples"/>
-</svelte:head>
+<PageSeo
+    title={"ROOC examples: optimization models for knapsack, diet and MAX-SAT"}
+    headline={"Examples"}
+    description={"Worked ROOC examples of linear and logic optimization models, including diet, knapsack, dominating set, MAX-SAT and project selection, with the full model code."}
+/>
 
 <Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">
     <h1>

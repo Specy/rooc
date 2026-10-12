@@ -26,9 +26,9 @@
 </script>
 
 <svelte:head>
-    <title>ROOC — write and solve optimization models in your browser</title>
+    <title>ROOC - write and solve optimization models in your browser</title>
     <meta name="description" content="A modeling language and web platform for mixed integer linear optimization. Write models in the editor, solve them in-browser with HiGHS or microlp, and step through the pipeline."/>
-    <meta property="og:title" content="ROOC — write and solve optimization models in your browser"/>
+    <meta property="og:title" content="ROOC - write and solve optimization models in your browser"/>
     <meta property="og:description" content="A modeling language and web platform for mixed integer linear optimization. Write models in the editor, solve them in-browser with HiGHS or microlp, and step through the pipeline."/>
     {@html `<script type="application/ld+json">${serializeJsonLd(softwareApplicationLd())}</script>`}
 </svelte:head>

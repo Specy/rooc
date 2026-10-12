@@ -1,13 +1,13 @@
 <script lang="ts">
+    import PageSeo from '$cmp/seo/PageSeo.svelte';
     import Page from '$cmp/layout/Page.svelte';
 </script>
 
-<svelte:head>
-    <title>
-        Rooc docs - Solvers
-    </title>
-    <meta name="description" content="Pick the right solver for your ROOC optimization problem. Learn about different solvers and their capabilities (HiGHS, Auto, MILP, Real, Binary, Integer & binary, Simplex)."/>
-</svelte:head>
+<PageSeo
+    title={"ROOC solvers: HiGHS, microlp and Auto"}
+    headline={"Solvers"}
+    description={"Pick the right solver for your ROOC optimization problem. Learn about different solvers and their capabilities (HiGHS, Auto, MILP, Real, Binary, Integer & binary, Simplex)."}
+/>
 
 <Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">
     <h1>

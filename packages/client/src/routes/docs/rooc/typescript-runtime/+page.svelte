@@ -1,15 +1,15 @@
 <script lang="ts">
+    import PageSeo from '$cmp/seo/PageSeo.svelte';
     import Page from '$cmp/layout/Page.svelte';
     import Card from "$cmp/layout/Card.svelte";
     import SyntaxHighlighter from "$cmp/SyntaxHighlighter.svelte";
 </script>
 
-<svelte:head>
-    <title>
-        Rooc docs - Runtime
-    </title>
-    <meta name="description" content="Learn how to extend ROOC's functionality by defining custom functions in the ROOC runtime by using typescript."/>
-</svelte:head>
+<PageSeo
+    title={"TypeScript runtime API: custom ROOC functions"}
+    headline={"TypeScript runtime API"}
+    description={"Learn how to extend ROOC's functionality by defining custom functions in the ROOC runtime by using typescript."}
+/>
 
 <Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">
     <h1>

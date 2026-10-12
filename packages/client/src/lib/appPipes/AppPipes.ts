@@ -1,6 +1,5 @@
 import type {JsPipableData, LpAssignment, MILPValue, Pipes} from "@specy/rooc";
 import type {Highs} from 'highs'
-import highsLoader from "highs";
 import type {DomainVariable, SerializedLinearModel} from "@specy/rooc/pkg";
 
 export enum InternalPipe {
@@ -17,17 +16,33 @@ export type ProjectPipe = {
     open: boolean
 }
 
-
 let highsPromise: Promise<Highs> | null = null
+
+/**
+ * Lazily loads HiGHS (JS glue + ~3.4MB wasm), memoized so concurrent callers share one fetch.
+ * Every pipe that calls into `highs` must await this in its `loader` before `fn` runs.
+ * Kept out of the root layout so marketing/docs pages never download the wasm.
+ */
+export function loadHighs(): Promise<Highs> {
+    highsPromise ??= import('highs')
+        .then(({default: highsLoader}) => highsLoader({
+            locateFile(file: string): string {
+                return '/wasm/' + file
+            }
+        }))
+        .then(h => (highs = h))
+        .catch(e => {
+            // allow a later retry (e.g. after a transient network error)
+            highsPromise = null
+            throw e
+        })
+    return highsPromise
+}
+
 export const AppPipesMap = {
     [InternalPipe.HiGHS]: {
         loader: async () => {
-            highsPromise ??= highsLoader({
-                locateFile(file: string): string {
-                    return '/wasm/' + file
-                }
-            })
-            highs = await highsPromise
+            await loadHighs()
         },
         fn: highsSolver
     },
@@ -38,6 +53,7 @@ export const AppPipesMap = {
     },
     [InternalPipe.HiGHSCplexLP]: {
         loader: async () => {
+            await loadHighs()
         },
         fn: (data) => {
             if (data.type !== 'String') throw new Error('Invalid data type, expected String')
@@ -84,6 +100,7 @@ export function highsSolver(data: JsPipableData): JsPipableData {
 }
 
 function solveWithHIGHSUsingCplexLp(lp: string, domain: Record<string, DomainVariable>): JsPipableData {
+    if (!highs) throw new Error('HiGHS not loaded')
     try {
         const solution = highs.solve(lp)
         const value = solution.ObjectiveValue
@@ -170,6 +187,14 @@ function castToInt(value: number): number {
     return Math.round(value)
 }
 
+/**
+ * Warms the HiGHS cache when the browser is idle. Only call this from editor routes.
+ */
 export function preloadHighs() {
-    AppPipesMap[InternalPipe.HiGHS].loader()
+    const warm = () => loadHighs().catch(e => console.warn('Failed to preload HiGHS', e))
+    if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(warm, {timeout: 5000})
+    } else {
+        setTimeout(warm, 2000)
+    }
 }

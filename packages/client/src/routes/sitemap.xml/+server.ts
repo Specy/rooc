@@ -21,17 +21,29 @@ function routes() {
  * so they are plain files rather than routes — real, searchable reference pages ("rooc
  * ModelBuilder") that nothing else would list. Globbed as raw urls so a regenerated
  * reference stays in step without a manual edit.
+ *
+ * Directory indexes are listed with their trailing slash: that is the form the server
+ * returns 200 for, while the bare form of `/docs/lib` 308-redirects to `/docs/lib/`.
+ * A `name.html` sitting next to a `name/index.html` is skipped, because both serve the
+ * same path segment and the directory index is the page that carries the reference.
  */
 function generatedDocsRoutes() {
-	const pages = import.meta.glob('/static/docs/lib/**/*.html', { query: '?url' });
-	return Object.keys(pages).map((file) =>
-		// `.../index.html` is served as the directory itself, so listing `/index` would
-		// point a crawler at a URL that does not resolve.
-		file
-			.replace('/static', '')
-			.replace(/\/index\.html$/, '')
-			.replace(/\.html$/, '')
+	const files = Object.keys(import.meta.glob('/static/docs/lib/**/*.html', { query: '?url' }));
+	const directoryIndexes = new Set(
+		files
+			.filter((file) => file.endsWith('/index.html'))
+			.map((file) => file.slice(0, -'index.html'.length))
 	);
+	const routes = files.flatMap((file) => {
+		if (file.endsWith('/index.html')) {
+			return [file.replace('/static', '').slice(0, -'index.html'.length)];
+		}
+		if (directoryIndexes.has(file.replace(/\.html$/, '/'))) {
+			return [];
+		}
+		return [file.replace('/static', '').replace(/\.html$/, '')];
+	});
+	return [...new Set(routes)];
 }
 
 function escapeXml(value: string) {
@@ -45,7 +57,7 @@ function escapeXml(value: string) {
 
 export const GET = async () => {
 	const buildDate = new Date().toISOString().slice(0, 10);
-	const entries = [...routes(), ...generatedDocsRoutes()].map(
+	const entries = [...new Set([...routes(), ...generatedDocsRoutes()])].map(
 		(route) => `	<url>
 		<loc>${escapeXml(SITE_URL + route)}</loc>
 		<lastmod>${buildDate}</lastmod>

@@ -27,6 +27,7 @@
     import FilePicker from "$cmp/misc/FilePicker.svelte";
     import type {Project} from "$stores/Project";
     import { page } from '$app/state';
+    import {preloadHighs} from "$lib/appPipes/AppPipes";
 
     let showDocs = $state(false);
 
@@ -36,6 +37,9 @@
     onMount(() => {
         Monaco.load();
         loadProject();
+        // warm the HiGHS wasm on idle so the first solve doesn't wait for the download;
+        // solving still awaits the memoized loader, so this is only an optimization
+        preloadHighs();
         return () => {
             Monaco.dispose();
         };

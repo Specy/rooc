@@ -9,8 +9,7 @@
 	import NoiseOverlay from '$cmp/layout/NoiseOverlay.svelte';
 	import PromptProvider from '$cmp/PromptProvider.svelte';
 	import { registerServiceWorker } from '$src/lib/register-sw';
-	import {preloadHighs} from "$lib/appPipes/AppPipes";
-	import { toAbsoluteUrl } from '$lib/seo';
+	import { DEFAULT_OG_IMAGE, toAbsoluteUrl } from '$lib/seo';
 	interface Props {
 		children?: import('svelte').Snippet;
 	}
@@ -21,7 +20,6 @@
 	let canonicalUrl = $derived(toAbsoluteUrl($page.url.pathname));
 	onMount(() => {
 		registerServiceWorker();
-		preloadHighs()
 		themeStorage.load();
 	});
 </script>
@@ -30,7 +28,9 @@
 	<link rel="canonical" href={canonicalUrl} />
 	<meta property="og:url" content={canonicalUrl} />
 	<meta property="og:site_name" content="ROOC" />
+	<meta property="og:image" content={DEFAULT_OG_IMAGE} />
 	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:image" content={DEFAULT_OG_IMAGE} />
 </svelte:head>
 
 <ThemeProvider

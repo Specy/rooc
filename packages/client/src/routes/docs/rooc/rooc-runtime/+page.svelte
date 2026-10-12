@@ -1,14 +1,14 @@
 <script lang="ts">
+    import PageSeo from '$cmp/seo/PageSeo.svelte';
     import Page from '$cmp/layout/Page.svelte';
     import RoocFunctionsDocs from '$cmp/roocDocs/RoocFunctionsDocs.svelte';
 </script>
 
-<svelte:head>
-    <title>
-        Rooc docs - Runtime
-    </title>
-    <meta name="description" content="Learn about ROOC's runtime capabilities: Use functions to manipulate data within your models. Discover normal functions, block functions, and powerful scoped block functions for complex operations."/>
-</svelte:head>
+<PageSeo
+    title={"ROOC runtime functions"}
+    headline={"Runtime functions"}
+    description={"Learn about ROOC's runtime capabilities: Use functions to manipulate data within your models. Discover normal functions, block functions, and powerful scoped block functions for complex operations."}
+/>
 
 <Page cropped padding='1rem' mobilePadding='1rem' gap="1rem">
     <h1>
