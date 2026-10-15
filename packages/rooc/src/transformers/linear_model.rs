@@ -21,6 +21,9 @@ use std::fmt::Display;
 /// Only the nonzero coefficients are stored, as the indexes of their variables
 /// and their values: most variables of a model don't appear in most of its
 /// constraints, so a coefficient for every variable would be mostly zeros.
+/// An index is the position of the variable in [`LinearModel::variables`], and
+/// `values[k]` is the coefficient of the variable at `indices[k]`; see
+/// [`Self::terms`] to read them back as variable names.
 ///
 /// For example: 2x + 3z <= 5, in a model with the variables x, y and z, would
 /// be represented as:
@@ -78,7 +81,8 @@ const ILinearConstraint: &'static str = r#"
 
 /**
  * Only the nonzero coefficients are listed: values[k] is the coefficient
- * of the variable at position indices[k] of the model's variables.
+ * of the variable model.variables[indices[k]] of the SerializedLinearModel
+ * the constraint belongs to.
  */
 export type SerializedLinearConstraint = {
     rhs: number
@@ -169,7 +173,8 @@ impl LinearConstraint {
     }
 
     /// Returns the indexes of the variables with a nonzero coefficient, in
-    /// increasing order.
+    /// increasing order. An index is the position of the variable in
+    /// [`LinearModel::variables`].
     pub fn indices(&self) -> &[usize] {
         &self.indices
     }
@@ -182,6 +187,26 @@ impl LinearConstraint {
 
     /// Returns the nonzero coefficients as `(variable index, coefficient)`
     /// pairs, by increasing variable index.
+    ///
+    /// # Example
+    /// ```rust
+    /// use rooc::{Comparison, LinearModel, OptimizationType, VariableType};
+    ///
+    /// let mut model = LinearModel::new();
+    /// model.add_variable("x", VariableType::non_negative_real());
+    /// model.add_variable("y", VariableType::non_negative_real());
+    /// model.add_variable("z", VariableType::non_negative_real());
+    /// model.set_objective(vec![1.0, 1.0, 1.0], OptimizationType::Min);
+    /// model.add_constraint(vec![2.0, 0.0, 3.0], Comparison::LessOrEqual, 5.0);
+    ///
+    /// // the index of a term is the position of its variable in the model
+    /// let constraint = &model.constraints()[0];
+    /// let terms = constraint
+    ///     .terms()
+    ///     .map(|(index, coefficient)| format!("{coefficient}{}", model.variables()[index]))
+    ///     .collect::<Vec<_>>();
+    /// assert_eq!(terms, ["2x", "3z"]);
+    /// ```
     pub fn terms(&self) -> impl Iterator<Item = (usize, f64)> + '_ {
         self.indices
             .iter()

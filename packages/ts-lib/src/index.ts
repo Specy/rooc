@@ -436,7 +436,16 @@ export class LinearModel {
 }
 
 /**
- * A constraint of a linear model, which stores only its nonzero coefficients
+ * A constraint of a linear model, which stores only its nonzero coefficients:
+ * getValues()[k] is the coefficient of the variable at position getIndices()[k]
+ * of the model's getVariables().
+ *
+ * @example
+ * const variables = linear.getVariables()
+ * for (const constraint of linear.getConstraints()) {
+ *     const values = constraint.getValues()
+ *     constraint.getIndices().forEach((index, k) => console.log(values[k], variables[index]))
+ * }
  */
 export class LinearConstraint {
     instance: _LinearConstraint
@@ -465,7 +474,8 @@ export class LinearConstraint {
     }
 
     /**
-     * Get the indexes, in the model's variables, of the variables with a nonzero coefficient
+     * Get the indexes of the variables with a nonzero coefficient, in increasing order.
+     * An index is the position of the variable in the model's getVariables()
      */
     getIndices() {
         return this.cache.indices ??= Array.from(this.instance.wasm_get_indices())
