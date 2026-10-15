@@ -1,6 +1,6 @@
 import type {JsPipableData, LpAssignment, MILPValue, Pipes} from "@specy/rooc";
 import type {Highs} from 'highs'
-import type {DomainVariable, SerializedLinearConstraint, SerializedLinearModel} from "@specy/rooc/pkg";
+import type {DomainVariable, SerializedLinearModel} from "@specy/rooc/pkg";
 
 export enum InternalPipe {
     HiGHS = 1000,
@@ -75,18 +75,6 @@ function stringifyCoeffs(indices: number[], values: number[], names: string[]): 
     }).filter(Boolean).join(' ')
     if (constraint.startsWith('+')) return constraint.slice(1).trim()
     return constraint.trim()
-}
-
-/**
- * The nonzero coefficients of a serialized constraint. From @specy/rooc 4 a constraint lists
- * only those, as `indices` and `values`, while earlier versions list one coefficient per
- * variable in `coefficients`: the dense branch can go once the client depends on version 4.
- */
-function constraintTerms(constraint: SerializedLinearConstraint): { indices: number[], values: number[] } {
-    const row = constraint as unknown as { indices?: number[], values?: number[], coefficients?: number[] }
-    if (row.indices && row.values) return {indices: row.indices, values: row.values}
-    const coefficients = row.coefficients ?? []
-    return {indices: coefficients.map((_, i) => i), values: coefficients}
 }
 
 
@@ -166,8 +154,8 @@ function linearModelToLp(model: SerializedLinearModel): string {
         const exists = names[base] !== undefined
         names[base] = (names[base] ?? 0) + 1
         const name = exists ? `${base}_${names[base]}` : base
-        const {indices, values} = constraintTerms(c)
-        return `${name}: ${stringifyCoeffs(indices, values, model.variables)} ${comparisonMap[c.constraint_type.type]} ${c.rhs}`
+        // a constraint lists only its nonzero coefficients
+        return `${name}: ${stringifyCoeffs(c.indices, c.values, model.variables)} ${comparisonMap[c.constraint_type.type]} ${c.rhs}`
     })
     const bounds = model.variables.map(v => {
         const domain = model.domain[v].as_type
