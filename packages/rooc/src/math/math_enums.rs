@@ -80,7 +80,7 @@ impl ToLatex for OptimizationType {
         match self {
             OptimizationType::Min => "\\min".to_string(),
             OptimizationType::Max => "\\max".to_string(),
-            OptimizationType::Satisfy => "\\solve".to_string(),
+            OptimizationType::Satisfy => "\\text{solve}".to_string(),
         }
     }
 }

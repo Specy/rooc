@@ -292,10 +292,8 @@ mod linearization_semantics_tests {
         }
         model.constraints().iter().all(|constraint| {
             let lhs = constraint
-                .coefficients()
-                .iter()
-                .zip(values)
-                .map(|(coefficient, value)| coefficient * value)
+                .terms()
+                .map(|(index, coefficient)| coefficient * values[index])
                 .sum::<f64>();
             match constraint.constraint_type() {
                 Comparison::LessOrEqual => lhs <= constraint.rhs() + 1e-9,
@@ -813,12 +811,11 @@ define
         // an extra aggregated row would change optima under other objectives
         assert_eq!(linear.constraints().len(), 8);
         for constraint in linear.constraints() {
-            let nonzero = constraint
-                .coefficients()
-                .iter()
-                .filter(|coefficient| **coefficient != 0.0)
-                .count();
-            assert_eq!(nonzero, 2, "each edge row involves exactly its endpoints");
+            assert_eq!(
+                constraint.indices().len(),
+                2,
+                "each edge row involves exactly its endpoints"
+            );
         }
         let solution = solve_milp_lp_problem(&linear)
             .unwrap()
@@ -855,12 +852,7 @@ define
     fn near_boolean_numbers_are_not_treated_as_boolean_literals() {
         let linear = compile("solve\ns.t.\n    a = 0.000009\ndefine\n    a as Boolean").unwrap();
         assert_eq!(linear.constraints().len(), 1);
-        assert!(
-            linear.constraints()[0]
-                .coefficients()
-                .iter()
-                .all(|coefficient| *coefficient == 0.0)
-        );
+        assert!(linear.constraints()[0].indices().is_empty());
         assert_eq!(linear.constraints()[0].rhs(), 1.0);
         assert!(matches!(
             solve_milp_lp_problem(&linear),

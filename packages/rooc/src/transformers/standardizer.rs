@@ -76,18 +76,16 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
             VariableType::Real(min, max) => match (*min, *max) {
                 (f64::NEG_INFINITY, f64::INFINITY) => continue,
                 (min, max) if min != f64::NEG_INFINITY || max != f64::INFINITY => {
-                    let mut coeffs = vec![0.0; variables.len()];
-                    coeffs[i] = 1.0;
                     if min != f64::NEG_INFINITY {
-                        constraints.push(LinearConstraint::new(
-                            coeffs.clone(),
+                        constraints.push(LinearConstraint::new_sparse(
+                            [(i, 1.0)],
                             Comparison::GreaterOrEqual,
                             min,
                         ));
                     }
                     if max != f64::INFINITY {
-                        constraints.push(LinearConstraint::new(
-                            coeffs,
+                        constraints.push(LinearConstraint::new_sparse(
+                            [(i, 1.0)],
                             Comparison::LessOrEqual,
                             max,
                         ));
@@ -98,18 +96,16 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
             VariableType::NonNegativeReal(min, max) => match (*min, *max) {
                 (0.0, f64::INFINITY) => continue,
                 (min, max) if min != 0.0 || max != f64::INFINITY => {
-                    let mut coeffs = vec![0.0; variables.len()];
-                    coeffs[i] = 1.0;
                     if min != 0.0 {
-                        constraints.push(LinearConstraint::new(
-                            coeffs.clone(),
+                        constraints.push(LinearConstraint::new_sparse(
+                            [(i, 1.0)],
                             Comparison::GreaterOrEqual,
                             min,
                         ));
                     }
                     if max != f64::INFINITY {
-                        constraints.push(LinearConstraint::new(
-                            coeffs,
+                        constraints.push(LinearConstraint::new_sparse(
+                            [(i, 1.0)],
                             Comparison::LessOrEqual,
                             max,
                         ));
@@ -133,6 +129,7 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
             }
         })
         .collect::<Vec<usize>>();
+    let kept_variables = variables.len() - free_variables.len();
     //for each free variable we need to replace it with x = x' - x'' where x' and x'' are positive
     //we first add the new variables to the domain
     for i in &free_variables {
@@ -155,23 +152,19 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
             ),
         );
         context.total_variables += 1; //we add two variables, but one is removed, so only one is added
-        // Every constraint and the objective must receive EXACTLY two appended columns
-        // per free variable (in the same order), otherwise the positional column layout
-        // used by the removal/zero-padding below gets misaligned and one variable's
-        // split lands in another variable's slots. Do NOT skip on a zero coefficient.
-        constraints.iter_mut().for_each(|c| {
-            let original_coefficient = c.coefficients()[*i];
-            c.coefficients_mut().push(original_coefficient);
-            c.coefficients_mut().push(-original_coefficient);
-        });
+        // The objective must receive EXACTLY two appended columns per free variable
+        // (in the same order), otherwise the positional column layout used by the
+        // removal below gets misaligned and one variable's split lands in another
+        // variable's slots. Do NOT skip on a zero coefficient.
         objective.push(objective[*i]);
         objective.push(-objective[*i]);
     }
 
-    //we now remove the free variables from the constraints
-    for c in constraints.iter_mut() {
-        c.remove_coefficients_by_index(&free_variables);
-    }
+    //the constraints move to the same layout
+    let constraints = constraints
+        .into_iter()
+        .map(|c| split_free_variables(c, &free_variables, kept_variables))
+        .collect::<Vec<_>>();
 
     //and remove them from the domain
     for i in &free_variables {
@@ -229,6 +222,31 @@ pub fn to_standard_form(problem: LinearModel) -> Result<StandardLinearModel, Sol
     ))
 }
 
+/// Moves a constraint to the variables of the standard form: the free variables
+/// are removed and the variables after them move down, while the k-th free
+/// variable becomes the difference of the two non negative variables appended
+/// for it after all the others.
+fn split_free_variables(
+    constraint: LinearConstraint,
+    free_variables: &[usize],
+    kept_variables: usize,
+) -> LinearConstraint {
+    let mut terms = Vec::with_capacity(constraint.indices().len());
+    for (index, value) in constraint.terms() {
+        match free_variables.binary_search(&index) {
+            Ok(rank) => {
+                let positive = kept_variables + 2 * rank;
+                terms.push((positive, value));
+                terms.push((positive + 1, -value));
+            }
+            //the insertion point counts the free variables before this one
+            Err(shift) => terms.push((index - shift, value)),
+        }
+    }
+    LinearConstraint::new_sparse(terms, *constraint.constraint_type(), constraint.rhs())
+        .with_name(&constraint.name())
+}
+
 /// Context for tracking the normalization process of converting constraints to standard form.
 ///
 /// This struct maintains indices for surplus and slack variables that are added during normalization,
@@ -255,7 +273,9 @@ pub fn normalize_constraint(
     constraint: LinearConstraint,
     context: &mut NormalizationContext,
 ) -> Result<(EqualityConstraint, Option<String>), SolverError> {
-    let (mut coefficients, constraint_type, rhs) = constraint.into_parts();
+    //the standard form is dense, every row of the tableau stores every variable
+    let mut coefficients = constraint.to_dense(context.total_variables);
+    let (constraint_type, rhs) = (*constraint.constraint_type(), constraint.rhs());
     match constraint_type {
         Comparison::Equal => {
             let equality_constraint = EqualityConstraint::new(coefficients, rhs);
@@ -263,7 +283,6 @@ pub fn normalize_constraint(
         }
         Comparison::LessOrEqual => {
             // `<=` gets a (non-negative) slack variable: ax + s = b
-            coefficients.resize(context.total_variables, 0.0);
             coefficients.push(1.0);
             context.slack_index += 1;
             let equality_constraint = EqualityConstraint::new(coefficients, rhs);
@@ -274,7 +293,6 @@ pub fn normalize_constraint(
         }
         Comparison::GreaterOrEqual => {
             // `>=` gets a (non-negative) surplus variable: ax - s = b
-            coefficients.resize(context.total_variables, 0.0);
             coefficients.push(-1.0);
             context.surplus_index += 1;
             let equality_constraint = EqualityConstraint::new(coefficients, rhs);

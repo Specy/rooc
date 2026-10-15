@@ -4,7 +4,7 @@ use core::fmt;
 use crate::prelude::*;
 use serde::Serialize;
 
-use crate::math::{BinOp, UnOp};
+use crate::math::{BinOp, OperandShape, OperandSide, UnOp};
 use crate::parser::il::block_functions::{
     BlockFunction, BlockFunctionKind, BlockScopedFunction, BlockScopedFunctionKind,
 };
@@ -22,7 +22,7 @@ use crate::traits::{ToLatex, escape_latex};
 use crate::type_checker::type_checker_context::{
     CompoundFamilyKind, FunctionContext, TypeCheckable, TypeCheckerContext, WithType,
 };
-use crate::utils::{InputSpan, Spanned};
+use crate::utils::{InputSpan, Spanned, fold_balanced};
 
 /// Resolves the statically known kind of a compound variable from its
 /// declared family, falling back to Number when nothing is known.
@@ -75,14 +75,29 @@ fn compound_variable_kind(
     }
 }
 
-/// Folds a list of expressions into a chain of binary exclusive disjunctions,
-/// which computes the parity (odd number of true values) of the whole list.
+/// Adds up a list of expressions, zero when the list is empty. The sum is
+/// built as a balanced tree, so that a sum over many terms stays shallow.
+fn fold_sum(exps: Vec<Exp>) -> Exp {
+    fold_balanced(exps, |lhs, rhs| {
+        Exp::BinOp(BinOp::Add, lhs.to_box(), rhs.to_box())
+    })
+    .unwrap_or(Exp::Number(0.0))
+}
+
+/// Multiplies a list of expressions, one when the list is empty. Like
+/// [`fold_sum`], the product is built as a balanced tree.
+fn fold_prod(exps: Vec<Exp>) -> Exp {
+    fold_balanced(exps, |lhs, rhs| {
+        Exp::BinOp(BinOp::Mul, lhs.to_box(), rhs.to_box())
+    })
+    .unwrap_or(Exp::Number(1.0))
+}
+
+/// Folds a list of expressions into a balanced tree of binary exclusive
+/// disjunctions, which computes the parity (odd number of true values) of the
+/// whole list.
 fn fold_xor(exps: Vec<Exp>) -> Exp {
-    let mut iter = exps.into_iter();
-    match iter.next() {
-        None => Exp::Number(0.0),
-        Some(first) => iter.fold(first, |acc, exp| Exp::Xor(acc.to_box(), exp.to_box())),
-    }
+    fold_balanced(exps, |lhs, rhs| Exp::Xor(lhs.to_box(), rhs.to_box())).unwrap_or(Exp::Number(0.0))
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -554,13 +569,9 @@ impl PreExp {
                     BlockFunctionKind::Max => Ok(Exp::Max(parsed_exp)),
                     BlockFunctionKind::Avg => {
                         let len = parsed_exp.len();
-                        let mut sum = parsed_exp.pop().unwrap_or(Exp::Number(0.0));
-                        for exp in parsed_exp.into_iter().rev() {
-                            sum = Exp::BinOp(BinOp::Add, exp.to_box(), sum.to_box());
-                        }
                         Ok(Exp::BinOp(
                             BinOp::Div,
-                            sum.to_box(),
+                            fold_sum(parsed_exp).to_box(),
                             Exp::Number(len as f64).to_box(),
                         ))
                     }
@@ -633,20 +644,8 @@ impl PreExp {
                 )
                 .map_err(|e| e.add_span(self.span()))?;
                 match f.kind {
-                    BlockScopedFunctionKind::Sum => {
-                        let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
-                        for result in results.into_iter().rev() {
-                            sum = Exp::BinOp(BinOp::Add, result.to_box(), sum.to_box());
-                        }
-                        Ok(sum)
-                    }
-                    BlockScopedFunctionKind::Prod => {
-                        let mut prod = results.pop().unwrap_or(Exp::Number(1.0));
-                        for result in results.into_iter().rev() {
-                            prod = Exp::BinOp(BinOp::Mul, result.to_box(), prod.to_box());
-                        }
-                        Ok(prod)
-                    }
+                    BlockScopedFunctionKind::Sum => Ok(fold_sum(results)),
+                    BlockScopedFunctionKind::Prod => Ok(fold_prod(results)),
                     BlockScopedFunctionKind::Min => Ok(Exp::Min(results)),
                     BlockScopedFunctionKind::Max => Ok(Exp::Max(results)),
                     BlockScopedFunctionKind::All => Ok(Exp::And(results)),
@@ -654,13 +653,9 @@ impl PreExp {
                     BlockScopedFunctionKind::Xor => Ok(fold_xor(results)),
                     BlockScopedFunctionKind::Avg => {
                         let len = results.len();
-                        let mut sum = results.pop().unwrap_or(Exp::Number(0.0));
-                        for result in results.into_iter().rev() {
-                            sum = Exp::BinOp(BinOp::Add, result.to_box(), sum.to_box());
-                        }
                         Ok(Exp::BinOp(
                             BinOp::Div,
-                            sum.to_box(),
+                            fold_sum(results).to_box(),
                             Exp::Number(len as f64).to_box(),
                         ))
                     }
@@ -898,70 +893,81 @@ impl PreExp {
             Self::BinaryOperation(_, _, _) | Self::UnaryOperation(_, _)
         )
     }
-    fn to_string_with_precedence(&self, previous_precedence: u8) -> String {
+
+    /// How the expression looks to an operator containing it.
+    fn shape(&self) -> OperandShape {
         match self {
-            Self::BinaryOperation(op, lhs, rhs) => {
-                //TODO add implied multiplication like 2x 2(x + y) etc...
-                /*
-                   implicit_mul = {
-                       (number | parenthesis){2,} ~ variable? |
-                       (number | parenthesis) ~ variable
-                   }
-                */
-                let lhs_str = lhs.to_string_with_precedence(op.precedence());
-                let rhs_str = rhs.to_string_with_precedence(op.precedence());
-                if op.precedence() < previous_precedence {
-                    format!("({} {} {})", lhs_str, **op, rhs_str)
-                } else {
-                    format!("{} {} {}", lhs_str, **op, rhs_str)
-                }
-            }
-            _ => self.to_string(),
+            Self::BinaryOperation(op, _, _) => OperandShape::Binary(**op),
+            Self::UnaryOperation(_, _) => OperandShape::Prefix,
+            Self::Primitive(p) => match p.value() {
+                //a negative literal is written with a leading minus, like a negation
+                Primitive::Number(n) if n.is_sign_negative() => OperandShape::Prefix,
+                Primitive::Integer(n) if *n < 0 => OperandShape::Prefix,
+                _ => OperandShape::Atom,
+            },
+            Self::BlockFunction(_)
+            | Self::Variable(_)
+            | Self::CompoundVariable(_)
+            | Self::ArrayAccess(_)
+            | Self::BlockScopedFunction(_)
+            | Self::FunctionCall(_, _) => OperandShape::Atom,
         }
     }
-    fn to_latex_with_precedence(&self, previous_precedence: u8) -> String {
-        match self {
-            Self::BinaryOperation(op, lhs, rhs) => {
-                //TODO add implied multiplication like 2x 2(x + y) etc...
-                /*
-                   implicit_mul = {
-                       (number | parenthesis){2,} ~ variable? |
-                       (number | parenthesis) ~ variable
-                   }
-                */
-                let lhs_str = lhs.to_latex_with_precedence(op.precedence());
-                let rhs_str = rhs.to_latex_with_precedence(op.precedence());
 
-                if op.precedence() < previous_precedence {
-                    format!("({} {} {})", lhs_str, op.to_latex(), rhs_str)
-                } else {
-                    format!("{} {} {}", lhs_str, op.to_latex(), rhs_str)
-                }
-            }
-            _ => self.to_latex(),
+    /// Like [`Self::shape`], but a division is written as a fraction, whose
+    /// bar already groups it.
+    fn latex_shape(&self) -> OperandShape {
+        match self {
+            Self::BinaryOperation(op, _, _) if **op == BinOp::Div => OperandShape::Atom,
+            _ => self.shape(),
         }
     }
-}
 
-impl ToLatex for PreExp {
-    fn to_latex(&self) -> String {
+    /// Formats an operand of `op`, in parentheses when the precedence requires it.
+    fn operand_to_string(&self, op: BinOp, side: OperandSide) -> String {
+        if op.operand_needs_parens(self.shape(), side) {
+            format!("({})", self)
+        } else {
+            self.to_string()
+        }
+    }
+
+    /// LaTeX counterpart of [`Self::operand_to_string`].
+    fn operand_to_latex(&self, op: BinOp, side: OperandSide, before_product: bool) -> String {
+        if op.operand_needs_parens(self.latex_shape(), side) {
+            format!("\\left({}\\right)", self.to_latex())
+        } else {
+            self.latex_before(before_product)
+        }
+    }
+
+    /// The LaTeX of the expression, `before_product` tells whether a product
+    /// continues right after it, which a sum or a product written as a big
+    /// operator would otherwise seem to extend over.
+    fn latex_before(&self, before_product: bool) -> String {
         match self {
             Self::ArrayAccess(a) => a.to_latex(),
             Self::BlockFunction(f) => f.to_latex(),
-            Self::BlockScopedFunction(f) => f.to_latex(),
-            Self::BinaryOperation(op, lhs, rhs) => {
-                let rhs = rhs.to_latex_with_precedence(op.precedence());
-                let lhs = lhs.to_latex_with_precedence(op.precedence());
-                match op.value() {
-                    BinOp::Div => format!("\\frac{{{}}}{{{}}}", lhs, rhs),
-                    _ => format!("{} {} {}", lhs, op.to_latex(), rhs),
+            Self::BlockScopedFunction(f) => match f.kind {
+                BlockScopedFunctionKind::Sum | BlockScopedFunctionKind::Prod if before_product => {
+                    format!("\\left({}\\right)", f.to_latex())
                 }
-            }
+                _ => f.to_latex(),
+            },
+            Self::BinaryOperation(op, lhs, rhs) => match **op {
+                BinOp::Div => format!("\\frac{{{}}}{{{}}}", lhs.to_latex(), rhs.to_latex()),
+                _ => format!(
+                    "{} {} {}",
+                    lhs.operand_to_latex(**op, OperandSide::Left, **op == BinOp::Mul),
+                    op.to_latex(),
+                    rhs.operand_to_latex(**op, OperandSide::Right, before_product)
+                ),
+            },
             Self::UnaryOperation(op, exp) => {
-                if exp.is_leaf() {
-                    format!("{}{}", op.to_latex(), exp.to_latex())
+                if op.operand_needs_parens(exp.latex_shape()) {
+                    format!("{}\\left({}\\right)", op.to_latex(), exp.to_latex())
                 } else {
-                    format!("{}({})", op.to_latex(), exp.to_latex())
+                    format!("{}{}", op.to_latex(), exp.latex_before(before_product))
                 }
             }
             Self::Variable(name) => escape_latex(name.value()),
@@ -972,25 +978,37 @@ impl ToLatex for PreExp {
     }
 }
 
+impl ToLatex for PreExp {
+    fn to_latex(&self) -> String {
+        self.latex_before(false)
+    }
+}
+
 impl fmt::Display for PreExp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             Self::ArrayAccess(a) => a.to_string(),
             Self::BlockFunction(f) => f.to_string(),
             Self::BlockScopedFunction(f) => f.to_string(),
-            Self::BinaryOperation(op, lhs, rhs) => {
-                let rhs = rhs.to_string_with_precedence(op.precedence());
-                let lhs = lhs.to_string_with_precedence(op.precedence());
-                format!("{} {} {}", lhs, **op, rhs)
-            }
+            Self::BinaryOperation(op, lhs, rhs) => format!(
+                "{} {} {}",
+                lhs.operand_to_string(**op, OperandSide::Left),
+                **op,
+                rhs.operand_to_string(**op, OperandSide::Right)
+            ),
             Self::CompoundVariable(c) => c.to_string(),
             Self::FunctionCall(_, f) => f.to_string(),
-            Self::Primitive(p) => p.to_string(),
+            Self::Primitive(p) => match p.value() {
+                //keeps the decimal point, so that the literal is parsed back
+                //as a number rather than as an integer
+                Primitive::Number(n) if n.fract() == 0.0 => format!("{:.1}", n),
+                _ => p.to_string(),
+            },
             Self::UnaryOperation(op, exp) => {
-                if exp.is_leaf() {
-                    format!("{}{}", **op, **exp)
-                } else {
+                if op.operand_needs_parens(exp.shape()) {
                     format!("{}({})", **op, **exp)
+                } else {
+                    format!("{}{}", **op, **exp)
                 }
             }
             Self::Variable(name) => {
@@ -1072,5 +1090,62 @@ mod tests {
             ),
             PrimitiveKind::Number
         );
+    }
+
+    fn objective_latex(source: &str) -> String {
+        use crate::traits::ToLatex;
+        crate::parser::pre_model::parse_problem_source(source)
+            .expect("failed to parse")
+            .objective()
+            .to_latex()
+    }
+
+    #[test]
+    fn latex_keeps_the_meaning_of_the_expression() {
+        for (exp, expected) in [
+            (r"x - (y - z)", r"x - \left(y - z\right)"),
+            (r"x + (y - z)", r"x + y - z"),
+            (r"x / (y / z)", r"\frac{x}{\frac{y}{z}}"),
+            (r"(x + y) / 2 * z", r"\frac{x + y}{2} \cdot z"),
+            (r"-(x + y)", r"-\left(x + y\right)"),
+            (r"not (a and b)", r"\lnot \left(a \land b\right)"),
+            (r"a and b or c", r"\left(a \land b\right) \lor c"),
+        ] {
+            let source = format!("min {exp}\ns.t.\n    1 >= 1");
+            assert_eq!(objective_latex(&source), format!(r"\min \ {expected}"));
+        }
+    }
+
+    #[test]
+    fn latex_big_operators_cover_exactly_their_body() {
+        let sum = r"\sum_{i \in \left\{0,\dots,3\right\}}";
+        for (exp, expected) in [
+            (
+                "sum(i in 0..3) { x_i - y_i }",
+                format!(r"{sum}\left(x_{{i}} - y_{{i}}\right)"),
+            ),
+            ("sum(i in 0..3) { x_i } + 1", format!(r"{sum}x_{{i}} + 1")),
+            (
+                "2 * sum(i in 0..3) { x_i }",
+                format!(r"2 \cdot {sum}x_{{i}}"),
+            ),
+            (
+                "sum(i in 0..3) { x_i } * 2",
+                format!(r"\left({sum}x_{{i}}\right) \cdot 2"),
+            ),
+            (
+                "2 * sum(i in 0..3) { x_i } * 3",
+                format!(r"2 \cdot \left({sum}x_{{i}}\right) \cdot 3"),
+            ),
+        ] {
+            let source = format!("min {exp}\ns.t.\n    1 >= 1");
+            assert_eq!(objective_latex(&source), format!(r"\min \ {expected}"));
+        }
+    }
+
+    #[test]
+    fn latex_of_a_satisfaction_problem_has_no_objective() {
+        let latex = objective_latex("solve\ns.t.\n    1 >= 1");
+        assert_eq!(latex, r"\text{solve}");
     }
 }

@@ -1,3 +1,4 @@
+use core::cmp::Ordering;
 use core::fmt;
 use std::str::FromStr;
 
@@ -132,6 +133,64 @@ impl BinOp {
             BinOp::Iff => Operator::Iff,
         }
     }
+
+    /// Whether an operand of this operator has to be wrapped in parentheses
+    /// for the printed expression to keep its meaning when parsed back.
+    ///
+    /// Only the parentheses that change the result are kept: `a + (b - c)`
+    /// prints as `a + b - c`, while `a - (b - c)` stays as it is. Logic
+    /// operators are the exception, a compound operand is wrapped unless it
+    /// continues a chain of the same operator, as in `a and b and c`, since
+    /// the relative precedence of logic operators is rarely known by heart.
+    pub(crate) fn operand_needs_parens(&self, operand: OperandShape, side: OperandSide) -> bool {
+        let child = match operand {
+            //prefix operators bind tighter than any binary operator
+            OperandShape::Atom | OperandShape::Prefix => return false,
+            OperandShape::Binary(child) => child,
+        };
+        if self.is_logic() || child.is_logic() {
+            return !(child == *self && self.is_associative());
+        }
+        match child.precedence().cmp(&self.precedence()) {
+            Ordering::Greater => false,
+            Ordering::Less => true,
+            Ordering::Equal => match side {
+                OperandSide::Left => !child.is_left_associative(),
+                OperandSide::Right => self.is_left_associative() && !self.is_associative(),
+            },
+        }
+    }
+
+    /// Whether a chain of this operator can be regrouped freely, as in
+    /// `a + (b + c) = (a + b) + c`. Addition and multiplication also absorb
+    /// their inverse on the right, `a + (b - c)` is `a + b - c`. Iff is
+    /// associative too but left out, `a iff b iff c` reads as if all three
+    /// had to be equal.
+    fn is_associative(&self) -> bool {
+        match self {
+            BinOp::Add | BinOp::Mul | BinOp::And | BinOp::Or | BinOp::Xor => true,
+            BinOp::Sub | BinOp::Div | BinOp::Implies | BinOp::Iff => false,
+        }
+    }
+}
+
+/// How an operand looks to the operator containing it, which is all that
+/// decides whether it needs parentheses when printed.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum OperandShape {
+    /// Binds tighter than any operator, like literals, variables, calls and blocks.
+    Atom,
+    /// A prefix operator applied to its operand, negative number literals included.
+    Prefix,
+    /// A binary operation.
+    Binary(BinOp),
+}
+
+/// The side of a binary operator an operand is written on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum OperandSide {
+    Left,
+    Right,
 }
 
 impl ToLatex for BinOp {
@@ -214,6 +273,12 @@ impl UnOp {
             UnOp::Neg => Operator::Neg,
             UnOp::Not => Operator::Not,
         }
+    }
+
+    /// Whether the operand of this prefix operator has to be wrapped in
+    /// parentheses, the grammar takes a single prefix operator before an atom.
+    pub(crate) fn operand_needs_parens(&self, operand: OperandShape) -> bool {
+        operand != OperandShape::Atom
     }
 }
 

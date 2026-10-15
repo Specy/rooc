@@ -156,11 +156,17 @@ pub fn solve_real_lp_problem_micro_lp(
     }
 
     for cons in lp.constraints() {
+        if let Some(index) = cons.indices().last()
+            && *index >= vars_microlp.len()
+        {
+            return Err(SolverError::Other(format!(
+                "constraint uses the variable at index {index} but variable count is {}",
+                vars_microlp.len()
+            )));
+        }
         let coeffs = cons
-            .coefficients()
-            .iter()
-            .zip(vars_microlp.iter())
-            .map(|(c, v)| (*v, *c))
+            .terms()
+            .map(|(i, c)| (vars_microlp[i], c))
             .collect::<Vec<_>>();
         let rhs = cons.rhs();
         let comparison = match cons.constraint_type() {
@@ -197,7 +203,7 @@ pub fn solve_real_lp_problem_micro_lp(
                     value: optimal_solution[*c],
                 })
                 .collect::<Vec<_>>();
-            let coeffs = assignment.iter().map(|v| v.value).collect();
+            let coeffs = assignment.iter().map(|v| v.value).collect::<Vec<f64>>();
             let constraints = make_constraints_map_from_assignment(lp, &coeffs);
             // This model is continuous, so MicroLP solves it without branching
             // and can only report `Optimal`. The `Feasible` arm is kept so the

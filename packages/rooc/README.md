@@ -155,7 +155,7 @@ Select an opt-in solver explicitly:
 
 ```toml
 [dependencies]
-rooc = { version = "0.3.0", default-features = false, features = ["highs"] }
+rooc = { version = "0.4.0", default-features = false, features = ["highs"] }
 ```
 
 For a native application that also needs the default solvers, combine the

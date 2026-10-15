@@ -6,6 +6,7 @@ use crate::prelude::*;
 use serde::Serialize;
 
 use crate::enum_with_variants_to_string;
+use crate::math::BinOp;
 use crate::parser::il::il_exp::PreExp;
 use crate::parser::il::iterable_set::IterableSet;
 use crate::traits::ToLatex;
@@ -179,7 +180,17 @@ impl ToLatex for BlockScopedFunction {
                     .map(|i| format!("{}_{{{}}}", name, i.to_latex()))
                     .collect::<Vec<String>>()
                     .join("");
-                format!("{}{}", iters, self.exp.to_latex())
+                //the big operator only visually extends over a product, a
+                //body joined by a sum or a logic operator has to be grouped
+                let body = match self.exp.as_ref() {
+                    PreExp::BinaryOperation(op, _, _)
+                        if op.precedence() < BinOp::Mul.precedence() =>
+                    {
+                        format!("\\left({}\\right)", self.exp.to_latex())
+                    }
+                    _ => self.exp.to_latex(),
+                };
+                format!("{}{}", iters, body)
             }
             _ => {
                 let iters = self

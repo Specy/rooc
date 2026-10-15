@@ -96,7 +96,7 @@ mod logic_tests {
         assert!(s.contains("a xor b"), "got: {}", s);
         //n-ary xor is the parity fold of binary xor
         let s = transformed("solve\ns.t.\n    xor{a, b, c}\ndefine\n    a, b, c as Boolean");
-        assert!(s.contains("(a xor b) xor c"), "got: {}", s);
+        assert!(s.contains("a xor b xor c"), "got: {}", s);
     }
 
     #[test]

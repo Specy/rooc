@@ -5,7 +5,7 @@ use crate::parser::model_transformer::DomainVariable;
 use crate::parser::model_transformer::{Constraint, Exp, Model};
 use crate::transformers::bounds::BoundsAnalyzer;
 use crate::transformers::linear_model::{LinearConstraint, LinearModel};
-use crate::utils::InputSpan;
+use crate::utils::{InputSpan, fold_balanced};
 use indexmap::{IndexMap, IndexSet};
 use std::collections::VecDeque;
 use std::fmt::Display;
@@ -1205,16 +1205,13 @@ fn directional_logic_witness(
 /// Rebuilds a linear expression from a linearization context, as the sum of
 /// its terms plus the constant.
 fn context_to_exp(context: &LinearizationContext) -> Exp {
-    let mut exp = Exp::Number(context.rhs());
-    for (name, coeff) in context.vars() {
-        let term = Exp::BinOp(
-            BinOp::Mul,
-            Exp::Number(*coeff).to_box(),
-            Exp::Variable(name.clone()).to_box(),
-        );
-        exp = Exp::BinOp(BinOp::Add, exp.to_box(), term.to_box());
-    }
-    exp
+    let constant = Exp::Number(context.rhs());
+    let terms = context
+        .vars()
+        .iter()
+        .map(|(name, coeff)| mul_exp(Exp::Number(*coeff), Exp::Variable(name.clone())));
+    fold_balanced(std::iter::once(constant).chain(terms), add_exp)
+        .expect("the constant is always a term")
 }
 
 /// Checks that a linearized expression is guaranteed to take 0/1 values so it
@@ -1292,10 +1289,9 @@ fn mul_exp(lhs: Exp, rhs: Exp) -> Exp {
     Exp::BinOp(BinOp::Mul, lhs.to_box(), rhs.to_box())
 }
 
+/// Adds up the expressions as a balanced tree, so that long sums stay shallow.
 fn sum_exps(exps: &[Exp]) -> Exp {
-    let mut iter = exps.iter().cloned();
-    let first = iter.next().unwrap_or(Exp::Number(0.0));
-    iter.fold(first, add_exp)
+    fold_balanced(exps.iter().cloned(), add_exp).unwrap_or(Exp::Number(0.0))
 }
 
 fn variables_without_finite_bounds(exp: &Exp, bounds: &BoundsAnalyzer) -> Vec<String> {
@@ -1379,21 +1375,18 @@ impl MidLinearConstraint {
         }
     }
 
-    /// Converts the constraint's variables to a coefficient vector based on variable ordering.
-    ///
-    /// # Arguments
-    /// * `vars` - Mapping of variable names to their positions
-    pub fn to_coefficient_vector(&self, vars: &IndexMap<String, usize>) -> Vec<f64> {
-        extract_coeffs(&self.lhs, vars)
-    }
-
-    /// Converts to a final LinearConstraint.
+    /// Converts to a final LinearConstraint, which keeps only the nonzero
+    /// coefficients.
     ///
     /// # Arguments
     /// * `vars` - Mapping of variable names to their positions
     pub fn into_linear_constraint(self, vars: &IndexMap<String, usize>) -> LinearConstraint {
-        let coeffs = self.to_coefficient_vector(vars);
-        LinearConstraint::new_with_name(coeffs, self.comparison, self.rhs, self.name)
+        // Skip names not present in `vars` rather than panicking, like extract_coeffs.
+        let terms = self
+            .lhs
+            .iter()
+            .filter_map(|(name, value)| vars.get(name).map(|index| (*index, *value)));
+        LinearConstraint::new_sparse(terms, self.comparison, self.rhs).with_name(&self.name)
     }
 }
 
@@ -1620,7 +1613,7 @@ impl Linearizer {
         let domain = context
             .domain
             .into_iter()
-            .filter(|(name, _)| vars.contains(name))
+            .filter(|(_, variable)| variable.is_used())
             .collect::<IndexMap<String, DomainVariable>>();
         let vars_indexes: IndexMap<String, usize> = vars
             .iter()

@@ -6,7 +6,7 @@ use crate::parser::model_transformer::DomainVariable;
 use crate::prelude::*;
 use crate::solvers::SolverError;
 use crate::transformers::standard_linear_model::{StandardLinearModel, format_var};
-use crate::utils::{InputSpan, remove_many};
+use crate::utils::InputSpan;
 use crate::{
     math::{Comparison, OptimizationType},
     transformers::standardizer::to_standard_form,
@@ -18,26 +18,72 @@ use std::fmt::Display;
 
 /// Represents a linear constraint in the form: coefficients * variables comparison_operator rhs
 ///
-/// For example: 2x + 3y <= 5 would be represented as:
-/// - coefficients: [2.0, 3.0]
+/// Only the nonzero coefficients are stored, as the indexes of their variables
+/// and their values: most variables of a model don't appear in most of its
+/// constraints, so a coefficient for every variable would be mostly zeros.
+///
+/// For example: 2x + 3z <= 5, in a model with the variables x, y and z, would
+/// be represented as:
+/// - indices: [0, 2]
+/// - values: [2.0, 3.0]
 /// - constraint_type: LessOrEqual
 /// - rhs: 5.0
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(try_from = "SparseConstraintData")]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct LinearConstraint {
     name: String,
-    coefficients: Vec<f64>,
+    /// The indexes of the variables with a nonzero coefficient, increasing
+    indices: Vec<usize>,
+    /// The nonzero coefficients, `values[k]` belongs to the variable `indices[k]`
+    values: Vec<f64>,
     rhs: f64,
     constraint_type: Comparison,
 }
+
+/// A [`LinearConstraint`] as it is deserialized, the coefficients may come
+/// from JavaScript so they are normalized before being used.
+#[derive(Deserialize)]
+struct SparseConstraintData {
+    name: String,
+    indices: Vec<usize>,
+    values: Vec<f64>,
+    rhs: f64,
+    constraint_type: Comparison,
+}
+
+impl TryFrom<SparseConstraintData> for LinearConstraint {
+    type Error = String;
+    fn try_from(data: SparseConstraintData) -> Result<Self, Self::Error> {
+        if data.indices.len() != data.values.len() {
+            return Err(format!(
+                "Constraint \"{}\" has {} indices but {} values",
+                data.name,
+                data.indices.len(),
+                data.values.len()
+            ));
+        }
+        let terms = data.indices.into_iter().zip(data.values);
+        Ok(
+            LinearConstraint::new_sparse(terms, data.constraint_type, data.rhs)
+                .with_name(&data.name),
+        )
+    }
+}
+
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(typescript_custom_section))]
 #[allow(non_upper_case_globals)]
 #[cfg(target_arch = "wasm32")]
 const ILinearConstraint: &'static str = r#"
 
+/**
+ * Only the nonzero coefficients are listed: values[k] is the coefficient
+ * of the variable at position indices[k] of the model's variables.
+ */
 export type SerializedLinearConstraint = {
     rhs: number
-    coefficients: number[]
+    indices: number[]
+    values: number[]
     constraint_type: SerializedComparison
     name: string
 }
@@ -48,31 +94,64 @@ export type SerializedComparison = {
 "#;
 
 impl LinearConstraint {
-    /// Creates a new linear constraint.
+    /// Creates a new linear constraint from the coefficient of every variable,
+    /// zeros included. Only the nonzero coefficients are kept.
     ///
     /// # Arguments
     /// * `coefficients` - Vector of coefficients for each variable
     /// * `constraint_type` - Type of comparison operator (e.g., <=, =, >=)
     /// * `rhs` - Right-hand side constant value
     pub fn new(coefficients: Vec<f64>, constraint_type: Comparison, rhs: f64) -> LinearConstraint {
-        LinearConstraint {
-            name: "".to_string(),
-            coefficients,
-            rhs,
-            constraint_type,
-        }
+        Self::new_sparse(coefficients.into_iter().enumerate(), constraint_type, rhs)
     }
 
-    /// Creates a new linear constraint with a name.
+    /// Creates a new linear constraint with a name, see [`Self::new`].
     pub fn new_with_name(
         coefficients: Vec<f64>,
         constraint_type: Comparison,
         rhs: f64,
         name: String,
     ) -> LinearConstraint {
+        let mut constraint = Self::new(coefficients, constraint_type, rhs);
+        constraint.name = name;
+        constraint
+    }
+
+    /// Creates a new linear constraint from its nonzero coefficients, given as
+    /// `(variable index, coefficient)` pairs in any order. The coefficients of
+    /// the same variable are added together, and zeros are dropped.
+    ///
+    /// # Example
+    /// ```rust
+    /// use rooc::{Comparison, LinearConstraint};
+    ///
+    /// // 2x + 3z <= 5, in a model with the variables x, y and z
+    /// let constraint = LinearConstraint::new_sparse([(2, 3.0), (0, 2.0)], Comparison::LessOrEqual, 5.0);
+    /// assert_eq!(constraint.indices(), &[0, 2]);
+    /// assert_eq!(constraint.to_dense(3), vec![2.0, 0.0, 3.0]);
+    /// ```
+    pub fn new_sparse(
+        coefficients: impl IntoIterator<Item = (usize, f64)>,
+        constraint_type: Comparison,
+        rhs: f64,
+    ) -> LinearConstraint {
+        let mut terms = coefficients.into_iter().collect::<Vec<(usize, f64)>>();
+        terms.sort_by_key(|(index, _)| *index);
+        let mut merged: Vec<(usize, f64)> = Vec::with_capacity(terms.len());
+        for (index, value) in terms {
+            match merged.last_mut() {
+                Some((last, sum)) if *last == index => *sum += value,
+                _ => merged.push((index, value)),
+            }
+        }
+        let (indices, values) = merged
+            .into_iter()
+            .filter(|(_, value)| *value != 0.0)
+            .unzip();
         LinearConstraint {
-            name,
-            coefficients,
+            name: String::new(),
+            indices,
+            values,
             rhs,
             constraint_type,
         }
@@ -89,22 +168,70 @@ impl LinearConstraint {
         self.name.clone()
     }
 
-    /// Returns a reference to the coefficient vector.
-    pub fn coefficients(&self) -> &Vec<f64> {
-        &self.coefficients
+    /// Returns the indexes of the variables with a nonzero coefficient, in
+    /// increasing order.
+    pub fn indices(&self) -> &[usize] {
+        &self.indices
     }
 
-    /// Returns a mutable reference to the coefficient vector.
-    pub fn coefficients_mut(&mut self) -> &mut Vec<f64> {
-        &mut self.coefficients
+    /// Returns the nonzero coefficients, `values()[k]` is the coefficient of
+    /// the variable at `indices()[k]`.
+    pub fn values(&self) -> &[f64] {
+        &self.values
     }
 
-    /// Removes coefficients at the specified indices.
+    /// Returns the nonzero coefficients as `(variable index, coefficient)`
+    /// pairs, by increasing variable index.
+    pub fn terms(&self) -> impl Iterator<Item = (usize, f64)> + '_ {
+        self.indices
+            .iter()
+            .copied()
+            .zip(self.values.iter().copied())
+    }
+
+    /// Returns the coefficient of the variable at `index`, zero when the
+    /// variable does not appear in the constraint.
+    pub fn coefficient(&self, index: usize) -> f64 {
+        match self.indices.binary_search(&index) {
+            Ok(position) => self.values[position],
+            Err(_) => 0.0,
+        }
+    }
+
+    /// Returns the coefficient of every variable, zeros included, in a model
+    /// with `variables` variables.
+    ///
+    /// # Panics
+    /// If the constraint uses a variable whose index is not below `variables`
+    pub fn to_dense(&self, variables: usize) -> Vec<f64> {
+        let mut coefficients = vec![0.0; variables];
+        for (index, value) in self.terms() {
+            coefficients[index] = value;
+        }
+        coefficients
+    }
+
+    /// Removes the variables at the specified indices, the variables after
+    /// them move down to fill their place.
     ///
     /// # Arguments
     /// * `indices` - Slice of indices to remove
     pub fn remove_coefficients_by_index(&mut self, indices: &[usize]) {
-        remove_many(&mut self.coefficients, indices);
+        let mut removed = indices.to_vec();
+        removed.sort_unstable();
+        removed.dedup();
+        let mut kept = 0;
+        for position in 0..self.indices.len() {
+            let index = self.indices[position];
+            //the insertion point counts the removed variables before this one
+            if let Err(shift) = removed.binary_search(&index) {
+                self.indices[kept] = index - shift;
+                self.values[kept] = self.values[position];
+                kept += 1;
+            }
+        }
+        self.indices.truncate(kept);
+        self.values.truncate(kept);
     }
 
     /// Returns the right-hand side value of the constraint.
@@ -120,25 +247,24 @@ impl LinearConstraint {
     /// Decomposes the constraint into its constituent parts.
     ///
     /// # Returns
-    /// A tuple containing (coefficients, comparison operator, right-hand side)
-    pub fn into_parts(self) -> (Vec<f64>, Comparison, f64) {
-        (self.coefficients, self.constraint_type, self.rhs)
-    }
-
-    /// Ensures the coefficient vector has the specified size by padding with zeros if necessary.
-    ///
-    /// # Arguments
-    /// * `size` - The desired size of the coefficient vector
-    pub fn ensure_size(&mut self, size: usize) {
-        self.coefficients.resize(size, 0.0);
+    /// A tuple containing (indices, values, comparison operator, right-hand side),
+    /// where `values[k]` is the coefficient of the variable at `indices[k]`
+    pub fn into_parts(self) -> (Vec<usize>, Vec<f64>, Comparison, f64) {
+        (self.indices, self.values, self.constraint_type, self.rhs)
     }
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[cfg(target_arch = "wasm32")]
 impl LinearConstraint {
-    pub fn wasm_get_coefficients(&self) -> Vec<f64> {
-        self.coefficients.clone()
+    pub fn wasm_get_indices(&self) -> Vec<usize> {
+        self.indices.clone()
+    }
+    pub fn wasm_get_values(&self) -> Vec<f64> {
+        self.values.clone()
+    }
+    pub fn wasm_get_coefficients(&self, variables: usize) -> Vec<f64> {
+        self.to_dense(variables)
     }
     pub fn wasm_get_rhs(&self) -> f64 {
         self.rhs
@@ -150,20 +276,10 @@ impl LinearConstraint {
 
 impl Display for LinearConstraint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut is_first = true;
         let coefficients = self
-            .coefficients
-            .iter()
+            .terms()
             .enumerate()
-            .flat_map(|(i, c)| {
-                if c.is_zero() {
-                    None
-                } else {
-                    let var = format_var(&format!("x{}", i + 1), *c, is_first);
-                    is_first = false;
-                    Some(var)
-                }
-            })
+            .map(|(position, (i, c))| format_var(&format!("x{}", i + 1), c, position == 0))
             .collect::<Vec<String>>()
             .join(" ");
         let lhs = if coefficients.is_empty() {
@@ -306,14 +422,6 @@ impl LinearModel {
         )
     }
 
-    /// Ensures all vectors in the model have consistent sizes.
-    fn ensure_sizes(&mut self) {
-        self.constraints
-            .iter_mut()
-            .for_each(|c| c.ensure_size(self.variables.len()));
-        self.objective.resize(self.variables.len(), 0.0);
-    }
-
     /// Adds a new variable to the model.
     ///
     /// # Arguments
@@ -325,7 +433,9 @@ impl LinearModel {
             name.to_string(),
             DomainVariable::new(domain, InputSpan::default()),
         );
-        self.ensure_sizes();
+        //constraints only store their nonzero coefficients, so only the
+        //objective has to grow
+        self.objective.resize(self.variables.len(), 0.0);
     }
 
     /// Adds a new constraint to the model.
@@ -364,7 +474,7 @@ impl LinearModel {
     /// If there are more coefficient than how many variables there are
     pub fn add_named_constraint(
         &mut self,
-        mut coefficients: Vec<f64>,
+        coefficients: Vec<f64>,
         constraint_type: Comparison,
         rhs: f64,
         name: &str,
@@ -376,7 +486,6 @@ impl LinearModel {
                 self.variables.len()
             );
         }
-        coefficients.resize(self.variables.len(), 0.0);
         self.constraints.push(LinearConstraint::new_with_name(
             coefficients,
             constraint_type,
@@ -460,24 +569,18 @@ impl LinearModel {
             + self.objective_offset
     }
 
-    pub fn calc_constraints(&self, values: &Vec<f64>) -> Vec<(String, f64)> {
+    pub fn calc_constraints(&self, values: &[f64]) -> Vec<(String, f64)> {
+        if values.len() != self.variables.len() {
+            panic!(
+                "The model has {} variables while {} values were provided",
+                self.variables.len(),
+                values.len()
+            );
+        }
         self.constraints
             .iter()
             .map(|c| {
-                if c.coefficients.len() != values.len() {
-                    panic!(
-                        "Constraint {} has {} coefficients while {} values were provided",
-                        c,
-                        c.coefficients.len(),
-                        values.len()
-                    );
-                }
-                let value = c
-                    .coefficients
-                    .iter()
-                    .zip(values)
-                    .map(|(c, v)| c * v)
-                    .sum::<f64>();
+                let value = c.terms().map(|(i, c)| c * values[i]).sum::<f64>();
                 (c.name(), value)
             })
             .collect()
@@ -498,7 +601,7 @@ impl LinearModel {
         };
         out.push_str(direction);
         out.push('\n');
-        let mut objective = lp_terms(&self.objective, vars);
+        let mut objective = lp_terms(self.objective.iter().copied().enumerate(), vars);
         if !self.objective_offset.is_zero() {
             let sign = if self.objective_offset < 0.0 {
                 "-"
@@ -528,7 +631,7 @@ impl LinearModel {
             out.push_str(&format!(
                 " {}: {} {} {}\n",
                 name,
-                lp_terms(c.coefficients(), vars),
+                lp_terms(c.terms(), vars),
                 op,
                 lp_num(c.rhs())
             ));
@@ -605,14 +708,16 @@ fn lp_bound(n: f64) -> String {
     }
 }
 
-/// Formats a linear combination `sum(coeff_i * var_i)`, omitting zero terms and
-/// unit coefficients (so `1 x` renders as `x`).
-fn lp_terms(coeffs: &[f64], vars: &[String]) -> String {
+/// Formats a linear combination `sum(coeff_i * var_i)` from `(variable index,
+/// coefficient)` pairs, omitting zero terms and unit coefficients (so `1 x`
+/// renders as `x`).
+fn lp_terms(terms: impl Iterator<Item = (usize, f64)>, vars: &[String]) -> String {
     let mut s = String::new();
-    for (c, v) in coeffs.iter().zip(vars) {
+    for (i, c) in terms {
         if c.is_zero() {
             continue;
         }
+        let v = &vars[i];
         let magnitude = c.abs();
         let coeff = if magnitude == 1.0 {
             String::new()
@@ -620,13 +725,13 @@ fn lp_terms(coeffs: &[f64], vars: &[String]) -> String {
             format!("{} ", lp_num(magnitude))
         };
         if s.is_empty() {
-            if *c < 0.0 {
+            if c < 0.0 {
                 s.push_str(&format!("- {}{}", coeff, v));
             } else {
                 s.push_str(&format!("{}{}", coeff, v));
             }
         } else {
-            let sign = if *c < 0.0 { "-" } else { "+" };
+            let sign = if c < 0.0 { "-" } else { "+" };
             s.push_str(&format!(" {} {}{}", sign, coeff, v));
         }
     }
@@ -639,20 +744,10 @@ fn lp_terms(coeffs: &[f64], vars: &[String]) -> String {
 impl Display for LinearModel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let constraints = self.constraints.iter().map(|c| {
-            let mut is_first = true;
             let coefficients = c
-                .coefficients
-                .iter()
+                .terms()
                 .enumerate()
-                .flat_map(|(i, c)| {
-                    if c.is_zero() {
-                        None
-                    } else {
-                        let var = format_var(&self.variables[i], *c, is_first);
-                        is_first = false;
-                        Some(var)
-                    }
-                })
+                .map(|(position, (i, c))| format_var(&self.variables[i], c, position == 0))
                 .collect::<Vec<String>>()
                 .join(" ");
             let lhs = if coefficients.is_empty() {
@@ -714,11 +809,14 @@ impl Display for LinearModel {
         } else {
             "".to_string()
         };
-        write!(
-            f,
-            "{} {}\ns.t.\n{}{}",
-            self.optimization_type, objective, constraints, domain
-        )
+        let objective = match self.optimization_type {
+            //a satisfaction problem has no objective expression
+            OptimizationType::Satisfy => self.optimization_type.to_string(),
+            OptimizationType::Min | OptimizationType::Max => {
+                format!("{} {}", self.optimization_type, objective)
+            }
+        };
+        write!(f, "{}\ns.t.\n{}{}", objective, constraints, domain)
     }
 }
 
@@ -748,7 +846,7 @@ impl LinearModel {
 
 pub fn make_constraints_map_from_assignment(
     model: &LinearModel,
-    assignment: &Vec<f64>,
+    assignment: &[f64],
 ) -> IndexMap<String, f64> {
     let constraints = model.calc_constraints(assignment);
     // Remove constraints that are not user-defined, marked as "__"
@@ -756,4 +854,79 @@ pub fn make_constraints_map_from_assignment(
         .into_iter()
         .filter(|c| !c.0.starts_with("__"))
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::LinearConstraint;
+    use crate::math::Comparison;
+    use serde_json::json;
+
+    #[test]
+    fn dense_coefficients_keep_only_the_nonzero_ones() {
+        let constraint =
+            LinearConstraint::new(vec![0.0, 2.0, 0.0, -1.0], Comparison::LessOrEqual, 3.0);
+        assert_eq!(constraint.indices(), &[1, 3]);
+        assert_eq!(constraint.values(), &[2.0, -1.0]);
+        assert_eq!(constraint.coefficient(1), 2.0);
+        assert_eq!(constraint.coefficient(2), 0.0);
+        assert_eq!(constraint.to_dense(5), vec![0.0, 2.0, 0.0, -1.0, 0.0]);
+    }
+
+    #[test]
+    fn sparse_coefficients_are_sorted_and_merged() {
+        let terms = [(4, 1.0), (1, 2.0), (4, 2.0), (2, 1.0), (2, -1.0)];
+        let constraint = LinearConstraint::new_sparse(terms, Comparison::Equal, 0.0);
+        // the two coefficients of variable 2 cancel out
+        assert_eq!(constraint.indices(), &[1, 4]);
+        assert_eq!(constraint.values(), &[2.0, 3.0]);
+    }
+
+    #[test]
+    fn removing_variables_moves_the_following_ones_down() {
+        let mut constraint =
+            LinearConstraint::new(vec![1.0, 2.0, 3.0, 4.0, 5.0], Comparison::Equal, 0.0);
+        constraint.remove_coefficients_by_index(&[3, 1]);
+        assert_eq!(constraint.to_dense(3), vec![1.0, 3.0, 5.0]);
+    }
+
+    #[test]
+    fn serialized_constraints_list_only_the_nonzero_coefficients() {
+        let constraint =
+            LinearConstraint::new(vec![0.0, 2.0, 0.0], Comparison::LessOrEqual, 3.0).with_name("c");
+        let serialized = serde_json::to_value(&constraint).unwrap();
+        assert_eq!(
+            serialized,
+            json!({
+                "name": "c",
+                "indices": [1],
+                "values": [2.0],
+                "rhs": 3.0,
+                "constraint_type": { "type": "LessOrEqual" }
+            })
+        );
+    }
+
+    #[test]
+    fn deserialized_constraints_are_normalized() {
+        let constraint: LinearConstraint = serde_json::from_value(json!({
+            "name": "c",
+            "indices": [3, 0, 3],
+            "values": [1.0, 0.0, 2.0],
+            "rhs": 1.0,
+            "constraint_type": { "type": "Equal" }
+        }))
+        .unwrap();
+        assert_eq!(constraint.indices(), &[3]);
+        assert_eq!(constraint.values(), &[3.0]);
+
+        let mismatched = serde_json::from_value::<LinearConstraint>(json!({
+            "name": "c",
+            "indices": [0, 1],
+            "values": [1.0],
+            "rhs": 1.0,
+            "constraint_type": { "type": "Equal" }
+        }));
+        assert!(mismatched.is_err());
+    }
 }
