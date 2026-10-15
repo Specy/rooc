@@ -331,6 +331,33 @@ pub(crate) fn remove_many<T>(vec: &mut Vec<T>, indices: &[usize]) {
     });
 }
 
+/// Folds the items into a balanced tree by combining neighbors pairwise,
+/// level after level, keeping their order. Returns `None` when there are no
+/// items.
+///
+/// Expressions are walked recursively, so their depth is bounded by the stack.
+/// Folding a chain one item at a time nests it once per item, a sum over a few
+/// thousand terms is then enough to overflow the stack, while the balanced
+/// tree only nests log2(n) times.
+pub(crate) fn fold_balanced<T>(
+    items: impl IntoIterator<Item = T>,
+    mut combine: impl FnMut(T, T) -> T,
+) -> Option<T> {
+    let mut level = items.into_iter().collect::<Vec<T>>();
+    while level.len() > 1 {
+        let mut next = Vec::with_capacity(level.len().div_ceil(2));
+        let mut iter = level.into_iter();
+        while let Some(lhs) = iter.next() {
+            match iter.next() {
+                Some(rhs) => next.push(combine(lhs, rhs)),
+                None => next.push(lhs),
+            }
+        }
+        level = next;
+    }
+    level.pop()
+}
+
 #[cfg(target_arch = "wasm32")]
 pub fn serialize_json_compatible<T>(obj: &T) -> Result<JsValue, serde_wasm_bindgen::Error>
 where

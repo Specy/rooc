@@ -2,6 +2,7 @@
 
 use crate::math::{BinOp, UnOp};
 use crate::parser::model_transformer::Exp;
+use crate::utils::fold_balanced;
 
 /// Lightweight copyable variable handle referencing a variable index in the model.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -429,26 +430,10 @@ pub fn max(exprs: impl IntoIterator<Item = impl Into<Expr>>) -> Expr {
 }
 
 pub fn sum(exprs: impl IntoIterator<Item = impl Into<Expr>>) -> Expr {
-    let mut level = exprs.into_iter().map(Into::into).collect::<Vec<Expr>>();
-    if level.is_empty() {
-        return Expr::Number(0.0);
-    }
-
-    while level.len() > 1 {
-        let mut next = Vec::with_capacity(level.len().div_ceil(2));
-        let mut iter = level.into_iter();
-        while let Some(lhs) = iter.next() {
-            match iter.next() {
-                Some(rhs) => {
-                    next.push(Expr::BinOp(BinOp::Add, Box::new(lhs), Box::new(rhs)));
-                }
-                None => next.push(lhs),
-            }
-        }
-        level = next;
-    }
-
-    level.pop().expect("non-empty sum level")
+    fold_balanced(exprs.into_iter().map(Into::into), |lhs, rhs| {
+        Expr::BinOp(BinOp::Add, Box::new(lhs), Box::new(rhs))
+    })
+    .unwrap_or(Expr::Number(0.0))
 }
 
 pub fn all(exprs: impl IntoIterator<Item = impl Into<Expr>>) -> Expr {

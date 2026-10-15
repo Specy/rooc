@@ -430,25 +430,62 @@ export class LinearModel {
      * Get all the constraints of the linear model
      */
     getConstraints() {
-        return this.cache.constraints ??= Array.from(this.instance.wasm_get_constraints()).map(c => new LinearConstraint(c))
+        const variablesCount = this.getVariables().length
+        return this.cache.constraints ??= Array.from(this.instance.wasm_get_constraints()).map(c => new LinearConstraint(c, variablesCount))
     }
 }
 
+/**
+ * A constraint of a linear model, which stores only its nonzero coefficients:
+ * getValues()[k] is the coefficient of the variable at position getIndices()[k]
+ * of the model's getVariables().
+ *
+ * @example
+ * const variables = linear.getVariables()
+ * for (const constraint of linear.getConstraints()) {
+ *     const values = constraint.getValues()
+ *     constraint.getIndices().forEach((index, k) => console.log(values[k], variables[index]))
+ * }
+ */
 export class LinearConstraint {
     instance: _LinearConstraint
+    private variablesCount: number
     private cache: {
         coefficients?: number[]
+        indices?: number[]
+        values?: number[]
     } = {}
 
-    constructor(instance: _LinearConstraint) {
+    /**
+     * @param instance the wasm constraint
+     * @param variablesCount the number of variables of the model the constraint belongs to
+     */
+    constructor(instance: _LinearConstraint, variablesCount: number) {
         this.instance = instance;
+        this.variablesCount = variablesCount;
     }
 
     /**
-     * Get the coefficients of the constraint
+     * Get the coefficient of every variable of the model, zeros included,
+     * in the order of the model's variables
      */
     getCoefficients() {
-        return this.cache.coefficients ??= Array.from(this.instance.wasm_get_coefficients())
+        return this.cache.coefficients ??= Array.from(this.instance.wasm_get_coefficients(this.variablesCount))
+    }
+
+    /**
+     * Get the indexes of the variables with a nonzero coefficient, in increasing order.
+     * An index is the position of the variable in the model's getVariables()
+     */
+    getIndices() {
+        return this.cache.indices ??= Array.from(this.instance.wasm_get_indices())
+    }
+
+    /**
+     * Get the nonzero coefficients, getValues()[k] is the coefficient of the variable at getIndices()[k]
+     */
+    getValues() {
+        return this.cache.values ??= Array.from(this.instance.wasm_get_values())
     }
 
     /**

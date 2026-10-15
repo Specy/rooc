@@ -512,9 +512,21 @@ define
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    #[should_panic]
     fn should_transform_free_variables() {
-        todo!("Create this test plis")
+        //a and c are free and negative at the optimum, with b between them
+        let source = r#"
+    min 2a + b + c
+    s.t.
+        a + c >= -4
+        a >= -3
+        c - b <= 1
+        c >= -2
+    define
+        a, c as Real
+        b as NonNegativeReal
+    "#;
+        let solution = solve(source).unwrap();
+        assert_correct_named_real_solution(solution, -7.0, &[("a", -3.0), ("b", 0.0), ("c", -1.0)]);
     }
 
     #[test]

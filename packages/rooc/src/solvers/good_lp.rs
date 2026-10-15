@@ -152,17 +152,18 @@ where
         .using(solver);
     let mut constraint_references = Vec::with_capacity(lp.constraints().len());
     for constraint in lp.constraints() {
-        if constraint.coefficients().len() != variables.len() {
+        if let Some(index) = constraint.indices().last()
+            && *index >= variables.len()
+        {
             return Err(SolverError::Other(format!(
-                "constraint has {} coefficients but variable count is {}",
-                constraint.coefficients().len(),
+                "constraint uses the variable at index {index} but variable count is {}",
                 variables.len()
             )));
         }
-        let expression = constraint.coefficients().iter().enumerate().fold(
-            Expression::with_capacity(variables.len()),
+        let expression = constraint.terms().fold(
+            Expression::with_capacity(constraint.indices().len()),
             |expression, (index, coefficient)| {
-                expression + *coefficient * created_variables[index].1
+                expression + coefficient * created_variables[index].1
             },
         );
         let constraint_name = constraint.name();

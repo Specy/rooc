@@ -1,5 +1,5 @@
 use crate::domain_declaration::{Variable, format_domain};
-use crate::math::{BinOp, UnOp};
+use crate::math::{BinOp, OperandShape, OperandSide, UnOp};
 use crate::math::{Comparison, OptimizationType};
 use crate::parser::il::PreExp;
 use crate::parser::il::{PreConstraint, PreObjective};
@@ -415,43 +415,30 @@ impl Exp {
         )
     }
 
-    /// Converts the expression to a string with proper operator precedence.
-    ///
-    /// # Arguments
-    /// * `last_operator` - The operator from the parent expression for precedence comparison
-    ///
-    /// # Returns
-    /// String representation with appropriate parentheses based on operator precedence
-    pub fn to_string_with_precedence(&self, last_operator: BinOp) -> String {
-        let last_precedence = last_operator.precedence();
+    /// How the expression looks to an operator containing it.
+    fn shape(&self) -> OperandShape {
         match self {
-            Exp::BinOp(op, lhs, rhs) => {
-                let string_lhs = lhs.to_string_with_precedence(*op);
-                let string_rhs = rhs.to_string_with_precedence(*op);
-                let precedence = op.precedence();
-                if precedence < last_precedence {
-                    format!("({} {} {})", string_lhs, op, string_rhs)
-                } else {
-                    //TODO improve this
-                    match last_operator {
-                        BinOp::Add
-                        | BinOp::Mul
-                        | BinOp::Div
-                        | BinOp::And
-                        | BinOp::Or
-                        | BinOp::Xor
-                        | BinOp::Implies
-                        | BinOp::Iff => {
-                            format!("{} {} {}", string_lhs, op, string_rhs)
-                        }
-                        BinOp::Sub => match rhs.is_leaf() {
-                            true => format!("{} {} {}", string_lhs, op, string_rhs),
-                            false => format!("{} {} ({})", string_lhs, op, string_rhs),
-                        },
-                    }
-                }
+            Exp::BinOp(op, _, _) => OperandShape::Binary(*op),
+            Exp::Xor(_, _) => OperandShape::Binary(BinOp::Xor),
+            Exp::Implies(_, _) => OperandShape::Binary(BinOp::Implies),
+            Exp::Iff(_, _) => OperandShape::Binary(BinOp::Iff),
+            Exp::And(exps) => chain_shape(BinOp::And, exps),
+            Exp::Or(exps) => chain_shape(BinOp::Or, exps),
+            Exp::UnOp(_, _) | Exp::Not(_) => OperandShape::Prefix,
+            //a negative number is written with a leading minus, like a negation
+            Exp::Number(value) if value.is_sign_negative() => OperandShape::Prefix,
+            Exp::Number(_) | Exp::Variable(_) | Exp::Abs(_) | Exp::Min(_) | Exp::Max(_) => {
+                OperandShape::Atom
             }
-            _ => self.to_string(),
+        }
+    }
+
+    /// Formats an operand of `op`, in parentheses when the precedence requires it.
+    fn operand_to_string(&self, op: BinOp, side: OperandSide) -> String {
+        if op.operand_needs_parens(self.shape(), side) {
+            format!("({})", self)
+        } else {
+            self.to_string()
         }
     }
 }
@@ -507,13 +494,52 @@ fn simplify_logic_nary(exps: &[Exp], is_and: bool) -> Exp {
     }
 }
 
-/// Formats a logic operand, wrapping it in parenthesis unless it is a leaf
-/// or a negation of a leaf, which are unambiguous on their own.
-fn logic_operand_to_string(exp: &Exp) -> String {
-    match exp {
-        exp if exp.is_leaf() => exp.to_string(),
-        Exp::Not(inner) if inner.is_leaf() => exp.to_string(),
-        exp => format!("({})", exp),
+/// The shape of an n-ary logic chain, which prints as its operand when it has
+/// a single one and as a boolean literal when it has none.
+fn chain_shape(op: BinOp, exps: &[Exp]) -> OperandShape {
+    match exps {
+        [] => OperandShape::Atom,
+        [exp] => exp.shape(),
+        _ => OperandShape::Binary(op),
+    }
+}
+
+/// Formats `lhs op rhs`, wrapping the operands that need it.
+fn binary_to_string(op: BinOp, lhs: &Exp, rhs: &Exp) -> String {
+    format!(
+        "{} {} {}",
+        lhs.operand_to_string(op, OperandSide::Left),
+        op,
+        rhs.operand_to_string(op, OperandSide::Right)
+    )
+}
+
+/// Formats an n-ary logic chain like `a and b and c`, an empty chain prints
+/// as its identity, `true` for a conjunction and `false` for a disjunction.
+fn chain_to_string(op: BinOp, exps: &[Exp], identity: &str) -> String {
+    if exps.is_empty() {
+        return identity.to_string();
+    }
+    exps.iter()
+        .enumerate()
+        .map(|(i, exp)| {
+            let side = if i == 0 {
+                OperandSide::Left
+            } else {
+                OperandSide::Right
+            };
+            exp.operand_to_string(op, side)
+        })
+        .collect::<Vec<_>>()
+        .join(&format!(" {} ", op))
+}
+
+/// Formats a prefix operation, wrapping the operand unless it is an atom.
+fn prefix_to_string(op: UnOp, exp: &Exp) -> String {
+    if op.operand_needs_parens(exp.shape()) {
+        format!("{}({})", op, exp)
+    } else {
+        format!("{}{}", op, exp)
     }
 }
 
@@ -522,66 +548,29 @@ impl fmt::Display for Exp {
         let s = match self {
             Exp::Number(value) => value.to_string(),
             Exp::Variable(name) => name.clone(),
-            Exp::Abs(exp) => format!("abs{{ {} }}", exp),
-            Exp::And(exps) => exps
-                .iter()
-                .map(logic_operand_to_string)
-                .collect::<Vec<_>>()
-                .join(" and "),
-            Exp::Or(exps) => exps
-                .iter()
-                .map(logic_operand_to_string)
-                .collect::<Vec<_>>()
-                .join(" or "),
-            Exp::Not(exp) => {
-                if exp.is_leaf() {
-                    format!("not {}", exp)
-                } else {
-                    format!("not ({})", exp)
-                }
-            }
-            Exp::Xor(lhs, rhs) => format!(
-                "{} xor {}",
-                logic_operand_to_string(lhs),
-                logic_operand_to_string(rhs)
-            ),
-            Exp::Implies(lhs, rhs) => format!(
-                "{} implies {}",
-                logic_operand_to_string(lhs),
-                logic_operand_to_string(rhs)
-            ),
-            Exp::Iff(lhs, rhs) => format!(
-                "{} iff {}",
-                logic_operand_to_string(lhs),
-                logic_operand_to_string(rhs)
-            ),
+            Exp::Abs(exp) => format!("abs {{ {} }}", exp),
+            Exp::And(exps) => chain_to_string(BinOp::And, exps, "true"),
+            Exp::Or(exps) => chain_to_string(BinOp::Or, exps, "false"),
+            Exp::Not(exp) => prefix_to_string(UnOp::Not, exp),
+            Exp::Xor(lhs, rhs) => binary_to_string(BinOp::Xor, lhs, rhs),
+            Exp::Implies(lhs, rhs) => binary_to_string(BinOp::Implies, lhs, rhs),
+            Exp::Iff(lhs, rhs) => binary_to_string(BinOp::Iff, lhs, rhs),
             Exp::Min(exps) => format!(
-                "min{{ {} }}",
+                "min {{ {} }}",
                 exps.iter()
                     .map(|exp| exp.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
             Exp::Max(exps) => format!(
-                "max{{ {} }}",
+                "max {{ {} }}",
                 exps.iter()
                     .map(|exp| exp.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            Exp::BinOp(operator, lhs, rhs) => {
-                //TODO: add parenthesis when needed
-                let string_lhs = lhs.to_string_with_precedence(*operator);
-                let string_rhs = rhs.to_string_with_precedence(*operator);
-                format!("{} {} {}", string_lhs, operator, string_rhs)
-            }
-            Exp::UnOp(op, exp) => {
-                if exp.is_leaf() {
-                    format!("{}{}", op, exp)
-                } else {
-                    format!("{}({})", op, exp)
-                }
-            }
+            Exp::BinOp(op, lhs, rhs) => binary_to_string(*op, lhs, rhs),
+            Exp::UnOp(op, exp) => prefix_to_string(*op, exp),
         };
         f.write_str(&s)
     }
@@ -622,7 +611,13 @@ impl Objective {
 
 impl fmt::Display for Objective {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.objective_type, self.rhs)
+        match self.objective_type {
+            //a satisfaction problem has no objective expression
+            OptimizationType::Satisfy => write!(f, "{}", self.objective_type),
+            OptimizationType::Min | OptimizationType::Max => {
+                write!(f, "{} {}", self.objective_type, self.rhs)
+            }
+        }
     }
 }
 

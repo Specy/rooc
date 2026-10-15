@@ -175,7 +175,14 @@ pub fn solve_milp_lp_problem_with(
     }
 
     for constraint in lp.constraints() {
-        let coeffs = constraint.coefficients();
+        if let Some(index) = constraint.indices().last()
+            && *index >= microlp_vars.len()
+        {
+            return Err(SolverError::Other(format!(
+                "constraint uses the variable at index {index} but variable count is {}",
+                microlp_vars.len()
+            )));
+        }
         let rhs = constraint.rhs();
         let comparison_type = constraint.constraint_type();
         let microlp_comparison_type = match comparison_type {
@@ -193,10 +200,9 @@ pub fn solve_milp_lp_problem_with(
                 });
             }
         };
-        let microlp_coeffs = microlp_vars
-            .iter()
-            .zip(coeffs.iter())
-            .map(|(v, c)| (*v, *c))
+        let microlp_coeffs = constraint
+            .terms()
+            .map(|(i, c)| (microlp_vars[i], c))
             .collect::<Vec<_>>();
         problem.add_constraint(microlp_coeffs, microlp_comparison_type, rhs);
     }
@@ -250,7 +256,7 @@ pub fn solve_milp_lp_problem_with(
             let coeffs = microlp_vars
                 .iter()
                 .map(|v| solution.var_value(*v))
-                .collect();
+                .collect::<Vec<f64>>();
             let constraints = make_constraints_map_from_assignment(lp, &coeffs);
             Ok(SolveOutcome::Solution(
                 LpSolution::new(

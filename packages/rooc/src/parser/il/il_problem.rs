@@ -187,9 +187,14 @@ pub struct PreObjective {
 
 impl ToLatex for PreObjective {
     fn to_latex(&self) -> String {
-        let rhs = self.rhs.to_latex();
         let opt_name = self.objective_type.to_latex();
-        format!("{} \\ {}", opt_name, rhs)
+        match self.objective_type {
+            //a satisfaction problem has no objective expression
+            OptimizationType::Satisfy => opt_name,
+            OptimizationType::Min | OptimizationType::Max => {
+                format!("{} \\ {}", opt_name, self.rhs.to_latex())
+            }
+        }
     }
 }
 
@@ -236,7 +241,13 @@ impl PreObjective {
 
 impl fmt::Display for PreObjective {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.objective_type, self.rhs)
+        match self.objective_type {
+            //a satisfaction problem has no objective expression
+            OptimizationType::Satisfy => write!(f, "{}", self.objective_type),
+            OptimizationType::Min | OptimizationType::Max => {
+                write!(f, "{} {}", self.objective_type, self.rhs)
+            }
+        }
     }
 }
 
