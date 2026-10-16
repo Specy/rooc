@@ -1,0 +1,87 @@
+/* ---------------------------------------------- slide: copertina --*/
+.title-slide .uni {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+}
+
+.title-slide .uni-logo {
+    width: 104px;
+    aspect-ratio: 289 / 360;
+    background: url('../assets/univaq.webp') center / contain no-repeat;
+    filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.35));
+}
+
+.title-slide .uni-name {
+    font-size: 30px;
+    font-weight: 600;
+}
+
+.title-slide .uni-dept {
+    font-size: 22px;
+    color: var(--hint);
+}
+
+.title-slide .title-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 80px;
+}
+
+.title-slide .rooc-mark {
+    flex-shrink: 0;
+    width: 170px;
+    aspect-ratio: 59 / 107;
+    background: var(--text);
+    -webkit-mask: url('../assets/rooc-mark.png') center / contain no-repeat;
+    mask: url('../assets/rooc-mark.png') center / contain no-repeat;
+}
+
+.title-slide h1 {
+    font-size: 220px;
+    font-weight: 800;
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    text-shadow: 2px 4px 16px rgba(var(--RGB-shadow-color), 0.25);
+}
+
+.title-slide .subtitle {
+    margin-top: 32px;
+    max-width: 1250px;
+    font-size: 44px;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--accent);
+}
+
+.title-slide .people {
+    display: flex;
+    justify-content: space-between;
+}
+
+.title-slide .person {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.title-slide .person:last-child {
+    text-align: right;
+}
+
+.title-slide .name {
+    font-size: 32px;
+    color: color-mix(in srgb, var(--text), var(--hint));
+}
+
+.title-slide .extra {
+    font-size: 22px;
+    color: var(--hint);
+}
+
+/* chiusura: un titolo solo, più piccolo di quello della copertina */
+.closing-slide h1 {
+    font-size: 120px;
+    line-height: 1;
+}

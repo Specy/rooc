@@ -1,0 +1,44 @@
+/* ------------- slide a tre colonne: limiti, decisioni architetturali --*/
+.cols-slide .cols-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.cols-slide .cols {
+    display: grid;
+    /* colonne identiche nelle due slide, anche se un titolo è più lungo */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 80px;
+}
+
+.cols-slide h3 {
+    margin-bottom: 28px;
+    font-size: 46px;
+    white-space: nowrap;
+}
+
+.cols-slide .col p {
+    color: color-mix(in srgb, var(--text), var(--hint));
+}
+
+.cols-slide .col .examples {
+    margin-top: 20px;
+    font-size: 24px;
+    color: var(--hint);
+}
+
+.cols-slide .goal .label {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 26px;
+    color: var(--accent);
+}
+
+.cols-slide .goal p {
+    max-width: 1500px;
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1.2;
+}

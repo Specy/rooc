@@ -1,0 +1,89 @@
+/* --------------------------------------------- slide: linguaggio --*/
+.lang-slide .lang-body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 560px 1fr;
+    align-content: center;
+    align-items: start;
+    gap: 80px;
+}
+
+.lang-slide .label {
+    display: block;
+    margin-bottom: 20px;
+}
+
+.lang-slide .model-label,
+.lang-slide .var-label {
+    color: var(--var);
+}
+
+.lang-slide .instance-label {
+    color: var(--data);
+}
+
+.lang-slide .instance-label,
+.lang-slide .var-label {
+    margin-top: 40px;
+}
+
+.lang-slide .tex {
+    display: block;
+    font-size: 26px;
+}
+
+/* la parentesi deve abbracciare solo la formula, non tutta la riga */
+.lang-slide .instance-tex,
+.lang-slide .domain-tex {
+    width: fit-content;
+}
+
+.lang-slide .data {
+    color: var(--data);
+}
+
+.lang-slide .var {
+    color: var(--var);
+}
+
+.lang-slide .katex .mtable > .arraycolsep:first-child {
+    width: 0 !important;
+}
+
+.lang-slide .code {
+    padding: 28px 36px;
+    font-size: 24px;
+}
+
+/* parentesi e frecce che collegano formule e codice */
+.lang-slide .links {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.lang-slide .link {
+    fill: none;
+    stroke: var(--hint);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.lang-slide .link .head {
+    fill: var(--hint);
+    stroke: none;
+}
+
+.lang-slide .link .curve {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+}
+
+.lang-slide .link.step-visible .curve {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.7s var(--ease) calc(var(--i, 0) * 120ms);
+}
