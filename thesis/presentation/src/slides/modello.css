@@ -1,0 +1,119 @@
+/* ------------------------------------------------ slide: modello --*/
+.model-slide .model-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.model-slide .model {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto auto auto;
+    align-items: center;
+    grid-auto-rows: 104px;
+    column-gap: 32px;
+}
+
+.model-slide .kw {
+    font-weight: 700;
+}
+
+.model-slide .nl {
+    color: color-mix(in srgb, var(--text), var(--hint));
+}
+
+.model-slide .model .tex {
+    font-size: 32px;
+}
+
+/* la freccia, centrata tra testo e formula, si disegna da sinistra a destra */
+.model-slide .arrow {
+    --arrow-color: var(--hint);
+    position: relative;
+    justify-self: center;
+    width: 140px;
+    height: 2px;
+    margin-right: 10px;
+    background: var(--arrow-color);
+    transform-origin: left;
+}
+
+.model-slide .arrow[data-step] {
+    opacity: 1;
+    transform: scaleX(0);
+}
+
+.model-slide .arrow.step-visible {
+    transform: scaleX(1);
+}
+
+.model-slide .arrow::after {
+    content: '';
+    position: absolute;
+    right: -10px;
+    top: -7px;
+    border-left: 12px solid var(--arrow-color);
+    border-block: 8px solid transparent;
+}
+
+.model-slide .var {
+    color: var(--var);
+}
+
+.model-slide .model .muted,
+.model-slide .model .muted .var {
+    color: color-mix(in srgb, var(--hint) 75%, transparent);
+}
+
+.model-slide .arrow.muted {
+    --arrow-color: color-mix(in srgb, var(--hint) 45%, transparent);
+}
+
+.model-slide .data {
+    border-radius: var(--radius-sm);
+    transition:
+        color 0.5s var(--ease),
+        background 0.5s var(--ease),
+        box-shadow 0.5s var(--ease);
+}
+
+.model-slide .defs .data,
+.model-slide.show-data .data {
+    color: var(--data);
+}
+
+/* all'ultimo passo i dati nel modello vengono evidenziati (vedi modello.js) */
+.model-slide.show-data .model .data {
+    background: color-mix(in srgb, var(--data) 16%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--data) 16%, transparent);
+}
+
+.model-slide .defs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+}
+
+.model-slide .def {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 24px 28px;
+    font-size: 24px;
+    line-height: 1.35;
+    color: color-mix(in srgb, var(--text), var(--hint));
+}
+
+.model-slide .def b {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.model-slide .def .symbol {
+    font-size: 30px;
+    color: var(--text);
+}
+
+.model-slide .def.variable {
+    border-color: color-mix(in srgb, var(--var) 45%, var(--border));
+}

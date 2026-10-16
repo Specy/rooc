@@ -1,0 +1,29 @@
+/* ------------------------------------------------- slide: microlp --*/
+.microlp-slide .microlp-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 44px;
+    max-width: 1560px;
+}
+
+.microlp-slide .microlp-body p {
+    font-size: 40px;
+    line-height: 1.4;
+    color: color-mix(in srgb, var(--text), var(--hint));
+}
+
+.microlp-slide .microlp-body b {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.microlp-slide .microlp-body code {
+    font-size: 0.9em;
+    color: var(--text);
+}
+
+.microlp-slide .microlp-body code.accent {
+    color: var(--accent);
+}

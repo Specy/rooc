@@ -1,0 +1,470 @@
+@font-face {
+    font-family: Rubik;
+    font-style: normal;
+    font-weight: 300 900;
+    src: url('../assets/fonts/rubik.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: Rubik;
+    font-style: italic;
+    font-weight: 300 900;
+    src: url('../assets/fonts/rubik-italic.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Fira Code';
+    font-style: normal;
+    font-weight: 300 700;
+    src: url('../assets/fonts/fira-code.woff2') format('woff2');
+}
+
+/* -------------------------------------------------------------- tema --
+ * Palette scura di specy.app (src/stores/themeStore.ts) */
+:root {
+    --background: #171a21;
+    --secondary: #212630;
+    --tertiary: #2d3950;
+    --accent: #a65ee0;
+    --accent2: #38454f;
+    --shadow-color: #454559;
+    --hint: #939393;
+    --warn: #ed4f4f;
+    --success: #356a59;
+    --text: #dbdbdb;
+    --border: color-mix(in srgb, var(--secondary), white 9%);
+
+    /* nutrienti del problema della dieta, riusati in tutte le slide */
+    --protein: #e8836f;
+    --carbs: #e5b65c;
+    --fats: #62b6e4;
+
+    /* dati del modello (costanti) e variabili decisionali */
+    --data: #5ec4b6;
+    --var: var(--accent);
+
+    --RGB-secondary: 33, 38, 48;
+    --RGB-tertiary: 45, 57, 80;
+    --RGB-accent: 166, 94, 224;
+    --RGB-shadow-color: 69, 69, 89;
+
+    --ease: cubic-bezier(0.2, 0.7, 0.46, 1.01);
+
+    --corner-shape: round;
+    --radius-scale: 1;
+    --radius-sm: calc(0.3rem * var(--radius-scale));
+    --radius-lg: calc(0.5rem * var(--radius-scale));
+    --radius-2xl: calc(0.8rem * var(--radius-scale));
+    --radius-3xl: calc(1rem * var(--radius-scale));
+}
+
+@supports (corner-shape: squircle) {
+    :root {
+        --corner-shape: squircle;
+        --radius-scale: 2.2;
+    }
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    corner-shape: var(--corner-shape, round);
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--background);
+    color: var(--text);
+    font-family: Rubik, system-ui, sans-serif;
+}
+
+/* niente legature di Fira Code: >= deve leggersi come si scrive */
+code,
+pre {
+    font-family: 'Fira Code', ui-monospace, monospace;
+    font-variant-ligatures: none;
+}
+
+code {
+    white-space: nowrap;
+}
+
+/* --------------------------------------------------------- sfondo --
+ * Game of life sfocato, rigenerato a ogni cambio slide come su specy.app */
+#background {
+    position: fixed;
+    inset: 0;
+    opacity: 0.5;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* il canvas esce dai bordi così la sfumatura del blur resta fuori schermo */
+#background canvas {
+    position: absolute;
+    left: -15%;
+    top: -15%;
+    width: 130%;
+    height: 130%;
+}
+
+#background canvas.no-filter {
+    filter: blur(20px);
+    opacity: 0.5;
+}
+
+/* --------------------------------------------------------- stage --
+ * Le slide sono disegnate a 1920x1080 e scalate per riempire la finestra */
+#stage {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    width: 1920px;
+    height: 1080px;
+    transform: translate(-50%, -50%) scale(var(--scale, 1));
+}
+
+#stage,
+#print {
+    font-size: 32px;
+    line-height: 1.4;
+}
+
+.slide {
+    position: absolute;
+    inset: 0;
+    padding: 88px 112px;
+    display: flex;
+    flex-direction: column;
+    visibility: hidden;
+    opacity: 0;
+    transition:
+        opacity 0.4s var(--ease),
+        visibility 0s linear 0.4s;
+}
+
+.slide.active {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.4s var(--ease);
+}
+
+/* Ingresso: come PageTransition di specy.app (fly y -10, 1s). --i sfasa gli elementi */
+.slide.active .enter {
+    animation: fly-in 1s var(--ease) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+@keyframes fly-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Step: gli elementi con data-step="n" compaiono al passo n della slide */
+[data-step] {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition:
+        opacity 0.6s var(--ease),
+        transform 0.6s var(--ease);
+}
+
+[data-step].step-visible {
+    opacity: 1;
+    transform: none;
+    transition-delay: calc(var(--i, 0) * 120ms);
+}
+
+/* Dentro .preview-steps i passi successivi si vedono già, attenuati,
+ * così si sa cosa viene dopo */
+.preview-steps [data-step] {
+    opacity: 0.25;
+    transform: none;
+}
+
+.preview-steps [data-step].step-visible {
+    opacity: 1;
+}
+
+/* -------------------------------------------------------- comuni --*/
+h1,
+h2,
+h3 {
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+h2 {
+    font-size: 72px;
+    margin-bottom: 48px;
+}
+
+.accent {
+    color: var(--accent);
+}
+
+.hint {
+    color: var(--hint);
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+.label {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.card {
+    background: rgba(var(--RGB-secondary), 0.55);
+    backdrop-filter: blur(6px);
+    border: 0.1rem solid var(--border);
+    border-radius: var(--radius-3xl);
+    padding: 28px 36px;
+}
+
+/* --------------------------------------------------------- chrome --*/
+#progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 4px;
+    width: 0;
+    background: var(--accent);
+    transition: width 0.6s var(--ease);
+    z-index: 10;
+}
+
+/* avanti e indietro col mouse, discreti finché non ci si passa sopra,
+ * e i passi che mancano alla fine della slide */
+#nav {
+    position: fixed;
+    right: 20px;
+    bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 10;
+}
+
+#nav button,
+#counter {
+    opacity: 0.35;
+    transition: opacity 0.3s;
+}
+
+#nav:hover button,
+#nav:hover #counter {
+    opacity: 1;
+}
+
+#steps {
+    display: flex;
+    gap: 6px;
+    margin-right: 10px;
+}
+
+#steps i {
+    width: 8px;
+    height: 8px;
+    border: 1.5px solid var(--hint);
+    border-radius: 50%;
+    corner-shape: round;
+    opacity: 0.7;
+    transition:
+        background 0.3s,
+        border-color 0.3s,
+        opacity 0.3s;
+}
+
+#steps i.done {
+    background: var(--accent);
+    border-color: var(--accent);
+    opacity: 1;
+}
+
+#nav button {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: rgba(var(--RGB-secondary), 0.6);
+    color: var(--text);
+    cursor: pointer;
+}
+
+#nav button:hover {
+    background: var(--tertiary);
+}
+
+#nav .icon {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+}
+
+#counter {
+    min-width: 56px;
+    text-align: center;
+    font-size: 16px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+
+#blackout {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 20;
+}
+
+body.blackout #blackout {
+    opacity: 1;
+}
+
+body.idle {
+    cursor: none;
+}
+
+/* blocchi di codice ROOC (src/rooc.js) */
+.code {
+    margin: 0;
+    line-height: 1.6;
+}
+
+.code .line {
+    display: block;
+    white-space: pre;
+}
+
+.c-kw {
+    color: #e5b65c;
+}
+
+.c-type {
+    color: #e8836f;
+}
+
+.c-fn {
+    color: #62b6e4;
+}
+
+.c-num {
+    color: var(--text);
+}
+
+.c-punct,
+.c-comment {
+    color: var(--hint);
+}
+
+.code .data {
+    color: var(--data);
+}
+
+.code .var {
+    color: var(--var);
+}
+
+.code .aux {
+    color: color-mix(in srgb, var(--var), white 40%);
+}
+
+/* icone (src/icons.js), ereditano colore e dimensione del testo */
+.icon {
+    width: 1.1em;
+    height: 1.1em;
+    vertical-align: -0.2em;
+    margin-right: 0.4em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.dot {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 14px;
+    border-radius: 50%;
+    background: var(--c);
+    vertical-align: 3px;
+    corner-shape: round;
+}
+
+/* --------------------------------------------------------- stampa --
+ * Una pagina 1920x1080 per slide, con le copie create da deck.js al
+ * momento della stampa. Il blur dietro le card è tolto: lo sfondo è già
+ * sfocato e così il testo resta testo nel PDF */
+#print {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: 1920px 1080px;
+        margin: 0;
+    }
+
+    html,
+    body {
+        width: auto;
+        height: auto;
+        overflow: visible;
+    }
+
+    #background,
+    #stage,
+    #progress,
+    #nav,
+    #blackout {
+        display: none;
+    }
+
+    #print {
+        display: block;
+    }
+
+    #print .slide {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        visibility: visible;
+        opacity: 1;
+        background: var(--background) center / cover no-repeat;
+        break-after: page;
+        print-color-adjust: exact;
+    }
+
+    #print .slide:last-child {
+        break-after: auto;
+    }
+
+    #print .slide,
+    #print .slide * {
+        transition: none !important;
+        animation: none !important;
+        backdrop-filter: none !important;
+    }
+}

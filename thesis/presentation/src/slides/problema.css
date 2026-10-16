@@ -1,0 +1,89 @@
+/* ----------------------------------------------- slide: problema --*/
+.problem-slide .problem-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.problem-slide .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+    gap: 112px;
+}
+
+.problem-slide .label {
+    display: block;
+    margin-bottom: 28px;
+    font-size: 28px;
+}
+
+.problem-slide .diet-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.problem-slide .diet-row:last-child {
+    border-bottom: none;
+}
+
+.problem-slide .diet-limit {
+    color: color-mix(in srgb, var(--text), var(--hint));
+}
+
+.problem-slide .diet-limit b,
+.problem-slide td b {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.problem-slide table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+}
+
+.problem-slide th {
+    padding: 0 0 16px;
+    font-size: 22px;
+    font-weight: 500;
+    text-align: right;
+    color: var(--hint);
+}
+
+.problem-slide td {
+    padding: 22px 0;
+    text-align: right;
+    border-top: 1px solid var(--border);
+    color: color-mix(in srgb, var(--text), var(--hint));
+}
+
+.problem-slide th:first-child,
+.problem-slide td:first-child {
+    text-align: left;
+}
+
+.problem-slide td:first-child {
+    color: var(--text);
+}
+
+.problem-slide .table-note {
+    margin-top: 12px;
+    font-size: 22px;
+    color: var(--hint);
+}
+
+.problem-slide .goal {
+    font-size: 36px;
+    color: color-mix(in srgb, var(--text), var(--hint));
+}
+
+.problem-slide .question {
+    margin-top: 12px;
+    font-size: 64px;
+    font-weight: 700;
+    color: var(--accent);
+}

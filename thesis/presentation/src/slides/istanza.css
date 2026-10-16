@@ -1,0 +1,128 @@
+/* ----------------------------------------------- slide: istanza --*/
+.instance-slide .instance-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.instance-slide .pair {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+}
+
+/* modello = variabili (viola), istanza = dati (verde acqua), compilato = entrambi */
+.instance-slide .model-label {
+    color: var(--var);
+}
+
+.instance-slide .instance-label {
+    color: var(--data);
+}
+
+.instance-slide .compiled-label {
+    background: linear-gradient(90deg, var(--var), var(--data));
+    background-clip: text;
+    color: transparent;
+}
+
+.instance-slide .sub {
+    margin: 4px 0 24px;
+    font-size: 26px;
+    color: var(--hint);
+}
+
+.instance-slide .tex {
+    font-size: 27px;
+}
+
+/* KaTeX mette un margine prima della prima colonna degli array: lo togliamo
+ * così "min" e "s.t." sono allineati all'etichetta */
+.instance-slide .compiled-tex .katex .arraycolsep {
+    width: 0.12em !important;
+}
+
+.instance-slide .katex .mtable > .arraycolsep:first-child {
+    width: 0 !important;
+}
+
+.instance-slide .op {
+    align-self: center;
+    width: 48px;
+    height: 48px;
+    margin: 0;
+    color: var(--hint);
+}
+
+.instance-slide .data {
+    color: var(--data);
+}
+
+.instance-slide .var {
+    color: var(--var);
+}
+
+.instance-slide .muted {
+    color: color-mix(in srgb, var(--hint) 75%, transparent);
+}
+
+.instance-slide .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.instance-slide .stage {
+    position: relative;
+    overflow: hidden;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 28px 28px;
+    font-size: 24px;
+    color: var(--hint);
+}
+
+.instance-slide .stage b,
+.instance-slide .stage span {
+    position: relative;
+}
+
+.instance-slide .stage b {
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* l'icona fa da sfondo: grande, tagliata dal bordo e appena visibile */
+.instance-slide .stage .icon {
+    position: absolute;
+    right: -18px;
+    bottom: -22px;
+    width: 128px;
+    height: 128px;
+    margin: 0;
+    stroke-width: 1.5;
+    color: var(--text);
+    opacity: 0.08;
+}
+
+.instance-slide .stage.result {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.instance-slide .stage.result .icon {
+    color: var(--accent);
+    opacity: 0.18;
+}
+
+.instance-slide .flow {
+    flex-shrink: 0;
+    align-self: center;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+    color: var(--hint);
+}

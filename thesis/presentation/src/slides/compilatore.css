@@ -1,0 +1,135 @@
+/* -------------------------------------------- slide: compilatore --*/
+.compiler-slide .stages {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.compiler-slide .stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 18px 24px;
+    font-size: 22px;
+    color: var(--hint);
+    transition: border-color 0.4s var(--ease);
+}
+
+.compiler-slide .stage b {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.compiler-slide .stage code {
+    font-size: 0.9em;
+}
+
+/* la fase mostrata nel riquadro sotto */
+.compiler-slide .stage.current {
+    border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+}
+
+.compiler-slide .flow {
+    flex-shrink: 0;
+    align-self: center;
+    width: 32px;
+    height: 32px;
+    margin: 0;
+    color: var(--hint);
+}
+
+/* le viste sono sovrapposte nella stessa cella: il riquadro prende
+ * l'altezza della più alta e si vede solo quella corrente */
+.compiler-slide .views {
+    flex: 1;
+    display: grid;
+    margin-top: 32px;
+    padding: 28px 40px;
+}
+
+.compiler-slide .view {
+    grid-area: 1 / 1;
+    display: grid;
+    grid-template-columns: 1fr 520px;
+    align-items: center;
+    gap: 48px;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity 0.4s var(--ease),
+        visibility 0s linear 0.4s;
+}
+
+.compiler-slide .view.current {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.4s var(--ease) 0.15s;
+}
+
+.compiler-slide .view .code {
+    font-size: 21px;
+}
+
+/* la soluzione è corta: assegnamento e risposta centrati nel riquadro,
+ * con il codice più grande */
+.compiler-slide .view.solution {
+    grid-template-columns: auto 520px;
+    justify-content: center;
+    column-gap: 160px;
+}
+
+.compiler-slide .view.solution .code {
+    font-size: 30px;
+}
+
+.compiler-slide .note {
+    font-size: 28px;
+    line-height: 1.45;
+    color: color-mix(in srgb, var(--text), var(--hint));
+}
+
+.compiler-slide .note p + p {
+    margin-top: 20px;
+}
+
+.compiler-slide .note .hint {
+    font-size: 24px;
+    color: var(--hint);
+}
+
+.compiler-slide .note code {
+    font-size: 0.85em;
+    color: var(--text);
+}
+
+.compiler-slide .note code.var {
+    color: var(--var);
+}
+
+.compiler-slide .answer {
+    list-style: none;
+    margin-top: 20px;
+}
+
+.compiler-slide .answer li {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.compiler-slide .answer b {
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+
+.compiler-slide .answer .total {
+    border-bottom: none;
+}
+
+.compiler-slide .answer .total b {
+    color: var(--accent);
+}
