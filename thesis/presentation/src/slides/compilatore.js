@@ -55,36 +55,36 @@ const solution = () =>
 
 // La soluzione tradotta nei termini del problema iniziale
 const answer = DIET.foods
-    .map((f, i) => `<li><span>${f.name}</span><b>${fmt(SOLUTION.values[i], 0, 2)} porzioni</b></li>`)
+    .map((f, i) => `<li><span>${f.name}</span><b>${fmt(SOLUTION.values[i], 0, 2)} servings</b></li>`)
     .join('');
 
 const VIEWS = [
     {
         code: rooc(DIET_ROOC.map(([, line]) => line).join('\n'), DIET_ROOC_CONSTANTS),
-        note: '<p>Il punto di partenza: il modello e i dati dell’istanza, scritti in ROOC.</p>',
+        note: '<p>The starting point: the model and the instance data, written in ROOC.</p>',
     },
     {
         code: rooc(MODEL),
-        note: `<p>Le costanti vengono sostituite dai loro valori e le sommatorie espanse:
-            <code class="var">x_i</code> diventa <code class="var">x_0</code>, <code class="var">x_1</code>,
+        note: `<p>Constants are replaced by their values and the sums are expanded:
+            <code class="var">x_i</code> becomes <code class="var">x_0</code>, <code class="var">x_1</code>,
             <code class="var">x_2</code>.</p>`,
     },
     {
         code: rooc(LINEAR),
-        note: `<p>Ogni vincolo diventa una combinazione lineare delle variabili e i termini nulli
-            spariscono.</p><p class="hint">È il modello compilato visto prima.</p>`,
+        note: `<p>Each constraint becomes a linear combination of the variables, and zero terms
+            disappear.</p><p class="hint">This is the compiled model we saw earlier.</p>`,
     },
     {
         code: rooc(STANDARD),
-        note: `<p>Il <code>LinearModel</code> viene tradotto nel formato del solver scelto: il simplesso,
-            per esempio, vuole la forma standard, con le variabili di slack.</p>
-            <p class="hint">Solver: microlp (predefinito), Clarabel, HiGHS, CBC, SCIP, ...</p>`,
+        note: `<p>The <code>LinearModel</code> is translated into the format of the chosen solver: the
+            simplex method, for example, needs the standard form, with slack variables.</p>
+            <p class="hint">Solvers: microlp (default), Clarabel, HiGHS, CBC, SCIP, ...</p>`,
     },
     {
         code: solution(),
         className: 'solution',
-        note: `<p>La risposta alla domanda iniziale:</p>
-            <ul class="answer">${answer}<li class="total"><span>Spesa</span><b>${euro(SOLUTION.objective)}</b></li></ul>`,
+        note: `<p>The answer to the opening question:</p>
+            <ul class="answer">${answer}<li class="total"><span>Total cost</span><b>${euro(SOLUTION.objective)}</b></li></ul>`,
     },
 ];
 

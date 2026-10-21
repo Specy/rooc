@@ -9,15 +9,15 @@ slide.querySelector('.diet').innerHTML = DIET.nutrients
         (n) => `
         <div class="diet-row">
             <span><span class="dot" style="--c: ${n.color}"></span>${n.name}</span>
-            <span class="diet-limit">${n.min > 0 ? `almeno ${g(n.min)}, al massimo ${g(n.max)}` : `al massimo ${g(n.max)}`}</span>
+            <span class="diet-limit">${n.min > 0 ? `at least ${g(n.min)}, at most ${g(n.max)}` : `at most ${g(n.max)}`}</span>
         </div>`,
     )
     .join('');
 
 slide.querySelector('.foods').innerHTML = `
     <tr>
-        <th>Ingrediente</th>
-        <th>Costo</th>
+        <th>Ingredient</th>
+        <th>Cost</th>
         ${DIET.nutrients.map((n) => `<th><span class="dot" style="--c: ${n.color}"></span>${n.name}</th>`).join('')}
     </tr>
     ${DIET.foods

@@ -5,20 +5,20 @@ import { highlightRooc } from '../rooc.js';
  * di LinearModelPipe, senza i vincoli che non cambiano). */
 const EXAMPLES = [
     {
-        title: 'Valore assoluto',
-        note: 'una variabile ausiliaria e due vincoli',
+        title: 'Absolute value',
+        note: 'one auxiliary variable and two constraints',
         rooc: ['min abs { x - y }'],
         linear: ['min $abs_0', 's.t.', '    $abs_0 + x - y >= 0', '    $abs_0 - x + y >= 0'],
     },
     {
-        title: 'Minimo e massimo',
-        note: 'se basta un verso, senza variabili binarie',
+        title: 'Minimum and maximum',
+        note: 'if one side is enough, no binary variables',
         rooc: ['max { x, y } <= 10'],
         linear: ['$max_0 <= 10', '$max_0 - y >= 0', '$max_0 - x >= 0'],
     },
     {
-        title: 'Operatori logici',
-        note: 'su variabili booleane diventano vincoli lineari',
+        title: 'Logical operators',
+        note: 'on boolean variables, they become linear constraints',
         rooc: ['x or y', 'x implies y'],
         linear: ['x + y >= 1', 'x - y <= 0'],
     },
@@ -42,9 +42,9 @@ grid.insertAdjacentHTML(
     ).join('') +
         // gli altri costrutti linearizzati, compaiono con l'ultimo esempio
         `
-        <div class="lin-title lin-more" data-step="${EXAMPLES.length}" style="--i: 2"><h3>E altri…</h3></div>
+        <div class="lin-title lin-more" data-step="${EXAMPLES.length}" style="--i: 2"><h3>And more…</h3></div>
         <p class="lin-more-list" data-step="${EXAMPLES.length}" style="--i: 2">
-            <code>not</code>, <code>iff</code>, <code>xor</code>, valori logici usati in espressioni
-            aritmetiche e formulazioni esatte con variabili binarie
+            <code>not</code>, <code>iff</code>, <code>xor</code>, logical values used in arithmetic
+            expressions, and exact formulations with binary variables
         </p>`,
 );

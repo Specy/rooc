@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ROOC: presentazione di tesi</title>
+<title>ROOC: thesis presentation</title>
 </head>
 <body>
 <div id="background"></div>
@@ -12,41 +12,41 @@
     <!-- =============================================== COPERTINA -->
     <section class="slide title-slide" id="copertina">
         <header class="uni enter" style="--i: 0">
-            <div class="uni-logo" role="img" aria-label="Logo Università degli Studi dell'Aquila"></div>
+            <div class="uni-logo" role="img" aria-label="University of L'Aquila logo"></div>
             <div>
-                <div class="uni-name">Università degli Studi dell'Aquila</div>
-                <div class="uni-dept">Dipartimento di Ingegneria e Scienze dell'Informazione e Matematica</div>
-                <div class="uni-dept">Tesi di Laurea in Informatica</div>
+                <div class="uni-name">University of L'Aquila</div>
+                <div class="uni-dept">Department of Information Engineering, Computer Science and Mathematics</div>
+                <div class="uni-dept">Bachelor's Thesis in Computer Science</div>
             </div>
         </header>
 
         <div class="title-main">
-            <div class="rooc-mark enter" style="--i: 1" role="img" aria-label="Logo ROOC"></div>
+            <div class="rooc-mark enter" style="--i: 1" role="img" aria-label="ROOC logo"></div>
             <div>
                 <h1 class="enter" style="--i: 2">ROOC</h1>
                 <p class="subtitle enter" style="--i: 3">
-                    Linguaggio ed ambiente integrato per la modellazione e soluzione di problemi di
-                    ottimizzazione lineare
+                    A language and integrated environment for modeling and solving linear
+                    optimization problems
                 </p>
             </div>
         </div>
 
         <footer class="people">
             <div class="person enter" style="--i: 4">
-                <span class="label">Laureando</span>
+                <span class="label">Candidate</span>
                 <span class="name">Enrico Menichelli</span>
-                <span class="extra">Matricola 279061</span>
+                <span class="extra">Student ID 279061</span>
             </div>
             <div class="person enter" style="--i: 5">
-                <span class="label">Relatore</span>
+                <span class="label">Supervisor</span>
                 <span class="name">Prof. Matteo Spezialetti</span>
             </div>
             <div class="person enter" style="--i: 6">
-                <span class="label">Correlatore</span>
+                <span class="label">Co-supervisor</span>
                 <span class="name">Prof. Stefano Smriglio</span>
             </div>
             <div class="person enter" style="--i: 7">
-                <span class="label">Anno accademico</span>
+                <span class="label">Academic year</span>
                 <span class="name">2025/2026</span>
             </div>
         </footer>
@@ -55,47 +55,47 @@
     <!-- ============================================== IL PROBLEMA -->
     <!-- Righe della dieta e tabella degli ingredienti sono generate da DIET (slide JS) -->
     <section class="slide problem-slide" id="problema">
-        <h2 class="enter">Partiamo da un <span class="accent">problema</span></h2>
+        <h2 class="enter">Let's start with a <span class="accent">problem</span></h2>
         <div class="problem-body">
             <div class="problem-grid">
                 <div data-step="1">
-                    <span class="label">La dieta</span>
+                    <span class="label">The diet</span>
                     <div class="diet"></div>
                 </div>
                 <div data-step="2">
-                    <span class="label">Al supermercato</span>
+                    <span class="label">At the supermarket</span>
                     <table class="foods"></table>
-                    <div class="table-note">Costo e valori nutrizionali per porzione</div>
+                    <div class="table-note">Cost and nutritional values per serving</div>
                 </div>
             </div>
         </div>
         <div class="problem-footer" data-step="3">
-            <div class="goal">Rispettare la dieta spendendo il meno possibile.</div>
-            <div class="question">Quali ingredienti scegliete?</div>
+            <div class="goal">Follow the diet while spending as little as possible.</div>
+            <div class="question">Which ingredients do you choose?</div>
         </div>
     </section>
     <!-- =============================================== IL MODELLO -->
     <!-- Ogni riga: testo a parole, freccia, formula. --i sfasa le righe dentro lo stesso passo -->
     <section class="slide model-slide" id="modello">
-        <h2 class="enter">Il problema della <span class="accent">dieta</span></h2>
+        <h2 class="enter">The <span class="accent">diet</span> problem</h2>
         <div class="model-body">
             <div class="model">
-                <span class="kw" data-step="1" style="--i: 0">minimizza</span>
-                <span class="nl" data-step="1" style="--i: 0">il costo totale della spesa</span>
+                <span class="kw" data-step="1" style="--i: 0">minimize</span>
+                <span class="nl" data-step="1" style="--i: 0">the total cost of the groceries</span>
                 <span class="arrow" data-step="3" style="--i: 0"></span>
                 <span class="kw" data-step="3" style="--i: 0">min</span>
                 <span class="tex" data-step="3" style="--i: 0">\displaystyle\sum_i \htmlClass{data}{C_i}\,\htmlClass{var}{x_i}</span>
                 <span></span>
 
-                <span class="kw" data-step="1" style="--i: 1">rispettando</span>
-                <span class="nl" data-step="1" style="--i: 1">almeno il minimo di ogni nutriente</span>
+                <span class="kw" data-step="1" style="--i: 1">while getting</span>
+                <span class="nl" data-step="1" style="--i: 1">at least the minimum of each nutrient</span>
                 <span class="arrow" data-step="3" style="--i: 1"></span>
                 <span class="kw" data-step="3" style="--i: 1">s.t.</span>
                 <span class="tex" data-step="3" style="--i: 1">\displaystyle\sum_i \htmlClass{data}{T_{ij}}\,\htmlClass{var}{x_i} \ge \htmlClass{data}{\mathit{Nmin}_j}</span>
                 <span class="tex" data-step="3" style="--i: 1">\forall j</span>
 
                 <span></span>
-                <span class="nl" data-step="1" style="--i: 2">non oltre il massimo di ogni nutriente</span>
+                <span class="nl" data-step="1" style="--i: 2">no more than the maximum of each nutrient</span>
                 <span class="arrow" data-step="3" style="--i: 2"></span>
                 <span></span>
                 <span class="tex" data-step="3" style="--i: 2">\displaystyle\sum_i \htmlClass{data}{T_{ij}}\,\htmlClass{var}{x_i} \le \htmlClass{data}{\mathit{Nmax}_j}</span>
@@ -103,7 +103,7 @@
 
                 <span></span>
                 <!-- non negatività: dettaglio tecnico di LP, quindi in secondo piano -->
-                <span class="nl muted" data-step="1" style="--i: 3">senza comprare quantità negative</span>
+                <span class="nl muted" data-step="1" style="--i: 3">without buying negative amounts</span>
                 <span class="arrow muted" data-step="3" style="--i: 3"></span>
                 <span></span>
                 <span class="tex muted" data-step="3" style="--i: 3">\htmlClass{var}{x_i} \ge 0</span>
@@ -113,43 +113,43 @@
         <div class="defs">
             <div class="def card" data-step="2" style="--i: 0">
                 <span class="tex symbol">\htmlClass{data}{T_{ij}}</span>
-                <span>grammi del nutriente <span class="tex">j</span> in una porzione <span class="nowrap">dell'ingrediente <span class="tex">i</span></span></span>
+                <span>grams of nutrient <span class="tex">j</span> in one serving of <span class="nowrap">ingredient <span class="tex">i</span></span></span>
             </div>
             <div class="def card" data-step="2" style="--i: 1">
                 <span class="tex symbol">\htmlClass{data}{C_i}</span>
-                <span>costo di una porzione <span class="nowrap">dell'ingrediente <span class="tex">i</span></span></span>
+                <span>cost of one serving of <span class="nowrap">ingredient <span class="tex">i</span></span></span>
             </div>
             <div class="def card" data-step="2" style="--i: 2">
                 <span class="tex symbol">\htmlClass{data}{\mathit{Nmin}_j}\;\htmlClass{data}{\mathit{Nmax}_j}</span>
-                <span>limiti della dieta per il <span class="nowrap">nutriente <span class="tex">j</span></span></span>
+                <span>diet limits for <span class="nowrap">nutrient <span class="tex">j</span></span></span>
             </div>
             <div class="def card variable" data-step="2" style="--i: 3">
                 <span class="tex symbol">\htmlClass{var}{x_i}</span>
-                <span>porzioni <span class="nowrap">dell'ingrediente <span class="tex">i</span></span> da comprare, la <b>variabile decisionale</b></span>
+                <span>servings of <span class="nowrap">ingredient <span class="tex">i</span></span> to buy, the <b>decision variable</b></span>
             </div>
         </div>
     </section>
     <!-- ============================================ MODELLO E ISTANZA -->
     <section class="slide instance-slide" id="istanza">
-        <h2 class="enter">Modello e <span class="accent">istanza</span></h2>
+        <h2 class="enter">Model and <span class="accent">instance</span></h2>
         <div class="instance-body">
             <!-- le formule sono generate da DIET (istanza.js) -->
             <div class="pair">
                 <div data-step="1">
-                    <span class="label model-label">Modello</span>
-                    <p class="sub">come è formulato il problema</p>
+                    <span class="label model-label">Model</span>
+                    <p class="sub">how the problem is formulated</p>
                     <span class="tex model-tex"></span>
                 </div>
                 <i class="icon op" data-icon="plus" data-step="2"></i>
                 <div data-step="2">
-                    <span class="label instance-label">Istanza</span>
-                    <p class="sub">i dati del problema</p>
+                    <span class="label instance-label">Instance</span>
+                    <p class="sub">the problem data</p>
                     <span class="tex instance-tex"></span>
                 </div>
                 <i class="icon op" data-icon="equal" data-step="3"></i>
                 <div data-step="3">
-                    <span class="label compiled-label">Modello compilato</span>
-                    <p class="sub">i dati inseriti nel modello</p>
+                    <span class="label compiled-label">Compiled model</span>
+                    <p class="sub">the data put into the model</p>
                     <span class="tex compiled-tex"></span>
                 </div>
             </div>
@@ -158,32 +158,32 @@
             <div class="pipeline">
                 <div class="stage card" data-step="4" style="--i: 0">
                     <i class="icon" data-icon="pencil-line"></i>
-                    <b>Modello</b>
-                    <span>scrittura del modello</span>
+                    <b>Model</b>
+                    <span>writing the model</span>
                 </div>
                 <i class="icon flow" data-icon="chevron-right" data-step="4" style="--i: 1"></i>
                 <div class="stage card" data-step="4" style="--i: 1">
                     <i class="icon" data-icon="database"></i>
-                    <b>Istanza</b>
-                    <span>aggiunta dei dati</span>
+                    <b>Instance</b>
+                    <span>adding the data</span>
                 </div>
                 <i class="icon flow" data-icon="chevron-right" data-step="4" style="--i: 2"></i>
                 <div class="stage card" data-step="4" style="--i: 2">
                     <i class="icon" data-icon="arrow-right-left"></i>
-                    <b>Conversione</b>
-                    <span>nel formato del solver</span>
+                    <b>Conversion</b>
+                    <span>to the solver's format</span>
                 </div>
                 <i class="icon flow" data-icon="chevron-right" data-step="4" style="--i: 3"></i>
                 <div class="stage card" data-step="4" style="--i: 3">
                     <i class="icon" data-icon="cpu"></i>
                     <b>Solver</b>
-                    <span>risoluzione</span>
+                    <span>solving</span>
                 </div>
                 <i class="icon flow" data-icon="chevron-right" data-step="4" style="--i: 4"></i>
                 <div class="stage card result" data-step="4" style="--i: 4">
                     <i class="icon" data-icon="circle-check"></i>
-                    <b>Soluzione</b>
-                    <span>soluzione ottima</span>
+                    <b>Solution</b>
+                    <span>optimal solution</span>
                 </div>
             </div>
         </div>
@@ -192,43 +192,43 @@
     <!-- Le colonne compaiono insieme al titolo (passo 1, già visibile
          all'ingresso), l'obiettivo della tesi al passo 2 -->
     <section class="slide cols-slide" id="limiti">
-        <h2 class="enter">Gli strumenti <span class="accent">esistenti</span></h2>
+        <h2 class="enter"><span class="accent">Existing</span> tools</h2>
         <div class="cols-body">
             <div class="cols">
                 <div class="col enter" style="--i: 1">
-                    <h3>Legati a un ecosistema</h3>
-                    <p>Richiedono un linguaggio ospite o un runtime esterno: non si possono usare ovunque.</p>
+                    <h3>Tied to an ecosystem</h3>
+                    <p>They need a host language or an external runtime, so they cannot be used everywhere.</p>
                     <p class="examples">Pyomo (Python), JuMP (Julia), AMPL</p>
                 </div>
                 <div class="col enter" style="--i: 2">
-                    <h3>Delle black box</h3>
-                    <p>La trasformazione del modello nel formato del solver resta nascosta.</p>
-                    <p class="examples">AMPL, GAMS: commerciali e a sorgente chiuso</p>
+                    <h3>Black boxes</h3>
+                    <p>How the model is turned into the solver's format stays hidden.</p>
+                    <p class="examples">AMPL, GAMS: commercial and closed source</p>
                 </div>
                 <div class="col enter" style="--i: 3">
-                    <h3>Poco accessibili</h3>
-                    <p>Sintassi complesse e ambienti da installare: lo sforzo va sullo strumento, non sui concetti.</p>
-                    <p class="examples">Pyomo e JuMP richiedono di saper programmare</p>
+                    <h3>Hard to approach</h3>
+                    <p>Complex syntax and environments to install: the effort goes into the tool, not the concepts.</p>
+                    <p class="examples">Pyomo and JuMP require programming skills</p>
                 </div>
             </div>
         </div>
         <div class="goal" data-step="2">
-            <span class="label">Obiettivo della tesi</span>
-            <p>Uno strumento con cui studenti e principianti possano risolvere problemi e imparare la modellazione.</p>
+            <span class="label">Goal of the thesis</span>
+            <p>A tool that lets students and beginners solve problems and learn modeling.</p>
         </div>
     </section>
     <!-- ============================================ IL LINGUAGGIO ROOC -->
     <!-- Formule, codice e frecce sono generati in linguaggio.js. Le sezioni
          hanno lo stesso ordine del codice: obiettivo e vincoli, dati, variabili -->
     <section class="slide lang-slide" id="linguaggio">
-        <h2 class="enter">Il linguaggio <span class="accent">ROOC</span></h2>
+        <h2 class="enter">The <span class="accent">ROOC</span> language</h2>
         <div class="lang-body">
             <div class="math-side" data-step="1">
-                <span class="label model-label">Modello</span>
+                <span class="label model-label">Model</span>
                 <span class="tex model-tex"></span>
-                <span class="label instance-label">Istanza</span>
+                <span class="label instance-label">Instance</span>
                 <span class="tex instance-tex grp-3"></span>
-                <span class="label var-label">Variabili</span>
+                <span class="label var-label">Variables</span>
                 <span class="tex domain-tex grp-4"></span>
             </div>
             <div class="code-side" data-step="2">
@@ -243,31 +243,31 @@
          a ogni passo si accende una fase (le successive sono già visibili,
          attenuate) e il riquadro mostra il suo output -->
     <section class="slide compiler-slide" id="compilatore">
-        <h2 class="enter">ROOC è un <span class="accent">compilatore</span></h2>
+        <h2 class="enter">ROOC is a <span class="accent">compiler</span></h2>
         <div class="stages preview-steps">
             <div class="stage card" data-step="1">
-                <b>Sorgente</b>
-                <span>modello e dati in ROOC</span>
+                <b>Source</b>
+                <span>model and data in ROOC</span>
             </div>
             <i class="icon flow" data-icon="chevron-right" data-step="2"></i>
             <div class="stage card" data-step="2">
                 <b><code>Model</code></b>
-                <span>dati inseriti</span>
+                <span>data filled in</span>
             </div>
             <i class="icon flow" data-icon="chevron-right" data-step="3"></i>
             <div class="stage card" data-step="3">
                 <b><code>LinearModel</code></b>
-                <span>forma lineare</span>
+                <span>linear form</span>
             </div>
             <i class="icon flow" data-icon="chevron-right" data-step="4"></i>
             <div class="stage card" data-step="4">
                 <b>Solver</b>
-                <span>formato del solver</span>
+                <span>solver format</span>
             </div>
             <i class="icon flow" data-icon="chevron-right" data-step="5"></i>
             <div class="stage card" data-step="5">
-                <b>Soluzione</b>
-                <span>soluzione ottima</span>
+                <b>Solution</b>
+                <span>optimal solution</span>
             </div>
         </div>
         <div class="views card" data-step="1"></div>
@@ -275,22 +275,22 @@
     <!-- ==================================== DECISIONI ARCHITETTURALI -->
     <!-- Stessa struttura e stesso ordine della slide sui limiti, senza passi -->
     <section class="slide cols-slide" id="scelte">
-        <h2 class="enter">Decisioni <span class="accent">architetturali</span></h2>
+        <h2 class="enter"><span class="accent">Architectural</span> decisions</h2>
         <div class="cols-body">
             <div class="cols">
                 <div class="col enter" style="--i: 1">
-                    <h3>Scritto in Rust</h3>
-                    <p>ROOC e il solver microlp sono scritti in Rust e si possono compilare per desktop, per il web tramite WebAssembly e per sistemi embedded.</p>
-                    <p class="examples">Disponibile come crate Rust e pacchetto npm</p>
+                    <h3>Written in Rust</h3>
+                    <p>ROOC and the microlp solver are written in Rust and can be compiled for desktop, for the web through WebAssembly and for embedded systems.</p>
+                    <p class="examples">Available as a Rust crate and an npm package</p>
                 </div>
                 <div class="col enter" style="--i: 2">
-                    <h3>Passaggi visibili</h3>
-                    <p>Ogni rappresentazione intermedia della pipeline si può visualizzare, quindi si può seguire come viene trasformato il modello.</p>
-                    <p class="examples">Model, LinearModel, forma standard, tableau del simplesso</p>
+                    <h3>Visible steps</h3>
+                    <p>Every intermediate representation of the pipeline can be displayed, so you can follow how the model is transformed.</p>
+                    <p class="examples">Model, LinearModel, standard form, simplex tableau</p>
                 </div>
                 <div class="col enter" style="--i: 3">
-                    <h3>Ambiente nel browser</h3>
-                    <p>Editor, compilatore e solver girano nel browser, senza installazione e senza un server.</p>
+                    <h3>Browser environment</h3>
+                    <p>The editor, compiler and solver run in the browser, with no installation and no server.</p>
                     <p class="examples">rooc.specy.app</p>
                 </div>
             </div>
@@ -306,33 +306,33 @@
         <div class="agenda">
             <ol>
                 <li class="card enter" style="--i: 1">
-                    <b>Tipi</b>
-                    <span>il tipo di ogni espressione, passandoci sopra con il mouse</span>
+                    <b>Types</b>
+                    <span>the type of every expression, shown on mouse hover</span>
                 </li>
                 <li class="card enter" style="--i: 2">
-                    <b>Errori</b>
-                    <span>errori di sintassi e di tipo, segnalati prima di eseguire</span>
+                    <b>Errors</b>
+                    <span>syntax and type errors, reported before running</span>
                 </li>
             </ol>
             <ol>
                 <li class="card enter" style="--i: 3">
-                    <b>Completamento</b>
-                    <span>suggerimenti e firme delle funzioni</span>
+                    <b>Completion</b>
+                    <span>suggestions and function signatures</span>
                 </li>
                 <li class="card enter" style="--i: 4">
-                    <b>Esecuzione</b>
-                    <span>i passaggi della pipeline e la soluzione</span>
+                    <b>Execution</b>
+                    <span>the pipeline steps and the solution</span>
                 </li>
             </ol>
         </div>
         <div class="demo-frame card enter" style="--i: 1">
-            <iframe title="Editor di ROOC" allow="clipboard-read; clipboard-write" inert></iframe>
-            <button class="demo-activate" aria-label="Usa l'editor"></button>
+            <iframe title="ROOC editor" allow="clipboard-read; clipboard-write" inert></iframe>
+            <button class="demo-activate" aria-label="Use the editor"></button>
             <div class="demo-offline">
-                <img src="/src/assets/editor-hover.webp" alt="Hover sulla costante T che mostra il tipo Integer[][]" />
-                <img src="/src/assets/editor-error.webp" alt="Errore BinOpError: l'operatore * non si applica a Number[] e Number" />
-                <img src="/src/assets/editor-complete.webp" alt="Completamento che suggerisce la funzione len con la sua firma" />
-                <img src="/src/assets/editor-run.webp" alt="Esecuzione riuscita: valore ottimo 77/18 e valori delle variabili" />
+                <img src="/src/assets/editor-hover.webp" alt="Hovering over the constant T shows its type, Integer[][]" />
+                <img src="/src/assets/editor-error.webp" alt="BinOpError: the * operator cannot be applied to Number[] and Number" />
+                <img src="/src/assets/editor-complete.webp" alt="Completion suggesting the len function with its signature" />
+                <img src="/src/assets/editor-run.webp" alt="Successful run: optimal value 77/18 and the values of the variables" />
             </div>
         </div>
     </section>
@@ -340,13 +340,13 @@
     <!-- Gli esempi sono generati in linearizzazione.js, una riga per passo;
          le righe successive sono già visibili, attenuate -->
     <section class="slide lin-slide" id="linearizzazione">
-        <h2 class="enter">Linearizzazione</h2>
+        <h2 class="enter">Linearization</h2>
         <div class="lin-body">
             <div class="lin-grid preview-steps">
                 <span></span>
                 <span class="label enter" style="--i: 1">In ROOC</span>
                 <span></span>
-                <span class="label enter" style="--i: 1">Dopo la linearizzazione</span>
+                <span class="label enter" style="--i: 1">After linearization</span>
             </div>
         </div>
     </section>
@@ -354,52 +354,52 @@
     <!-- ==================================================== MICROLP -->
     <!-- Slide discorsiva: il testo compare insieme al titolo, senza passi. Numeri da crates.io, ottobre 2026 -->
     <section class="slide microlp-slide" id="microlp">
-        <h2 class="enter">Il solver <span class="accent">microlp</span></h2>
+        <h2 class="enter">The <span class="accent">microlp</span> solver</h2>
         <div class="microlp-body">
             <p class="enter" style="--i: 1">
-                <code class="accent">microlp</code> nasce come fork di <code>minilp</code>, un solver di
-                programmazione lineare in Rust archiviato dall'autore nel 2020, che risolveva
-                solo problemi con <b>variabili continue</b>.
+                <code class="accent">microlp</code> started as a fork of <code>minilp</code>, a Rust linear
+                programming solver archived by its author in 2020, which only solved problems
+                with <b>continuous variables</b>.
             </p>
             <p class="enter" style="--i: 2">
-                Nella tesi l'ho esteso con le <b>variabili intere e binarie</b> tramite il
-                <span class="nowrap">branch-and-bound</span>, così che possa risolvere anche problemi
-                di programmazione lineare intera mista.
+                In the thesis I extended it with <b>integer and binary variables</b> using
+                <span class="nowrap">branch-and-bound</span>, so it can also solve mixed-integer
+                linear programs.
             </p>
             <p class="enter" style="--i: 3">
-                È il <b>solver predefinito di ROOC</b> e, essendo scritto interamente in Rust,
-                funziona anche nel browser.
+                It is <b>ROOC's default solver</b> and, since it is written entirely in Rust,
+                it also runs in the browser.
             </p>
             <p class="enter" style="--i: 4">
-                Ha superato <b>1,5 milioni di download</b> su crates.io ed è usato da
-                <code>good_lp</code>, la libreria di ottimizzazione più diffusa in Rust.
+                It has passed <b>1.5 million downloads</b> on crates.io and is used by
+                <code>good_lp</code>, the most popular optimization library in Rust.
             </p>
         </div>
     </section>
     <!-- ============================== LIMITAZIONI E SVILUPPI FUTURI -->
     <!-- Il testo compare insieme al titolo, senza passi -->
     <section class="slide future-slide" id="futuro">
-        <h2 class="enter">Limitazioni e <span class="accent">sviluppi futuri</span></h2>
+        <h2 class="enter">Limitations and <span class="accent">future work</span></h2>
         <div class="future-body">
             <div class="enter" style="--i: 1">
-                <h3>Limitazioni</h3>
+                <h3>Limitations</h3>
                 <p>
-                    Pensato per la facilità d'uso e la didattica, il linguaggio non ha alcune
-                    funzionalità di altri linguaggi di modellazione: per esempio un confronto
-                    aritmetico non può comparire in un'espressione logica, come
+                    Designed for ease of use and teaching, the language lacks some features of
+                    other modeling languages: for example, an arithmetic comparison cannot
+                    appear inside a logical expression, as in
                     <code><span class="nowrap">(x + y &lt;= 5) or b</span></code>.
                 </p>
-                <p>L'architettura a pipe permette però di aggiungere nuove funzionalità.</p>
+                <p>The pipe-based architecture, however, makes it possible to add new features.</p>
             </div>
             <div class="enter" style="--i: 2">
-                <h3>Sviluppi futuri</h3>
+                <h3>Future work</h3>
                 <p>
-                    <b>Vincoli indicatore</b>, cioè confronti aritmetici attivati o disattivati da
-                    una condizione logica, linearizzati con la tecnica del big M.
+                    <b>Indicator constraints</b>, that is, arithmetic comparisons switched on or off
+                    by a logical condition, linearized with the big M technique.
                 </p>
                 <p>
-                    Una <b>documentazione o un corso interattivo</b> nella piattaforma web, per
-                    insegnare la programmazione lineare e l'uso di ROOC.
+                    <b>Documentation or an interactive course</b> on the web platform, to teach
+                    linear programming and how to use ROOC.
                 </p>
             </div>
         </div>
@@ -409,25 +409,25 @@
     <!-- Stessa struttura della copertina (copertina.css), titolo più piccolo -->
     <section class="slide title-slide closing-slide" id="chiusura">
         <header class="uni enter" style="--i: 0">
-            <div class="uni-logo" role="img" aria-label="Logo Università degli Studi dell'Aquila"></div>
+            <div class="uni-logo" role="img" aria-label="University of L'Aquila logo"></div>
             <div>
-                <div class="uni-name">Università degli Studi dell'Aquila</div>
-                <div class="uni-dept">Dipartimento di Ingegneria e Scienze dell'Informazione e Matematica</div>
-                <div class="uni-dept">Tesi di Laurea in Informatica</div>
+                <div class="uni-name">University of L'Aquila</div>
+                <div class="uni-dept">Department of Information Engineering, Computer Science and Mathematics</div>
+                <div class="uni-dept">Bachelor's Thesis in Computer Science</div>
             </div>
         </header>
 
         <div class="title-main">
-            <h1 class="enter" style="--i: 1">Grazie per l'attenzione</h1>
+            <h1 class="enter" style="--i: 1">Thank you for listening</h1>
         </div>
 
         <footer class="people">
             <div class="person enter" style="--i: 4">
-                <span class="label">Piattaforma</span>
+                <span class="label">Platform</span>
                 <span class="name">rooc.specy.app</span>
             </div>
             <div class="person enter" style="--i: 5">
-                <span class="label">Codice</span>
+                <span class="label">Code</span>
                 <span class="name">github.com/Specy/rooc</span>
             </div>
             <div class="person enter" style="--i: 6">
@@ -435,7 +435,7 @@
                 <span class="name">github.com/Specy/microlp</span>
             </div>
             <div class="person enter" style="--i: 7">
-                <span class="label">Laureando</span>
+                <span class="label">Candidate</span>
                 <span class="name">Enrico Menichelli</span>
             </div>
         </footer>
@@ -445,9 +445,9 @@
 <div id="progress"></div>
 <nav id="nav">
     <span id="steps" aria-hidden="true"></span>
-    <button id="nav-prev" aria-label="Indietro"><i class="icon" data-icon="chevron-left"></i></button>
+    <button id="nav-prev" aria-label="Previous"><i class="icon" data-icon="chevron-left"></i></button>
     <span id="counter"></span>
-    <button id="nav-next" aria-label="Avanti"><i class="icon" data-icon="chevron-right"></i></button>
+    <button id="nav-next" aria-label="Next"><i class="icon" data-icon="chevron-right"></i></button>
 </nav>
 <div id="blackout"></div>
 <!-- le pagine da stampare, create da deck.js al momento della stampa -->

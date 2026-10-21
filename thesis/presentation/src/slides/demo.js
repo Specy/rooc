@@ -6,8 +6,8 @@ import { DIET_ROOC } from '../diet-rooc.js';
 // compresso con lz-string nell'URL. Il resto dei campi lo completa l'editor.
 const project = {
     id: 'share',
-    name: 'Problema della dieta',
-    description: 'Il modello usato nella presentazione',
+    name: 'Diet problem',
+    description: 'The model used in the presentation',
     content: DIET_ROOC.map(([, line]) => line).join('\n'),
 };
 const url = `https://rooc.specy.app/projects/share?project=${LZString.compressToEncodedURIComponent(JSON.stringify(project))}`;
