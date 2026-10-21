@@ -1,170 +1,170 @@
-# Slide 1: Copertina
+# Slide 1: Cover
 
-ROOC: linguaggio e ambiente integrato per la modellazione e la risoluzione di problemi di ottimizzazione lineare
-
----
-
-# Slide 2: Partiamo da un problema
-
-Vorrei iniziare proponendovi un problema.
-
-[[step 1]]
-Il vostro nutrizionista vi ha dato una dieta da seguire:
-- la dieta richiede di assumere almeno una certa quantità di alcuni macronutrienti
-- ma allo stesso tempo di non superarne altri, per esempio un massimo di 70 g di grassi
-
-[[step 2]]
-Siete al supermercato e dovete comprare gli ingredienti necessari per rispettare la dieta, spendendo il meno possibile.
-Di ogni ingrediente conoscete il costo e i valori nutrizionali per ciascun macronutriente.
-
-[[step 3]]
-Quali ingredienti scegliete?
+ROOC: a language and integrated environment for modeling and solving linear optimization problems
 
 ---
 
-# Slide 3: Il problema della dieta
+# Slide 2: Let's start with a problem
 
-Quello che vi ho appena descritto si chiama "problema della dieta" ed è un esempio classico usato
-per introdurre la programmazione lineare.
-
-Questo problema si può scrivere in modo formale tramite un modello di programmazione lineare.
+I'd like to start by posing a problem.
 
 [[step 1]]
-[[mostra a sinistra la funzione obiettivo e i vincoli in linguaggio naturale, in modo che sembrino simili a una modellazione formale ma restando puramente testuali e colloquiali]]
+Your nutritionist has given you a diet to follow:
+- the diet asks you to get at least a certain amount of some macronutrients
+- but at the same time not to go over others, for example a maximum of 70 g of fat
 
 [[step 2]]
-Prima di scrivere il modello ci servono alcune cose: una tabella $T$ che indica quanti grammi di ogni nutriente ci sono in una porzione di ogni ingrediente, il costo $C_i$ di ogni ingrediente e i valori minimi $Nmin$ e massimi $Nmax$ previsti dalla dieta. Infine ci serve un insieme di variabili decisionali $x_i$ che, per ogni ingrediente $i$, ci dicono quante porzioni di quell'ingrediente acquistiamo.
+You're at the supermarket and you need to buy the ingredients to follow the diet, spending as little as possible.
+For each ingredient you know its cost and its nutritional value for each macronutrient.
 
 [[step 3]]
-[[mostra a destra un modello matematico di ottimizzazione lineare e collega tramite delle frecce la parte testuale al corrispondente modello matematico]]
+Which ingredients do you choose?
+
+---
+
+# Slide 3: The diet problem
+
+What I've just described is called the "diet problem", and it's a classic example used
+to introduce linear programming.
+
+This problem can be written formally as a linear programming model.
+
+[[step 1]]
+[[show the objective function and the constraints in natural language on the left, so that they look like a formal model while staying purely textual and conversational]]
+
+[[step 2]]
+Before writing the model we need a few things: a table $T$ that tells us how many grams of each nutrient there are in one serving of each ingredient, the cost $C_i$ of each ingredient, and the minimum $Nmin$ and maximum $Nmax$ values set by the diet. Finally, we need a set of decision variables $x_i$ that, for each ingredient $i$, tell us how many servings of that ingredient we buy.
+
+[[step 3]]
+[[show a mathematical linear optimization model on the right and connect the text to the matching part of the mathematical model with arrows]]
 
 [[step 4]]
-Quella che abbiamo appena scritto è la formulazione di programmazione lineare del problema della dieta. Come potete notare, i dati del problema non compaiono all'interno del modello: ci sono solo i loro nomi.
+What we've just written is the linear programming formulation of the diet problem. As you can see, the numbers of the problem don't appear in the model: only their names do.
 
 ---
 
-# Slide 4: Modello e istanza
+# Slide 4: Model and instance
 
 [[step 1]]
-Il modello descrive come è formulato il problema,
+The model describes how the problem is formulated,
 
 [[step 2]]
-mentre un'istanza fornisce i dati necessari affinché il modello possa essere risolto da un solver di programmazione lineare.
+while an instance provides the data needed so that the model can be solved by a linear programming solver.
 
 [[step 3]]
-Mettendo insieme modello e istanza otteniamo il modello compilato: le sommatorie vengono espanse e al posto dei nomi dei dati compaiono i loro valori. È questo che un solver sa risolvere.
+Putting the model and the instance together, we get the compiled model: the sums are expanded and the names of the data are replaced by their values. This is what a solver can actually solve.
 
 [[step 4]]
-In generale, per trovare una soluzione ottima serve uno strumento che esegua una serie di passaggi:
+In general, to find an optimal solution we need a tool that goes through a series of steps:
 
-scrittura del modello -> aggiunta dei dati di un'istanza -> conversione nel formato accettato dal solver -> risoluzione tramite solver -> soluzione del problema
-
----
-
-# Slide 5: Gli strumenti esistenti
-
-Nell'ecosistema della programmazione lineare esistono già strumenti in grado di farlo, ma hanno alcune limitazioni:
-- sono vincolati all'ecosistema in cui vengono eseguiti
-- sono delle black box
-- sono difficili da usare per i principianti e poco accessibili
-
-[[step 1]]
-L'obiettivo della mia tesi è risolvere questi tre problemi, realizzando uno strumento che permetta a studenti e persone poco esperte di
-risolvere problemi e imparare la modellazione.
+writing the model -> adding the data of an instance -> conversion to the format accepted by the solver -> solving with the solver -> solution of the problem
 
 ---
 
-# Slide 6: Il linguaggio ROOC
+# Slide 5: Existing tools
 
-Torniamo al problema della dieta.
+In the linear programming ecosystem there are already tools that can do this, but they have some limitations:
+- they are tied to the ecosystem they run in
+- they are black boxes
+- they are hard for beginners to use and not very accessible
 
 [[step 1]]
-[[sinistra il modello matematico]]
+The goal of my thesis is to solve these three problems, by building a tool that lets students and less experienced people
+solve problems and learn modeling.
 
-ROOC è un linguaggio che permette di scrivere in modo formale un modello di ottimizzazione lineare.
+---
+
+# Slide 6: The ROOC language
+
+Let's go back to the diet problem.
+
+[[step 1]]
+[[the mathematical model on the left]]
+
+ROOC is a language for writing a linear optimization model formally.
 
 [[step 2]]
-[[destra il modello riscritto in sintassi ROOC, con le frecce che collegano ogni elemento del modello matematico alla sua traduzione]]
+[[on the right, the model rewritten in ROOC syntax, with arrows connecting each part of the mathematical model to its translation]]
 
-Ogni parte del modello ha il suo corrispettivo: la funzione obiettivo, i vincoli dopo `s.t.`, i dati dell'istanza nel blocco `where` e le variabili, con il loro dominio, nel blocco `define`.
-
----
-
-# Slide 7: ROOC è un compilatore
-
-ROOC usa un compilatore per convertire il modello e i dati dell'istanza nel formato utilizzato dai solver.
-
-In pratica implementa i passaggi visti prima come una pipeline, che va dalla scrittura del modello fino al risultato finale:
-
-[[step 1]] Sorgente (il modello e i dati che abbiamo scritto) ->
-[[step 2]] Model (i dati vengono inseriti nel modello e le sommatorie espanse) ->
-[[step 3]] LinearModel (un modello in forma lineare, facile da convertire nel formato del solver) ->
-[[step 4]] conversione nel formato del solver scelto ->
-[[step 5]] soluzione ottima
-
-E la soluzione risponde alla domanda iniziale: 1,37 porzioni di pollo, 4,44 di riso e niente avocado, per una spesa di 4,28 €.
+Every part of the model has its counterpart: the objective function, the constraints after `s.t.`, the instance data in the `where` block, and the variables, with their domain, in the `define` block.
 
 ---
 
-# Slide 8: Decisioni architetturali
+# Slide 7: ROOC is a compiler
 
-ROOC, insieme al suo solver di default microlp (un altro contributo di questa tesi), è stato sviluppato interamente in Rust, un linguaggio che permette di compilare per molti ambienti diversi, tra cui il web e i sistemi embedded.
+ROOC uses a compiler to convert the model and the instance data into the format used by solvers.
 
-Inoltre i passaggi intermedi tra il modello e la soluzione sono visualizzabili, così da capire come il modello è stato trasformato.
+In practice, it implements the steps we saw earlier as a pipeline that goes from writing the model all the way to the final result:
 
-Mettendo insieme queste due cose è nato un ambiente di sviluppo che gira interamente nel browser, in cui si possono scrivere e risolvere modelli visualizzando tutti i passaggi intermedi.
+[[step 1]] Source (the model and the data we wrote) ->
+[[step 2]] Model (the data is inserted into the model and the sums are expanded) ->
+[[step 3]] LinearModel (a model in linear form, easy to convert into the solver's format) ->
+[[step 4]] conversion to the format of the chosen solver ->
+[[step 5]] optimal solution
+
+And the solution answers the opening question: 1.37 servings of chicken, 4.44 of rice and no avocado, for a total of €4.28.
+
+---
+
+# Slide 8: Architectural decisions
+
+ROOC, together with its default solver microlp (another contribution of this thesis), was developed entirely in Rust, a language that can compile for many different environments, including the web and embedded systems.
+
+On top of that, the intermediate steps between the model and the solution can be displayed, so you can understand how the model was transformed.
+
+Putting these two things together led to a development environment that runs entirely in the browser, where you can write and solve models and see all the intermediate steps.
 
 ---
 
 # Slide 9: Demo
 
-ROOC si comporta come un vero e proprio linguaggio di programmazione: ha un type system e strumenti per il debugging e per verificare la correttezza semantica del modello.
+ROOC behaves like a real programming language: it has a type system, and tools for debugging and for checking that the model is semantically correct.
 
-Vediamolo direttamente nell'editor, con il modello della dieta:
+Let's see it directly in the editor, with the diet model:
 
-- [[step 1]] **Tipi**: passo con il mouse su `T` e l'editor mostra il tipo, `Integer[][]`
-- [[step 2]] **Errori**: scrivo `C * x_i` al posto di `C[i] * x_i` e l'editor segnala subito che `*` non si può applicare a un array e a un numero
-- [[step 3]] **Completamento**: inizio a scrivere `le` e l'editor suggerisce `len` con la sua firma
-- [[step 4]] **Esecuzione**: premo Run e vediamo i passaggi della pipeline e la soluzione, la stessa di prima
+- [[step 1]] **Types**: I hover over `T` and the editor shows its type, `Integer[][]`
+- [[step 2]] **Errors**: I write `C * x_i` instead of `C[i] * x_i` and the editor immediately reports that `*` can't be applied to an array and a number
+- [[step 3]] **Completion**: I start typing `le` and the editor suggests `len` with its signature
+- [[step 4]] **Execution**: I press Run and we see the pipeline steps and the solution, the same one as before
 
 ---
 
-# Slide 10: Linearizzazione
+# Slide 10: Linearization
 
-Un'altra funzionalità fondamentale di ROOC è la capacità di linearizzare modelli non lineari. Per esempio:
+Another key feature of ROOC is its ability to linearize non-linear models. For example:
 
 [[step 1]]
-- il valore assoluto diventa una variabile ausiliaria con due vincoli
+- the absolute value becomes an auxiliary variable with two constraints
 
 [[step 2]]
-- minimo e massimo, quando basta un verso, non richiedono variabili binarie
+- minimum and maximum, when one side is enough, don't need binary variables
 
 [[step 3]]
-- gli operatori logici su variabili booleane diventano vincoli lineari: `x or y` diventa `x + y >= 1`
+- logical operators on boolean variables become linear constraints: `x or y` becomes `x + y >= 1`
 
 ---
 
-# Slide 11: Il solver microlp
+# Slide 11: The microlp solver
 
-Un'altra parte importante della tesi è microlp, un fork di minilp, un solver di programmazione lineare il cui sviluppo era stato archiviato dall'autore. A minilp ho aggiunto il supporto alle variabili intere, trasformandolo in un solver di programmazione lineare intera mista.
+Another important part of the thesis is microlp, a fork of minilp, a linear programming solver whose development had been archived by its author. I added support for integer variables to minilp, turning it into a mixed-integer linear programming solver.
 
-microlp ha avuto un buon riscontro: ha superato il milione e mezzo di download su crates.io ed è usato da good_lp, la libreria di ottimizzazione più diffusa in Rust, come solver scritto interamente in Rust.
-
----
-
-# Slide 12: Limitazioni e sviluppi futuri
-
-## Limitazioni
-
-Essendo pensato soprattutto per la facilità d'uso e la didattica, il linguaggio non ha alcune funzionalità presenti in altri linguaggi di modellazione: per esempio un confronto aritmetico non può comparire dentro un'espressione logica. Tuttavia la sua architettura permette di aggiungerne di nuove in futuro.
-
-## Sviluppi futuri
-
-- Il linguaggio potrebbe supportare i vincoli indicatori, cioè vincoli composti da un'espressione aritmetica e da una condizione logica che li attiva o disattiva, linearizzati tramite la tecnica del big M
-- La piattaforma web potrebbe includere una documentazione o un corso interattivo, per insegnare meglio la programmazione lineare e l'uso di ROOC
+microlp has been well received: it has passed one and a half million downloads on crates.io, and it's used by good_lp, the most popular optimization library in Rust, as its solver written entirely in Rust.
 
 ---
 
-# Slide 13: Chiusura
+# Slide 12: Limitations and future work
 
-Grazie per l'attenzione.
+## Limitations
+
+Since it's designed mainly for ease of use and teaching, the language lacks some features found in other modeling languages: for example, an arithmetic comparison can't appear inside a logical expression. However, its architecture makes it possible to add new ones in the future.
+
+## Future work
+
+- The language could support indicator constraints, that is, constraints made of an arithmetic expression and a logical condition that switches them on or off, linearized with the big M technique
+- The web platform could include documentation or an interactive course, to better teach linear programming and how to use ROOC
+
+---
+
+# Slide 13: Closing
+
+Thank you for listening.
