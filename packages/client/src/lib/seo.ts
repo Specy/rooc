@@ -1,8 +1,11 @@
 export const SITE_URL = 'https://rooc.specy.app';
 
+/** The same Person specy.app defines; the shared `@id` makes it one entity across all the sites. */
 const AUTHOR = {
 	'@type': 'Person',
-	name: 'Specy',
+	'@id': 'https://specy.app/#person',
+	name: 'Enrico Menichelli',
+	alternateName: 'Specy',
 	url: 'https://specy.app',
 	sameAs: ['https://github.com/Specy']
 } as const;
